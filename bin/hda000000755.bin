@@ -1,0 +1,1279 @@
+nsupported url type \"$proto\""
+    }
+    set old $urlTypes($proto)
+    unset urlTypes($proto)
+    return $old
+}
+
+# http::config --
+#
+#	See documentation for details.
+#
+# Arguments:
+#	args		Options parsed by the procedure.
+# Results:
+#        TODO
+
+proc http::config {args} {
+    variable http
+    set options [lsort [array names http -*]]
+    set usage [join $options ", "]
+    if {[llength $args] == 0} {
+	set result {}
+	foreach name $options {
+	    lappend result $name $http($name)
+	}
+	return $result
+    }
+    set options [string map {- ""} $options]
+    set pat ^-([join $options |])$
+    if {[llength $args] == 1} {
+	set flag [lindex $args 0]
+	if {[regexp -- $pat $flag]} {
+	    return $http($flag)
+	} else {
+	    return -code error "Unknown option $flag, must be: $usage"
+	}
+    } else {
+	foreach {flag value} $args {
+	    if {[regexp -- $pat $flag]} {
+		set http($flag) $value
+	    } else {
+		return -code error "Unknown option $flag, must be: $usage"
+	    }
+	}
+    }
+}
+
+# http::Finish --
+#
+#	Clean up the socket and eval close time callbacks
+#
+# Arguments:
+#	token	    Connection token.
+#	errormsg    (optional) If set, forces status to error.
+#       skipCB      (optional) If set, don't call the -command callback. This
+#                   is useful when geturl wants to throw an exception instead
+#                   of calling the callback. That way, the same error isn't
+#                   reported to two places.
+#
+# Side Effects:
+#        Closes the socket
+
+proc http::Finish { token {errormsg ""} {skipCB 0}} {
+    variable $token
+    upvar 0 $token state
+    global errorInfo errorCode
+    if {[string length $errormsg] != 0} {
+	set state(error) [list $errormsg $errorInfo $errorCode]
+	set state(status) error
+    }
+    catch {close $state(sock)}
+    catch {after cancel $state(after)}
+    if {[info exists state(-command)] && !$skipCB} {
+	if {[catch {eval $state(-command) {$token}} err]} {
+	    if {[string length $errormsg] == 0} {
+		set state(error) [list $err $errorInfo $errorCode]
+		set state(status) error
+	    }
+	}
+	if {[info exists state(-command)]} {
+	    # Command callback may already have unset our state
+	    unset state(-command)
+	}
+    }
+}
+
+# http::reset --
+#
+#	See documentation for details.
+#
+# Arguments:
+#	token	Connection token.
+#	why	Status info.
+#
+# Side Effects:
+#       See Finish
+
+proc http::reset { token {why reset} } {
+    variable $token
+    upvar 0 $token state
+    set state(status) $why
+    catch {fileevent $state(sock) readable {}}
+    catch {fileevent $state(sock) writable {}}
+    Finish $token
+    if {[info exists state(error)]} {
+	set errorlist $state(error)
+	unset state
+	eval ::error $errorlist
+    }
+}
+
+# http::geturl --
+#
+#	Establishes a connection to a remote url via http.
+#
+# Arguments:
+#       url		The http URL to goget.
+#       args		Option value pairs. Valid options include:
+#				-blocksize, -validate, -headers, -timeout
+# Results:
+#	Returns a token for this connection. This token is the name of an array
+#	that the caller should unset to garbage collect the state.
+
+proc http::geturl { url args } {
+    variable http
+    variable urlTypes
+    variable defaultCharset
+    variable strict
+
+    # Initialize the state variable, an array. We'll return the name of this
+    # array as the token for the transaction.
+
+    if {![info exists http(uid)]} {
+	set http(uid) 0
+    }
+    set token [namespace current]::[incr http(uid)]
+    variable $token
+    upvar 0 $token state
+    reset $token
+
+    # Process command options.
+
+    array set state {
+	-binary		false
+	-blocksize 	8192
+	-queryblocksize 8192
+	-validate 	0
+	-headers 	{}
+	-timeout 	0
+	-type           application/x-www-form-urlencoded
+	-queryprogress	{}
+	state		header
+	meta		{}
+	coding		{}
+	currentsize	0
+	totalsize	0
+	querylength	0
+	queryoffset	0
+        type            text/html
+        body            {}
+	status		""
+	http            ""
+    }
+    # These flags have their types verified [Bug 811170]
+    array set type {
+	-binary		boolean
+	-blocksize	integer
+	-queryblocksize integer
+	-validate	boolean
+	-timeout	integer
+    }
+    set state(charset)	$defaultCharset
+    set options {-binary -blocksize -channel -command -handler -headers \
+	    -progress -query -queryblocksize -querychannel -queryprogress\
+	    -validate -timeout -type}
+    set usage [join $options ", "]
+    set options [string map {- ""} $options]
+    set pat ^-([join $options |])$
+    foreach {flag value} $args {
+	if {[regexp $pat $flag]} {
+	    # Validate numbers
+	    if {[info exists type($flag)] && \
+		    ![string is $type($flag) -strict $value]} {
+		unset $token
+		return -code error "Bad value for $flag ($value), must be $type($flag)"
+	    }
+	    set state($flag) $value
+	} else {
+	    unset $token
+	    return -code error "Unknown option $flag, can be: $usage"
+	}
+    }
+
+    # Make sure -query and -querychannel aren't both specified
+
+    set isQueryChannel [info exists state(-querychannel)]
+    set isQuery [info exists state(-query)]
+    if {$isQuery && $isQueryChannel} {
+	unset $token
+	return -code error "Can't combine -query and -querychannel options!"
+    }
+
+    # Validate URL, determine the server host and port, and check proxy case
+    # Recognize user:pass@host URLs also, although we do not do anything with
+    # that info yet.
+
+    # URLs have basically four parts.
+    # First, before the colon, is the protocol scheme (e.g. http)
+    # Second, for HTTP-like protocols, is the authority
+    #	The authority is preceded by // and lasts up to (but not including)
+    #	the following / and it identifies up to four parts, of which only one,
+    #	the host, is required (if an authority is present at all). All other
+    #	parts of the authority (user name, password, port number) are optional.
+    # Third is the resource name, which is split into two parts at a ?
+    #	The first part (from the single "/" up to "?") is the path, and the
+    #	second part (from that "?" up to "#") is the query. *HOWEVER*, we do
+    #	not need to separate them; we send the whole lot to the server.
+    # Fourth is the fragment identifier, which is everything after the first
+    #	"#" in the URL. The fragment identifier MUST NOT be sent to the server
+    #	and indeed, we don't bother to validate it (it could be an error to
+    #	pass it in here, but it's cheap to strip).
+    #
+    # An example of a URL that has all the parts:
+    #   http://jschmoe:xyzzy@www.bogus.net:8000/foo/bar.tml?q=foo#changes
+    # The "http" is the protocol, the user is "jschmoe", the password is
+    # "xyzzy", the host is "www.bogus.net", the port is "8000", the path is
+    # "/foo/bar.tml", the query is "q=foo", and the fragment is "changes".
+    #
+    # Note that the RE actually combines the user and password parts, as
+    # recommended in RFC 3986. Indeed, that RFC states that putting passwords
+    # in URLs is a Really Bad Idea, something with which I would agree utterly.
+    # Also note that we do not currently support IPv6 addresses.
+    #
+    # From a validation perspective, we need to ensure that the parts of the
+    # URL that are going to the server are correctly encoded.
+    # This is only done if $::http::strict is true (default 0 for compat).
+
+    set URLmatcher {(?x)		# this is _expanded_ syntax
+	^
+	(?: (\w+) : ) ?			# <protocol scheme>
+	(?: //
+	    (?:
+		(
+		    [^@/\#?]+		# <userinfo part of authority>
+		) @
+	    )?
+	    ( [^/:\#?]+ )		# <host part of authority>
+	    (?: : (\d+) )?		# <port part of authority>
+	)?
+	( / [^\#?]* (?: \? [^\#?]* )?)?	# <path> (including query)
+	(?: \# (.*) )?			# <fragment>
+	$
+    }
+
+    # Phase one: parse
+    if {![regexp -- $URLmatcher $url -> proto user host port srvurl]} {
+	unset $token
+	return -code error "Unsupported URL: $url"
+    }
+    # Phase two: validate
+    if {$host eq ""} {
+	# Caller has to provide a host name; we do not have a "default host"
+	# that would enable us to handle relative URLs.
+	unset $token
+	return -code error "Missing host part: $url"
+	# Note that we don't check the hostname for validity here; if it's
+	# invalid, we'll simply fail to resolve it later on.
+    }
+    if {$port ne "" && $port>65535} {
+	unset $token
+	return -code error "Invalid port number: $port"
+    }
+    # The user identification and resource identification parts of the URL can
+    # have encoded characters in them; take care!
+    if {$user ne ""} {
+	# Check for validity according to RFC 3986, Appendix A
+	set validityRE {(?xi)
+	    ^
+	    (?: [-\w.~!$&'()*+,;=:] | %[0-9a-f][0-9a-f] )+
+	    $
+	}
+	if {$strict && ![regexp -- $validityRE $user]} {
+	    unset $token
+	    # Provide a better error message in this error case
+	    if {[regexp {(?i)%(?![0-9a-f][0-9a-f]).?.?} $user bad]} {
+		return -code error \
+			"Illegal encoding character usage \"$bad\" in URL user"
+	    }
+	    return -code error "Illegal characters in URL user"
+	}
+    }
+    if {$srvurl ne ""} {
+	# Check for validity according to RFC 3986, Appendix A
+	set validityRE {(?xi)
+	    ^
+	    # Path part (already must start with / character)
+	    (?:	      [-\w.~!$&'()*+,;=:@/]  | %[0-9a-f][0-9a-f] )*
+	    # Query part (optional, permits ? characters)
+	    (?: \? (?: [-\w.~!$&'()*+,;=:@/?] | %[0-9a-f][0-9a-f] )* )?
+	    $
+	}
+	if {$strict && ![regexp -- $validityRE $srvurl]}Ê¼  Ë¼  Ì¼  Í¼  Î¼  Ï¼  Ğ¼  Ñ¼  Ò¼  Ó¼  Ô¼  Õ¼  Ö¼  ×¼  Ø¼  Ù¼  Ú¼                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               {
+	    unset $token
+	    # Provide a better error message in this error case
+	    if {[regexp {(?i)%(?![0-9a-f][0-9a-f])..} $srvurl bad]} {
+		return -code error \
+			"Illegal encoding character usage \"$bad\" in URL path"
+	    }
+	    return -code error "Illegal characters in URL path"
+	}
+    } else {
+	set srvurl /
+    }
+    if {[string length $proto] == 0} {
+	set proto http
+    }
+    if {![info exists urlTypes($proto)]} {
+	unset $token
+	return -code error "Unsupported URL type \"$proto\""
+    }
+    set defport [lindex $urlTypes($proto) 0]
+    set defcmd [lindex $urlTypes($proto) 1]
+
+    if {[string length $port] == 0} {
+	set port $defport
+    }
+    if {![catch {$http(-proxyfilter) $host} proxy]} {
+	set phost [lindex $proxy 0]
+	set pport [lindex $proxy 1]
+    }
+
+    # OK, now reassemble into a full URL
+    set url ${proto}://
+    if {$user ne ""} {
+	append url $user
+	append url @
+    }
+    append url $host
+    if {$port != $defport} {
+	append url : $port
+    }
+    append url $srvurl
+    # Don't append the fragment!
+    set state(url) $url
+
+    # If a timeout is specified we set up the after event and arrange for an
+    # asynchronous socket connection.
+
+    if {$state(-timeout) > 0} {
+	set state(after) [after $state(-timeout) \
+		[list http::reset $token timeout]]
+	set async -async
+    } else {
+	set async ""
+    }
+
+    # If we are using the proxy, we must pass in the full URL that includes
+    # the server name.
+
+    if {[info exists phost] && [string length $phost]} {
+	set srvurl $url
+	set conStat [catch {eval $defcmd $async {$phost $pport}} s]
+    } else {
+	set conStat [catch {eval $defcmd $async {$host $port}} s]
+    }
+
+    if {$conStat} {
+	# Something went wrong while trying to establish the connection. Clean
+	# up after events and such, but DON'T call the command callback (if
+	# available) because we're going to throw an exception from here
+	# instead.
+	Finish $token "" 1
+	cleanup $token
+	return -code error $s
+    }
+    set state(sock) $s
+
+    # Wait for the connection to complete.
+
+    if {$state(-timeout) > 0} {
+	fileevent $s writable [list http::Connect $token]
+	http::wait $token
+
+	if {![info exists state]} {
+	    # If we timed out then Finish has been called and the users
+	    # command callback may have cleaned up the token. If so
+	    # we end up here with nothing left to do.
+	    return $token
+	} else {
+	    if {$state(status) eq "error"} {
+		# Something went wrong while trying to establish the connection.
+		# Clean up after events and such, but DON'T call the command
+		# callback (if available) because we're going to throw an
+		# exception from here instead.
+		set err [lindex $state(error) 0]
+		cleanup $token
+		return -code error $err
+	    } elseif {$state(status) ne "connect"} {
+		# Likely to be connection timeout
+		return $token
+	    }
+	    set state(status) ""
+	}
+    }
+
+    # Send data in cr-lf format, but accept any line terminators
+
+    fconfigure $s -translation {auto crlf} -buffersize $state(-blocksize)
+
+    # The following is disallowed in safe interpreters, but the socket is
+    # already in non-blocking mode in that case.
+
+    catch {fconfigure $s -blocking off}
+    set how GET
+    if {$isQuery} {
+	set state(querylength) [string length $state(-query)]
+	if {$state(querylength) > 0} {
+	    set how POST
+	    set contDone 0
+	} else {
+	    # There's no query data.
+	    unset state(-query)
+	    set isQuery 0
+	}
+    } elseif {$state(-validate)} {
+	set how HEAD
+    } elseif {$isQueryChannel} {
+	set how POST
+	# The query channel must be blocking for the async Write to
+	# work properly.
+	fconfigure $state(-querychannel) -blocking 1 -translation binary
+	set contDone 0
+    }
+
+    if {[catch {
+	puts $s "$how $srvurl HTTP/1.0"
+	puts $s "Accept: $http(-accept)"
+	if {$port == $defport} {
+	    # Don't add port in this case, to handle broken servers. [Bug
+	    # 504508]
+	    puts $s "Host: $host"
+	} else {
+	    puts $s "Host: $host:$port"
+	}
+	puts $s "User-Agent: $http(-useragent)"
+	foreach {key value} $state(-headers) {
+	    set value [string map [list \n "" \r ""] $value]
+	    set key [string trim $key]
+	    if {$key eq "Content-Length"} {
+		set contDone 1
+		set state(querylength) $value
+	    }
+	    if {[string length $key]} {
+		puts $s "$key: $value"
+	    }
+	}
+	if {$isQueryChannel && $state(querylength) == 0} {
+	    # Try to determine size of data in channel. If we cannot seek, the
+	    # surrounding catch will trap us
+
+	    set start [tell $state(-querychannel)]
+	    seek $state(-querychannel) 0 end
+	    set state(querylength) \
+		    [expr {[tell $state(-querychannel)] - $start}]
+	    seek $state(-querychannel) $start
+	}
+
+	# Flush the request header and set up the fileevent that will either
+	# push the POST data or read the response.
+	#
+	# fileevent note:
+	#
+	# It is possible to have both the read and write fileevents active at
+	# this point. The only scenario it seems to affect is a server that
+	# closes the connection without reading the POST data. (e.g., early
+	# versions TclHttpd in various error cases). Depending on the platform,
+	# the client may or may not be able to get the response from the server
+	# because of the error it will get trying to write the post data.
+	# Having both fileevents active changes the timing and the behavior,
+	# but no two platforms (among Solaris, Linux, and NT) behave the same,
+	# and none behave all that well in any case. Servers should always read
+	# their POST data if they expect the client to read their response.
+
+	if {$isQuery || $isQueryChannel} {
+	    puts $s "Content-Type: $state(-type)"
+	    if {!$contDone} {
+		puts $s "Content-Length: $state(querylength)"
+	    }
+	    puts $s ""
+	    fconfigure $s -translation {auto binary}
+	    fileevent $s writable [list http::Write $token]
+	} else {
+	    puts $s ""
+	    flush $s
+	    fileevent $s readable [list http::Event $token]
+	}
+
+	if {! [info exists state(-command)]} {
+	    # geturl does EVERYTHING asynchronously, so if the user calls it
+	    # synchronously, we just do a wait here.
+
+	    wait $token
+	    if {$state(status) eq "error"} {
+		# Something went wrong, so throw the exception, and the
+		# enclosing catch will do cleanup.
+		return -code error [lindex $state(error) 0]
+	    }
+	}
+    } err]} {
+	# The socket probably was never connected, or the connection dropped
+	# later.
+
+	# Clean up after events and such, but DON'T call the command callback
+	# (if available) because we're going to throw an exception from here
+	# instead.
+
+	# if state(status) is error, it means someone's already called Finish
+	# to do the above-described clean up.
+	if {$state(status) ne "error"} {
+	    Finish $token $err 1
+	}
+	cleanup $token
+	return -code error $err
+    }
+
+    return $token
+}
+
+# Data access functions:
+# Data - the URL data
+# Status - the transaction status: ok, reset, eof, timeout
+# Code - the HTTP transaction code, e.g., 200
+# Size - the size of the URL data
+
+proc http::data {token} {
+    variable $token
+    upvar 0 $token state
+    return $state(body)
+}
+proc http::status {token} {
+    if {![info exists $token]} { return "error" }    
+    variable $token
+    upvar 0 $token state
+    return $state(status)
+}
+proc http::code {token} {
+    variable $token
+    upvar 0 $token state
+    return $state(http)
+}
+proc http::ncode {token} {
+    variable $token
+    upvar 0 $token state
+    if {[regexp {[0-9]{3}} $state(http) numeric_code]} {
+	return $numeric_code
+    } else {
+	return $state(http)
+    }
+}
+proc http::size {token} {
+    variable $token
+    upvar 0 $token state
+    return $state(currentsize)
+}
+proc http::meta {token} {
+    variable $token
+    upvar 0 $token state
+    return $state(meta)
+}
+proc http::error {token} {
+    variable $token
+    upvar 0 $token state
+    if {[info exists state(error)]} {
+	return $state(error)
+    }
+    return ""
+}
+
+# http::cleanup
+#
+#	Garbage collect the state associated with a transaction
+#
+# Arguments
+#	token	The token returned from http::geturl
+#
+# Side Effects
+#	unsets the state array
+
+proc http::cleanup {token} {
+    variable $token
+    upvar 0 $token state
+    if {[info exists state]} {
+	unset state
+    }
+}
+
+# http::Connect
+#
+#	This callback is made when an asyncronous connection completes.
+#
+# Arguments
+#	token	The token returned from http::geturl
+#
+# Side Effects
+#	Sets the status of the connection, which unblocks
+# 	the waiting geturl call
+
+proc http::Connect {token} {
+    variable $token
+    upvar 0 $token state
+    global errorInfo errorCode
+    if {[eof $state(sock)] ||
+	[string length [fconfigure $state(sock) -error]]} {
+	    Finish $token "connect failed [fconfigure $state(sock) -error]" 1
+    } else {
+	set state(status) connect
+	fileevent $state(sock) writable {}
+    }
+    return
+}
+
+# http::Write
+#
+#	Write POST query data to the socket
+#
+# Arguments
+#	token	The token for the connection
+#
+# Side Effects
+#	Write the socket and handle callbacks.
+
+proc http::Write {token} {
+    variable $token
+    upvar 0 $token state
+    set s $state(sock)
+
+    # Output a block.  Tcl will buffer this if the socket blocks
+    set done 0
+    if {[catch {
+	# Catch I/O errors on dead sockets
+
+	if {[info exists state(-query)]} {
+	    # Chop up large query strings so queryprogress callback can give
+	    # smooth feedback.
+
+	    puts -nonewline $s \
+		    [string range $state(-query) $state(queryoffset) \
+		    [expr {$state(queryoffset) + $state(-queryblocksize) - 1}]]
+	    incr state(queryoffset) $state(-queryblocksize)
+	    if {$state(queryoffset) >= $state(querylength)} {
+		set state(queryoffset) $state(querylength)
+		set done 1
+	    }
+	} else {
+	    # Copy blocks from the query channel
+
+	    set outStr [read $state(-querychannel) $state(-queryblocksize)]
+	    puts -nonewline $s $outStr
+	    incr state(queryoffset) [string length $outStr]
+	    if {[eof $state(-querychannel)]} {
+		set done 1
+	    }
+	}
+    } err]} {
+	# Do not call Finish here, but instead let the read half of the socket
+	# process whatever server reply there is to get.
+
+	set state(posterror) $err
+	set done 1
+    }
+    if {$done} {
+	catch {flush $s}
+	fileevent $s writable {}
+	fileevent $s readable [list http::Event $token]
+    }
+
+    # Callback to the client after we've completely handled everything.
+
+    if {[string length $state(-queryprogress)]} {
+	eval $state(-queryprogress) [list $token $state(querylength)\
+		$state(queryoffset)]
+    }
+}
+
+# http::Event
+#
+#	Handle input on the socket
+#
+# Arguments
+#	token	The token returned from http::geturl
+#
+# Side Effects
+#	Read the socket and handle callbacks.
+
+proc http::Event {token} {
+    variable $token
+    upvar 0 $token state
+    set s $state(sock)
+
+    if {$state(state) eq "header"} {
+	if {[catch {gets $s line} n]} {
+	    return [Finish $token $n]
+	} elseif {$n == 0} {
+	    variable encodings
+	    set state(state) body
+	    if {$state(-binary) || ![string match -nocase text* $state(type)]
+		    || [string match *gzip* $state(coding)]
+		    || [string match *compress* $state(coding)]} {
+		# Turn off conversions for non-text data
+		fconfigure $s -translation binary
+		if {[info exists state(-channel)]} {
+		    fconfigure $state(-channel) -translation binary
+		}
+	    } else {
+		# If we are getting text, set the incoming channel's encoding
+		# correctly. iso8859-1 is the RFC default, but this could be
+		# any IANA charset. However, we only know how to convert what
+		# we have encodings for.
+		set idx [lsearch -exact $encodings \
+			[string tolower $state(charset)]]
+		if {$idx >= 0} {
+		    fconfigure $s -encoding [lindex $encodings $idx]
+		}
+	    }
+	    if {[info exists state(-channel)] && \
+		    ![info exists state(-handler)]} {
+		# Initiate a sequence of background fcopies
+		fileevent $s readable {}
+		CopyStart $s $token
+		return
+	    }
+	} elseif {$n > 0} {
+	    if {[regexp -nocase {^content-type:(.+)$} $line x type]} {
+		set state(type) [string trim $type]
+		# grab the optional charset information
+		regexp -nocase {charset\s*=\s*(\S+)} $type x state(charset)
+	    }
+	    if {[regexp -nocase {^content-length:(.+)$} $line x length]} {
+		set state(totalsize) [string trim $length]
+	    }
+	    if {[regexp -nocase {^content-encoding:(.+)$} $line x coding]} {
+		set state(coding) [string trim $coding]
+	    }
+	    if {[regexp -nocase {^([^:]+):(.+)$} $line x key value]} {
+		lappend state(meta) $key [string trim $value]
+	    } elseif {[string match HTTP* $line]} {
+		set state(http) $line
+	    }
+	}
+    } else {
+	if {[catch {
+	    if {[info exists state(-handler)]} {
+		set n [eval $state(-handler) {$s $token}]
+	    } else {
+		set block [read $s $state(-blocksize)]
+		set n [string length $block]
+		if {$n >= 0} {
+		    append state(body) $block
+		}
+	    }
+	    if {$n >= 0} {
+		incr state(currentsize) $n
+	    }
+	} err]} {
+	    return [Finish $token $err]
+	} else {
+	    if {[info exists state(-progress)]} {
+		eval $state(-progress) \
+			{$token $state(totalsize) $state(currentsize)}
+	    }
+	}
+    }
+
+    if {[eof $s]} {
+	Eof $token
+	return
+    }
+}
+
+# http::CopyStart
+#
+#	Error handling wrapper around fcopy
+#
+# Arguments
+#	s	The socket to copy from
+#	token	The token returned from http::geturl
+#
+# Side Effects
+#	This closes the connection upon error
+
+proc http::CopyStart {s token} {
+    variable $token
+    upvar 0 $token state
+    if {[catch {
+	fcopy $s $state(-channel) -size $state(-blocksize) -command \
+	    [list http::CopyDone $token]
+    } err]} {
+	Finish $token $err
+    }
+}
+
+# http::CopyDone
+#
+#	fcopy completion callback
+#
+# Arguments
+#	token	The token returned from http::geturl
+#	count	The amount transfered
+#
+# Side Effects
+#	Invokes callbacks
+
+proc http::CopyDone {token count {error {}}} {
+    variable $token
+    upvar 0 $token state
+    set s $state(sock)
+    incr state(currentsize) $count
+    if {[info exists state(-progress)]} {
+	eval $state(-progress) {$token $state(totalsize) $state(currentsize)}
+    }
+    # At this point the token may have been reset
+    if {[string length $error]} {
+	Finish $token $error
+    } elseif {[catch {eof $s} iseof] || $iseof} {
+	Eof $token
+    } else {
+	CopyStart $s $token
+    }
+}
+
+# http::Eof
+#
+#	Handle eof on the socket
+#
+# Arguments
+#	token	The token returned from http::geturl
+#
+# Side Effects
+#	Clean up the socket
+
+proc http::Eof {token} {
+    variable $token
+    upvar 0 $token state
+    if {$state(state) eq "header"} {
+	# Premature eof
+	set state(status) eof
+    } else {
+	set state(status) ok
+    }
+    set state(state) eof
+    Finish $token
+}
+
+# http::wait --
+#
+#	See documentation for details.
+#
+# Arguments:
+#	token	Connection token.
+#
+# Results:
+#        The status after the wait.
+
+proc http::wait {token} {
+    variable $token
+    upvar 0 $token state
+
+    if {![info exists state(status)] || [string length $state(status)] == 0} {
+	# We must wait on the original variable name, not the upvar alias
+	vwait $token\(status)
+    }
+
+    return [status $token]
+}
+
+# http::formatQuery --
+#
+#	See documentation for details. Call http::formatQuery with an even
+#	number of arguments, where the first is a name, the second is a value,
+#	the third is another name, and so on.
+#
+# Arguments:
+#	args	A list of name-value pairs.
+#
+# Results:
+#	TODO
+
+proc http::formatQuery {args} {
+    set result ""
+    set sep ""
+    foreach i $args {
+	append result $sep [mapReply $i]
+	if {$sep eq "="} {
+	    set sep &
+	} else {
+	    set sep =
+	}
+    }
+    return $result
+}
+
+# http::mapReply --
+#
+#	Do x-www-urlencoded character mapping
+#
+# Arguments:
+#	string	The string the needs to be encoded
+#
+# Results:
+#       The encoded string
+
+proc http::mapReply {string} {
+    variable http
+    variable formMap
+
+    # The spec says: "non-alphanumeric characters are replaced by '%HH'". Use
+    # a pre-computed map and [string map] to do the conversion (much faster
+    # than [regsub]/[subst]). [Bug 1020491]
+
+    if {$http(-urlencoding) ne ""} {
+	set string [encoding convertto $http(-urlencoding) $string]
+	return [string map $formMap $string]
+    }
+    set converted [string map $formMap $string]
+    if {[string match "*\[\u0100-\uffff\]*" $converted]} {
+	regexp {[\u0100-\uffff]} $converted badChar
+	# Return this error message for maximum compatability... :^/
+	return -code error \
+	    "can't read \"formMap($badChar)\": no such element in array"
+    }
+    return $converted
+}
+
+# http::ProxyRequired --
+#	Default proxy filter.
+#
+# Arguments:
+#	host	The destination host
+#
+# Results:
+#       The current proxy settings
+
+proc http::ProxyRequired {host} {
+    variable http
+    if {[info exists http(-proxyhost)] && [string length $http(-proxyhost)]} {
+	if {![info exists http(-proxyport)] || \
+		![string length $http(-proxyport)]} {
+	    set http(-proxyport) 8080
+	}
+	return [list $http(-proxyhost) $http(-proxyport)]
+    }
+}
+
+# Local variables:
+# indent-tabs-mode: t
+# End:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  /* 
+ * tclAppInit.c --
+ *
+ *	Provides a default version of the main program and Tcl_AppInit
+ *	procedure for Tcl applications (without Tk).
+ *
+ * Copyright (c) 1993 The Regents of the University of California.
+ * Copyright (c) 1994-1997 Sun Microsystems, Inc.
+ * Copyright (c) 1998-1999 by Scriptics Corporation.
+ *
+ * See the file "license.terms" for information on usage and redistribution
+ * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ *
+ * RCS: @(#) $Id: tclAppInit.c,v 1.11 2002/05/31 22:20:22 dgp Exp $
+ */
+
+#include "tcl.h"
+
+#ifdef TCL_TEST
+
+#include "tclInt.h"
+
+extern int		Procbodytest_Init _ANSI_ARGS_((Tcl_Interp *interp));
+extern int		Procbodytest_SafeInit _ANSI_ARGS_((Tcl_Interp *interp));
+extern int		TclObjTest_Init _ANSI_ARGS_((Tcl_Interp *interp));
+extern int		Tcltest_Init _ANSI_ARGS_((Tcl_Interp *interp));
+#ifdef TCL_THREADS
+extern int		TclThread_Init _ANSI_ARGS_((Tcl_Interp *interp));
+#endif
+
+#endif /* TCL_TEST */
+
+#ifdef TCL_XT_TEST
+extern void		XtToolkitInitialize _ANSI_ARGS_((void));
+extern int		Tclxttest_Init _ANSI_ARGS_((Tcl_Interp *interp));
+#endif
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * main --
+ *
+ *	This is the main program for the application.
+ *
+ * Results:
+ *	None: Tcl_Main never returns here, so this procedure never
+ *	returns either.
+ *
+ * Side effects:
+ *	Whatever the application does.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+main(argc, argv)
+    int argc;			/* Number of command-line arguments. */
+    char **argv;		/* Values of command-line arguments. */
+{
+    /*
+     * The following #if block allows you to change the AppInit
+     * function by using a #define of TCL_LOCAL_APPINIT instead
+     * of rewriting this entire file.  The #if checks for that
+     * #define and uses Tcl_AppInit if it doesn't exist.
+     */
+
+#ifndef TCL_LOCAL_APPINIT
+#define TCL_LOCAL_APPINIT Tcl_AppInit    
+#endif
+    extern int TCL_LOCAL_APPINIT _ANSI_ARGS_((Tcl_Interp *interp));
+
+    /*
+     * The following #if block allows you to change how Tcl finds the startup
+     * script, prime the library or encoding paths, fiddle with the argv,
+     * etc., without needing to rewrite Tcl_Main()
+     */
+
+#ifdef TCL_LOCAL_MAIN_HOOK
+    extern int TCL_LOCAL_MAIN_HOOK _ANSI_ARGS_((int *argc, char ***argv));
+#endif
+
+#ifdef TCL_XT_TEST
+    XtToolkitInitialize();
+#endif
+
+#ifdef TCL_LOCAL_MAIN_HOOK
+    TCL_LOCAL_MAIN_HOOK(&argc, &argv);
+#endif
+
+    Tcl_Main(argc, argv, TCL_LOCAL_APPINIT);
+
+    return 0;			/* Needed only to prevent compiler warning. */
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Tcl_AppInit --
+ *
+ *	This procedure performs application-specific initialization.
+ *	Most applications, especially those that incorporate additional
+ *	packages, will have their own version of this procedure.
+ *
+ * Results:
+ *	Returns a standard Tcl completion code, and leaves an error
+ *	message in the interp's result if an error occurs.
+ *
+ * Side effects:
+ *	Depends on the startup script.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+Tcl_AppInit(interp)
+    Tcl_Interp *interp;		/* Interpreter for application. */
+{
+    if (Tcl_Init(interp) == TCL_ERROR) {
+	return TCL_ERROR;
+    }
+
+#ifdef TCL_TEST
+#ifdef TCL_XT_TEST
+     if (Tclxttest_Init(interp) == TCL_ERROR) {
+	 return TCL_ERROR;
+     }
+#endif
+    if (Tcltest_Init(interp) == TCL_ERROR) {
+	return TCL_ERROR;
+    }
+    Tcl_StaticPackage(interp, "Tcltest", Tcltest_Init,
+            (Tcl_PackageInitProc *) NULL);
+    if (TclObjTest_Init(interp) == TCL_ERROR) {
+	return TCL_ERROR;
+    }
+#ifdef TCL_THREADS
+    if (TclThread_Init(interp) == TCL_ERROR) {
+	return TCL_ERROR;
+    }
+#endif
+    if (Procbodytest_Init(interp) == TCL_ERROR) {
+	return TCL_ERROR;
+    }
+    Tcl_StaticPackage(interp, "procbodytest", Procbodytest_Init,
+            Procbodytest_SafeInit);
+#endif /* TCL_TEST */
+
+    /*
+     * Call the init procedures for included packages.  Each call should
+     * look like this:
+     *
+     * if (Mod_Init(interp) == TCL_ERROR) {
+     *     return TCL_ERROR;
+     * }
+     *
+     * where "Mod" is the name of the module.
+     */
+
+    /*
+     * Call Tcl_CreateCommand for application-specific commands, if
+     * they weren't already created by the init procedures called above.
+     */
+
+    /*
+     * Specify a user-specific startup file to invoke if the application
+     * is run interactively.  Typically the startup file is "~/.apprc"
+     * where "app" is the name of the application.  If this line is deleted
+     * then no user-specific startup file will be run under any conditions.
+     */
+
+#ifdef DJGPP
+    Tcl_SetVar(interp, "tcl_rcFileName", "~/tclsh.rc", TCL_GLOBAL_ONLY);
+#else
+    Tcl_SetVar(interp, "tcl_rcFileName", "~/.tclshrc", TCL_GLOBAL_ONLY);
+#endif
+    return TCL_OK;
+}
+                                                                                                                                                                                                                                                                %   .   Ä-   ..  %  èi486-unknown-linux-uclibc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       %   .   %   ..  %  è4.3.5                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           %   .   %   ..  %   
+crtbegin.o  %   	crtendS.o   %   libgcc_eh.a %   crtprec32.o %   libgcc.a%   install-tools   #%   	libgcov.a   $%   include <%   include-fixed   R%   fincludeS%   crtprec80.o T%   crtbeginS.o U%   crtend.oV%   crtbeginT.o W%   crtfastmath.o   X%  Àcrtprec64.o                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ELF                      ”      4     (   U‰åSƒì€=     uH¸    -    ÁøXÿë@£   ÿ…    ¡   9Ørê¸    …Àtƒìh    èüÿÿÿƒÄÆ    ‹]üÉÃU‰åƒìè    ZÂ   ¸    …ÀtRj h   h    èüÿÿÿƒÄƒ=     t¸    …Àtƒìh    ÿĞƒÄÉÃ      ÿÿÿÿÿÿÿÿèüÿÿÿèY    GCC: (Buildroot 2011.02) 4.3.5  .symtab .strtab .shstrtab .rel.text .data .bss .ctors .dtors .eh_frame .jcr .rel.fini .rel.init .comment .note.GNU-stack                                                      4   ®                     	           8                 %             ä                     +             è                      0             è                     7             ì                     >             ğ                      H             ğ                      Q             ğ                     M   	           È        	         [             õ                     W   	           Ğ                 a      0       ú                     j                                                   z                                d  À              	              $                                               ñÿ                                                                                                              (                           ;             H             ^            m                        	 {   ]         ‡                                                     “                          ­               Ë              á               ı                crtstuff.c __CTOR_LIST__ __DTOR_LIST__ __EH_FRAME_BEGIN__ __JCR_LIST__ __do_global_dtors_aux completed.5145 dtor_idx.5147 frame_dummy object.5167 __dso_handle __DTOR_END__ __deregister_frame_info_bases _GLOBAL_OFFSET_TABLE_ __register_frame_info_bases _Jv_RegisterClasses    	               $     +     0     9     E   	  J     S     k   
+  p     |        	  †          —     £                                                       ELF                            4     (   U‰åVSè    [Ã   ³üÿÿÿëÿĞƒî‹ƒøÿuô[^]Ã                   èüÿÿÿ GCC: (Buildroot 2011.02) 4.3.5  .symtab .strtab .shstrtab .rel.text .data .bss .ctors .dtors .eh_frame .jcr .rel.init .comment .note.GNU-stack                                                         4   )                     	                            %             `                      +             `                      0             `                     7             d                     >             h                     H             l                     Q             p                     M   	           $        	         W      0       u                     `              •                                    •   p                                ˆ                 	              ¨  l                                              ñÿ                                                                                                                            '             3                          	                             I            V               crtstuff.c __CTOR_END__ __FRAME_END__ __JCR_END__ __do_global_ctors_aux __DTOR_END__ _GLOBAL_OFFSET_TABLE_    
+     	                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           !<arch>
+/               1326314985  0     0     0       952       `
+   %  P  P  P  P  P  P  P  P  P  P  P  P  P  P  P  P  P  P  òÄ  òÄ  òÄ  òÄ  òÄ  òÄ  òÄ  òÄ  òÄ  òÄ “l “l “l “l “l “l ¤À ÍÜ ÍÜ_Unwind_GetCFA _Unwind_GetIP _Unwind_GetIPInfo _Unwind_SetIP _Unwind_GetLanguageSpecificData _Unwind_GetRegionStart _Unwind_GetDataRelBase _Unwind_GetTextRelBase _Unwind_DeleteException _Unwind_SetGR _Unwind_GetGR _Unwind_FindEnclosingFunction _Unwind_Backtrace __frame_state_for _Unwind_Resume _Unwind_ForcedUnwind _Unwind_RaiseException _Unwind_Resume_or_Rethrow __register_frame_info_bases __register_frame_info __register_frame_info_table_bases __register_frame_info_table __register_frame_table __register_frame _Unwind_Find_FDE __deregister_frame_info_bases __deregister_frame_info __deregister_frame __gnat_default_lock __gnat_default_unlock __gnat_install_locks __gthread_active_p __gthread_mutex_lock __gthread_mutex_unlock __gcc_personality_v0 __emutls_register_common __emutls_get_address //                                              24        `
+unwind-dw2-fde-glibc.o/
+unwind-dw2.o/   1326314882  500   100   100644  60984     `
+ELF                      ,±      4     (   U‰åWVƒì‰Ç‰Uô1É1öŠG¶Â‰EğƒàÓà	ÆƒÁ„ÒxéƒùwöEğ@tƒÈÿÓà	Æ‹Eô‰0‰øZY^_]ÃU‰å‹E‹@H]ÃU‰å‹E‹@L]ÃU‰å‹M‹A`Áè‹U‰‹AL]ÃU‰å‹U‹E‰PL]ÃU‰å‹E‹@P]ÃU‰å‹E‹@\]ÃU‰å‹E‹@X]ÃU‰å‹E‹@T]ÃU‰åƒì‹U‹B…Àt
+QQRjÿĞƒÄÉÃU‰åWVSƒì,è    [Ã   ‹uˆU×¶Ò‰UØ€}×ÿt`ƒâpƒú t&…Òt2ƒú…É   ë'ƒú@tƒúPtƒú0…´   ë‹@Të‹@Xë‹@\‰EÜëÇEÜ    €}×PuFƒàü‹‰MĞpé¯   ÇEÜ    ‰uà‹EØƒàƒøwk‹„ƒ    Øÿà‹‰EĞëJ1ÿÇEĞ    ŠF‰Ğƒà‰ùÓà	EĞƒÇ„Òxêë=Uğ‰ğè^şÿÿ‰Æ‹Eğ‰EĞë)·ë¿‰UĞƒÆë‹‰MĞƒÆë‹‰EĞƒÆëèüÿÿÿƒ}Ğ t$ƒeØpƒ}Øu‹Uà‰UÜ‹MÜMĞ€}× y‹EĞ‹ ‰EĞ‹E‹UĞ‰‰ğƒÄ,[^_]ÃU‰åSƒìè    [Ã   ‰Áƒú
+€¼   tèüÿÿÿÆDl‹E‰‘X[]ÃU‰åVSè    [Ã   ‹U‹E‹uƒø%ŠŒ   öBc@t€|l t‰4‚ë‹‚€ùu‰0ëèüÿÿÿ[^]ÃU‰åVSƒìè    [Ã   ‹M‹Uƒú&Š„   ˆE÷‹4‘öAc@t	‰ğ€|l u€}÷u‹ëèüÿÿÿƒÄ[^]ÃU‰åWVSì<  è    [Ã   ‰Ç‰•Ğşÿÿ‹E‰…èşÿÿÇ…Ôşÿÿ   Eè‰…ÌşÿÿéÀ  Š¶ğG< ‡Ã   <ƒg  <„  wa<
+„S  w#<„K  w<ë)<„-  <	…  é%  <„6  w<„!  <…n  é  <„!  <…Y  é  <„ú  w#<„¹  ‚"  <„Ê  <…,  éù  <„Ç  ‡‰  <„  <…	  é3  <Ow2<0sn<'w<$ƒ`  <"†X  é‹  <.‡q  <)ƒC  ép  <„Ø   w<o†¶   éå   <”„W  w<’…¥  éâ   <–„ƒ  <ñ…  ëƒî0éT  G¶QQÿµÌşÿÿP‹Eè;üÿÿ‰Ç‹uèër¶7ë¾7Gé(  ·7ë¿7ƒÇé  ‹7ƒÇé  ‹7ƒÇé  1ö1ÉŠG‰ĞƒàÓà	ÆƒÁ„Òxíéè  Uì‰øèûÿÿ‰Ç‹uìéÔ  PPF°Pÿuèüÿÿÿ‰ÆƒÄé¼  1ö1ÉŠG‰ĞƒàÓà	ÆƒÁ„ÒxíPPVëÒUğ‰øèËúÿÿ‰ÇPPFPë&1ö1ÉŠG‰ĞƒàÓà	ÆƒÁ„ÒxíUğ‰øè úÿÿ‰ÇPPVÿuèüÿÿÿ‰Æuğë“ƒ½Ôşÿÿ „|  ‹•Ôşÿÿ‹´•äşÿÿé8  ƒ½Ôşÿÿ „]  ÿÔşÿÿé=  ¶‰Uğ‹…ÔşÿÿH9Â=  G)Ğ‹´…èşÿÿéü  ƒ½Ôşÿÿ!  ‹Ôşÿÿ‹´àşÿÿéİ  ƒ½Ôşÿÿ  ‹ÔşÿÿI‹´èşÿÿ‹•Ôşÿÿƒê‹„•èşÿÿ‰„èşÿÿ‰´•èşÿÿé¼  ƒ½ÔşÿÿÄ  ‹µÔşÿÿN‰µàşÿÿ‹„µèşÿÿ‰…Øşÿÿ‹Ôşÿÿƒé‹µÔşÿÿƒî‹”µèşÿÿ‰•Èşÿÿ‹”èşÿÿ‹…àşÿÿ‰”…èşÿÿ‹…Èşÿÿ‰„èşÿÿ‹•Øşÿÿ‰”µèşÿÿéC  ƒ½Ôşÿÿ „K  ÿÔşÿÿ‹Ôşÿÿ‹´èşÿÿ<thw<tM<…&  ëJ<#tb<”t
+< …  ëMŠG<t"w
+şÈ…  ë<t<…ó  ë¶6é·  ·6é¯  ‹6é¨  ‰ğÁø1Æ)Æéš  ÷Şé“  ÷ÖéŒ  Ç…Üşÿÿ    1ÉŠG‰ĞƒàÓà	…ÜşÿÿƒÁ„ÒxéµÜşÿÿé^  ƒ½Ôşÿÿƒ  ƒ­Ôşÿÿ‹µÔşÿÿ‹´µèşÿÿ‰µÈşÿÿ‹•Ôşÿÿ‹Œ•ìşÿÿƒè<‡Q  ¶À‹„ƒ4   Øÿà‹µÈşÿÿ!Îé  ‹…Èşÿÿ™÷ù‰Æéô   ‹µÈşÿÿ)Îéç   ‹…Èşÿÿ™÷ù‰Öé×   ‹µÈşÿÿ¯ñéÉ   ‹µÈşÿÿ	Îé¼   ‹…Èşÿÿ4é®   ‹µÈşÿÿÓæé¡   ‹µÈşÿÿÓîé”   ‹µÈşÿÿÓşé‡   ‹µÈşÿÿ1Îë};ÈşÿÿÀë5;ÈşÿÿÀë*;Èşÿÿ”Àë;ÈşÿÿœÀë;ÈşÿÿŸÀë	;Èşÿÿ•À¶ğë8¿‰Eğ|ëIƒ½Ôşÿÿ tUÿÔşÿÿ¿‰EğƒÇ‹•Ôşÿÿƒ¼•èşÿÿ t!Çëƒ½Ôşÿÿ?w)‹Ôşÿÿ‰´èşÿÿA‰Ôşÿÿ;½Ğşÿÿ‚4úÿÿƒ½Ôşÿÿ uèüÿÿÿ‹µÔşÿÿ‹„µäşÿÿeô[^_]ÃU‰åSƒìè    [Ã   ‹M€»   u
+‰ö@c@uë	èüÿÿÿÆ@p ‰HX[]ÃU‰åWVSì¬   è    [Ã   ‰…Tÿÿÿ‰•Pÿÿÿ½pÿÿÿ¹    ‰Æó¥öEÓ@t	E€€}à u‹E€…Àuƒì‹…Tÿÿÿ‹PH…pÿÿÿMğQècÿÿÿƒÄ‹•TÿÿÿöBc@tÆBp ‹…TÿÿÿÇ@    ‹•Pÿÿÿ‹‚    ƒøtƒø…Œ   ë*VV‹…Pÿÿÿÿ°˜   …pÿÿÿPèüÿÿÿ‹•Pÿÿÿ‹’”   Ğë8‹…Pÿÿÿ‹°œ   1ÿ1ÉŠF‰ĞƒàÓà	ÇƒÁ„ÒxíQQ>j …pÿÿÿP‰ğè•øÿÿ‰…XÿÿÿƒÄ‹…Xÿÿÿ‹•Tÿÿÿ‰BH1ÿ•pÿÿÿ‰•Lÿÿÿëèüÿÿÿ‹•Pÿÿÿ‹DúHƒø‡5  ‹„ƒˆ   Øÿà‹•Pÿÿÿ‹ú‹•TÿÿÿöBc@tÆD:l …XÿÿÿéŠ   ‹•Pÿÿÿ‹ú€|Ü tRRPÿµLÿÿÿèüÿÿÿéĞ   ‹„…pÿÿÿëM‹…Pÿÿÿ‹4øÇ…\ÿÿÿ    1ÉŠF‰ĞƒàÓà	…\ÿÿÿƒÁ„ÒxéPP‹…\ÿÿÿÿµXÿÿÿÿµLÿÿÿ‰ğè®÷ÿÿƒÄ‹•TÿÿÿöBc@tÆD:l ‹•Tÿÿÿ‰ºëpƒì‹…Xÿÿÿ‹•PÿÿÿúëK‹…Pÿÿÿ‹4øÇ…`ÿÿÿ    1ÉŠF‰ĞƒàÓà	…`ÿÿÿƒÁ„ÒxéQQ‹…`ÿÿÿÿµXÿÿÿÿµLÿÿÿ‰ğè1÷ÿÿZP‰ú‹…TÿÿÿèLöÿÿƒÄGƒÿ…­şÿÿ‹•Pÿÿÿ€º»    t‹…TÿÿÿH`   €ë‹•Tÿÿÿb`ÿÿÿeô[^_]ÃU‰åWV‰Æ‰×è=ıÿÿPPÿ·´   Vèüÿÿÿ‰FLƒÄeø^_]ÃU‰åè    YÁ   Æ   Æ   Æ   Æ   Æ
+   Æ   Æ	   Æ   Æ   Æ   Æ   Æ   Æ   Æ   Æ   Æ   ]ÃU‰åSƒìè    [Ã   EğP‹EHPèüÿÿÿƒÄ1Ò…Àt‹Uø‰Ğ‹]üÉÃU‰åWVSƒìLè    [Ã   ‰E¨‰UÀ‹EÇ€       ÇEÈ    Uğ‰U°éB  ‹E¨Š ˆEÏÿE¨¶À‰ÂâÀ   ƒú@uƒà?‹U¯‚°   ‰‚¤   é  ú€   u@ƒà?‰EÄ1ÿ1É‹u¨ŠF‰u¨‰ĞƒàÓà	ÇƒÁ„Òxç‹E¯¸¬   ‹UÄÇDĞ   ‰<ĞéÄ  úÀ   uƒà?‹MÇDÁ    é©  €}Ï/‡š  ‹„ƒœ   ØÿàPP‹u¶–¸   EìPÿu¨‹Eèãòÿÿ‰E¨‹Eì‰†¤   ƒÄée  ‹}¨¶‹U¯‚°   ‰‚¤   G‰}¨éC  ‹u¨·‹}¯‡°   ‰‡¤   ƒÆéf  ‹U¨‹‹u¯†°   ‰†¤   ƒÂ‰U¨éÿ  ÇEÔ    1É‹}¨ŠG‰}¨‰ĞƒàÓà	EÔƒÁ„Òxæ1ÿ1É‹E¨Š@‰E¨‰ĞƒàÓà	ÇƒÁ„Òxç‹U¯º¬   ‹MÔÇDÊ   éS  1ÿ1É‹u¨ŠF‰u¨‰ĞƒàÓà	ÇƒÁ„Òxçë1ÿ1É‹u¨ŠF‰u¨‰ĞƒàÓà	ÇƒÁ„Òxç‹EÇDø    éY  ÇEØ    1É‹u¨ŠF‰u¨‰ĞƒàÓà	EØƒÁ„Òxæ1ÿ1É‹E¨Š@‰E¨‰ĞƒàÓà	ÇƒÁ„Òxç‹UØ‹MÇDÑ   ‰<Ñé  ƒ}È t‹UÈ‹²   ‰uÈëìÀ   T$ƒâğ¹)   ‰×‹uó¥‹E‰   éÈ  ‹U‹’   ‰UĞ¹)   ‹}‰Öó¥‹}È‰º   ‰UÈéŸ  1ÿ1É‹E¨Š@‰E¨‰ĞƒàÓà	ÇƒÁ„Òxç‹U‰º˜   1ÿ1É‹u¨ŠF‰u¨‰ĞƒàÓà	ÇƒÁ„Òxç‹E‰¸”   ë&1ÿ1É‹u¨ŠF‰u¨‰ĞƒàÓà	ÇƒÁ„Òxç‹E‰¸˜   Ç€       é  1ÿ1É‹u¨ŠF‰u¨‰ĞƒàÓà	ÇƒÁ„Òxç‹E‰¸”   éñ  ‹M¨‹U‰Šœ   Ç‚       1ÿ1É‹u¨ŠF‰u¨‰ĞƒàÓà	ÇƒÁ„Òxçş‰u¨é´  1ÿ1É‹E¨Š@‰E¨‰ĞƒàÓà	ÇƒÁ„Òxç‹UÇDú   ‹M¨‰ú1ÿ1É‹u¨ŠF‰u¨‰ĞƒàÓà	ÇƒÁ„Òxçë©1ÿ1É‹E¨Š@‰E¨‰ĞƒàÓà	ÇƒÁ„Òxç‹U°‹E¨èàîÿÿ‰E¨‹U‹‚¬   ¯EğÇDú   é  1ÿ1É‹u¨ŠF‰u¨‰ĞƒàÓà	ÇƒÁ„Òxç‹E‰¸˜   ‹U°‰ğè“îÿÿ‰E¨‹Eğ‹UÇ‚       ¯‚¬   ‰‚”   éÍ  ‹U°‹E¨ècîÿÿ‰E¨‹M‹¬   ¯Eğ‰”   é§  ÇEÜ    1É‹u¨ŠF‰u¨‰ĞƒàÓà	EÜƒÁ„Òxæ1ÿ1É‹E¨Š@‰E¨‰ĞƒàÓà	ÇƒÁ„Òxç‹U¯º¬   ‹MÜÇDÊ   ‰<ÊéJ  1ÿ1É‹u¨ŠF‰u¨‰ĞƒàÓà	ÇƒÁ„Òxç‹U°‰ğèÄíÿÿ‰E¨‹U‹‚¬   ¯EğÇDú   ‰úé  1ÿ1É‹u¨ŠF‰u¨‰ĞƒàÓà	ÇƒÁ„Òxç‹EÇDø   ‰4ø1ÿ1É‹u¨ŠF‰u¨‰ĞƒàÓà	ÇƒÁ„Òxçéøıÿÿ‹U1ÀÇ‚„      ‰‚€   ƒÂƒÀƒø@uåé‘   1ÿ1É‹E¨Š@‰E¨‰ĞƒàÓà	ÇƒÁ„Òxç‹U‰zhëlÇEà    1É‹u¨ŠF‰u¨‰ĞƒàÓà	EàƒÁ„ÒxæÇE¬    1ÿ‹E¨Š@‰E¨‰Ğƒà‰ùÓà	E¬ƒÇ„Òxä‹}¬‹u¯¾¬   ‹EàÇDÆ   ÷ß‰<Æëèüÿÿÿ‹UÀ9U¨s‹u‹¤   ‹}‹G`ÁèGL9Á‚™ùÿÿeô[^_]ÃU‰åWVSƒìLè    [Ã   ‰E¼‰U¨¹0   1À‰×ó«‹E¼Ç@h    Ç@P    ‹PL…Ò„   QQƒÀTP‹M¼‹A`ÁèDÿPèüÿÿÿ‰EÀƒÄ…À…  ‹u¼‹FLf8X¸uƒxwufxÍ€u‹FHHë.€8¸…­  x­   …   fxÍ€…”  ‹}¼‹GHˆ    ‹Q‹E¨Ç€       Ç€˜      ‰Ğ‹u¼+FH‹}¨‰‡”   ÇG   A,)Ğ‰ÇG   A )Ğ‰GÇG   A()Ğ‰GÇG   A$)Ğ‰GÇG4   A)Ğ‰G0ÇG<   A)Ğ‰G8ÇG,   A)Ğ‰G(ÇGD   A8)Ğ‰G@Ç‡´      Æ‡»   1ÀéÓ  ‹U¼‹B\‹M¨‰¤   ‹EÀ+@ƒÀ‰EÄƒÀ	‰EÜ1ÀƒÉÿ‹}Üò®÷Ñ‹UÄÊB	‰EØ‹MÄ€y	eu€y
+hu‹B	‹u¨‰†¼   ƒÂ‰UØƒÁ‰MÜ1öÇE¬    ‹}ØŠG‰}Ø‰Ğƒà‰ñÓà	E¬ƒÆ„Òxä‹}¬‹u¨‰¾°   Uğ‹EØèeêÿÿ‰E¬‹Eğ‰†¬   ‹EÄ€xu‹U¬¶‰†´   B‰U¬ë/ÇEÔ    1ö‹M¬ŠA‰M¬‰ĞƒàŠMÔÓà	ÆƒEÔ„Òxã‹}¨‰·´   ‹E¨Æ€¹   ÿ1ö‹UÜ€:zu6ÇEĞ    1ö‹M¬ŠA‰M¬‰ĞƒàŠMĞÓà	ÆƒEĞ„Òxãu¬‹}¨Æ‡º   ÿEÜ‹EÜ@‰EàUì‰U°ëq<Lu‹M¬Š‹}¨ˆ‡¹   A‰M¬ëV<Ru‹U¬Š‹M¨ˆ¸   B‰U¬ë><Pu,‹E¬@‹}¬¶WWÿu°P‹E¼è3êÿÿ‰E¬‹Eì‹U¨‰‚¨   ƒÄë<Su‹M¨Æ»   ÿEà‹}àŠGÿ„Àu……öu‹u¬¸   …ö„ú   QQ‹UÄ‹Tÿu¨ÿu¼‰ğèòõÿÿ‹M¨Š¸   ƒÄ<ÿt6ƒàƒøt…Àtë!ƒøtƒøuë¸   ë¸   ë¸   ëèüÿÿÿ1À‹}ÀtGÇEÈ    ‹E¨€¸º    t%ÇEÌ    1ÉŠF‰ĞƒàÓà	EÌƒÁ„Òxì‹UÌò‰UÈ‹M¨Š¹   <ÿt RR¶ĞEìPV‹E¼è2éÿÿ‰Æ‹Eì‹}¼‰GPƒÄƒ}È u‰uÈPP‹UÀ‹Tÿu¨ÿu¼‹EÈèõÿÿ1ÀƒÄë¸   eô[^_]ÃU‰åWVSìÜ   è    [Ã   ‰…ÿÿÿ‰Ö¹    1À‹½ÿÿÿó«‹E‹•ÿÿÿ‰BLÇB`   @•0ÿÿÿ‹…ÿÿÿè^ûÿÿ…Àtèüÿÿÿƒ»     tWWƒ.  Pƒ    PèüÿÿÿƒÄ…Àty€»    upÆƒ   Æƒ   Æƒ   Æƒ   Æƒ
+   Æƒ   Æƒ	   Æƒ   Æƒ   Æƒ   Æƒ   Æƒ   Æƒ   Æƒ   Æƒ   Æƒ   ƒìEğP‰ò‹…ÿÿÿè.ğÿÿÇEĞ   ÇEÈ   ÇEÄ    •0ÿÿÿ‹…ÿÿÿèAğÿÿ‹E‹½ÿÿÿ‰GLƒÄeô[^_]ÃU‰åWVì\  …xÿÿÿÿuUè™şÿÿƒÄ…¸şÿÿ‰…´şÿÿ…xÿÿÿ‹•´şÿÿè*úÿÿ‰Æ…Àtƒøu*PPÿu½xÿÿÿWÿUƒÄ…Àuƒşt‹•´şÿÿ‰øèpòÿÿëº¾   ‰ğeø^_]ÃU‰åWVìĞ   ‰Ç‰•,ÿÿÿ‹@‰…0ÿÿÿ‹G‰…4ÿÿÿ…8ÿÿÿ‰…(ÿÿÿ‹•(ÿÿÿ‹…,ÿÿÿè¥ùÿÿ‰Æ¸
+   …öt
+ƒşum¸   Qÿµ4ÿÿÿÿµ,ÿÿÿWÿwÿ7Pjÿ•0ÿÿÿƒÄ …ÀuEƒştE‹Eà…Àt#RRÿµ,ÿÿÿWÿwÿ7j
+jÿĞ‰ÆƒÄ ƒøt ƒøu‹•(ÿÿÿ‹…,ÿÿÿè¦ñÿÿérÿÿÿ¾   ‰ğeø^_]ÃU‰åWVSìÌ   è    [Ã   ‰…0ÿÿÿ‰×…4ÿÿÿ‰…,ÿÿÿ‹•,ÿÿÿ‰øèáøÿÿ‹WH‹0ÿÿÿ;Q”Â¶òÁæ…Àu?‹UÜ…Òt PPWQÿqÿ1‰ğƒÈPjÿÒƒÄ ƒøt"ƒøu…ötèüÿÿÿ‹•,ÿÿÿ‰øèñÿÿë›¸   eô[^_]ÃU‰åWVìP  ‹u…xÿÿÿ‰…¬şÿÿ¹    1À‹½¬şÿÿó«ÇEØ   @‹E@‰EÄ…¸şÿÿ‰…°şÿÿ‰Â‹…¬şÿÿè,øÿÿ…Àufƒ½Xÿÿÿt]1É‹½°şÿÿ‹DÏˆD\<t<u	‹Ï‰DëÇD    AƒùuÙ‹…Lÿÿÿ‰F‹…Pÿÿÿf‰FX‹…lÿÿÿf‰FZ‹Eà‰F‹…tÿÿÿ‰Fë1ö‰ğÄP  ^_]ÃU‰åWVSƒìè    [Ã   ‰Eà‰UÜöBc@t€zp t‰ĞƒÀë‹UÜ‹B…Àuƒì‹MÜ‹QHEğP‰ÈèóìÿÿƒÄ1À‹Uà‹<‚‹MÜ‹4€|l u$…ÿ•Â‹MÜ€|l t„Òt€¼   u‰uì‰7ëèüÿÿÿ…öt„Òt9şt
+¶Œ   ó¤@ƒøu¨‹Eàö@c@t€xp t‰ÂƒÂë‹Mà‹Q1À…ÒuPPjÿuÜèüÿÿÿ‹Uà+BH‹MÜAhƒÄeô[^_]ÃU‰åWVSRPì  è    [Ã   µlÿÿÿÿuU‰ğèèúÿÿ½ìşÿÿ¹    ó¥ƒÄ‹Eƒx •ìşÿÿuè[ıÿÿë‹Eè„üÿÿƒøtèüÿÿÿ•ìşÿÿ…lÿÿÿèœşÿÿ‰Á‹…8ÿÿÿ‰D‹Eì‹Uğ‹]ô‹uø‹}üL‹m ‰ÌÃU‰åWVSRPì   …lÿÿÿ‰…äşÿÿÿuUèUúÿÿ½ìşÿÿ¹    ‹µäşÿÿó¥‹E‹U‰B‹E‰BƒÄ½ìşÿÿ‰ú‹Eèêûÿÿƒøt‹]ô‹uø‹}üÉÃ‰ú‹…äşÿÿè şÿÿ‰Á‹…8ÿÿÿ‰D‹Eì‹Uğ‹]ô‹uø‹}üL‹m ‰ÌÃU‰åWVSRPìà  µlÿÿÿÿuU‰ğè½ùÿÿ½ìşÿÿ¹    ó¥ƒÄµ,şÿÿ…ìşÿÿ‰…$şÿÿ‰òèEõÿÿƒø„»   …À…®   ‹…Ôşÿÿ…Àt&RRÿµ$şÿÿÿu‹Uÿrÿ2jjÿĞƒÄ ƒøtƒøu~…ìşÿÿ‰òèpíÿÿë‹}ÇG    ‹…4ÿÿÿ‰Gµlÿÿÿ¹    ‹½$şÿÿó¥‹•$şÿÿ‹Eè§ûÿÿƒøu;…lÿÿÿ‹•$şÿÿè÷üÿÿ‰Á‹…8ÿÿÿ‰D‹Eì‹Uğ‹]ô‹uø‹}üL‹m ‰ÌÃ¸   ‹]ô‹uø‹}üÉÃU‰åWVSRPì  è    [Ã   ‹Eƒx uƒìPèüÿÿÿ‹]ô‹uø‹}üÉÃƒìµlÿÿÿ‰µäşÿÿÿuU‰ğèrøÿÿ½ìşÿÿ¹    ó¥ƒÄ½ìşÿÿ‰ú‹Eèúÿÿƒøtèüÿÿÿ‰ú‹…äşÿÿè8üÿÿ‰Á‹…8ÿÿÿ‰D‹Eì‹Uğ‹]ô‹uø‹}üL‹m ‰ÌÃ   %  $ >   :;I  $ >  $ >     :;   :;I8
+  	I  
+! I/   I  &   :;  (   :;  '   I  :;  'I   :;I8
+   :;I  & I  ! I   :;I  :;   :;I   :;I  & I  :;   '  :;    I8
+  !:;  " :;I8
+  # :;I8
+  $:;  % :;I  & :;I  '. :;'I   (.:;'I   ) :;I  *.?:;'I   +.?:;'I   , :;I  - :;I  .4 :;I  /  0 1  1  24 :;I  34 1  4.:;'   5.:;'I   6   7. :;'   8.:;'   9 :;I  :.:;'I@  ; :;I  <4 :;I  =.1@  > 1
+  ?.?:;'I@  @ :;I
+  A.?:;'@  B :;I
+  C :;I  D.:;'I@  E :;I  F1XY  G1XY  H1XY  I1XY  J 1  KU  L4 1
+  M4 1  N  O  P.:;'@  Q :;I  R :;I
+  S.?:;'@  T4 :;I  U.?:;'I@  V4 :;I
+  W
+ :;  X4 :;I  Y4 :;I  Z4 :;I  [4 :;I  \U  ]4 :;I
+  ^.:;'@  _1UXY  `. 1@  a 1XY  b4 :;I
+  c4 :;I
+   7         ›        Å      int ¬	  Ö7   ë  Ğ  0  O  	  ã    ½  w  û    Š7   G  ’%     ”>   Ó  	^%   
+(Å   Ñ  
+)Å   #  	Z   Õ   
+“      
+*®   L   %   	S   ü   
+“        „E  f   E    ù  	I  
+;    ø      P  C  P      è  0  5  š  s  E  [    È   3  /    9   ’  !u  "ò  #`  $j  %‹  &\   'ù  (Ê  ){  *„  +.  ,>  -ÿ  .»  /h  0s  1~  2‰  3”  4Ÿ  5ª  6µ  7À  8Ë  9F  :R  ;^  <j  =v  >‚  ?  À š  Á ¦  Â ²  Ã r  Ä ~  Å Š  Æ –  Ç ¢  È ®  É º  Ê Æ  Ë Ò  Ì Ş  Í   Î +  Ï –	  Ğ ¡	  Ñ Ÿ  Ò ³	  Ó ¾	  Ô É	  Õ Ô	  Ö ß	  × ê	  Ø õ	  Ù Z  Ú f  Û r  Ü ~  İ Š  Ş –  ß ¢  à ®  á º  â Æ  ã Ù  ä å  å ñ  æ ı  ç 	  è   é !  ê -  ë 9  ì E  í M  î Y  ï Ó  ğ ß  ñ ë  ò ÷  ó   ô   õ   ö '  ÷ 3  ø ?  ù a  ú n  û {  ü ˆ  ı •  ş ¢  ÿ ¯  €¼  É  ‚Ö  ƒ;  „H  …U  †b  ‡o  ˆ|  ‰‰  Š–  ‹£  Œ°    +  `
+  _  ‘  ’¶  “/
+  ”3  •%  –‚  —]  ˜i  ™Ë  š9  ›#  œi  É  à¶  ğã  ñ%  à
+  áĞ  âè  ãI   ä³   å  æ Œ  ×
+  ­  À Î  €(  À{   ï  Ô  è  ü  >  @  q   ¾    	*  
+  A  5    ú    ‘    Z  İ  ¤  7  é  S  -ı  .=  / S
+  .7     /%   ©  37   ¥  57   
+  ;v  ô¼  õ¼  ö¼  ÷¼  ø¼  ù¼  ú¼  û¼  ü¼  ı¼  ş¼  ÿ¼   ½  ½  ½  ½  ½  ½  ½  ½  ½  	½  
+½  ½  ½  ½  ½  ½  ½  ½  ½  ½  ½  ½  ½  ½  ½  ½  ½  ½  ½  ½  ½  ½   ½  !½  "½  #½  $½  %½  &½  '½  (½  )½  *½  +½  ,½  -½  .½  /½  0½  1½  2½  3½  4½  5½  6½  7½  8½  9½  :½  ;½  <½  =½  >½  ?½  @½  A½  B½  C½  D½  E½  F½  G½  H½  I½  J½  K½  L½  M½  N½  O½  P½  Q½  R½  S½  T½  U½  V½  W½  X½  Y½  Z½  [½  \½  ]½  ^½  _½  `½  a½  b½  c½  d½                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @€  ä   :	  œ  c  ×  á
+  Œ  Ç  ó
+     JA    U–  œ  ­  €  ­   ³  ’   Sø  3  Z6  # ¢  [‹  #O  \
+  #Y  ]
+  # C  g%   ù       €  =  %   ø  6  ­  =  ¡    C  5  €yÍ  reg D,  # cfa E¡   #Hra F¡   #LE  G¡   #PŸ  H†  #T@  M
+  #`ã  P
+  #d»  Q
+  #hF  R<  #l 4  ˜Ø  Ş  €  ó  =  ¡      Àş    €  (  %   ø  6  ­  =   !  >   ,  Z   ¿  +w    —È  # ¬  ˜½  #Ç  ™2	  # }  ¿  @  ø  \½    ]¡   # ¡  ^¡   #‹  _¡   # 4	  p%   U  q7     tL   ß  #	    È  #   ½  #ã  Ó  #Ö  ‘#	  #	 	L   2	  “    	L   A	  “    fde œ@    /£   /	  reg 0
+    1  exp 2	   ‡	  L   4¹	  (	   ‚   Ÿ  À  O  °   .Ş	  loc 3W	  # how ;Œ	  # Fù	  P   4   d   }  ¤-_
+  reg <_
+  # Ñ  ?o
+  #ş  C  #”õ  D
+  #˜ˆ  E	  #œ8  JŞ	  #  	¹	  o
+  
+“    ù	  À)!  #  Kù	  # pc N¡   #¤û  Qó  #¨i  R  #¬Æ  S
+  #°È  T
+  #´ì   UL   #¸¹  VL   #¹	  WL   #ºu  XL   #»Ò  Y¡   #¼ L  Zu
+  	¡   <  
+“    	E   L  
+“    ñ  \  p ]¡   u2 ^S   u4 _7   u8 `v   s2 ah   s4 b%   s8 co    7  "Á  ~  #%   7  $¡    Ê  %  @ñ  t  Aˆ   # å   B}   # G$  %  H%   # y  I%   #Ç  JÁ  # OW  t  Pˆ   # å   Q}   #Ç  RÁ  # W¦  t  Xˆ   # å   Y}   #õ  Z%   #¿  [–   #—  \–   # a½  Q  b¡   #  gâ    h>   # /  i%   # t;8  Å  <8    CÌ  c  Kñ  _rt S$  ó  ]W  µ  c¦  Ö  j½   	%   H  
+“    6  €4  `  5%   # ï  6%   #ˆ  8%   #!  kâ  #     7   †  v   [  0ş  Ç  •  # ˆ	  •  #¤     #k  !•  #  &ş  # 	•    
+“    À  
+87  ı  97  # *  :S   # 	S   G  
+“    Ç  =~  ı  >7  # *  ?S   #  @ì   #
+ ç  C™  m  D™  #  	Z   ©  
+“    0\È  ˜  ]È  
+  ^«   	Z   Ø  
+“    R  pGÒ  cw IZ   # sw JZ   #tag KZ   #  LZ   #  MZ   #u  NZ   #1  OZ   #_st PÒ  #û  QS   #l/  RS   #nÊ  Uâ  #pM
+  VZ   #ˆ   WZ   #Œ  Xò  #@  Y  #  Z  # ©  #À 	  â  
+“    	Z   ò  
+“    	G    
+“    	~    
+“    	Z   "  
+“   + €  Xh±  gs iS   # g  iS   #fs jS   #   jS   #es kS   #ü  kS   #
+ds lS   #C   lS   #edi mZ   #esi nZ   #ebp oZ   #esp pZ   #ebx qZ   # edx rZ   #$ecx sZ   #(eax tZ   #,Y  uZ   #0err vZ   #4eip wZ   #8cs xS   #<º  xS   #>S  yZ   #@  zZ   #Dss {S   #Hë  {S   #JÂ  |±  #L—  }Z   #Pcr2 ~Z   #T Ø  g  3î  s  4¡   # (  5%   #´  6,   # Â  7·  Ü  %     %  	ù    
+“    ®  
+VH  ı  W7  # *  XS   # U  p\Ñ  cw ]Z   # sw ^Z   #tag _Z   #  `Z   #  aZ   #u  bZ   #1  cZ   #_st dÑ  #û  eZ   #l 	  á  
+“    ¿  iì  H  Xm3  w  n  #   qá  #L—  rZ   #Pcr2 sZ   #T J  tò  W  äxŸ  §  yZ   # 8  zŸ  #–  {î  #Ù  |3  #]  }Õ   #l…  ~H  #t >  !´  pŸ+  "cfa  ¡   # #Ò  ¡¡   ##ş  ¢>   ##»  £>   ##E  ¤+  ##õ  ¥S   #X#È  ¦S   #Z#ï  §<  #\ 	>   ;  
+“    $İ]  %ptr İ   &+  İ
+   Ù  İ;  'Ê  Õ%   („  –
+  “  )&  •=   (y  ‡
+  °  )&  †=   *7  Ã
+  Î  )&  Â=   +j  L   î  ,&  K=   +  F     ,&  E=   +ä  4   .  ,&  3=   ({  ‰	  u  -p ˆ	  -val ˆu  .Î  Š7   .º  ‹L   .E  Œ4   4  (ó  k   À  )«  jL   )&  j=  /­  0á   /¸  0   10!    (Ü  ¼	  £  )«  ºL   )   º   -p »	  -val »£  ñ  ¾O  ptr ¿¡   u2 ÀS   u4 Á7   u8 Âv   s2 Ãh   s4 Ä%   s8 Åo    2u È©  .E  É+  /r  2a Í+   /•  10H  0?  13S  3^  3i     12tmp å(       ¯  ñ  û  (  k¡   İ  -p kü   2up kİ   ã  ñ  L  (%  n%     -p nü    (  q%   "  -p qü    (W  t%   G  -p tü   2up tİ   (O  w%   l  -p wü   2up wİ   (í  z7   ‘  -p zü   2up zİ   (å  }%   ¶  -p }ü   2up }İ   (U  €Z   Û  -p €ü   2up €İ   (M  ƒZ      -p ƒü   2up ƒİ   4
+  ó4  )&  ò=  )  ò%   -p ò¡   10‡    (Ô   è¡   c  )&  ç=  )  ç%   10‡    (i  »¡   ‹  )&  º=  )  º%    5Ï
+  %   ¶  ,&  =  ,  %    4x  Ú  )&  Œ=  -val Œ%    (š   {€    )&  y=  -fs z  2pc |à   2sc }‡  .¤  ~>   1i  pŠt  sig ‹%   # À  Œ  #puc ¡   #$  H  #uc >  #Œ 2rt_ “    !  "  H     (õ  ¢´  ´  -f ¡w   º  ß  Ş  (›  ¨Ş  Ş  -f §Ş   ä  A	  (e  N7     )«  ML    5ã  ‹%   2  ,%  Š2  ,‹  Š  6 L	  7s
+  Š8Æ  vh  ,&  u=  9fs u   5¥
+        ,&  ÿ=  10Â    :@
+  Ÿ	      G       ô  ;p 	  ,   ;val ô  J   <Î   7   i   <º  ¡L   |   <E  ¢4      (  =°  G   R   ¢     >Â  ‘  ?}     R   ]   Î   F  @&  =  ‘  ?     ]   s   ú   ƒ  @&  =  ‘ @X	  æ   ‘ Az	  (s      &  ¼  @&  '=  ‘ Bval '   ‘ ?Ù  .¡      Œ   R  ê  @&  -=  ‘  =  Œ   —   ~    >!  ‘  =î  —   ¢   ª  &  >  ‘  =Î  ¢   ­   Ö  D  >á  ‘  AZ  ­   É     o  Cexc ­  .   Dg	  	  É     Y  ã  E&  =  …  E«  L   Ï  Cp 	  î  Bval £  ‘F{  ê   7  /  0—  0Œ  GÎ    #  w   0;   Gî  #  (  y  0   H  (  0  {0ÿ    IÀ  7    0ğ  0ç  JÜ    0Ñ  K    LO  u`MX  9  N€  ˜  ¶  H.  €  ˜  Ş0H  0?  O€  ˜  MS  ¡  M^  Ê  3i     N=  W  Í  Mh  ş   O¤  ¬  M–        PV  ÿ  I  <  (  Q&  ı=  h  Q  ı%   ‘  Rval ş
+  ‘  S–  ËI  –  ¯  ‰  Q&  Ê=  Û  Q  Ê%     ;val Ê
+  0  .	  Ì%   Tptr Í¡   [   U  
+  –  ç  y  ß  Q&  =  ¥  Q  %   Ï  .	  Ÿ%   Tptr  ¡   ù   D 
+  ¹
+  ç  	    !"  Eb  ·	  8  EÈ
+  ·	  V  E&  ¸=  v  Ek
+  ¸
+  ¢  V_  º!"  ‘à}V  »%   uÔ}W€  OO  è  Xop Â  Â  YE  Ã
+  Ç  Zreg Ä4  [Ô  Ä4  Y  Å(  	  Vê  Å(  ul\   Ü  V"  ó   uh FÛ  ½  ¿     0ì  O½  ¿  3õ    F.  Ë  ã  E   0H  0?  OË  ã  MS  D	  M^  m	  3i    F.    &  E‰   0H  0?  O  &  MS  %
+  M^  C
+  Mi  l
+    F.  C  V  mÍ   0H  0?  OC  V  MS  Š
+  M^  
+  Mi  »
+    Nî  ,  é   Xt ‰
+  Î
+   N,  ¥   !  ]t1 “
+  uØ}Zt2 “
+  ]t3 “
+  uÈ} Në  #  _!  Zptr ¶¡   I¶    #  Ã0Ç  O  #  3Ğ     F.  K  b  Ö£!  0H  0?  OK  b  MS  ÷
+  M^     Li  uÜ}  Nm  “  Ñ!  Y  ò
+  Ø  VÄ  ò
+  uÈ} FG  “  –  6ú!  0X  O“  –  3a    IG  ®  ±  ?0X  O®  ±  3a      	
+  1"  
+“   ? ^  â	  P	    £"  E&  à=  -  Ccfa à¡   K  E´  á£"  i  [	  ã%   _   0   ì0#  0  0    ]  ^  ñP	    “  ]%  E&  ğ=  ¿  Cfs ğ  ê  VÚ  òC  ‘è~Xcfa ó¡   
+  Xi ô>   ,  V´  ]  ‘hF4  ƒ	  •	  =#  0P  0E   F   ·	  Ô	  
+a#  0#  0  0   Fc  ğ	  
+
+  €#  0  0t   N
+  [
+  ê#  Xexp 	  J  Zlen 4  I.  *
+  =
+  0H  0?  O*
+  =
+  MS  ~  M^  ‘  Mi  ¯     \H   `$  Xexp Q	  Â  Zlen R4  Xval S   à  I.    ˜  U0H  0?  O  ˜  MS  ó  M^    Li  uà~   F   §
+  Ã
+  -„$  0#  0  0   F4  æ
+  ï
+  7£$  0P  0E   Nï
+  X  A%  Xexp >	  $  Zlen ?4  Xval @   B  F.      B %  0H  0?  O    MS  v  M^  ‰  Li  uÜ~  I   9  X  E0#  0  0    I¶  Ò  ı  ]0Î  0Ã    ^  k  .  §  ±%  E&  j=  Ó  Cfs j  ñ  Ic    !  p0  0t    `8  .  ¯    ?¦  :¡   ¯  ã  ;  &  Cpc 9¡   g  VŸ  ;†  ‘hXfde <w  ‡   ^×  cã  Œ  š  -  E	  _	  Æ  EQ  `	  æ  E&  a=    Cfs b  =  V*   do
+  uHO  _  Y¶  uL   t  ]reg v4  uD[Ô  v4  [  w(  Yê  w(  µ  F.  e  ~  ~
+'  0H  0?  Oe  ~  MS  à  M^  	  Mi  '    NË  ú  ''  Xpc    P   F.  i  ‡  £j'  0H  0?  Oi  ‡  MS  {  M^    Li  uT  F.  ‡     ¤®'  0H  0?  O‡     MS  ¬  M^  ¿  Mi  İ    F.  ¾  Ù  ¬ò'  0H  0?  O¾  Ù  MS    M^  E  Mi  y    F.  İ  ö  ´6(  0H  0?  Oİ  ö  MS  ­  M^  Ö  Mi  ÿ    N  \  Ó(  [‡  ½4  F.    -  ¾’(  0H  0?  O  -  MS  (  M^  ;  Li  uX  I.  -  F  ¿0H  0?  O-  F  MS  Y  M^  l  Mi  Š     N\  —  ñ(  Y-  Èo
+  ³   N—  Ä  )  V“   Øo
+  uP F.  Ä  İ  àR)  0H  0?  OÄ  İ  MS  Ü  M^  ï  Mi      F.  ê    â–)  0H  0?  Oê    MS     M^  T  Mi  ˆ    F.    +  èÚ)  0H  0?  O  +  MS  ¼  M^  å  Mi      F.  G  `  î*  0H  0?  OG  `  MS  7  M^  `  Mi  ‰    F.  ˆ  ¡  öb*  0H  0?  Oˆ  ¡  MS  ²  M^  Û  Mi      F.  ¯  È  û¦*  0H  0?  O¯  È  MS  -  M^  @  Mi  ^    F.  İ  ø  şê*  0H  0?  Oİ  ø  MS  q  M^  ¥  Mi  Ù    F.  ü    .+  0H  0?  Oü    MS    M^     Mi  >    F.  A  Z  r+  0H  0?  OA  Z  MS  r  M^  …  Mi  £    F.  Á  ß  µ+  0H  0?  OÁ  ß  MS  Ì  M^  ß  Li  u\  F.  ß  ø  ù+  0H  0?  Oß  ø  MS  ı  M^    Mi  .    F.    2  &=,  0H  0?  O  2  MS  W  M^  j  Mi  ˆ    F.  `  y  /,  0H  0?  O`  y  MS  ±  M^  Ä  Mi  â    F.  ‹  ©  3Å,  0H  0?  O‹  ©  MS  õ  M^  )  Mi  ]    F.  Ò  ë  A	-  0H  0?  OÒ  ë  MS  ‘  M^  º  Mi  Ø    F.  ü    HL-  0H  0?  Oü    MS    M^    Li  u`  I.    ;  I0H  0?  O  ;  MS  2  M^  P  Li  u¬    5  \	  .  9cie Z´  ,&  Z=  9fs [  Zaug ]	  Zp ^	  Zret _	  [Ô  `4  [ê  a(  /.  [û  ›    /!.  0É  13Ò    /B.  0H  0?  13S  3^  3i    /c.  0H  0?  13S  3^  3i    10H  0?  13S  3^  3i     D	  ]€  Œ  Û  y  ,1  E&  \=  ¥  Cfs \  Å  ]fde ^w  u@Xcie _´  å  Xaug `	    Y¶  `	  #  Zend `	  FÚ  õ     q[/  0ö  0ë  Oõ     M   ë  M
+    M  =  O:  F  3t     F™      yu/  0ª   F-    Ì  zŸ0  0¸-  0¬-  0 -  K`   MÃ-  [  MÏ-  {  3Ù-  3å-  Mñ-  ›  \   Õ/  M.  »   F.  h  „  n0  0H  0?  Oh  „  MS  ò  M^    Mi  .    F.  Ë  è  v]0  0H  0?  OË  è  MS  P  M^  p  Mi      I.    +  €0H  0?  O  +  MS  ¡  M^  Á  Mi  ß      Fé  ú  9  …¹0  0ú   N\  x  1  Zi ‰4  I.  \  p  Š0H  0?  O\  p  MS  ò  M^    Mi  #     O…  ¥  YE     C    ^¤  ‘Û  &  z  ı1  E&  =  ¦  E]  ¡   Æ  @  ¡   ‘ Zra ’¡   ]fs “!  ‘¨~VK  ”]  ‘hY@  •€  ä  N7  Õ  ê1  F  7  U  ¡Ù1  0$  0   a8  e  Õ  £ Vª   L	       ?/  €  &  ¥    u2  Eâ  Í  9  E¹
+  ¡   e  V&  C  ‘ğ~Y@  €  ‘  OE  œ  ]fs $!  ‘°}  :)  •€  ¥  r  º  -3  ;exc “­  æ  Q&  ”=     b	  –  u°~b  —¡   u´~<@  ˜€  $   <t  ˜€  M   OÊ  i  cfs œ!  ‘°~<,  %   k   HB  N  i  ¾0\  0P     :s  -€  r    ‰   3  ;exc +­  µ   Q&  ,=  Õ   <@  .€  ó   O’    cfs 2!  ‘¬~<e  3%   '!    ?e  ²4    Ø  :!  4  EE  ±¡   f!  E!   ±4  †!  V&  ³C  ‘ğ~]fs ´!  ‘°}Xreg µ%   ±!   ¥  DÏ  É>   Ø  Æ  Ï!  '5  EZ  Ç=  û!  E¸  È=  "  Xi Ê>   9"  VK  Ë]  ‘hF4  ó    Ï‹4  0P  0E   N)  {  Ö4  Xc Ô¡   W"  Xt Õ¡   j"  OO  e  ]w Ú
+  ulZp Û     F4      ïõ4  0P  0E   O£  ¾  [¼  ñ¡   Ic  £  ¯  ó0  0t     SX  áÆ  a  }"  ¥5  ;exc à­  ©"  b   âC  ‘ä~b  âC  ‘ä}<@  ã€  É"  O+  D  <  ñ>   ç"  <®  ñ¡   ú"    Uˆ  Ê€  a  ı  #  E6  ;exc È­  9#  Q	  É  Y#  Q  É¡   y#  b   ËC  ‘ä~b  ËC  ‘ä}<@  Ì€  ™#  OË  Ú  <  Ø>   ·#  <®  Ø¡   Ê

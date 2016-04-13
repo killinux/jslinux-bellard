@@ -1,0 +1,1859 @@
+ts' - The output section does not have the
+     `SEC_HAS_CONTENTS' attribute, so nothing can be written to it.
+
+   * and some more too
+   This routine is front end to the back end function
+`_bfd_set_section_contents'.
+
+2.6.5.15 `bfd_get_section_contents'
+...................................
+
+*Synopsis*
+     bfd_boolean bfd_get_section_contents
+        (bfd *abfd, asection *section, void *location, file_ptr offset,
+         bfd_size_type count);
+   *Description*
+Read data from SECTION in BFD ABFD into memory starting at LOCATION.
+The data is read at an offset of OFFSET from the start of the input
+section, and is read for COUNT bytes.
+
+   If the contents of a constructor with the `SEC_CONSTRUCTOR' flag set
+are requested or if the section does not have the `SEC_HAS_CONTENTS'
+flag set, then the LOCATION is filled with zeroes. If no errors occur,
+`TRUE' is returned, else `FALSE'.
+
+2.6.5.16 `bfd_malloc_and_get_section'
+.....................................
+
+*Synopsis*
+     bfd_boolean bfd_malloc_and_get_section
+        (bfd *abfd, asection *section, bfd_byte **buf);
+   *Description*
+Read all data from SECTION in BFD ABFD into a buffer, *BUF, malloc'd by
+this function.
+
+2.6.5.17 `bfd_copy_private_section_data'
+........................................
+
+*Synopsis*
+     bfd_boolean bfd_copy_private_section_data
+        (bfd *ibfd, asection *isec, bfd *obfd, asection *osec);
+   *Description*
+Copy private section information from ISEC in the BFD IBFD to the
+section OSEC in the BFD OBFD.  Return `TRUE' on success, `FALSE' on
+error.  Possible error returns are:
+
+   * `bfd_error_no_memory' - Not enough memory exists to create private
+     data for OSEC.
+
+     #define bfd_copy_private_section_data(ibfd, isection, obfd, osection) \
+          BFD_SEND (obfd, _bfd_copy_private_section_data, \
+                    (ibfd, isection, obfd, osection))
+
+2.6.5.18 `bfd_generic_is_group_section'
+.......................................
+
+*Synopsis*
+     bfd_boolean bfd_generic_is_group_section (bfd *, const asection *sec);
+   *Description*
+Returns TRUE if SEC is a member of a group.
+
+2.6.5.19 `bfd_generic_discard_group'
+....................................
+
+*Synopsis*
+     bfd_boolean bfd_generic_discard_group (bfd *abfd, asection *group);
+   *Description*
+Remove all members of GROUP from the output.
+
+
+File: bfd.info,  Node: Symbols,  Next: Archives,  Prev: Sections,  Up: BFD front end
+
+2.7 Symbols
+===========
+
+BFD tries to maintain as much symbol information as it can when it
+moves information from file to file. BFD passes information to
+applications though the `asymbol' structure. When the application
+requests the symbol table, BFD reads the table in the native form and
+translates parts of it into the internal format. To maintain more than
+the information passed to applications, some targets keep some
+information "behind the scenes" in a structure only the particular back
+end knows about. For example, the coff back end keeps the original
+symbol table structure as well as the canonical structure when a BFD is
+read in. On output, the coff back end can reconstruct the output symbol
+table so that no information is lost, even information unique to coff
+which BFD doesn't know or understand. If a coff symbol table were read,
+but were written through an a.out back end, all the coff specific
+information would be lost. The symbol table of a BFD is not necessarily
+read in until a canonicalize request is made. Then the BFD back end
+fills in a table provided by the application with pointers to the
+canonical information.  To output symbols, the application provides BFD
+with a table of pointers to pointers to `asymbol's. This allows
+applications like the linker to output a symbol as it was read, since
+the "behind the scenes" information will be still available.
+
+* Menu:
+
+* Reading Symbols::
+* Writing Symbols::
+* Mini Symbols::
+* typedef asymbol::
+* symbol handling functions::
+
+
+File: bfd.info,  Node: Reading Symbols,  Next: Writing Symbols,  Prev: Symbols,  Up: Symbols
+
+2.7.1 Reading symbols
+---------------------
+
+There are two stages to reading a symbol table from a BFD: allocating
+storage, and the actual reading process. This is an excerpt from an
+application which reads the symbol table:
+
+              long storage_needed;
+              asymbol **symbol_table;
+              long number_of_symbols;
+              long i;
+
+              storage_needed = bfd_get_symtab_upper_bound (abfd);
+
+              if (storage_needed < 0)
+                FAIL
+
+              if (storage_needed == 0)
+                return;
+
+              symbol_table = xmalloc (storage_needed);
+                ...
+              number_of_symbols =
+                 bfd_canonicalize_symtab (abfd, symbol_table);
+
+              if (number_of_symbols < 0)
+                FAIL
+
+              for (i = 0; i < number_of_symbols; i++)
+                process_symbol (symbol_table[i]);
+
+   All storage for the symbols themselves is in an objalloc connected
+to the BFD; it is freed when the BFD is closed.
+
+
+File: bfd.info,  Node: Writing Symbols,  Next: Mini Symbols,  Prev: Reading Symbols,  Up: Symbols
+
+2.7.2 Writing symbols
+---------------------
+
+Writing of a symbol table is automatic when a BFD open for writing is
+closed. The application attaches a vector of pointers to pointers to
+symbols to the BFD being written, and fills in the symbol count. The
+close and cleanup code reads through the table provided and performs
+all the necessary operations. The BFD output code must always be
+provided with an "owned" symbol: one which has come from another BFD,
+or one which has been created using `bfd_make_empty_symbol'.  Here is an
+example showing the creation of a symbol table with only one element:
+
+            #include "bfd.h"
+            int main (void)
+            {
+              bfd *abfd;
+              asymbol *ptrs[2];
+              asymbol *new;
+
+              abfd = bfd_openw ("foo","a.out-sunos-big");
+              bfd_set_format (abfd, bfd_object);
+              new = bfd_make_empty_symbol (abfd);
+              new->name = "dummy_symbol";
+              new->section = bfd_make_section_old_way (abfd, ".text");
+              new->flags = BSF_GLOBAL;
+              new->value = 0x12345;
+
+              ptrs[0] = new;
+              ptrs[1] = 0;
+
+              bfd_set_symtab (abfd, ptrs, 1);
+              bfd_close (abfd);
+              return 0;
+            }
+
+            ./makesym
+            nm foo
+            00012345 A dummy_symbol
+
+   Many formats cannot represent arbitrary symbol information; for
+instance, the `a.out' object format does not allow an arbitrary number
+of sections. A symbol pointing to a section which is not one  of
+`.text', `.data' or `.bss' cannot be described.
+
+
+File: bfd.info,  Node: Mini Symbols,  Next: typedef asymbol,  Prev: Writing Symbols,  Up: Symbols
+
+2.7.3 Mini Symbols
+------------------
+
+Mini symbols provide read-only access to the symbol table.  They use
+less memory space, but require more time to access.  They can be useful
+for tools like nm or objdump, which may have to handle symbol tables of
+extremely large executables.
+
+   The `bfd_read_minisymbols' function will read the symbols into
+memory in an internal form.  It will return a `void *' pointer to a
+block of memory, a symbol count, and the size of each symbol.  The
+pointer is allocated using `malloc', and should be freed by the caller
+when it is no longer needed.
+
+   The function `bfd_minisymbol_to_symbol' will take a pointer to a
+minisymbol, and a pointer to a structure returned by
+`bfd_make_empty_symbol', and return a `asymbol' structure.  The return
+value may or may not be the same as the value from
+`bfd_make_empty_symbol' which was passed in.
+
+
+File: bfd.info,  Node: typedef asymbol,  Next: symbol handling functions,  Prev: Mini Symbols,  Up: Symbols
+
+2.7.4 typedef asymbol
+---------------------
+
+An `asymbol' has the form:
+
+
+     typedef struct bfd_symbol
+     {
+       /* A pointer to the BFD which owns the symbol. This information
+          is necessary so that a back end can work out what additional
+          information (invisible to the application writer) is carried
+          with the symbol.
+
+          This field is *almost* redundant, since you can use section->owner
+          instead, except that some symbols point to the global sections
+          bfd_{abs,com,und}_section.  This could be fixed by making
+          these globals be per-bfd (or per-target-flavor).  FIXME.  */
+       struct bfd *the_bfd; /* Use bfd_asymbol_bfd(sym) to access this field.  */
+
+       /* The text of the symbol. The name is left alone, and not copied; the
+          application may not alter it.  */
+       const char *name;
+
+       /* The value of the symbol.  This really should be a union of a
+          numeric value with a pointer, since some flags indicate that
+          a pointer to another symbol is stored here.  */
+       symvalue value;
+
+       /* Attributes of a symbol.  */
+     #define BSF_NO_FLAGS           0x00
+
+       /* The symbol has local scope; `static' in `C'. The value
+          is the offset into the section of the data.  */
+     #define BSF_LOCAL              (1 << 0)
+
+       /* The symbol has global scope; initialized data in `C'. The
+          value is the offset into the section of the data.  */
+     #define BSF_GLOBAL             (1 << 1)
+
+       /* The symbol has global scope and is exported. The value is
+          the offset into the section of the data.  */
+     #define BSF_EXPORT     BSF_GLOBAL /* No real difference.  */
+
+       /* A normal C symbol would be one of:
+          `BSF_LOCAL', `BSF_COMMON',  `BSF_UNDEFINED' or
+          `BSF_GLOBAL'.  */
+
+       /* The symbol is a debugging record. The value has an arbitrary
+          meaning, unless BSF_DEBUGGING_RELOC is also set.  */
+     #define BSF_DEBUGGING          (1 << 2)
+
+       /* The symbol denotes a function entry point.  Used in ELF,
+          perhaps others someday.  */
+     #define BSF_FUNCTION           (1 << 3)
+
+       /* Used by the linker.  */
+     #define BSF_KEEP               (1 << 5)
+     #define BSF_KEEP_G             (1 << 6)
+
+       /* A weak global symbol, overridable without warnings by
+          a regular global symbol of the same name.  */
+     #define BSF_WEAK               (1 << 7)
+
+       /* This symbol was created to point to a section, e.g. ELF's
+          STT_SECTION symbols.  */
+     #define BSF_SECTION_SYM        (1 << 8)
+
+       /* The symbol used to be a common symbol, but now it is
+          allocated.  */
+     #define BSF_OLD_COMMON         (1 << 9)
+
+       /* In some files the type of a symbol sometimes alters its
+          location in an output file - ie in coff a `ISFCN' symbol
+          which is also `C_EXT' symbol appears where it was
+          declared and not at the end of a section.  This bit is set
+          by the target BFD part to convey this information.  */
+     #define BSF_NOT_AT_END         (1 << 10)
+
+       /* Signal that the symbol is the label of constructor section.  */
+     #define BSF_CONSTRUCTOR        (1 << 11)
+
+       /* Signal that the symbol is a warning symbol.  The name is a
+          warning.  The name of the next symbol is the one to warn about;
+          if a reference is made to a symbol with the same name as the next
+          symbol, a warning is issued by the linker.  */
+     #define BSF_WARNING            (1 << 12)
+
+       /* Signal that the symbol is indirect.  This symbol is an indirect
+          pointer to the symbol with the same name as the next symbol.  */
+     #define BSF_INDIRECT           (1 << 13)
+
+       /* BSF_FILE marks symbols that contain a file name.  This is used
+          for ELF STT_FILE symbols.  */
+     #define BSF_FILE               (1 << 14)
+
+       /* Symbol is from dynamic linking information.  */
+     #define BSF_DYNAMIC            (1 << 15)
+
+       /* The symbol denotes a data object.  Used in ELF, and perhaps
+          others someday.  */
+     #define BSF_OBJECT             (1 << 16)
+
+       /* This symbol is a debugging symbol.  The value is the offset
+          into the section of the data.  BSF_DEBUGGING should be set
+          as well.  */
+     #define BSF_DEBUGGING_RELOC    (1 << 17)
+
+       /* This symbol is thread local.  Used in ELF.  */
+     #define BSF_THREAD_LOCAL       (1 << 18)
+
+       /* This symbol represents a complex relocation expression,
+          with the expression tree serialized in the symbol name.  */
+     #define BSF_RELC               (1 << 19)
+
+       /* This symbol represents a signed complex relocation expression,
+          with the expression tree serialized in the symbol name.  */
+     #define BSF_SRELC              (1 << 20)
+
+       /* This symbol was created by bfd_get_synthetic_symtab.  */
+     #define BSF_SYNTHETIC          (1 << 21)
+
+       /* This symbol is an indirect code object.  Unrelated to BSF_INDIRECT.
+          The dynamic linker will compute the value of this symbol by
+          calling the function that it points to.  BSF_FUNCTION must
+          also be also set.  */
+     #define BSF_GNU_INDIRECT_FUNCTION (1 << 22)
+       /* This symbol is a globally unique data object.  The dynamic linker
+          will make sure that in the entire process there is just one symbol
+          with this name and type in use.  BSF_OBJECT must also be set.  */
+     #define BSF_GNU_UNIQUE         (1 << 23)
+
+       flagword flags;
+
+       /* A pointer to the section to which this symbol is
+          relative.  This will always be non NULL, there are special
+          sections for undefined and absolute symbols.  */
+       struct bfd_section *section;
+
+       /* Back end special data.  */
+       union
+         {
+           void *p;
+           bfd_vma i;
+         }
+       udata;
+     }
+     asymbol;
+
+
+File: bfd.info,  Node: symbol handling functions,  Prev: typedef asymbol,  Up: Symbols
+
+2.7.5 Symbol handling functions
+-------------------------------
+
+2.7.5.1 `bfd_get_symtab_upper_bound'
+....................................
+
+*Description*
+Return the number of bytes required to store a vector of pointers to
+`asymbols' for all the symbols in the BFD ABFD, including a terminal
+NULL pointer. If there are no symbols in the BFD, then return 0.  If an
+error occurs, return -1.
+     #define bfd_get_symtab_upper_bound(abfd) \
+          BFD_SEND (abfd, _bfd_get_symtab_upper_bound, (abfd))
+
+2.7.5.2 `bfd_is_local_label'
+............................
+
+*Synopsis*
+     bfd_boolean bfd_is_local_label (bfd *abfd, asymbol *sym);
+   *Description*
+Return TRUE if the given symbol SYM in the BFD ABFD is a compiler
+generated local label, else return FALSE.
+
+2.7.5.3 `bfd_is_local_label_name'
+.................................
+
+*Synopsis*
+     bfd_boolean bfd_is_local_label_name (bfd *abfd, const char *name);
+   *Description*
+Return TRUE if a symbol with the name NAME in the BFD ABFD is a
+compiler generated local label, else return FALSE.  This just checks
+whether the name has the form of a local label.
+     #define bfd_is_local_label_name(abfd, name) \
+       BFD_SEND (abfd, _bfd_is_local_label_name, (abfd, name))
+
+2.7.5.4 `bfd_is_target_special_symbol'
+......................................
+
+*Synopsis*
+     bfd_boolean bfd_is_target_special_symbol (bfd *abfd, asymbol *sym);
+   *Description*
+Return TRUE iff a symbol SYM in the BFD ABFD is something special to
+the particular target represented by the BFD.  Such symbols should
+normally not be mentioned to the user.
+     #define bfd_is_target_special_symbol(abfd, sym) \
+       BFD_SEND (abfd, _bfd_is_target_special_symbol, (abfd, sym))
+
+2.7.5.5 `bfd_canonicalize_symtab'
+.................................
+
+*Description*
+Read the symbols from the BFD ABFD, and fills in the vector LOCATION
+with pointers to the symbols and a trailing NULL.  Return the actual
+number of symbol pointers, not including the NULL.
+     #define bfd_canonicalize_symtab(abfd, location) \
+       BFD_SEND (abfd, _bfd_canonicalize_symtab, (abfd, location))
+
+2.7.5.6 `bfd_set_symtab'
+........................
+
+*Synopsis*
+     bfd_boolean bfd_set_symtab
+        (bfd *abfd, asymbol **location, unsigned int count);
+   *Description*
+Arrange that when the output BFD ABFD is closed, the table LOCATION of
+COUNT pointers to symbols will be written.
+
+2.7.5.7 `bfd_print_symbol_vandf'
+................................
+
+*Synopsis*
+     void bfd_print_symbol_vandf (bfd *abfd, void *file, asymbol *symbol);
+   *Description*
+Print the value and flags of the SYMBOL supplied to the stream FILE.
+
+2.7.5.8 `bfd_make_empty_symbol'
+...............................
+
+*Description*
+Create a new `asymbol' structure for the BFD ABFD and return a pointer
+to it.
+
+   This routine is necessary because each back end has private
+information surrounding the `asymbol'. Building your own `asymbol' and
+pointing to it will not create the private information, and will cause
+problems later on.
+     #define bfd_make_empty_symbol(abfd) \
+       BFD_SEND (abfd, _bfd_make_empty_symbol, (abfd))
+
+2.7.5.9 `_bfd_generic_make_empty_symbol'
+........................................
+
+*Synopsis*
+     asymbol *_bfd_generic_make_empty_symbol (bfd *);
+   *Description*
+Create a new `asymbol' structure for the BFD ABFD and return a pointer
+to it.  Used by core file routines, binary back-end and anywhere else
+where no private info is needed.
+
+2.7.5.10 `bfd_make_debug_symbol'
+................................
+
+*Description*
+Create a new `asymbol' structure for the BFD ABFD, to be used as a
+debugging symbol.  Further details of its use have yet to be worked out.
+     #define bfd_make_debug_symbol(abfd,ptr,size) \
+       BFD_SEND (abfd, _bfd_make_debug_symbol, (abfd, ptr, size))
+
+2.7.5.11 `bfd_decode_symclass'
+..............................
+
+*Description*
+Return a character corresponding to the symbol class of SYMBOL, or '?'
+for an unknown class.
+
+   *Synopsis*
+     int bfd_decode_symclass (asymbol *symbol);
+   
+2.7.5.12 `bfd_is_undefined_symclass'
+....................................
+
+*Description*
+Returns non-zero if the class symbol returned by bfd_decode_symclass
+represents an undefined symbol.  Returns zero otherwise.
+
+   *Synopsis*
+     bfd_boolean bfd_is_undefined_symclass (int symclass);
+   
+2.7.5.13 `bfd_symbol_info'
+..........................
+
+*Description*
+Fill in the basic info about symbol that nm needs.  Additional info may
+be added by the back-ends after calling this function.
+
+   *Synopsis*
+     void bfd_symbol_info (asymbol *symbol, symbol_info *ret);
+   
+2.7.5.14 `bfd_copy_private_symbol_data'
+.......................................
+
+*Synopsis*
+     bfd_boolean bfd_copy_private_symbol_data
+        (bfd *ibfd, asymbol *isym, bfd *obfd, asymbol *osym);
+   *Description*
+Copy private symbol information from ISYM in the BFD IBFD to the symbol
+OSYM in the BFD OBFD.  Return `TRUE' on success, `FALSE' on error.
+Possible error returns are:
+
+   * `bfd_error_no_memory' - Not enough memory exists to create private
+     data for OSEC.
+
+     #define bfd_copy_private_symbol_data(ibfd, isymbol, obfd, osymbol) \
+       BFD_SEND (obfd, _bfd_copy_private_symbol_data, \
+                 (ibfd, isymbol, obfd, osymbol))
+
+
+File: bfd.info,  Node: Archives,  Next: Formats,  Prev: Symbols,  Up: BFD front end
+
+2.8 Archives
+============
+
+*Description*
+An archive (or library) is just another BFD.  It has a symbol table,
+although there's not much a user program will do with it.
+
+   The big difference between an archive BFD and an ordinary BFD is
+that the archive doesn't have sections.  Instead it has a chain of BFDs
+that are considered its contents.  These BFDs can be manipulated like
+any other.  The BFDs contained in an archive opened for reading will
+all be opened for reading.  You may put either input or output BFDs
+into an archive opened for output; they will be handled correctly when
+the archive is closed.
+
+   Use `bfd_openr_next_archived_file' to step through the contents of
+an archive opened for input.  You don't have to read the entire archive
+if you don't want to!  Read it until you find what you want.
+
+   Archive contents of output BFDs are chained through the `next'
+pointer in a BFD.  The first one is findable through the `archive_head'
+slot of the archive.  Set it with `bfd_set_archive_head' (q.v.).  A
+given BFD may be in only one open output archive at a time.
+
+   As expected, the BFD archive code is more general than the archive
+code of any given environment.  BFD archives may contain files of
+different formats (e.g., a.out and coff) and even different
+architectures.  You may even place archives recursively into archives!
+
+   This can cause unexpected confusion, since some archive formats are
+more expressive than others.  For instance, Intel COFF archives can
+preserve long filenames; SunOS a.out archives cannot.  If you move a
+file from the first to the second format and back again, the filename
+may be truncated.  Likewise, different a.out environments have different
+conventions as to how they truncate filenames, whether they preserve
+directory names in filenames, etc.  When interoperating with native
+tools, be sure your files are homogeneous.
+
+   Beware: most of these formats do not react well to the presence of
+spaces in filenames.  We do the best we can, but can't always handle
+this case due to restrictions in the format of archives.  Many Unix
+utilities are braindead in regards to spaces and such in filenames
+anyway, so this shouldn't be much of a restriction.
+
+   Archives are supported in BFD in `archive.c'.
+
+2.8.1 Archive functions
+-----------------------
+
+2.8.1.1 `bfd_get_next_mapent'
+.............................
+
+*Synopsis*
+     symindex bfd_get_next_mapent
+        (bfd *abfd, symindex previous, carsym **sym);
+   *Description*
+Step through archive ABFD's symbol table (if it has one).  Successively
+update SYM with the next symbol's information, returning that symbol's
+(internal) index into the symbol table.
+
+   Supply `BFD_NO_MORE_SYMBOLS' as the PREVIOUS entry to get the first
+one; returns `BFD_NO_MORE_SYMBOLS' when you've already got the last one.
+
+   A `carsym' is a canonical archive symbol.  The only user-visible
+element is its name, a null-terminated string.
+
+2.8.1.2 `bfd_set_archive_head'
+..............................
+
+*Synopsis*
+     bfd_boolean bfd_set_archive_head (bfd *output, bfd *new_head);
+   *Description*
+Set the head of the chain of BFDs contained in the archive OUTPUT to
+NEW_HEAD.
+
+2.8.1.3 `bfd_openr_next_archived_file'
+......................................
+
+*Synopsis*
+     bfd *bfd_openr_next_archived_file (bfd *archive, bfd *previous);
+   *Description*
+Provided a BFD, ARCHIVE, containing an archive and NULL, open an input
+BFD on the first contained element and returns that.  Subsequent calls
+should pass the archive and the previous return value to return a
+created BFD to the next contained element. NULL is returned when there
+are no more.
+
+
+File: bfd.info,  Node: Formats,  Next: Relocations,  Prev: Archives,  Up: BFD front end
+
+2.9 File formats
+================
+
+A format is a BFD concept of high level file contents type. The formats
+supported by BFD are:
+
+   * `bfd_object'
+   The BFD may contain data, symbols, relocations and debug info.
+
+   * `bfd_archive'
+   The BFD contains other BFDs and an optional index.
+
+   * `bfd_core'
+   The BFD contains the result of an executable core dump.
+
+2.9.1 File format functions
+---------------------------
+
+2.9.1.1 `bfd_check_format'
+..........................
+
+*Synopsis*
+     bfd_boolean bfd_check_format (bfd *abfd, bfd_format format);
+   *Description*
+Verify if the file attached to the BFD ABFD is compatible with the
+format FORMAT (i.e., one of `bfd_object', `bfd_archive' or `bfd_core').
+
+   If the BFD has been set to a specific target before the call, only
+the named target and format combination is checked. If the target has
+not been set, or has been set to `default', then all the known target
+backends is interrogated to determine a match.  If the default target
+matches, it is used.  If not, exactly one target must recognize the
+file, or an error results.
+
+   The function returns `TRUE' on success, otherwise `FALSE' with one
+of the following error codes:
+
+   * `bfd_error_invalid_operation' - if `format' is not one of
+     `bfd_object', `bfd_archive' or `bfd_core'.
+
+   * `bfd_error_system_call' - if an error occured during a read - even
+     some file mismatches can cause bfd_error_system_calls.
+
+   * `file_not_recognised' - none of the backends recognised the file
+     format.
+
+   * `bfd_error_file_ambiguously_recognized' - more than one backend
+     recognised the file format.
+
+2.9.1.2 `bfd_check_format_matches'
+..................................
+
+*Synopsis*
+     bfd_boolean bfd_check_format_matches
+        (bfd *abfd, bfd_format format, char ***matching);
+   *Description*
+Like `bfd_check_format', except when it returns FALSE with `bfd_errno'
+set to `bfd_error_file_ambiguously_recognized'.  In that case, if
+MATCHING is not NULL, it will be filled in with a NULL-terminated list
+of the names of the formats that matched, allocated with `malloc'.
+Then the user may choose a format and try again.
+
+   When done with the list that MATCHING points to, the caller should
+free it.
+
+2.9.1.3 `bfd_set_format'
+........................
+
+*Synopsis*
+     bfd_boolean bfd_set_format (bfd *abfd, bfd_format format);
+   *Description*
+This function sets the file format of the BFD ABFD to the format
+FORMAT. If the target set in the BFD does not support the format
+requested, the format is invalid, or the BFD is not open for writing,
+then an error occurs.
+
+2.9.1.4 `bfd_format_string'
+...........................
+
+*Synopsis*
+     const char *bfd_format_string (bfd_format format);
+   *Description*
+Return a pointer to a const string `invalid', `object', `archive',
+`core', or `unknown', depending upon the value of FORMAT.
+
+
+File: bfd.info,  Node: Relocations,  Next: Core Files,  Prev: Formats,  Up: BFD front end
+
+2.10 Relocations
+================
+
+BFD maintains relocations in much the same way it maintains symbols:
+they are left alone until required, then read in en-masse and
+translated into an internal form.  A common routine
+`bfd_perform_relocation' acts upon the canonical form to do the fixup.
+
+   Relocations are maintained on a per section basis, while symbols are
+maintained on a per BFD basis.
+
+   All that a back end has to do to fit the BFD interface is to create
+a `struct reloc_cache_entry' for each relocation in a particular
+section, and fill in the right bits of the structures.
+
+* Menu:
+
+* typedef arelent::
+* howto manager::
+
+
+File: bfd.info,  Node: typedef arelent,  Next: howto manager,  Prev: Relocations,  Up: Relocations
+
+2.10.1 typedef arelent
+----------------------
+
+This is the structure of a relocation entry:
+
+
+     typedef enum bfd_reloc_status
+     {
+       /* No errors detected.  */
+       bfd_reloc_ok,
+
+       /* The relocation was performed, but there was an overflow.  */
+       bfd_reloc_overflow,
+
+       /* The address to relocate was not within the section supplied.  */
+       bfd_reloc_outofrange,
+
+       /* Used by special functions.  */
+       bfd_reloc_continue,
+
+       /* Unsupported relocation size requested.  */
+       bfd_reloc_notsupported,
+
+       /* Unused.  */
+       bfd_reloc_other,
+
+       /* The symbol to relocate against was undefined.  */
+       bfd_reloc_undefined,
+
+       /* The relocation was performed, but may not be ok - presently
+          generated only when linking i960 coff files with i960 b.out
+          symbols.  If this type is returned, the error_message argument
+          to bfd_perform_relocation will be set.  */
+       bfd_reloc_dangerous
+      }
+      bfd_reloc_status_type;
+
+
+     typedef struct reloc_cache_entry
+     {
+       /* A pointer into the canonical table of pointers.  */
+       struct bfd_symbol **sym_ptr_ptr;
+
+       /* offset in section.  */
+       bfd_size_type address;
+
+       /* addend for relocation value.  */
+       bfd_vma addend;
+
+       /* Pointer to how to perform the required relocation.  */
+       reloc_howto_type *howto;
+
+     }
+     arelent;
+   *Description*
+Here is a description of each of the fields within an `arelent':
+
+   * `sym_ptr_ptr'
+   The symbol table pointer points to a pointer to the symbol
+associated with the relocation request.  It is the pointer into the
+table returned by the back end's `canonicalize_symtab' action. *Note
+Symbols::. The symbol is referenced through a pointer to a pointer so
+that tools like the linker can fix up all the symbols of the same name
+by modifying only one pointer. The relocation routine looks in the
+symbol and uses the base of the section the symbol is attached to and
+the value of the symbol as the initial relocation offset. If the symbol
+pointer is zero, then the section provided is looked up.
+
+   * `address'
+   The `address' field gives the offset in bytes from the base of the
+section data which owns the relocation record to the first byte of
+relocatable information. The actual data relocated will be relative to
+this point; for example, a relocation type which modifies the bottom
+two bytes of a four byte word would not touch the first byte pointed to
+in a big endian world.
+
+   * `addend'
+   The `addend' is a value provided by the back end to be added (!)  to
+the relocation offset. Its interpretation is dependent upon the howto.
+For example, on the 68k the code:
+
+             char foo[];
+             main()
+                     {
+                     return foo[0x12345678];
+                     }
+
+   Could be compiled into:
+
+             linkw fp,#-4
+             moveb @#12345678,d0
+             extbl d0
+             unlk fp
+             rts
+
+   This could create a reloc pointing to `foo', but leave the offset in
+the data, something like:
+
+     RELOCATION RECORDS FOR [.text]:
+     offset   type      value
+     00000006 32        _foo
+
+     00000000 4e56 fffc          ; linkw fp,#-4
+     00000004 1039 1234 5678     ; moveb @#12345678,d0
+     0000000a 49c0               ; extbl d0
+     0000000c 4e5e               ; unlk fp
+     0000000e 4e75               ; rts
+
+   Using coff and an 88k, some instructions don't have enough space in
+them to represent the full address range, and pointers have to be
+loaded in two parts. So you'd get something like:
+
+             or.u     r13,r0,hi16(_foo+0x12345678)
+             ld.b     r2,r13,lo16(_foo+0x12345678)
+             jmp      r1
+
+   This should create two relocs, both pointing to `_foo', and with
+0x12340000 in their addend field. The data would consist of:
+
+     RELOCATION RECORDS FOR [.text]:
+     offset   type      value
+     00000002 HVRT16    _foo+0x12340000
+     00000006 LVRT16    _foo+0x12340000
+
+     00000000 5da05678           ; or.u r13,r0,0x5678
+     00000004 1c4d5678           ; ld.b r2,r13,0x5678
+     00000008 f400c001           ; jmp r1
+
+   The relocation routine digs out the value from the data, adds it to
+the addend to get the original offset, and then adds the value of
+`_foo'. Note that all 32 bits have to be kept around somewhere, to cope
+with carry from bit 15 to bit 16.
+
+   One further example is the sparc and the a.out format. The sparc has
+a similar problem to the 88k, in that some instructions don't have room
+for an entire offset, but on the sparc the parts are created in odd
+sized lumps. The designers of the a.out format chose to not use the
+data within the section for storing part of the offset; all the offset
+is kept within the reloc. Anything in the data should be ignored.
+
+             save %sp,-112,%sp
+             sethi %hi(_foo+0x12345678),%g2
+             ldsb [%g2+%lo(_foo+0x12345678)],%i0
+             ret
+             restore
+
+   Both relocs contain a pointer to `foo', and the offsets contain junk.
+
+     RELOCATION RECORDS FOR [.text]:
+     offset   type      value
+     00000004 HI22      _foo+0x12345678
+     00000008 LO10      _foo+0x12345678
+
+     00000000 9de3bf90     ; save %sp,-112,%sp
+     00000004 05000000     ; sethi %hi(_foo+0),%g2
+     00000008 f048a000     ; ldsb [%g2+%lo(_foo+0)],%i0
+     0000000c 81c7e008     ; ret
+     00000010 81e80000     ; restore
+
+   * `howto'
+   The `howto' field can be imagined as a relocation instruction. It is
+a pointer to a structure which contains information on what to do with
+all of the other information in the reloc record and data section. A
+back end would normally have a relocation instruction set and turn
+relocations into pointers to the correct structure on input - but it
+would be possible to create each howto field on demand.
+
+2.10.1.1 `enum complain_overflow'
+.................................
+
+Indicates what sort of overflow checking should be done when performing
+a relocation.
+
+
+     enum complain_overflow
+     {
+       /* Do not complain on overflow.  */
+       complain_overflow_dont,
+
+       /* Complain if the value overflows when considered as a signed
+          number one bit larger than the field.  ie. A bitfield of N bits
+          is allowed to represent -2**n to 2**n-1.  */
+       complain_overflow_bitfield,
+
+       /* Complain if the value overflows when considered as a signed
+          number.  */
+       complain_overflow_signed,
+
+       /* Complain if the value overflows when considered as an
+          unsigned number.  */
+       complain_overflow_unsigned
+     };
+
+2.10.1.2 `reloc_howto_type'
+...........................
+
+The `reloc_howto_type' is a structure which contains all the
+information that libbfd needs to know to tie up a back end's data.
+
+     struct bfd_symbol;             /* Forward declaration.  */
+
+     struct reloc_howto_struct
+     {
+       /*  The type field has mainly a documentary use - the back end can
+           do what it wants with it, though normally the back end's
+           external idea of what a reloc number is stored
+           in this field.  For example, a PC relative word relocation
+           in a coff environment has the type 023 - because that's
+           what the outside world calls a R_PCRWORD reloc.  */
+       unsigned int type;
+
+       /*  The value the final relocation is shifted right by.  This drops
+           unwanted data from the relocation.  */
+       unsigned int rightshift;
+
+       /*  The size of the item to be relocated.  This is *not* a
+           power-of-two measure.  To get the number of bytes operated
+           on by a type of relocation, use bfd_get_reloc_size.  */
+       int size;
+
+       /*  The number of bits in the item to be relocated.  This is used
+           when doing overflow checking.  */
+       unsigned int bitsize;
+
+       /*  The relocation is relative to the field being relocated.  */
+       bfd_boolean pc_relative;
+
+       /*  The bit position of the reloc value in the destination.
+           The relocated value is left shifted by this amount.  */
+       unsigned int bitpos;
+
+       /* What type of overflow error should be checked for when
+          relocating.  */
+       enum complain_overflow complain_on_overflow;
+
+       /* If this field is non null, then the supplied function is
+          called rather than the normal function.  This allows really
+          strange relocation methods to be accommodated (e.g., i960 callj
+          instructions).  */
+       bfd_reloc_status_type (*special_function)
+         (bfd *, arelent *, struct bfd_symbol *, void *, asection *,
+          bfd *, char **);
+
+       /* The textual name of the relocation type.  */
+       char *name;
+
+       /* Some formats record a relocation addend in the section contents
+          rather than with the relocation.  For ELF formats this is the
+          distinction between USE_REL and USE_RELA (though the code checks
+          for USE_REL == 1/0).  The value of this field is TRUE if the
+          addend is recorded with the section contents; when performing a
+          partial link (ld -r) the section contents (the data) will be
+          modified.  The value of this field is FALSE if addends are
+          recorded with the relocation (in arelent.addend); when performing
+          a partial link the relocation will be modified.
+          All relocations for all ELF USE_RELA targets should set this field
+          to FALSE (values of TRUE should be looked on with suspicion).
+          However, the converse is not true: not all relocations of all ELF
+          USE_REL targets set this field to TRUE.  Why this is so is peculiar
+          to each particular target.  For relocs that aren't used in partial
+          links (e.g. GOT stuff) it doesn't matter what this is set to.  */
+       bfd_boolean partial_inplace;
+
+       /* src_mask selects the part of the instruction (or data) to be used
+          in the relocation sum.  If the target relocations don't have an
+          addend in the reloc, eg. ELF USE_REL, src_mask will normally equal
+          dst_mask to extract the addend from the section contents.  If
+          relocations do have an addend in the reloc, eg. ELF USE_RELA, this
+          field should be zero.  Non-zero values for ELF USE_RELA targets are
+          bogus as in those cases the value in the dst_mask part of the
+          section contents should be treated as garbage.  */
+       bfd_vma src_mask;
+
+       /* dst_mask selects which parts of the instruction (or data) are
+          replaced with a relocated value.  */
+       bfd_vma dst_mask;
+
+       /* When some formats create PC relative instructions, they leave
+          the value of the pc of the place being relocated in the offset
+          slot of the instruction, so that a PC relative relocation can
+          be made just by adding in an ordinary offset (e.g., sun3 a.out).
+          Some formats leave the displacement part of an instruction
+          empty (e.g., m88k bcs); this flag signals the fact.  */
+       bfd_boolean pcrel_offset;
+     };
+   
+2.10.1.3 `The HOWTO Macro'
+..........................
+
+*Description*
+The HOWTO define is horrible and will go away.
+     #define HOWTO(C, R, S, B, P, BI, O, SF, NAME, INPLACE, MASKSRC, MASKDST, PC) \
+       { (unsigned) C, R, S, B, P, BI, O, SF, NAME, INPLACE, MASKSRC, MASKDST, PC }
+
+   *Description*
+And will be replaced with the totally magic way. But for the moment, we
+are compatible, so do it this way.
+     #define NEWHOWTO(FUNCTION, NAME, SIZE, REL, IN) \
+       HOWTO (0, 0, SIZE, 0, REL, 0, complain_overflow_dont, FUNCTION, \
+              NAME, FALSE, 0, 0, IN)
+
+   *Description*
+This is used to fill in an empty howto entry in an array.
+     #define EMPTY_HOWTO(C) \
+       HOWTO ((C), 0, 0, 0, FALSE, 0, complain_overflow_dont, NULL, \
+              NULL, FALSE, 0, 0, FALSE)
+
+   *Description*
+Helper routine to turn a symbol into a relocation value.
+     #define HOWTO_PREPARE(relocation, symbol)               \
+       {                                                     \
+         if (symbol != NULL)                                 \
+           {                                                 \
+             if (bfd_is_com_section (symbol->section))       \
+               {                                             \
+                 relocation = 0;                             \
+               }                                             \
+             else                                            \
+               {                                             \
+                 relocation = symbol->value;                 \
+               }                                             \
+           }                                                 \
+       }
+
+2.10.1.4 `bfd_get_reloc_size'
+.............................
+
+*Synopsis*
+     unsigned int bfd_get_reloc_size (reloc_howto_type *);
+   *Description*
+For a reloc_howto_type that operates on a fixed number of bytes, this
+returns the number of bytes operated on.
+
+2.10.1.5 `arelent_chain'
+........................
+
+*Description*
+How relocs are tied together in an `asection':
+     typedef struct relent_chain
+     {
+       arelent relent;
+       struct relent_chain *next;
+     }
+     arelent_chain;
+
+2.10.1.6 `bfd_check_overflow'
+.............................
+
+*Synopsis*
+     bfd_reloc_status_type bfd_check_overflow
+        (enum complain_overflow how,
+         unsigned int bitsize,
+         unsigned int rightshift,
+         unsigned int addrsize,
+         bfd_vma relocation);
+   *Description*
+Perform overflow checking on RELOCATION which has BITSIZE significant
+bits and will be shifted right by RIGHTSHIFT bits, on a machine with
+addresses containing ADDRSIZE significant bits.  The result is either of
+`bfd_reloc_ok' or `bfd_reloc_overflow'.
+
+2.10.1.7 `bfd_perform_relocation'
+.................................
+
+*Synopsis*
+     bfd_reloc_status_type bfd_perform_relocation
+        (bfd *abfd,
+         arelent *reloc_entry,
+         void *data,
+         asection *input_section,
+         bfd *output_bfd,
+         char **error_message);
+   *Description*
+If OUTPUT_BFD is supplied to this function, the generated image will be
+relocatable; the relocations are copied to the output file after they
+have been changed to reflect the new state of the world. There are two
+ways of reflecting the results of partial linkage in an output file: by
+modifying the output data in place, and by modifying the relocation
+record.  Some native formats (e.g., basic a.out and basic coff) have no
+way of specifying an addend in the relocation type, so the addend has
+to go in the output data.  This is no big deal since in these formats
+the output data slot will always be big enough for the addend. Complex
+reloc types with addends were invented to solve just this problem.  The
+ERROR_MESSAGE argument is set to an error message if this return
+`bfd_reloc_dangerous'.
+
+2.10.1.8 `bfd_install_relocation'
+.................................
+
+*Synopsis*
+     bfd_reloc_status_type bfd_install_relocation
+        (bfd *abfd,
+         arelent *reloc_entry,
+         void *data, bfd_vma data_start,
+         asection *input_section,
+         char **error_message);
+   *Description*
+This looks remarkably like `bfd_perform_relocation', except it does not
+expect that the section contents have been filled in.  I.e., it's
+suitable for use when creating, rather than applying a relocation.
+
+   For now, this function should be considered reserved for the
+assembler.
+
+
+File: bfd.info,  Node: howto manager,  Prev: typedef arelent,  Up: Relocations
+
+2.10.2 The howto manager
+------------------------
+
+When an application wants to create a relocation, but doesn't know what
+the target machine might call it, it can find out by using this bit of
+code.
+
+2.10.2.1 `bfd_reloc_code_type'
+..............................
+
+*Description*
+The insides of a reloc code.  The idea is that, eventually, there will
+be one enumerator for every type of relocation we ever do.  Pass one of
+these values to `bfd_reloc_type_lookup', and it'll return a howto
+pointer.
+
+   This does mean that the application must determine the correct
+enumerator value; you can't get a howto pointer from a random set of
+attributes.
+
+   Here are the possible values for `enum bfd_reloc_code_real':
+
+ -- : BFD_RELOC_64
+ -- : BFD_RELOC_32
+ -- : BFD_RELOC_26
+ -- : BFD_RELOC_24
+ -- : BFD_RELOC_16
+ -- : BFD_RELOC_14
+ -- : BFD_RELOC_8
+     Basic absolute relocations of N bits.
+
+ -- : BFD_RELOC_64_PCREL
+ -- : BFD_RELOC_32_PCREL
+ -- : BFD_RELOC_24_PCREL
+ -- : BFD_RELOC_16_PCREL
+ -- : BFD_RELOC_12_PCREL
+ -- : BFD_RELOC_8_PCREL
+     PC-relative relocations.  Sometimes these are relative to the
+     address of the relocation itself; sometimes they are relative to
+     the start of the section containing the relocation.  It depends on
+     the specific target.
+
+     The 24-bit relocation is used in some Intel 960 configurations.
+
+ -- : BFD_RELOC_32_SECREL
+     Section relative relocations.  Some targets need this for DWARF2.
+
+ -- : BFD_RELOC_32_GOT_PCREL
+ -- : BFD_RELOC_16_GOT_PCREL
+ -- : BFD_RELOC_8_GOT_PCREL
+ -- : BFD_RELOC_32_GOTOFF
+ -- : BFD_RELOC_16_GOTOFF
+ -- : BFD_RELOC_LO16_GOTOFF
+ -- : BFD_RELOC_HI16_GOTOFF
+ -- : BFD_RELOC_HI16_S_GOTOFF
+ -- : BFD_RELOC_8_GOTOFF
+ -- : BFD_RELOC_64_PLT_PCREL
+ -- : BFD_RELOC_32_PLT_PCREL
+ -- : BFD_RELOC_24_PLT_PCREL
+ -- : BFD_RELOC_16_PLT_PCREL
+ -- : BFD_RELOC_8_PLT_PCREL
+ -- : BFD_RELOC_64_PLTOFF
+ -- : BFD_RELOC_32_PLTOFF
+ -- : BFD_RELOC_16_PLTOFF
+ -- : BFD_RELOC_LO16_PLTOFF
+ -- : BFD_RELOC_HI16_PLTOFF
+ -- : BFD_RELOC_HI16_S_PLTOFF
+ -- : BFD_RELOC_8_PLTOFF
+     For ELF.
+
+ -- : BFD_RELOC_68K_GLOB_DAT
+ -- : BFD_RELOC_68K_JMP_SLOT
+ -- : BFD_RELOC_68K_RELATIVE
+ -- : BFD_RELOC_68K_TLS_GD32
+ -- : BFD_RELOC_68K_TLS_GD16
+ -- : BFD_RELOC_68K_TLS_GD8
+ -- : BFD_RELOC_68K_TLS_LDM32
+ -- : BFD_RELOC_68K_TLS_LDM16
+ -- : BFD_RELOC_68K_TLS_LDM8
+ -- : BFD_RELOC_68K_TLS_LDO32
+ -- : BFD_RELOC_68K_TLS_LDO16
+ -- : BFD_RELOC_68K_TLS_LDO8
+ -- : BFD_RELOC_68K_TLS_IE32
+ -- : BFD_RELOC_68K_TLS_IE16
+ -- : BFD_RELOC_68K_TLS_IE8
+ -- : BFD_RELOC_68K_TLS_LE32
+ -- : BFD_RELOC_68K_TLS_LE16
+ -- : BFD_RELOC_68K_TLS_LE8
+     Relocations used by 68K ELF.
+
+ -- : BFD_RELOC_32_BASEREL
+ -- : BFD_RELOC_16_BASEREL
+ -- : BFD_RELOC_LO16_BASEREL
+ -- : BFD_RELOC_HI16_BASEREL
+ -- : BFD_RELOC_HI16_S_BASEREL
+ -- : BFD_RELOC_8_BASEREL
+ -- : BFD_RELOC_RVA
+     Linkage-table relative.
+
+ -- : BFD_RELOC_8_FFnn
+     Absolute 8-bit relocation, but used to form an address like 0xFFnn.
+
+ -- : BFD_RELOC_32_PCREL_S2
+ -- : BFD_RELOC_16_PCREL_S2
+ -- : BFD_RELOC_23_PCREL_S2
+     These PC-relative relocations are stored as word displacements -
+     i.e., byte displacements shifted right two bits.  The 30-bit word
+     displacement (<<32_PCREL_S2>> - 32 bits, shifted 2) is used on the
+     SPARC.  (SPARC tools generally refer to this as <<WDISP30>>.)  The
+     signed 16-bit displacement is used on the MIPS, and the 23-bit
+     displacement is used on the Alpha.
+
+ -- : BFD_RELOC_HI22
+ -- : BFD_RELOC_LO10
+     High 22 bits and low 10 bits of 32-bit value, placed into lower
+     bits of the target word.  These are used on the SPARC.
+
+ -- : BFD_RELOC_GPREL16
+ -- : BFD_RELOC_GPREL32
+     For systems that allocate a Global Pointer register, these are
+     displacements off that register.  These relocation types are
+     handled specially, because the value the register will have is
+     decided relatively late.
+
+ -- : BFD_RELOC_I960_CALLJ
+     Reloc types used for i960/b.out.
+
+ -- : BFD_RELOC_NONE
+ -- : BFD_RELOC_SPARC_WDISP22
+ -- : BFD_RELOC_SPARC22
+ -- : BFD_RELOC_SPARC13
+ -- : BFD_RELOC_SPARC_GOT10
+ -- : BFD_RELOC_SPARC_GOT13
+ -- : BFD_RELOC_SPARC_GOT22
+ -- : BFD_RELOC_SPARC_PC10
+ -- : BFD_RELOC_SPARC_PC22
+ -- : BFD_RELOC_SPARC_WPLT30
+ -- : BFD_RELOC_SPARC_COPY
+ -- : BFD_RELOC_SPARC_GLOB_DAT
+ -- : BFD_RELOC_SPARC_JMP_SLOT
+ -- : BFD_RELOC_SPARC_RELATIVE
+ -- : BFD_RELOC_SPARC_UA16
+ -- : BFD_RELOC_SPARC_UA32
+ -- : BFD_RELOC_SPARC_UA64
+ -- : BFD_RELOC_SPARC_GOTDATA_HIX22
+ -- : BFD_RELOC_SPARC_GOTDATA_LOX10
+ -- : BFD_RELOC_SPARC_GOTDATA_OP_HIX22
+ -- : BFD_RELOC_SPARC_GOTDATA_OP_LOX10
+ -- : BFD_RELOC_SPARC_GOTDATA_OP
+ -- : BFD_RELOC_SPARC_JMP_IREL
+ -- : BFD_RELOC_SPARC_IRELATIVE
+     SPARC ELF relocations.  There is probably some overlap with other
+     relocation types already defined.
+
+ -- : BFD_RELOC_SPARC_BASE13
+ -- : BFD_RELOC_SPARC_BASE22
+     I think these are specific to SPARC a.out (e.g., Sun 4).
+
+ -- : BFD_RELOC_SPARC_64
+ -- : BFD_RELOC_SPARC_10
+ -- : BFD_RELOC_SPARC_11
+ -- : BFD_RELOC_SPARC_OLO10
+ -- : BFD_RELOC_SPARC_HH22
+ -- : BFD_RELOC_SPARC_HM10
+ -- : BFD_RELOC_SPARC_LM22
+ -- : BFD_RELOC_SPARC_PC_HH22
+ -- : BFD_RELOC_SPARC_PC_HM10
+ -- : BFD_RELOC_SPARC_PC_LM22
+ -- : BFD_RELOC_SPARC_WDISP16
+ -- : BFD_RELOC_SPARC_WDISP19
+ -- : BFD_RELOC_SPARC_7
+ -- : BFD_RELOC_SPARC_6
+ -- : BFD_RELOC_SPARC_5
+ -- : BFD_RELOC_SPARC_DISP64
+ -- : BFD_RELOC_SPARC_PLT32
+ -- : BFD_RELOC_SPARC_PLT64
+ -- : BFD_RELOC_SPARC_HIX22
+ -- : BFD_RELOC_SPARC_LOX10
+ -- : BFD_RELOC_SPARC_H44
+ -- : BFD_RELOC_SPARC_M44
+ -- : BFD_RELOC_SPARC_L44
+ -- : BFD_RELOC_SPARC_REGISTER
+     SPARC64 relocations
+
+ -- : BFD_RELOC_SPARC_REV32
+     SPARC little endian relocation
+
+ -- : BFD_RELOC_SPARC_TLS_GD_HI22
+ -- : BFD_RELOC_SPARC_TLS_GD_LO10
+ -- : BFD_RELOC_SPARC_TLS_GD_ADD
+ -- : BFD_RELOC_SPARC_TLS_GD_CALL
+ -- : BFD_RELOC_SPARC_TLS_LDM_HI22
+ -- : BFD_RELOC_SPARC_TLS_LDM_LO10
+ -- : BFD_RELOC_SPARC_TLS_LDM_ADD
+ -- : BFD_RELOC_SPARC_TLS_LDM_CALL
+ -- : BFD_RELOC_SPARC_TLS_LDO_HIX22
+ -- : BFD_RELOC_SPARC_TLS_LDO_LOX10
+ -- : BFD_RELOC_SPARC_TLS_LDO_ADD
+ -- : BFD_RELOC_SPARC_TLS_IE_HI22
+ -- : BFD_RELOC_SPARC_TLS_IE_LO10
+ -- : BFD_RELOC_SPARC_TLS_IE_LD
+ -- : BFD_RELOC_SPARC_TLS_IE_LDX
+ -- : BFD_RELOC_SPARC_TLS_IE_ADD
+ -- : BFD_RELOC_SPARC_TLS_LE_HIX22
+ -- : BFD_RELOC_SPARC_TLS_LE_LOX10
+ -- : BFD_RELOC_SPARC_TLS_DTPMOD32
+ -- : BFD_RELOC_SPARC_TLS_DTPMOD64
+ -- : BFD_RELOC_SPARC_TLS_DTPOFF32
+ -- : BFD_RELOC_SPARC_TLS_DTPOFF64
+ -- : BFD_RELOC_SPARC_TLS_TPOFF32
+ -- : BFD_RELOC_SPARC_TLS_TPOFF64
+     SPARC TLS relocations
+
+ -- : BFD_RELOC_SPU_IMM7
+ -- : BFD_RELOC_SPU_IMM8
+ -- : BFD_RELOC_SPU_IMM10
+ -- : BFD_RELOC_SPU_IMM10W
+ -- : BFD_RELOC_SPU_IMM16
+ -- : BFD_RELOC_SPU_IMM16W
+ -- : BFD_RELOC_SPU_IMM18
+ -- : BFD_RELOC_SPU_PCREL9a
+ -- : BFD_RELOC_SPU_PCREL9b
+ -- : BFD_RELOC_SPU_PCREL16
+ -- : BFD_RELOC_SPU_LO16
+ -- : BFD_RELOC_SPU_HI16
+ -- : BFD_RELOC_SPU_PPU32
+ -- : BFD_RELOC_SPU_PPU64
+ -- : BFD_RELOC_SPU_ADD_PIC
+     SPU Relocations.
+
+ -- : BFD_RELOC_ALPHA_GPDISP_HI16
+     Alpha ECOFF and ELF relocations.  Some of these treat the symbol or
+     "addend" in some special way.  For GPDISP_HI16 ("gpdisp")
+     relocations, the symbol is ignored when writing; when reading, it
+     will be the absolute section symbol.  The addend is the
+     displacement in bytes of the "lda" instruction from the "ldah"
+     instruction (which is at the address of this reloc).
+
+ -- : BFD_RELOC_ALPHA_GPDISP_LO16
+     For GPDISP_LO16 ("ignore") relocations, the symbol is handled as
+     with GPDISP_HI16 relocs.  The addend is ignored when writing the
+     relocations out, and is filled in with the file's GP value on
+     reading, for convenience.
+
+ -- : BFD_RELOC_ALPHA_GPDISP
+     The ELF GPDISP relocation is exactly the same as the GPDISP_HI16
+     relocation except that there is no accompanying GPDISP_LO16
+     relocation.
+
+ -- : BFD_RELOC_ALPHA_LITERAL
+ -- : BFD_RELOC_ALPHA_ELF_LITERAL
+ -- : BFD_RELOC_ALPHA_LITUSE
+     The Alpha LITERAL/LITUSE relocs are produced by a symbol reference;
+     the assembler turns it into a LDQ instruction to load the address
+     of the symbol, and then fills in a register in the real
+     instruction.
+
+     The LITERAL reloc, at the LDQ instruction, refers to the .lita
+     section symbol.  The addend is ignored when writing, but is filled
+     in with the file's GP value on reading, for convenience, as with
+     the GPDISP_LO16 reloc.
+
+     The ELF_LITERAL reloc is somewhere between 16_GOTOFF and
+     GPDISP_LO16.  It should refer to the symbol to be referenced, as
+     with 16_GOTOFF, but it generates output not based on the position
+     within the .got section, but relative to the GP value chosen for
+     the file during the final link stage.
+
+     The LITUSE reloc, on the instruction using the loaded address,
+     gives information to the linker that it might be able to use to
+     optimize away some literal section references.  The symbol is
+     ignored (read as the absolute section symbol), and the "addend"
+     indicates the type of instruction using the register: 1 - "memory"
+     fmt insn 2 - byte-manipulation (byte offset reg) 3 - jsr (target
+     of branch)
+
+ -- : BFD_RELOC_ALPHA_HINT
+     The HINT relocation indicates a value that should be filled into
+     the "hint" field of a jmp/jsr/ret instruction, for possible branch-
+     prediction logic which may be provided on some processors.
+
+ -- : BFD_RELOC_ALPHA_LINKAGE
+     The LINKAGE relocation outputs a linkage pair in the object file,
+     which is filled by the linker.
+
+ -- : BFD_RELOC_ALPHA_CODEADDR
+     The CODEADDR relocation outputs a STO_CA in the object file, which
+     is filled by the linker.
+
+ -- : BFD_RELOC_ALPHA_GPREL_HI16
+ -- : BFD_RELOC_ALPHA_GPREL_LO16
+     The GPREL_HI/LO relocations together form a 32-bit offset from the
+     GP register.
+
+ -- : BFD_RELOC_ALPHA_BRSGP
+     Like BFD_RELOC_23_PCREL_S2, except that the source and target must
+     share a common GP, and the target address is adjusted for
+     STO_ALPHA_STD_GPLOAD.
+
+ -- : BFD_RELOC_ALPHA_NOP
+     The NOP relocation outputs a NOP if the longword displacement
+     between two procedure entry points is < 2^21.
+
+ -- : BFD_RELOC_ALPHA_BSR
+     The BSR relocation outputs a BSR if the longword displacement
+     between two procedure entry points is < 2^21.
+
+ -- : BFD_RELOC_ALPHA_LDA
+     The LDA relocation outputs a LDA if the longword displacement
+     between two procedure entry points is < 2^16.
+
+ -- : BFD_RELOC_ALPHA_BOH
+     The BOH relocation outputs a BSR if the longword displacement
+     between two procedure entry points is < 2^21, or else a hint.
+
+ -- : BFD_RELOC_ALPHA_TLSGD
+ -- : BFD_RELOC_ALPHA_TLSLDM
+ -- : BFD_RELOC_ALPHA_DTPMOD64
+ -- : BFD_RELOC_ALPHA_GOTDTPREL16
+ -- : BFD_RELOC_ALPHA_DTPREL64
+ -- : BFD_RELOC_ALPHA_DTPREL_HI16
+ -- : BFD_RELOC_ALPHA_DTPREL_LO16
+ -- : BFD_RELOC_ALPHA_DTPREL16
+ -- : BFD_RELOC_ALPHA_GOTTPREL16
+ -- : BFD_RELOC_ALPHA_TPREL64
+ -- : BFD_RELOC_ALPHA_TPREL_HI16
+ -- : BFD_RELOC_ALPHA_TPREL_LO16
+ -- : BFD_RELOC_ALPHA_TPREL16
+     Alpha thread-local storage relocations.
+
+ -- : BFD_RELOC_MIPS_JMP
+     Bits 27..2 of the relocation address shifted right 2 bits; simple
+     reloc otherwise.
+
+ -- : BFD_RELOC_MIPS16_JMP
+     The MIPS16 jump instruction.
+
+ -- : BFD_RELOC_MIPS16_GPREL
+     MIPS16 GP relative reloc.
+
+ -- : BFD_RELOC_HI16
+     High 16 bits of 32-bit value; simple reloc.
+
+ -- : BFD_RELOC_HI16_S
+     High 16 bits of 32-bit value but the low 16 bits will be sign
+     extended and added to form the final result.  If the low 16 bits
+     form a negative number, we need to add one to the high value to
+     compensate for the borrow when the low bits are added.
+
+ -- : BFD_RELOC_LO16
+     Low 16 bits.
+
+ -- : BFD_RELOC_HI16_PCREL
+     High 16 bits of 32-bit pc-relative value
+
+ -- : BFD_RELOC_HI16_S_PCREL
+     High 16 bits of 32-bit pc-relative value, adjusted
+
+ -- : BFD_RELOC_LO16_PCREL
+     Low 16 bits of pc-relative value
+
+ -- : BFD_RELOC_MIPS16_GOT16
+ -- : BFD_RELOC_MIPS16_CALL16
+     Equivalent of BFD_RELOC_MIPS_*, but with the MIPS16 layout of
+     16-bit immediate fields
+
+ -- : BFD_RELOC_MIPS16_HI16
+     MIPS16 high 16 bits of 32-bit value.
+
+ -- : BFD_RELOC_MIPS16_HI16_S
+     MIPS16 high 16 bits of 32-bit value but the low 16 bits will be
+     sign extended and added to form the final result.  If the low 16
+     bits form a negative number, we need to add one to the high value
+     to compensate for the borrow when the low bits are added.
+
+ -- : BFD_RELOC_MIPS16_LO16
+     MIPS16 low 16 bits.
+
+ -- : BFD_RELOC_MIPS_LITERAL
+     Relocation against a MIPS literal section.
+
+ -- : BFD_RELOC_MIPS_GOT16
+ -- : BFD_RELOC_MIPS_CALL16
+ -- : BFD_RELOC_MIPS_GOT_HI16
+ -- : BFD_RELOC_MIPS_GOT_LO16
+ -- : BFD_RELOC_MIPS_CALL_HI16
+ -- : BFD_RELOC_MIPS_CALL_LO16
+ -- : BFD_RELOC_MIPS_SUB
+ -- : BFD_RELOC_MIPS_GOT_PAGE
+ -- : BFD_RELOC_MIPS_GOT_OFST
+ -- : BFD_RELOC_MIPS_GOT_DISP
+ -- : BFD_RELOC_MIPS_SHIFT5
+ -- : BFD_RELOC_MIPS_SHIFT6
+ -- : BFD_RELOC_MIPS_INSERT_A
+ -- : BFD_RELOC_MIPS_INSERT_B
+ -- : BFD_RELOC_MIPS_DELETE
+ -- : BFD_RELOC_MIPS_HIGHEST
+ -- : BFD_RELOC_MIPS_HIGHER
+ -- : BFD_RELOC_MIPS_SCN_DISP
+ -- : BFD_RELOC_MIPS_REL16
+ -- : BFD_RELOC_MIPS_RELGOT
+ -- : BFD_RELOC_MIPS_JALR
+ -- : BFD_RELOC_MIPS_TLS_DTPMOD32
+ -- : BFD_RELOC_MIPS_TLS_DTPREL32
+ -- : BFD_RELOC_MIPS_TLS_DTPMOD64
+ -- : BFD_RELOC_MIPS_TLS_DTPREL64
+ -- : BFD_RELOC_MIPS_TLS_GD
+ -- : BFD_RELOC_MIPS_TLS_LDM
+ -- : BFD_RELOC_MIPS_TLS_DTPREL_HI16
+ -- : BFD_RELOC_MIPS_TLS_DTPREL_LO16
+ -- : BFD_RELOC_MIPS_TLS_GOTTPREL
+ -- : BFD_RELOC_MIPS_TLS_TPREL32
+ -- : BFD_RELOC_MIPS_TLS_TPREL64
+ -- : BFD_RELOC_MIPS_TLS_TPREL_HI16
+ -- : BFD_RELOC_MIPS_TLS_TPREL_LO16
+     MIPS ELF relocations.
+
+ -- : BFD_RELOC_MIPS_COPY
+ -- : BFD_RELOC_MIPS_JUMP_SLOT
+     MIPS ELF relocations (VxWorks and PLT extensions).
+
+ -- : BFD_RELOC_MOXIE_10_PCREL
+     Moxie ELF relocations.
+
+ -- : BFD_RELOC_FRV_LABEL16
+ -- : BFD_RELOC_FRV_LABEL24
+ -- : BFD_RELOC_FRV_LO16
+ -- : BFD_RELOC_FRV_HI16
+ -- : BFD_RELOC_FRV_GPREL12
+ -- : BFD_RELOC_FRV_GPRELU12
+ -- : BFD_RELOC_FRV_GPREL32
+ -- : BFD_RELOC_FRV_GPRELHI
+ -- : BFD_RELOC_FRV_GPRELLO
+ -- : BFD_RELOC_FRV_GOT12
+ -- : BFD_RELOC_FRV_GOTHI
+ -- : BFD_RELOC_FRV_GOTLO
+ -- : BFD_RELOC_FRV_FUNCDESC
+ -- : BFD_RELOC_FRV_FUNCDESC_GOT12
+ -- : BFD_RELOC_FRV_FUNCDESC_GOTHI
+ -- : BFD_RELOC_FRV_FUNCDESC_GOTLO
+ -- : BFD_RELOC_FRV_FUNCDESC_VALUE
+ -- : BFD_RELOC_FRV_FUNCDESC_GOTOFF12
+ -- : BFD_RELOC_FRV_FUNCDESC_GOTOFFHI
+ -- : BFD_RELOC_FRV_FUNCDESC_GOTOFFLO
+ -- : BFD_RELOC_FRV_GOTOFF12
+ -- : BFD_RELOC_FRV_GOTOFFHI
+ -- : BFD_RELOC_FRV_GOTOFFLO
+ -- : BFD_RELOC_FRV_GETTLSOFF
+ -- : BFD_RELOC_FRV_TLSDESC_VALUE
+ -- : BFD_RELOC_FRV_GOTTLSDESC12
+ -- : BFD_RELOC_FRV_GOTTLSDESCHI
+ -- : BFD_RELOC_FRV_GOTTLSDESCLO
+ -- : BFD_RELOC_FRV_TLSMOFF12
+ -- : BFD_RELOC_FRV_TLSMOFFHI
+ -- : BFD_RELOC_FRV_TLSMOFFLO
+ -- : BFD_RELOC_FRV_GOTTLSOFF12
+ -- : BFD_RELOC_FRV_GOTTLSOFFHI
+ -- : BFD_RELOC_FRV_GOTTLSOFFLO
+ -- : BFD_RELOC_FRV_TLSOFF
+ -- : BFD_RELOC_FRV_TLSDESC_RELAX
+ -- : BFD_RELOC_FRV_GETTLSOFF_RELAX
+ -- : BFD_RELOC_FRV_TLSOFF_RELAX
+ -- : BFD_RELOC_FRV_TLSMOFF
+     Fujitsu Frv Relocations.
+
+ -- : BFD_RELOC_MN10300_GOTOFF24
+     This is a 24bit GOT-relative reloc for the mn10300.
+
+ -- : BFD_RELOC_MN10300_GOT32
+     This is a 32bit GOT-relative reloc for the mn10300, offset by two
+     bytes in the instruction.
+
+ -- : BFD_RELOC_MN10300_GOT24
+     This is a 24bit GOT-relative reloc for the mn10300, offset by two
+     bytes in the instruction.
+
+ -- : BFD_RELOC_MN10300_GOT16
+     This is a 16bit GOT-relative reloc for the mn10300, offset by two
+     bytes in the instruction.
+
+ -- : BFD_RELOC_MN10300_COPY
+     Copy symbol at runtime.
+
+ -- : BFD_RELOC_MN10300_GLOB_DAT
+     Create GOT entry.
+
+ -- : BFD_RELOC_MN10300_JMP_SLOT
+     Create PLT entry.
+
+ -- : BFD_RELOC_MN10300_RELATIVE
+     Adjust by program base.
+
+ -- : BFD_RELOC_MN10300_SYM_DIFF
+     Together with another reloc targeted at the same location, allows
+     for a value that is the difference of two symbols in the same
+     section.
+
+ -- : BFD_RELOC_MN10300_ALIGN
+     The addend of this reloc is an alignment power that must be
+     honoured at the offset's location, regardless of linker relaxation.
+
+ -- : BFD_RELOC_386_GOT32
+ -- : BFD_RELOC_386_PLT32
+ -- : BFD_RELOC_386_COPY
+ -- : BFD_RELOC_386_GLOB_DAT
+ -- : BFD_RELOC_386_JUMP_SLOT
+ -- : BFD_RELOC_386_RELATIVE
+ -- : BFD_RELOC_386_GOTOFF
+ -- : BFD_RELOC_386_GOTPC
+ -- : BFD_RELOC_386_TLS_TPOFF
+ -- : BFD_RELOC_386_TLS_IE
+ -- : BFD_RELOC_386_TLS_GOTIE
+ -- : BFD_RELOC_386_TLS_LE
+ -- : BFD_RELOC_386_TLS_GD
+ -- : BFD_RELOC_386_TLS_LDM
+ -- : BFD_RELOC_386_TLS_LDO_32
+ -- : BFD_RELOC_386_TLS_IE_32
+ -- : BFD_RELOC_386_TLS_LE_32
+ -- : BFD_RELOC_386_TLS_DTPMOD32
+ -- : BFD_RELOC_386_TLS_DTPOFF32
+ -- : BFD_RELOC_386_TLS_TPOFF32
+ -- : BFD_RELOC_386_TLS_GOTDESC
+ -- : BFD_RELOC_386_TLS_DESC_CALL
+ -- : BFD_RELOC_386_TLS_DESC
+ -- : BFD_RELOC_386_IRELATIVE
+     i386/elf relocations
+
+ -- : BFD_RELOC_X86_64_GOT32
+ -- : BFD_RELOC_X86_64_PLT32
+ -- : BFD_RELOC_X86_64_COPY
+ -- : BFD_RELOC_X86_64_GLOB_DAT
+ -- : BFD_RELOC_X86_64_JUMP_SLOT
+ -- : BFD_RELOC_X86_64_RELATIVE
+ -- : BFD_RELOC_X86_64_GOTPCREL
+ -- : BFD_RELOC_X86_64_32S
+ -- : BFD_RELOC_X86_64_DTPMOD64
+ -- : BFD_RELOC_X86_64_DTPOFF64
+ -- : BFD_RELOC_X86_64_TPOFF64
+ -- : BFD_RELOC_X86_64_TLSGD
+ -- : BFD_RELOC_X86_64_TLSLD
+ -- : BFD_RELOC_X86_64_DTPOFF32
+ -- : BFD_RELOC_X86_64_GOTTPOFF
+ -- : BFD_RELOC_X86_64_TPOFF32
+ -- : BFD_RELOC_X86_64_GOTOFF64
+ -- : BFD_RELOC_X86_64_GOTPC32
+ -- : BFD_RELOC_X86_64_GOT64
+ -- : BFD_RELOC_X86_64_GOTPCREL64
+ -- : BFD_RELOC_X86_64_GOTPC64
+ -- : BFD_RELOC_X86_64_GOTPLT64
+ -- : BFD_RELOC_X86_64_PLTOFF64
+ -- : BFD_RELOC_X86_64_GOTPC32_TLSDESC
+ -- : BFD_RELOC_X86_64_TLSDESC_CALL
+ -- : BFD_RELOC_X86_64_TLSDESC
+ -- : BFD_RELOC_X86_64_IRELATIVE
+     x86-64/elf relocations
+
+ -- : BFD_RELOC_NS32K_IMM_8
+ -- : BFD_RELOC_NS32K_IMM_16
+ -- : BFD_RELOC_NS32K_IMM_32
+ -- : BFD_RELOC_NS32K_IMM_8_PCREL
+ -- : BFD_RELOC_NS32K_IMM_16_PCREL
+ -- : BFD_RELOC_NS32K_IMM_32_PCREL
+ -- : BFD_RELOC_NS32K_DISP_8
+ -- : BFD_RELOC_NS32K_DISP_16
+ -- : BFD_RELOC_NS32K_DISP_32
+ -- : BFD_RELOC_NS32K_DISP_8_PCREL
+ -- : BFD_RELOC_NS32K_DISP_16_PCREL
+ -- : BFD_RELOC_NS32K_DISP_32_PCREL
+     ns32k relocations
+
+ -- : BFD_RELOC_PDP11_DISP_8_PCREL
+ -- : BFD_RELOC_PDP11_DISP_6_PCREL
+     PDP11 relocations
+
+ -- : BFD_RELOC_PJ_CODE_HI16
+ -- : BFD_RELOC_PJ_CODE_LO16
+ -- : BFD_RELOC_PJ_CODE_DIR16
+ -- : BFD_RELOC_PJ_CODE_DIR32
+ -- : BFD_RELOC_PJ_CODE_REL16
+ -- : BFD_RELOC_PJ_CODE_REL32
+     Picojava relocs.  Not all of these appear in object files.
+
+ -- : BFD_RELOC_PPC_B26
+ -- : BFD_RELOC_PPC_BA26
+ -- : BFD_RELOC_PPC_TOC16
+ -- : BFD_RELOC_PPC_B16
+ -- : BFD_RELOC_PPC_B16_BRTAKEN
+ -- : BFD_RELOC_PPC_B16_BRNTAKEN
+ -- : BFD_RELOC_PPC_BA16
+ -- : BFD_RELOC_PPC_BA16_BRTAKEN
+ -- : BFD_RELOC_PPC_BA16_BRNTAKEN
+ -- : BFD_RELOC_PPC_COPY
+ -- : BFD_RELOC_PPC_GLOB_DAT
+ -- : BFD_RELOC_PPC_JMP_SLOT
+ -- : BFD_RELOC_PPC_RELATIVE
+ -- : BFD_RELOC_PPC_LOCAL24PC
+ -- : BFD_RELOC_PPC_EMB_NADDR32
+ -- : BFD_RELOC_PPC_EMB_NADDR16
+ -- : BFD_RELOC_PPC_EMB_NADDR16_LO
+ -- : BFD_RELOC_PPC_EMB_NADDR16_HI
+ -- : BFD_RELOC_PPC_EMB_NADDR16_HA
+ -- : BFD_RELOC_PPC_EMB_SDAI16
+ -- : BFD_RELOC_PPC_EMB_SDA2I16
+ -- : BFD_RELOC_PPC_EMB_SDA2REL
+ -- : BFD_RELOC_PPC_EMB_SDA21
+ -- : BFD_RELOC_PPC_EMB_MRKREF
+ -- : BFD_RELOC_PPC_EMB_RELSEC16
+ -- : BFD_RELOC_PPC_EMB_RELST_LO
+ -- : BFD_RELOC_PPC_EMB_RELST_HI
+ -- : BFD_RELOC_PPC_EMB_RELST_HA
+ -- : BFD_RELOC_PPC_EMB_BIT_FLD
+ -- : BFD_RELOC_PPC_EMB_RELSDA
+ -- : BFD_RELOC_PPC64_HIGHER
+ -- : BFD_RELOC_PPC64_HIGHER_S
+ -- : BFD_RELOC_PPC64_HIGHEST
+ -- : BFD_RELOC_PPC64_HIGHEST_S
+ -- : BFD_RELOC_PPC64_TOC16_LO
+ -- : BFD_RELOC_PPC64_TOC16_HI
+ -- : BFD_RELOC_PPC64_TOC16_HA
+ -- : BFD_RELOC_PPC64_TOC
+ -- : BFD_RELOC_PPC64_PLTGOT16
+ -- : BFD_RELOC_PPC64_PLTGOT16_LO
+ -- : BFD_RELOC_PPC64_PLTGOT16_HI
+ -- : BFD_RELOC_PPC64_PLTGOT16_HA
+ -- : BFD_RELOC_PPC64_ADDR16_DS
+ -- : BFD_RELOC_PPC64_ADDR16_LO_DS
+ -- : BFD_RELOC_PPC64_GOT16_DS
+ -- : BFD_RELOC_PPC64_GOT16_LO_DS
+ -- : BFD_RELOC_PPC64_PLT16_LO_DS
+ -- : BFD_RELOC_PPC64_SECTOFF_DS
+ -- : BFD_RELOC_PPC64_SECTOFF_LO_DS
+ -- : BFD_RELOC_PPC64_TOC16_DS
+ -- : BFD_RELOC_PPC64_TOC16_LO_DS
+ -- : BFD_RELOC_PPC64_PLTGOT16_DS
+ -- : BFD_RELOC_PPC64_PLTGOT16_LO_DS
+     Power(rs6000) and PowerPC relocations.
+
+ -- : BFD_RELOC_PPC_TLS
+ -- : BFD_RELOC_PPC_TLSGD
+ -- : BFD_RELOC_PPC_TLSLD
+ -- : BFD_RELOC_PPC_DTPMOD
+ -- : BFD_RELOC_PPC_TPREL16
+ -- : BFD_RELOC_PPC_TPREL16_LO
+ -- : BFD_RELOC_PPC_TPREL16_HI
+ -- : BFD_RELOC_PPC_TPREL16_HA
+ -- : BFD_RELOC_PPC_TPREL
+ -- : BFD_RELOC_PPC_DTPREL16
+ -- : BFD_RELOC_PPC_DTPREL16_LO
+ -- : BFD_RELOC_PPC_DTPREL16_HI
+ -- : BFD_RELOC_PPC_DTPREL16_HA
+ -- : BFD_RELOC_PPC_DTPREL
+ -- : BFD_RELOC_PPC_GOT_TLSGD16
+ -- : BFD_RELOC_PPC_GOT_TLSGD16_LO
+ -- : BFD_RELOC_PPC_GOT_TLSGD16_HI
+ -- : BFD_RELOC_PPC_GOT_TLSGD16_HA
+ -- : BFD_RELOC_PPC_GOT_TLSLD16
+ -- : BFD_RELOC_PPC_GOT_TLSLD16_LO
+ -- : BFD_RELOC_PPC_GOT_TLSLD16_HI
+ -- : BFD_RELOC_PPC_GOT_TLSLD16_HA
+ -- : BFD_RELOC_PPC_GOT_TPREL16
+ -- : BFD_RELOC_PPC_GOT_TPREL16_LO
+ -- : BFD_RELOC_PPC_GOT_TPREL16_HI
+ -- : BFD_RELOC_PPC_GOT_TPREL16_HA
+ -- : BFD_RELOC_PPC_GOT_DTPREL16
+ -- : BFD_RELOC_PPC_GOT_DTPREL16_LO
+ -- : BFD_RELOC_PPC_GOT_DTPREL16_HI
+ -- : BFD_RELOC_PPC_GOT_DTPREL16_HA
+ -- : BFD_RELOC_PPC64_TPREL16_DS
+ -- : BFD_RELOC_PPC64_TPREL16_LO_DS
+ -- : BFD_RELOC_PPC64_TPREL16_HIGHER
+ -- : BFD_RELOC_PPC64_TPREL16_HIGHERA
+ -- : BFD_RELOC_PPC64_TPREL16_HIGHEST
+ -- : BFD_RELOC_PPC64_TPREL16_HIGHESTA
+ -- : BFD_RELOC_PPC64_DTPREL16_DS
+ -- : BFD_RELOC_PPC64_DTPREL16_LO_DS
+ -- : BFD_RELOC_PPC64_DTPREL16_HIGHER
+ -- : BFD_RELOC_PPC64_DTPREL16_HIGHERA
+ -- : BFD_RELOC_PPC64_DTPREL16_HIGHEST
+ -- : BFD_RELOC_PPC64_DTPREL16_HIGHESTA
+     PowerPC and PowerPC64 thread-local storage relocations.
+
+ -- : BFD_RELOC_I370_D12
+     IBM 370/390 relocations
+
+ -- : BFD_RELOC_CTOR
+     The type of reloc used to build a constructor table - at the moment
+     probably a 32 bit wide absolute relocation, but the target can
+     choose.  It generally does map to one of the other relocation
+     types.
+
+ -- : BFD_RELOC_ARM_PCREL_BRANCH
+     ARM 26 bit pc-relative branch.  The lowest two bits must be zero
+     and are not stored in the instruction.
+
+ -- : BFD_RELOC_ARM_PCREL_BLX
+     ARM 26 bit pc-relative branch.  The lowest bit must be zero and is
+     not stored in the instruction.  The 2nd lowest bit comes from a 1
+     bit field in the instruction.
+
+ -- : BFD_RELOC_THUMB_PCREL_BLX
+     Thumb 22 bit pc-relative branch.  The lowest bit must be zero and
+     is not stored in the instruction.  The 2nd lowest bit comes from a
+     1 bit field in the instruction.
+
+ -- : BFD_RELOC_ARM_PCREL_CALL
+     ARM 26-bit pc-relative branch for an unconditional BL or BLX
+     instruction.
+
+ -- : BFD_RELOC_ARM_PCREL_JUMP
+     ARM 26-bit pc-relative branch for B or conditional BL instruction.
+
+ -- : BFD_RELOC_THUMB_PCREL_BRANCH7
+ -- : BFD_RELOC_THUMB_PCREL_BRANCH9
+ -- : BFD_RELOC_THUMB_PCREL_BRANCH12
+ -- : BFD_RELOC_THUMB_PCREL_BRANCH20
+ -- : BFD_RELOC_THUMB_PCREL_BRANCH23
+ -- : BFD_RELOC_THUMB_PCREL_BRANCH25
+     Thumb 7-, 9-, 12-, 20-, 23-, and 25-bit pc-relative branches.  The
+     lowest bit must be zero and is not stored in the instruction.
+     Note that the corresponding ELF R_ARM_THM_JUMPnn constant has an
+     "nn" one smaller in all cases.  Note further that BRANCH23
+     corresponds to R_ARM_THM_CALL.
+
+ -- : BFD_RELOC_ARM_OFFSET_IMM
+     12-bit immediate offset, used in ARM-format ldr and str
+     instructions.
+
+ -- : B

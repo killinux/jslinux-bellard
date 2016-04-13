@@ -1,0 +1,1655 @@
+d memory leak problem where repeated assignments did not
+    free the previous value.  <ernie at turing dot une dot edu dot au>
+
+    Complex number ordering/comparison has been changed such that:
+
+	a < b implies a + c < b + c
+	a < b and c > 0 implies a * c < b * c
+	a < b implies -a > -b
+
+    To achieve a "natural" partial ordering of the complex numbers
+    with the above properties, cmp(a,b) for real or complex numbers
+    may be considered as follows:
+
+	cmp(a,b) = sgn(re(a) - re(b)) + sgn(im(a) - im(b)) * 1i
+
+    The cmp help file has been updated.
+
+    Change HASH type to QCKHASH.  The HASH type is a name better suited
+    for the upcoming one-way hash interface.
+
+    Added the CONFIG type; a structure containing all of the configuration
+    values under the control of config().  Added V_CONFIG data type.
+    The call config("all") returns a V_CONFIG.	One may now save/restore
+    the configuration state as follows:
+
+	x = config("all")
+	...
+	config("all",x)
+
+    Added two configuration aliases, "oldstd" (for old backward compatible
+    standard configuration) and "newstd" (for new style configuration).
+    One may set the historic configuration state by:
+
+	config("all", "oldstd")
+
+    One may use what some people consider to be a better but not backward
+    compatible configuration state by:
+
+	config("all", "newstd")
+
+    Renamed config.h (configuration file built during the make) to conf.h.
+    Added a new config.h to contain info on thw V_CONFIG type.
+
+    Fixed some ANSI C compile warnings.
+
+    The show config output is not indented by only one tab, unless
+    config("tab",0) in which case it is not indented.
+
+    The order of show config has been changed to reflect the config
+    type values.
+
+    Changed declaration of sys_errlst in func.c to be char *.
+
+    Added quo(x,y,rnd) and mod(x,y,rnd) to give function interfaces
+    to // and % with rounding mode arguments.  Extended these functions
+    to work for list-values, complex numbers and matrices.
+    <ernie at turing dot une dot edu dot au>
+
+    For integer x, cfsim(x,8) returns 0.
+    <ernie at turing dot une dot edu dot au>
+
+    Fixed config("leadzero").  <ernie at turing dot une dot edu dot au>
+
+    Set config("cfsim",8) by default (in "oldstd").  Setup initial idea for
+    config("all", "newstd") to be the default with the following changes:
+
+	display		10
+	epsilon		1e-10
+	quo		0
+	outround	24
+	leadzero	1
+	fullzero	1
+	prompt		"; "		(allows full line cut/paste)
+	more		";; "		(allows full line cut/paste)
+
+    The "newstd" is a (hopefully) more preferred configuration than the
+    historic default.
+
+    The fposval.h file defines DEV_BITS and INODE_BITS giving the
+    bit size of the st_dev and st_ino stat elements.  Also added
+    SWAP_HALF_IN_DEV and SWAP_HALF_IN_STSIZE.
+
+    Added sec(), csc(), cot(), sech(), csch(), coth(), asec(), acsc(),
+    acot(), asech(), acsch() and acoth() builtins. <ernie at turing dot
+    une dot edu dot au>
+
+    The initmasks() call is no longer needed.  The bitmask[] array
+    is a compiled into zmath.c directly.
+
+    Added isconfig(), ishash(), isrand() and israndom() builtins to
+    test is something is a configuration state, hash state, RAND
+    state or RANDOM state.
+
+    The lib/cryrand.cal library now no longer keeps the Blum prime
+    factors used to form he Blum modulus.  The default modulus has
+    been expanded to 1062 bits product of two Blum primes.
+
+    The function hash_init() is called to initialize the hash function
+    interface.
+
+    Misc calc man page fixes and new command line updates.
+
+    Fixed bug related to srand(1).
+
+    Cleaned up some warning messages.
+
+    All calls to math_error() now have a /*NOTREACHED*/ comment after
+    them.  This allows lint and compiler flow progs to note the jumpjmp
+    nature of math_error().  Unfortunately some due to some systems
+    not dealing with /*NOTREACHED*/ comments correctly, calls of the form:
+
+	if (foo)
+		math_error("bar");
+
+    must be turned into:
+
+	if (foo) {
+		math_error("bar");
+		/*NOTREACHED*/
+	}
+
+    The ploy() function can take a list of coefficients.  See the
+    help/poly file.  Added poly.c.  <ernie at turing dot une dot edu
+    dot au>
+
+    Fixes and performance improvements to det().  <ernie at turing dot
+    une dot edu dot au>
+
+    Renamed atoq() and atoz() to str2q() and str2z() to avoid conflicts
+    with libc function names.
+
+    Fixed use of ${NROFF_ARG} when ${CATDIR} and ${NROFF} are set.
+
+    Fixed SWAP_HALF_IN_B64 macro use for Big Endian machines without
+    long long or with LONGLONG_BITS=0.
+
+    Added error() and iserror() to generate a value of a given error type.
+    See help/error for details.	 <ernie at turing dot une dot edu dot au>
+
+    Added singular forms of help files.	 For example one can now get
+    help for binding, bug, change, errorcode and type.
+
+    The builtin mmin(x, md) has been changed to return the same as
+    mod(x, md, 16).  The old mmin(x, md) required md to be a positive
+    integer and x to be an integer.  Now md can be any real number; x
+    can be real, complex, or a matrix or list with real elements, etc.
+    <ernie at turing dot une dot edu dot au>
+
+    The builtin avg(x_1, x_2, ...) has been changed to accept list-valued
+    arguments:	a list x_i contributes its elements to the list of
+    items to be averaged.  E.g. avg(list(1,2,list(3,4)),5) is treated
+    as if it were avg(1,2,3,4,5).  If an error value is encountered in
+    the items to be averaged, the first such value is returned.  If the
+    number of items to be averaged is zero, the null value is returned.
+    <ernie at turing dot une dot edu dot au>
+
+    The builtin hmean(x_1, x_2, ...) has been changed to admit types
+    other than real for x_1, x_2, ...; list arguments are treated in
+    the same way as in avg().  <ernie at turing dot une dot edu dot au>
+
+    The builtin eval(str) has been changed so that when str has a
+    syntax error, instead of call to math_error(), an error value is
+    returned.  <ernie at turing dot une dot edu dot au>
+
+    The old frem(x,y) builtin returned the wrong value when y was a power of
+    2 greater than 2, e.g. f(8,4) is returned as 4 when its value should be 2.
+    This has been fixed by a small change to the definition of zfacrem().
+    Calc used to accept with no warning or error message, gcdrem(0,2) or
+    generally gcdrem(0,y) for any y with abs(y) > 1, but then went into an
+    infinite loop.  This has been fixed by never calling zfacrem() with zero x.
+    Both frem(x,y) and gcdrem(x,y) now reject y = -1, 0 or 1 as errors.	 For
+    nonzero x, and y == -1 or 1, defining frem(x,y) and gcdrem(x,y) to equal
+    abs(x) is almost as natural as defining x^0 to be 1.  Similarly, if x is
+    not zero then gcdrem(x,0) == 1.  <ernie at turing dot une dot edu dot au>
+
+    Plugged some more memory leaks.
+
+    Fixed bug related randbit(x) skip (where x < 0).
+
+    Added seedrandom.cal to help users use the raw random() interface well.
+
+    Made extensive additions and changes to the rand() and random() generator
+    comments in zrand.c.
+
+    Fixed a bug in fposval.c that prevented calc from compiling on systems
+    with 16 bit device and/or inodes.  Fixed error messages in fposval.c.
+
+    Fixed bug that would put calc into an infinite loop if it is ran
+    with errors in startup files (calc/startup, .calcrc).
+    Ha Lam <hl at kuhep5 dot phsx dot ukans dot edu>
+
+
+The following are the changes from calc version 2.10.0t13 to 2.10.1t10:
+
+    Added SB8, USB8, SB16, USB16, SB32, USB32 typedefs, determined by
+    longbits and declared in longbits.h, to deal with 8, 16 and 32 bit
+    signed and unsigned values.
+
+    The longbits.h will define HAVE_B64 with a 64 bit type (long or
+    longlong) is available.   If one is, then SB64 and US64 typedefs
+    are declared.
+
+    The U(x) and L(x) macros only used to define 33 to 64 bit signed
+    and unsigned constants.  Without HAVE_B64, these macros cannot
+    be used.
+
+    Changed the way zmath.h declares types such as HALF and FULL.
+
+    Changed the PRINT typedef.
+
+    The only place where the long long type might be used is in longlong.c
+    and if HAVE_LONGLONG, in longbits.h if it is needed.  The only place
+    were a long long constant might be used is in longlong.c.  Any
+    long long constants, if HAVE_LONGLONG, are hidden under the U(x) and
+    L(x) macros on longbits.h.	And of course, if you don't have long long,
+    then HAVE_LONGLONG will NOT be defined and long long's will not be used.
+
+    The longlong.h file is no longer directly used by the main calc source.
+    It only comes into play when compiling the longbits tool.
+
+    Added config("prompt") to change the default interactive prompt ("> ")
+    and config("more") to change the default continuation prompt (">> ").
+
+    Makefile builds align32.h with determines if 32 bit values must always
+    be aligned on 32 bit boundaries.
+
+    The CALCBINDINGS file is searched for along the CALCPATH.  The Makefile
+    defines the default CALCBINDINGS is "bindings" (or "altbind") which
+    is now usually found in ./lib or ${LIBDIR}.
+
+    Per Ernest Bowen <ernie at turing dot une dot edu dot au>, an optional
+    third argument was added  sqrt() so that in sqrt(x,y,z), y and z have
+    essentially the same role as in appr(x,y,z) except that of course
+    what is being approximated is the sqrt of x.  Another difference is
+    that two more bits of z are used in sqrt: bit 5 gives the option of
+    exact results when they exist (the value of y is then ignored) and
+    bit 6 returns the non-principal root rather than the principal value.
+
+    If commands are given on the command line, leading tabs are not
+    printed in output.	Giving a command on the command line implies
+    that config("tab",0) was given.
+
+    Pipe processing is enabled by use of -p.  For example:
+
+	echo "print 2^21701-1, 2^23209-1" | calc -p | fizzbin
+
+    In pipe mode, calc does not prompt, does not print leading tabs
+    and does not print the initial version header.
+
+    Calc will now form FILE objects for any open file descriptor > 2
+    and < MAXFILES.  Calc assumes they are available for reading
+    and writing.  For example:
+
+	$ echo "A line of text in the file on descriptor 5" > datafile
+	$ calc 5<datafile
+	C-style arbitrary precision calculator (version 2.10.1t3)
+	[Type "exit" to exit, or "help" for help.]
+
+	; files(5)
+		FILE 5 "descriptor[5]" (unknown_mode, pos 0)
+	; fgetline(files(5))
+		"A line of text in the file on descriptor 5"
+
+    The -m mode flag now controls calc's ability to open files
+    and execute programs.  This mode flag is a single digit that
+    is processed in a similar way as the octal chmod values:
+
+	0   do not open any file, do not execute progs
+	1   do not open any file
+	2   do not open files for reading, do not execute progs
+	3   do not open files for reading
+	4   do not open files for writing, do not execute progs
+	5   do not open files for writing
+	6   do not execute any program
+	7   allow everything (default mode)
+
+    Thus if one wished to run calc from a privileged user, one might
+    want to use -m 0 in an effort to make calc more secure.
+
+    The -m flags for reading and writing apply on open.
+    Files already open are not effected.  Thus if one wanted to use
+    the -m 0 in an effort to make calc more secure, but still be
+    able to read and write a specific file, one might do:
+
+	calc -m 0 3<a.file 4>b.file
+
+	NOTE: Files presented to calc in this way are opened in an unknown
+	      mode.  Calc will try to read or write them if directed.
+
+    The maximum command line size it MAXCMD (16384) bytes.  Calc objects to
+    command lines that are longer.
+
+    The -u flag cause calc to un-buffer stdin and stdout.
+
+    Added more help files.  Improved other help files.
+
+    Removed trailing blanks from files.
+
+    Removed or rewrite the formally gross and disgusting hacks for
+    dealing with various sizes and byte sex FILEPOS and off_t types.
+
+    Defined ilog2(x), ilog10(x), ilog(x,y) so that sign of x is ignored,
+    e.g. ilog2(x) = ilog2(abs(x)).
+
+    The sixth bit of rnd in config("round", rnd) and config("bround", rnd)
+    is used to specify rounding to the given number of significant
+    digits or bits rather than places, e.g. round(.00238, 2, 32)
+    returns .0023, round(.00238, 2, 56) returns .0024.
+
+
+The following are the changes from calc version 2.9.3t11 to 2.10.0t12:
+
+    The default ${LIBDIR}/bindings CALCBINDINGS uses ^D for editing.
+    The alternate CALCBINDINGS ${LIBDIR}/altbind uses ^D for EOF.
+
+    The Makefile CC flag system has been changed.  The new CC flag system
+    includes:
+
+	CCMAIN are flags for ${CC} when compiling only files with main()
+	CCOPT are flags given to ${CC} for optimization
+	CCWARN are flags given to ${CC} for warning message control
+	CCMISC are misc flags given to ${CC}
+
+	CNOWARN are all flags given to ${CC} except ${CCWARN} flags
+	CFLAGS are all flags given to ${CC}
+	ICFLAGS are given to ${CC} for intermediate progs
+
+	LCFLAGS are CC-style flags for ${LINT}
+	LDFLAGS are flags given to ${CC} for linking .o files
+	ILDFLAGS are given to ${CC} for linking .o's for intermediate progs
+
+	CC is how the the C compiler is invoked
+
+    The syntax error:
+
+	print a[3][[4]]
+
+    used to send calc into a loop printing 'missing expression'.  This
+    has been fixed.
+
+    Added config("maxerr") and config("maxerr",val) to control the
+    maximum number of errors before a computation is aborted.
+
+    Removed regress.cal test #952 and #953 in case calc's stdout or
+    stderr is re-directed to a non-file by some test suite.
+
+    Changed how <stdarg.h>, <varags.h> or simulate stdarg is determined.
+    Changed how vsprintf() vs sprintf() is determined.	The args.h file
+    is created by Makefile to test which combination works.  Setting
+    VARARG and/or HAVE_VSPRINTF in the Makefile will alter these tests
+    and direct a specific combination to be used.  Removed have_vs.c,
+    std_arg.h and try_stdarg.c.	 Added have_stdvs.c and have_varvs.c.
+
+    Added 3rd optional arg to round(), bround(), appr() to specify the type of
+    rounding to be used.
+
+    Moved fnvhash.c to quickhash.c.
+
+    Fixed a bug in appr rounding mode when >= 16.
+
+    Added test2600.cal and test2700.cal. They are used by the regress.cal
+    to provide a more extensive test suite for some builtin numeric
+    functions.
+
+
+The following are the changes from calc version 2.9.3t9.2+ to 2.9.3t10:
+
+    Added many help files for builtin functions and some symbols.
+    More help files are needed, see help/todo.
+
+    Removed the calc malloc code.  Calc now uses malloc and free to
+    manage storage since these implementations are often written to
+    work best for the local system.  Removed CALC_MALLOC code and
+    Makefile symbol.  Removed alloc.c.
+
+    Added getenv("name"), putenv("name=val") and putenv("name, "val")
+    builds for environment variable support thanks to "Dr." "D.J." Picton
+    <dave at aps2 dot ph dot bham dot ac dot uk>.
+
+    Added system("shell command") builtin to execute shell commands,
+    thanks to "Dr." "D.J." Picton <dave at aps2 dot ph dot bham dot ac dot uk>.
+
+    Added isatty(fd) builtin to determine if fd is attached to a tty
+    thanks to "Dr." "D.J." Picton <dave at aps2 dot ph dot bham dot ac dot uk>.
+
+    Added cmdbuf() builtin to return the command line executed by calc's
+    command line args thanks to "Dr." "D.J." Picton <dave at aps2 dot
+    ph dot bham dot ac dot uk>.
+
+    Added strpos(str1,str2) builtin to determine the first position where
+    str2 is found in str1 thanks to "Dr." "D.J." Picton
+    <dave at aps2 dot ph dot bham dot ac dot uk>.
+
+    Fixed bug that caused:
+
+	global a,b,c		(newline with no semicolon)
+	read test.cal
+
+    the read command to not be recognized.
+
+    The show command looks at only the first 4 chars of the argument so
+    that:
+
+	show globals
+	show global
+	show glob
+
+    do the same thing.
+
+    Added show config to print the config values and parameters thanks
+    to Ernest Bowen <ernie at turing dot une dot edu dot au>.
+
+    Added show objtypes to print the defined objects thanks to Ernest Bowen
+    <ernie at turing dot une dot edu dot au>.
+
+    Added more builtin function help files.
+
+    Fixed the 3rd arg usage of the root builtin.
+
+    Expanded the regress.cal regression test suite.
+
+    Fixed -- and ++ with respect to objects and assignment (see the 2300
+    series in regress.cal).
+
+    Added isident(m) to determine if m is an identity matrix.
+
+    The append(), insert() and push() builtins can now append between
+    1 to 100 values to a list.
+
+    Added reverse() and join() builtins to reverse and join lists
+    thanks to Ernest Bowen <ernie at turing dot une dot edu dot au>.
+
+    Added sort() builtin to sort lists thanks to Ernest Bowen
+    <ernie at turing dot une dot edu dot au>.
+
+    Added head(), segment() and tail() builtins to return the head,
+    middle or tail of lists thanks to Ernest Bowen <ernie at turing dot
+    une dot edu dot au>.
+
+    Added more and fixed some help files.
+
+    The builtin help file is generated by the help makefile.  Thus it will
+    reflect the actual calc builtin list instead of the last time someone
+    tried to update it correctly.  :-)
+
+    Fixed non-standard void pointer usage.
+
+    Fixed base() bug with regards to the default base.
+
+    Renamed MATH_PROTO() and HIST_PROTO() to PROTO().  Moved PROTO()
+    into prototype.h.
+
+    Fixed many function prototypes.  Calc does not declare functions
+    as static in one place and extern in another.  Where reasonable
+    function prototypes were added.  Several arg mismatch problems
+    were fixed.
+
+    Added support for SGI MIPSpro C compiler.
+
+    Changes the order that args are declared to match the order
+    of the function.  Some source tools got confused when:
+    arg order did not match as in:
+
+	void
+	funct(foo,bar)
+		int bar;	/* this caused a problem */
+		char *foo;	/* even though it should not! */
+	{
+	}
+
+
+The following are the changes from calc version 2.9.3t8 to 2.9.3t9.2:
+
+    Use of the macro zisleone(z) has been clarified.  The zisleone(z) macro
+    tests if z <= 1.  The macro zisabsleone(z) tests of z is 1, 0 or -1.
+    Added zislezero(z) macro.  Bugs are related to this confusion have
+    been fixed.
+
+    Added zge64b(z) macro to zmath.h.
+
+    Added the macro zgtmaxufull(z) to determine if z will fit into a FULL.
+    Added the macro zgtmaxlong(z) to determine if z will fit into a long.
+    Added the macro zgtmaxulong(z) to determine if z will fit into a unsigned
+    long.
+
+    Added the macro ztoulong(z) to convert an absolute value of a ZVALUE to
+    an unsigned long, or to convert the low order bits of a ZVALUE.
+    Added the macro ztolong(z) to convert an absolute value of a ZVALUE to
+    an long, or to convert the low order bits of a ZVALUE.
+
+    Some non-ANSI C compilers define __STDC__ to be 0, whereas all ANSI
+    C compiles define it as non-zero.  Code that depends on ANSI C now
+    uses #if defined(__STDC__) && __STDC__ != 0.
+
+    Fixed ptest(a,b) bug where (a mod 2^32) < b.  Previously ptest()
+    incorrectly returned 1 in certain cases.
+
+    The second ptest() argument, which is now optional, defaults to 1.
+    This ptest(x) is the same as ptest(x,1).
+
+    Added an optional 3rd argument to ptest().	The 3rd arg tells how many
+    tests to skip.  Thus ptest(a,10) performs the same probabilistic
+    tests as ptest(a,3) and ptest(a,7,3).
+
+    The ptest() builtin by default will determine if a value is divisible
+    by a trivial prime.	 Thus, ptest(a,0) will only perform a quick trivial
+    factor check.  If the test count is < 0, then this trivial factor check
+    is omitted.	 Thus ptest(a,10) performs the same amount of work as
+    ptest(a,3) and ptest(a,-7,3) and the same amount of work as
+    ptest(a,-3) and ptest(a,7,3).
+
+    Added nextcand(a[,b[,c]]) and prevcand(a[,b[,c]]) to search for the
+    next/previous value v > a (or v < a) that passes ptest(v[,b[,c]]).
+    The nextcand() and prevcand() builtins take the same arguments
+    as ptest().
+
+    Added nextprime(x) and and prevprime(x) return the next and
+    previous primes with respect to x respectively.  As of this
+    release, x must be < 2^32.	With one argument, they will return
+    an error if x is out of range.  With two arguments, they will
+    not generate an error but instead will return y.
+
+    Fixed some memory leaks, particularly those related with pmod().
+
+    Fixed some of the array bounds reference problems in domult().
+
+    Added a hack-a-round fix for the uninitialized memory reference
+    problems in zsquare/dosquare.
+
+    The LIBRARY file has been updated to include a note about calling
+    zio_init() first.  Also some additional useful macros have been noted.
+
+    The lfactor() function returns -1 when given a negative value.
+    It will not search for factors beyond 2^32 or 203280221 primes.
+    Performance of lfactor() has been improved.
+
+    Added factor(x,y) to look for the smallest factor < min(sqrt(x),y).
+
+    Added libcalcerr.a for a math_error() routine for the convince of
+    progs that make use of libcalc.a.  This routine by default will
+    print an message on stderr and exit.  It can also be made to
+    longjump instead.  See the file LIBRARY under ERROR HANDING.
+
+    Added isprime() to test if a value is prime.  As of this release,
+    isprime() is limited to values < 2^32.  With one argument,
+    isprime(x) will return an error if x is out of range.  With
+    two arguments, isprime(x,y) will not generate an error but
+    instead will return y.
+
+    Added pix(x) to return the number of primes <= x.  As of this
+    release, x must be < 2^32.	With one argument, pix(x) will
+    return an error if x is out of range.  With two arguments,
+    pix(x,y) will not generate an error but instead will return y.
+
+    Fixed the way *.h files are formed.	 Each file guards against
+    multiple inclusion.
+
+    Fixed numeric I/O on 64 bit systems.  Previously the print and
+    constant conversion routines assumed a base of 2^16.
+
+    Added support for 'long long' type.	 If the Makefile is setup
+    with 'LONGLONG_BITS=', then it will attempt to detect support
+    for the 'long long' type.  If the Makefile is setup with
+    'LONGLONG_BITS=64', then a 64 bit 'long long' is assumed.
+    Currently, only 64 bit 'long long' type is supported.
+    Use of 'long long' allows one to double the size of the
+    internal base, making a number of computations much faster.
+    If the Makefile is setup with 'LONGLONG_BITS=0', then the
+    'long long' type will not be used, even if the compiler
+    supports it.
+
+    Fixed avg() so that it will correctly handle matrix arguments.
+
+    Fixed btrunc() limit.
+
+    The ord("string") function can now take a string of multiple
+    characters.	 However it still will only operate on the first
+    character.
+
+    Renamed stdarg.h to std_arg.h and endian.h endian_calc.h to
+    avoid name conflicts with /usr/include on some systems that
+    have make utilities that are too smart for their own good.
+
+    Added additive 55 shuffle generator functions rand(), randbits()
+    and its seed function srand().  Calling rand(a,b) produces a
+    random value over the open half interval [a,b).  With one arg,
+    rand(a) is equivalent to rand(0,a).	 Calling rand() produces
+    64 random bits and is equivalent to rand(0,2^64).
+
+    Calling randbit(x>0) produces x random bits.  Calling randbit(skip<0)
+    skips -skip bits and returns -skip.
+
+    The srand() function will return the current state.	 The call
+    srand(0) returns the initial state.	 Calling srand(x), where
+    x > 0 will seed the generator to a different state.	 Calling
+    srand(mat55) (mat55 is a matrix of integers at least 55 elements long)
+    will seed the internal table with the matrix elements mod 2^64.
+    Finally calling srand(state) where state is a generator state
+    also sets/seeds the generator.
+
+    The cryrand.cal library has been modified to use the builtin
+    rand() number generator.  The output of this generator is
+    different from previous versions of this generator because
+    the rand() builtin does not match the additive 55 / shuffle
+    generators from the old cryrand.cal file.
+
+    Added Makfile support for building BSD/386 releases.
+
+    The cmp() builtin can now compare complex values.
+
+    Added the errno() builtin to return the meaning of errno numbers.
+
+    Added fputc(), fputs(), fgets(), ftell(), fseek() builtins.
+
+    Added fsize() builtin to determine the size of an open file.
+
+    Supports systems where file positions and offsets are longer than 2^32
+    byte, longer than long and/or are not a simple type.
+
+    When a file file is printed, the file number is also printed:
+
+	FILE 3 "/etc/motd" (reading, pos 127)
+
+    Added matsum() to sum all numeric values in a matrix.
+
+    The following code now works, thanks to a fix by <ernie at turing
+    dot une dot edu dot au> (Ernest Bowen):
+
+		mat A[3] = {1, 2, 3};
+		A[0] = A;
+		print A[0];
+
+    Also thanks to ernie, calc can process compound expressions
+    such as 1 ? 2 ? 3 : 4 : 5.
+
+    Also^2 thanks to ernie, the = operator is more general:
+
+		(a = 3) = 4		(same as a = 3; a = 4)
+		(a += 3) *= 4		(same as a += 3; a *= 4)
+		matfill(B = A, 4)	(same as B = A; matfill(B, 4);)
+
+    Also^3 thanks to ernie, the ++ and -- operators are more general.
+
+		a = 3
+		++(b = a)		(a == 3, b == 4)
+		++++a			(a == 5)
+		(++a)++ == 6		(a == 7)
+		(++a) *= b		(a == 32, b == 4)
+
+    Fixed a bug related to calling epsilon(variable) thanks to ernie.
+
+    Removed trailing whitespace from source and help files.
+
+    Some compilers do not support the const type.  The file have_const.h,
+    which is built from have_const.c will determine if we can or should
+    use const.	See the Makefile for details.
+
+    Some systems do not have uid_t.  The file have_uid_t.h, which is
+    built from have_uid_t.c will determine if we can or should depend
+    on uid_t being typefed by the system include files.	 See the Makefile
+    for details.
+
+    Some systems do not have memcpy(), memset() and strchr().  The
+    file have_newstr.h, which is built from have_newstr.c will
+    determine if we can or should depend libc providing these
+    functions.	See the Makefile for details.
+
+    The Makefile symbol DONT_HAVE_VSPRINTF is now called HAVE_VSPRINTF.
+    The file have_vs.h, which is built from have_vs.c will determine if
+    we can or should depend libc providing vsprintf().	See the Makefile
+    for details.
+
+    Removed UID_T and OLD_BSD symbols from the Makefile.
+
+    A make all of the upper level Makefile will cause the all rule
+    of the lib and help subdirs to be made as well.
+
+    Fixed bug where reserved keyword used as symbol name caused a core dump.
+
+
+The following are the changes from calc version 2.9.3t7 to 2.9.3t7:
+
+    The 'show' command by itself will issue an error message
+    that will remind one of the possible show arguments.
+    (thanks to Ha S. Lam <hl at kuhep4 dot phsx dot ukans dot edu>)
+
+    Fixed an ANSI-C related problem with the use of stringindex()
+    by the show command.  ANSI-C interprets "bar\0foo..." as if
+    it were "bar\017oo...".
+
+    Added a cd command to change the current directory.
+    (thanks to Ha S. Lam <hl at kuhep4 dot phsx dot ukans dot edu>)
+
+    Calc will not output the initial version string, startup
+    message and command prompt if stdin is not a tty.  Thus
+    the shell command:
+
+	echo "fact(100)" | calc
+
+    only prints the result.  (thanks to Ha S. Lam <hl at kuhep4 dot phsx
+    dot ukans dot edu>)
+
+    The zmath.h macro zisbig() macro was replaced with zlt16b(),
+    zge24b(), zge31b(), zge32b() and zgtmaxfull() which are
+    independent of word size.
+
+    The 'too large' limit for factorial operations (e.g., fact, pfact,
+    lcmfact, perm and comb) is now 2^24.  Previously it depended on the
+    word size which in the case of 64 bit systems was way too large.
+
+    The 'too large' limit for exponentiation, bit position (isset,
+    digit, ), matrix operations (size, index, creation), scaling,
+    shifting, rounding and computing a Fibonacci number is 2^31.
+    For example, one cannot raise a number by a power >= 2^31.
+    One cannot test for a bit position >= 2^31.	 One cannot round
+    a value to 2^31 decimal digit places.  One cannot compute
+    the Fibonacci number F(2^31).
+
+    Andy Fingerhut <jaf at dworkin dot wustl dot edu> (thanks!) supplied
+    a fix to a subtle bug in the code generation routines.  The basic
+    problem was that addop() is sometimes used to add a label to
+    the opcode table of a function.  The addop() function did some
+    optimization tricks, and if one of these labels happens to be an
+    opcode that triggers optimization, incorrect opcodes were generated.
+
+    Added utoz(), ztou() to zmath.c, and utoq(), qtou() to qmath.c
+    in preparation for 2.9.3t9 mods.
+
+
+The following are the changes from calc version 2.9.2 to 2.9.3t7:
+
+    Calc can now compile on OSF/1, SGI and IBM RS6000 systems.
+
+    A number of systems that have both <varargs.h> and <stdarg.h> do
+    not correctly implement both types.	 On some System V, MIPS and DEC
+    systems, vsprintf() and <stdarg.h> do not mix.  While calc will
+    pass the regression test, use of undefined variables will cause
+    problems.  The Makefile has been modified to look for this problem
+    and work around it.
+
+    Added randmprime.cal which find a prime of the form h*2^n-1 >= 2^x
+    for some given x.  The initial search points for 'h' and 'n'
+    are selected by a cryptographic pseudo-random generator.
+
+    The library script nextprim.cal is now a link to nextprime.cal.
+    The lib/Makefile will take care of this link and install.
+
+    The show command now takes singular forms.	For example, the
+    command 'show builtin' does the same as 'show builtins'.  This
+    allows show to match the historic singular names used in
+    the help system.
+
+    Synced 'show builtin' output with 'help builtin' output.
+
+    Fixed the ilog2() builtin.	Previously ilog2(2^-20) returned
+    -21 instead of -20.
+
+    The internal function qprecision() has been fixed.	The changes
+    ensure that for any e for which 0 < e <= 1:
+
+	1/4 < sup(abs(appr(x,e) - x))/e	 <= 1/2.
+
+    Here 'sup' denotes the least upper bound over values of x (supremum).
+    Previously calc did: 1/4 <= sup(abs(appr(x,e) - x))/e  < 1.
+
+    Certain 64 bit processors such as the Alpha are now supported.
+
+    Added -once to the READ command.  The command:
+
+	read -once filename
+
+    like the regular READ expect that it will ignore filename if
+    is has been previously read.
+
+    Improved the makefile.  One now can select the compiler type.  The
+    make dependency lines are now simple foo.o: bar.h lines.  While
+    this makes for a longer list, it is easier to maintain and will
+    make future Makefile patches smaller.  Added special options for
+    gcc version 1 & 2, and for cc on RS6000 systems.
+
+    Calc compiles cleanly under the watchful eye of gcc version 2.4.5
+    with the exception of warnings about 'aggregate has a partly
+    bracketed initializer'.  (gcc v2 should allow you to disable
+    this type of warning with using -Wall)
+
+    Fixed a longjmp bug that clobbered a local variable in main().
+
+    Fixed a number of cases where local variables or malloced storage was
+    being used before being set.
+
+    Fixed a number of fence post errors resulting in reads or writes
+    just outside of malloced storage.
+
+    A certain parallel processor optimizer would give up on
+    code in cases where math_error() was called.  The obscure
+    work-a-rounds involved initializing or making static, certain
+    local variables.
+
+    The cryrand.cal library has been improved.	Due to the way
+    the initial quadratic residues are selected, the random numbers
+    produced differ from previous versions.
+
+    The printing of a leading '~' on rounded values is now a config
+    option.  By default, tilde is still printed.  See help/config for
+    details.
+
+    The builtin function base() may be used to set the output mode or
+    base.  Calling base(16) is a convenient shorthand for typing
+    config("mode","hex").  See help/builtin.
+
+    The printing of a leading tab is now a config option.  This does not
+    alter the format of functions such as print or printf.  By default,
+    a tab is printed.  See help/config for details.
+
+    The value atan2(0,0) now returns 0 value in conformance with
+    the 4.3BSD ANSI/IEEE 754-1985 math library.
+
+    For all values of x, x^0 yields 1.	The major change here is
+    that 0^0 yields 1 instead of an error.
+
+    Fixed gcd() bug that caused gcd(2,3,1/2) to ignore the 1/2 arg.
+
+    Fixed ltol() rounding so that exact results are returned, similar
+    to the way sqrt() and hypot() round, when they exist.
+
+    Fixed a bug involving ilog2().
+
+    Fixed quomod(a,b,c,d) to give correct value for d when a is between
+    0 and -b.
+
+    Fixed hmean() to perform the necessary multiplication by the number of
+    arguments.
+
+    The file help/full is now being built.
+
+    The man page is not installed by default.  One may install either
+    the man page source or the cat (formatted man) page.  See the
+    Makefile for details.
+
+    Added a quit binding.  The file lib/bindings2 shows how this new
+    binding may be used.
+
+    One can now do a 'make check' to run the calc regression test
+    within in the source tree.
+
+    The regression test code is now more extensive.
+
+    Updated the help/todo list.	 A BUGS file was added.	 Volunteers are
+    welcome to send in patches!
+
+
+The following are the changes from calc version 2.9.1 to 2.9.1:
+
+    Fixed floor() for values -1 < x < 0.
+
+    Fixed ceil() for values -1 < x < 0.
+
+    Fixed frac() for values < 0 so that int(x) + frac(x) == x.
+
+    Fixed wild fetch bug in zdiv, zquo and zmod code.
+
+    Fixed bug which caused regression test #719 to fail on some machines.
+
+    Added more regression test code.
+
+
+The following are the changes from calc version 2.9.0 to 2.9.0:
+
+    A major bug was fixed in subtracting two numbers when the first
+    number was zero.  The problem caused wrong answers and core dumps.
+
+
+The following are the changes from calc version 1.27.0 to 2.8.0:
+
+    Full prototypes have been provided for all C functions, and are used
+    if calc is compiled with an ANSI compiler.
+
+    Newly defined variables are now initialized to the value of zero instead
+    of to the null value.  The elements of new objects are also initialized
+    to the value of zero instead of null.
+
+    The gcd, lcm, and ismult functions now work for fractional values.
+
+    A major bug in the // division for fractions with a negative divisor
+    was fixed.
+
+    A major bug in the calculation of ln for small values was fixed.
+
+    A major bug in the calculation of the ln and power functions for complex
+    numbers was fixed.
+
+    A major lack of precision for sin and tan for small values was fixed.
+
+    A major lack of precision for complex square roots was fixed.
+
+    The "static" keyword has been implemented for variables.  So permanent
+    variables can be defined to have either file scope or function scope.
+
+    Initialization of variables during their declaration are now allowed.
+    This is most convenient for the initialization of static variables.
+
+    The matrix definition statement can now be used within a declaration
+    statement, to immediately define a variable as a matrix.
+
+    Initializations of the elements of matrices are now allowed.  One-
+    dimensional matrices may have implicit bounds when initialization is
+    used.
+
+    The obj definition statement can now be used within a declaration
+    statement, to immediately define a variable as an object.
+
+    Object definitions can be repeated as long as they are exactly the same
+    as the previous definition.	 This allows the rereading of files which
+    happen to define objects.
+
+    The integer, rational, and complex routines have been made into a
+    'libcalc.a' library so that they can be used in other programs besides
+    the calculator.  The "math.h" include file has been split into three
+    include files: "zmath.h", "qmath.h", and "cmath.h".
+
+Following is a list of visible changes to calc from version 1.26.4 to 1.26.4:
+
+    Added an assoc function to return a new type of value called an
+    association.  Such values are indexed by one or more arbitrary values.
+    They are stored in a hash table for quick access.
+
+    Added a hash() function which accepts one or more values and returns
+    a quickly calculated small non-negative hash value for those values.
+
+Following is a list of visible changes to calc from version 1.26.2 to 1.26.4:
+
+    Misc fixes to Makefiles.
+
+    Misc lint fixes.
+
+    Misc portability fixes.
+
+    Misc typo and working fixes to comments, help files and the man page.
+
+Following is a list of visible changes to calc from version 1.24.7 to 1.26.1:
+
+    There is a new emacs-like command line editing and edit history
+    feature.  The old history mechanism has been removed.  The key
+    bindings for the new editing commands are slightly configurable
+    since they are read in from an initialization file.	 This file is
+    usually called /usr/lib/calc/bindings, but can be changed by the
+    CALCBINDINGS environment variable.	All editing code is
+    self-contained in the new files hist.c and hist.h, which can be
+    easily extracted and used in other programs.
+
+    Two new library files have been added: chrem.cal and cryrand.cal.
+    The first of these solves the Chinese remainder problem for a set
+    of modulo's and remainders.	The second of these implements several
+    very good random number generators for large numbers.
+
+    A small bug which allowed division by zero was fixed.
+
+    A major bug in the mattrans function was fixed.
+
+    A major bug in the acos function for negative arguments was fixed.
+
+    A major bug in the strprintf function when objects were being printed
+    was fixed.
+
+    A small bug in the library file regress.cal was fixed.
+
+## Copyright (C) 2001  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.21 $
+## @(#) $Id: CHANGES,v 30.21 2010/09/02 09:50:19 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/RCS/CHANGES,v $
+##
+## Under source code control:	1993/06/02 18:12:57
+## File existed as early as:	1989
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* contrib
+*************
+
+We welcome and encourage you to send us:
+
+    * calc resource files
+    * calc shell scripts
+    * any builtin functions that you have modified or written
+    * custom functions that you have modified or written
+    * any other source code modifications
+
+Prior to doing so, you should consider applying your changes to the most
+recent version of calc.
+
+Landon Noll maintains the official calc home page at:
+
+	http://www.isthe.com/chongo/tech/comp/calc/
+
+See:
+
+	http://www.isthe.com/chongo/tech/comp/calc/calc-download.html
+
+for information on how to obtain up a recent version of calc.
+
+=-=
+
+In order to consider integrating your code, we need:
+
+    * the calc version you are working with (use the latest calc, see above)
+    * new help files or help file patches, if applicable (documentation)
+    * proposed text for the CHANGES file (brief description of what it does)
+    * regress.cal test patch, if applicable
+    * your source code and/or source code changes (:-))
+
+The best way to send us new code, if your changes are small, is
+via a patch (diff -c from the latest alpha code to your code).
+If your change is large, you should send entire files (either
+as a diff -c /dev/null your-file patch, or as a uuencoded and
+gziped (or compressed) tar file).
+
+To contribute code, scripts, resource files and/or to help please
+join the low volume calc mailing list by sending EMail to:
+
+    calc-contrib at asthe dot com
+
+    [[ NOTE: Replace 'at' with @, 'dot' is with . and remove the spaces ]]
+    [[ NOTE: The EMail address uses 'asthe' and the web site URL uses 'isthe' ]]
+
+Your subject must contain the words:
+
+    calc mailing list subscription
+
+You may have additional words in your subject line.
+
+Feel free to follow the name line with additional EMail text as desired.
+
+Thanks for considering submitting code to calc.	 Calc is a collective
+work by a number of people.  It would not be what it is today without
+your efforts and submissions!
+
+=-=
+
+Calc bug reports and calc bug fixes should be sent to:
+
+    calc-bugs at asthe dot com
+
+    [[ NOTE: Replace 'at' with @, 'dot' is with . and remove the spaces ]]
+    [[ NOTE: The EMail address uses 'asthe' and the web site URL uses 'isthe' ]]
+
+Your subject must contain the words:
+
+       calc bug report
+
+You may have additional words in your subject line.
+
+See the BUGS file or try the help command:
+
+    help bugs
+
+for details on bug reporting.
+
+=-=
+
+Landon Curt Noll
+http://www.isthe.com/chongo/
+
+chongo (share and enjoy) /\../\
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: contrib,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/contrib,v $
+##
+## Under source code control:	1997/03/09 16:33:22
+## File existed as early as:	1997
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* credit
+*************
+
+Credits
+
+    The majority of calc was written by David I. Bell.
+
+    The Calc primary mirror, calc mailing list and calc bug report
+    processing is performed by Landon Curt Noll.
+
+    Landon Curt Noll maintains the master reference source, performs
+    release control functions as well as other calc maintenance functions.
+
+    Thanks for suggestions and encouragement from Peter Miller,
+    Neil Justusson, Ernest W. Bowen and Landon Noll.
+
+    Thanks to Stephen Rothwell for writing the original version of
+    hist.c which is used to do the command line editing.
+
+    Thanks to Ernest W. Bowen for supplying many improvements in
+    accuracy and generality for some numeric functions.	 Much of
+    this was in terms of actual code which I gratefully accepted.
+    Ernest also supplied the original text for many of the help files.
+
+    Portions of this program are derived from an earlier set of
+    public domain arbitrarily precision routines which was posted
+    to the net around 1984.  By now, there is almost no recognizable
+    code left from that original source.
+
+    Most of this source and binary has one of the following copyrights:
+
+	    Copyright (C) year David I. Bell
+	    Copyright (C) year David I. Bell and Landon Curt Noll
+	    Copyright (C) year David I. Bell and Ernest Bowen
+	    Copyright (C) year David I. Bell, Landon Curt Noll and Ernest Bowen
+	    Copyright (C) year Landon Curt Noll
+	    Copyright (C) year Ernest Bowen and Landon Curt Noll
+	    Copyright (C) year Ernest Bowen
+
+
+Copying / Calc GNU Lesser General Public License
+
+    Calc is open software, and is covered under version 2.1 of the GNU
+    Lesser General Public License.  You are welcome to change it and/or
+    distribute copies of it under certain conditions.  The calc commands:
+
+	help copying
+	help copying-lgpl
+
+    should display the contents of the COPYING and COPYING-LGPL files.
+    Those files contain information about the calc's GNU Lesser General
+    Public License, and in particular the conditions under which you
+    are allowed to change it and/or distribute copies of it.
+
+    You should have received a copy of the version 2.1 GNU
+    Lesser General Public License.  If you do not have these
+    files, write to:
+
+	Free Software Foundation, Inc.
+	51 Franklin Street
+	Fifth Floor
+	Boston, MA  02110-1301
+	USA
+
+See also:
+
+    help copyright
+    help copying
+    help copying-lgpl
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: credit,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/credit,v $
+##
+## Under source code control:	1991/07/23 05:47:24
+## File existed as early as:	1991
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* COPYING
+*************
+
+		calc - arbitrary precision calculator
+
+
+This file is Copyrighted
+------------------------
+
+    This file is covered under the following Copyright:
+
+	Copyright (C) 1999-2008  Landon Curt Noll
+	All rights reserved.
+
+	Everyone is permitted to copy and distribute verbatim copies
+	of this license document, but changing it is not allowed.
+
+    # @(#) $Revision: 30.2 $
+    # @(#) $Id: COPYING,v 30.2 2008/10/24 10:46:52 chongo Exp $
+    # @(#) $Source: /usr/local/src/cmd/calc/RCS/COPYING,v $
+
+=-=
+
+Calc is covered by the GNU Lesser General Public License
+--------------------------------------------------------
+
+    Calc is open software; you can redistribute it and/or modify it under
+    the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation version 2.1 of the License.
+
+    Calc is several binary link libraries, several modules, associated
+    interface definition files and scripts used to control its compilation
+    and installation.
+
+    Calc is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General
+    Public License for more details.
+
+    A copy of the GNU Lesser General Public License is distributed with
+    calc under the filename:
+
+	    COPYING-LGPL
+
+    You may display this file by the calc command:	help copying
+
+    You may display the GNU Lesser General
+    Public License by the calc command:			help copying-lgpl
+
+    You should have received a copy of the version 2.1 GNU Lesser General
+    Public License with calc; if not, write to the following address:
+
+	    Free Software Foundation, Inc.
+	    51 Franklin Street
+	    Fifth Floor
+	    Boston, MA  02110-1301
+	    USA
+
+    The contact addresses for calc is as follows:
+
+	Web:	http://www.isthe.com/chongo/tech/comp/calc/email.html
+
+    To join the low volume calc mailing list.  Send a EMail message to:
+
+	calc-tester-request at asthe dot com
+
+    Your subject must contain the words:
+
+	calc mailing list subscription
+
+    You may have additional words in your subject line.
+
+    Your message body (not the subject) should consist of:
+
+	 subscribe calc-tester address
+	 end
+	 name your_full_name
+
+    where ``address'' is your EMail address and ``your_full_name'' is
+    your full name.
+
+    Feel free to follow the name line with additional EMail text as desired.
+
+=-=
+
+    Calc bug reports and calc bug fixes should be sent to:
+
+	calc-bugs at asthe dot com
+
+    [[ NOTE: Replace 'at' with @, 'dot' is with . and remove the spaces ]]
+    [[ NOTE: The EMail address uses 'asthe' and the web site URL uses 'isthe' ]]
+
+    Your subject must contain the words:
+
+	   calc bug report
+
+    You may have additional words in your subject line.
+
+=-=
+
+Calc's relationship to the GNU Lesser General Public License
+------------------------------------------------------------
+
+    In section 0 of the GNU Lesser General Public License, one finds
+    the following definition:
+
+	The "Library", below, refers to any such software library or
+	work which has been distributed under these terms.
+
+    Calc is distributed under the terms of the GNU Lesser
+    General Public License.
+
+    In the same section 0, one also find the following:
+
+	For a library, complete source code means all the source code
+	for all modules it contains, plus any associated interface
+	definition files, plus the scripts used to control compilation
+	and installation of the library.
+
+    There are at least two calc binary link libraries found in calc:
+
+	libcalc.a	libcustcalc.a
+
+    Clearly all files that go into the creation of those binary link
+    libraries are covered under the License.
+
+    The ``scripts used to control compilation and installation of the
+    of the library'' include:
+
+	* Makefiles
+	* source files created by the Makefiles
+	* source code used in the creation of intermediate source files
+
+     All of those files are covered under the License.
+
+     The ``associated interface definition files'' are those files that:
+
+	* show how the calc binary link libraries are used
+	* test the validity of the binary link libraries
+	* document routines found in the binary link libraries
+	* show how one can interactively use the binary link libraries
+
+     Calc provides an extensive set of files that perform the above
+     functions.
+
+	* files under the sample sub-directory
+	* files under the help sub-directory
+	* files under the lib sub-directory
+	* the main calc.c file
+
+     The ``complete source code'' includes ALL files shipped with calc,
+     except for the exception files explicitly listed in the ``Calc
+     copyrights and exception files'' section below.
+
+=-=
+
+Calc copyrights and exception files
+-----------------------------------
+
+    With the exception of the files listed below, Calc is covered under
+    the following GNU Lesser General Public License Copyrights:
+
+	Copyright (C) year  David I. Bell
+	Copyright (C) year  David I. Bell and Landon Curt Noll
+	Copyright (C) year  David I. Bell and Ernest Bowen
+	Copyright (C) year  David I. Bell, Landon Curt Noll and Ernest Bowen
+	Copyright (C) year  Landon Curt Noll
+	Copyright (C) year  Ernest Bowen and Landon Curt Noll
+	Copyright (C) year  Ernest Bowen
+	Copyright (C) year  Petteri Kettunen and Landon Curt Noll
+
+    These files are not covered under one of the Copyrights listed above:
+
+	    sha1.c		sha1.h		COPYING
+	    COPYING-LGPL	cal/qtime.cal	cal/screen.cal
+
+    The file COPYING-LGPL, which contains a copy of the version 2.1
+    GNU Lesser General Public License, is itself Copyrighted by the
+    Free Software Foundation, Inc.  Please note that the Free Software
+    Foundation, Inc. does NOT have a copyright over calc, only the
+    COPYING-LGPL that is supplied with calc.
+
+    This file, COPYING, is distributed under the Copyright found at the
+    top of this file.  It is important to note that you may distribute
+    verbatim copies of this file but you may not modify this file.
+
+    Some of these exception files are in the public domain.  Other files
+    are under the LGPL but have different authors that those listed above.
+
+    In all cases one may use and distribute these exception files freely.
+    And because one may freely distribute the LGPL covered files, the
+    entire calc source may be freely used and distributed.
+
+=-=
+
+General Copyleft and License info
+---------------------------------
+
+    For general information on Copylefts, see:
+
+	http://www.gnu.org/copyleft/
+
+    For information on GNU Lesser General Public Licenses, see:
+
+	http://www.gnu.org/copyleft/lesser.html
+	http://www.gnu.org/copyleft/lesser.txt
+
+=-=
+
+Why calc did not use the GNU General Public License
+---------------------------------------------------
+
+    It has been suggested that one should consider using the GNU General
+    Public License instead of the GNU Lesser General Public License:
+
+	http://www.gnu.org/philosophy/why-not-lgpl.html
+
+    As you can read in the above URL, there are times where a library
+    cannot give free software any particular advantage.	 One of those
+    times is when there is significantly similar versions available
+    that are not covered under a Copyleft such as the GNU General Public
+    License.
+
+    The reason why calc was placed under the GNU Lesser General Public
+    License is because for many years (1984 thru 1999), calc was offered
+    without any form of Copyleft.  At the time calc was placed under
+    the GNU Lesser General Public License, a number of systems and
+    distributions distributed calc without a Copyleft.
+
+*************
+* COPYING-LGPL
+*************
+
+		  GNU LESSER GENERAL PUBLIC LICENSE
+		       Version 2.1, February 1999
+
+ Copyright (C) 1991, 1999 Free Software Foundation, Inc.
+     51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+[This is the first released version of the Lesser GPL.  It also counts
+ as the successor of the GNU Library Public License, version 2, hence
+ the version number 2.1.]
+
+			    Preamble
+
+  The licenses for most software are designed to take away your
+freedom to share and change it.  By contrast, the GNU General Public
+Licenses are intended to guarantee your freedom to share and change
+free software--to make sure the software is free for all its users.
+
+  This license, the Lesser General Public License, applies to some
+specially designated software packages--typically libraries--of the
+Free Software Foundation and other authors who decide to use it.  You
+can use it too, but we suggest you first think carefully about whether
+this license or the ordinary General Public License is the better
+strategy to use in any particular case, based on the explanations below.
+
+  When we speak of free software, we are referring to freedom of use,
+not price.  Our General Public Licenses are designed to make sure that
+you have the freedom to distribute copies of free software (and charge
+for this service if you wish); that you receive source code or can get
+it if you want it; that you can change the software and use pieces of
+it in new free programs; and that you are informed that you can do
+these things.
+
+  To protect your rights, we need to make restrictions that forbid
+distributors to deny you these rights or to ask you to surrender these
+rights.  These restrictions translate to certain responsibilities for
+you if you distribute copies of the library or if you modify it.
+
+  For example, if you distribute copies of the library, whether gratis
+or for a fee, you must give the recipients all the rights that we gave
+you.  You must make sure that they, too, receive or can get the source
+code.  If you link other code with the library, you must provide
+complete object files to the recipients, so that they can relink them
+with the library after making changes to the library and recompiling
+it.  And you must show them these terms so they know their rights.
+
+  We protect your rights with a two-step method: (1) we copyright the
+library, and (2) we offer you this license, which gives you legal
+permission to copy, distribute and/or modify the library.
+
+  To protect each distributor, we want to make it very clear that
+there is no warranty for the free library.  Also, if the library is
+modified by someone else and passed on, the recipients should know
+that what they have is not the original version, so that the original
+author's reputation will not be affected by problems that might be
+introduced by others.
+
+  Finally, software patents pose a constant threat to the existence of
+any free program.  We wish to make sure that a company cannot
+effectively restrict the users of a free program by obtaining a
+restrictive license from a patent holder.  Therefore, we insist that
+any patent license obtained for a version of the library must be
+consistent with the full freedom of use specified in this license.
+
+  Most GNU software, including some libraries, is covered by the
+ordinary GNU General Public License.  This license, the GNU Lesser
+General Public License, applies to certain designated libraries, and
+is quite different from the ordinary General Public License.  We use
+this license for certain libraries in order to permit linking those
+libraries into non-free programs.
+
+  When a program is linked with a library, whether statically or using
+a shared library, the combination of the two is legally speaking a
+combined work, a derivative of the original library.  The ordinary
+General Public License therefore permits such linking only if the
+entire combination fits its criteria of freedom.  The Lesser General
+Public License permits more lax criteria for linking other code with
+the library.
+
+  We call this license the "Lesser" General Public License because it
+does Less to protect the user's freedom than the ordinary General
+Public License.  It also provides other free software developers Less
+of an advantage over competing non-free programs.  These disadvantages
+are the reason we use the ordinary General Public License for many
+libraries.  However, the Lesser license provides advantages in certain
+special circumstances.
+
+  For example, on rare occasions, there may be a special need to
+encourage the widest possible use of a certain library, so that it becomes
+a de-facto standard.  To achieve this, non-free programs must be
+allowed to use the library.  A more frequent case is that a free
+library does the same job as widely used non-free libraries.  In this
+case, there is little to gain by limiting the free library to free
+software only, so we use the Lesser General Public License.
+
+  In other cases, permission to use a particular library in non-free
+programs enables a greater number of people to use a large body of
+free software.  For example, permission to use the GNU C Library in
+non-free programs enables many more people to use the whole GNU
+operating system, as well as its variant, the GNU/Linux operating
+system.
+
+  Although the Lesser General Public License is Less protective of the
+users' freedom, it does ensure that the user of a program that is
+linked with the Library has the freedom and the wherewithal to run
+that program using a modified version of the Library.
+
+  The precise terms and conditions for copying, distribution and
+modification follow.  Pay close attention to the difference between a
+"work based on the library" and a "work that uses the library".  The
+former contains code derived from the library, whereas the latter must
+be combined with the library in order to run.
+
+		  GNU LESSER GENERAL PUBLIC LICENSE
+   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+
+  0. This License Agreement applies to any software library or other
+program which contains a notice placed by the copyright holder or
+other authorized party saying it may be distributed under the terms of
+this Lesser General Public License (also called "this License").
+Each licensee is addressed as "you".
+
+  A "library" means a collection of software functions and/or data
+prepared so as to be conveniently linked with application programs
+(which use some of those functions and data) to form executables.
+
+  The "Library", below, refers to any such software library or work
+which has been distributed under these terms.  A "work based on the
+Library" means either the Library or any derivative work under
+copyright law: that is to say, a work containing the Library or a
+portion of it, either verbatim or with modifications and/or translated
+straightforwardly into another language.  (Hereinafter, translation is
+included without limitation in the term "modification".)
+
+  "Source code" for a work means the preferred form of the work for
+making modifications to it.  For a library, complete source code means
+all the source code for all modules it contains, plus any associated
+interface definition files, plus the scripts used to control compilation
+and installation of the library.
+
+  Activities other than copying, distribution and modification are not
+covered by this License; they are outside its scope.  The act of
+running a program using the Library is not restricted, and output from
+such a program is covered only if its contents constitute a work based
+on the Library (independent of the use of the Library in a tool for
+writing it).  Whether that is true depends on what the Library does
+and what the program that uses the Library does.
+  
+  1. You may copy and distribute verbatim copies of the Library's
+complete source code as you receive it, in any medium, provided that
+you conspicuously and appropriately publish on each copy an
+appropriate copyright notice and disclaimer of warranty; keep intact
+all the notices that refer to this License and to the absence of any
+warranty; and distribute a copy of this License along with the
+Library.
+
+  You may charge a fee for the physical act of transferring a copy,
+and you may at your option offer warranty protection in exchange for a
+fee.
+
+  2. You may modify your copy or copies of the Library or any portion
+of it, thus forming a work based on the Library, and copy and
+distribute such modifications or work under the terms of Section 1
+above, provided that you also meet all of these conditions:
+
+    a) The modified work must itself be a software library.
+
+    b) You must cause the files modified to carry prominent notices
+    stating that you changed the files and the date of any change.
+
+    c) You must cause the whole of the work to be licensed at no
+    charge to all third parties under the terms of this License.
+
+    d) If a facility in the modified Library refers to a function or a
+    table of data to be supplied by an application program that uses
+    the facility, other than as an argument passed when the facility
+    is invoked, then you must make a good faith effort to ensure that,
+    in the event an application does not supply such function or
+    table, the facility still operates, and performs whatever part of
+    its purpose remains meaningful.
+
+    (For example, a function in a library to compute square roots has
+    a purpose that is entirely well-defined independent of the
+    application.  Therefore, Subsection 2d requires that any
+    application-supplied function or table used by this function must
+    be optional: if the application does not supply it, the square
+    root function must still compute square roots.)
+
+These requirements apply to the modified work as a whole.  If
+identifiable sections of that work are not derived from the Library,
+and can be reasonably considered independent and separate works in
+themselves, then this License, and its terms, do not apply to those
+sections when you distribute them as separate works.  But when you
+distribute the same sections as part of a whole which is a work based
+on the Library, the distribution of the whole must be on the terms of
+this License, whose permissions for other licensees extend to the
+entire whole, and thus to each and every part regardless of who wrote
+it.
+
+Thus, it is not the intent of this section to claim rights or contest
+your rights to work written entirely by you; rather, the intent is to
+exercise the right to control the distribution of derivative or
+collective works based on the Library.
+
+In addition, mere aggregation of another work not based on the Library
+with the Library (or with a work based on the Library) on a volume of
+a storage or distribution medium does not bring the other work under
+the scope of this License.
+
+  3. You may opt to apply the terms of the ordinary GNU General Public
+License instead of this License to a given copy of the Library.  To do
+this, you must alter all the notices that refer to this License, so
+that they refer to the ordinary GNU General Public License, version 2,
+instead of to this License.  (If a newer version than version 2 of the
+ordinary GNU General Public License has appeared, then you can specify
+that version instead

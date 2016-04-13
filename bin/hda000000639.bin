@@ -1,0 +1,1325 @@
+rotoize' is safe is when you
+     are removing prototypes that were made with `protoize'; if the
+     program worked before without any prototypes, it will work again
+     without them.
+
+     You can find all the places where this problem might occur by
+     compiling the program with the `-Wtraditional-conversion' option.
+     It prints a warning whenever an argument is converted.
+
+   * Both conversion programs can be confused if there are macro calls
+     in and around the text to be converted.  In other words, the
+     standard syntax for a declaration or definition must not result
+     from expanding a macro.  This problem is inherent in the design of
+     C and cannot be fixed.  If only a few functions have confusing
+     macro calls, you can easily convert them manually.
+
+   * `protoize' cannot get the argument types for a function whose
+     definition was not actually compiled due to preprocessing
+     conditionals.  When this happens, `protoize' changes nothing in
+     regard to such a function.  `protoize' tries to detect such
+     instances and warn about them.
+
+     You can generally work around this problem by using `protoize' step
+     by step, each time specifying a different set of `-D' options for
+     compilation, until all of the functions have been converted.
+     There is no automatic way to verify that you have got them all,
+     however.
+
+   * Confusion may result if there is an occasion to convert a function
+     declaration or definition in a region of source code where there
+     is more than one formal parameter list present.  Thus, attempts to
+     convert code containing multiple (conditionally compiled) versions
+     of a single function header (in the same vicinity) may not produce
+     the desired (or expected) results.
+
+     If you plan on converting source files which contain such code, it
+     is recommended that you first make sure that each conditionally
+     compiled region of source code which contains an alternative
+     function header also contains at least one additional follower
+     token (past the final right parenthesis of the function header).
+     This should circumvent the problem.
+
+   * `unprotoize' can become confused when trying to convert a function
+     definition or declaration which contains a declaration for a
+     pointer-to-function formal argument which has the same name as the
+     function being defined or declared.  We recommend you avoid such
+     choices of formal parameter names.
+
+   * You might also want to correct some of the indentation by hand and
+     break long lines.  (The conversion programs don't write lines
+     longer than eighty characters in any case.)
+
+
+File: gcc.info,  Node: Non-bugs,  Next: Warnings and Errors,  Prev: Protoize Caveats,  Up: Trouble
+
+10.10 Certain Changes We Don't Want to Make
+===========================================
+
+This section lists changes that people frequently request, but which we
+do not make because we think GCC is better without them.
+
+   * Checking the number and type of arguments to a function which has
+     an old-fashioned definition and no prototype.
+
+     Such a feature would work only occasionally--only for calls that
+     appear in the same file as the called function, following the
+     definition.  The only way to check all calls reliably is to add a
+     prototype for the function.  But adding a prototype eliminates the
+     motivation for this feature.  So the feature is not worthwhile.
+
+   * Warning about using an expression whose type is signed as a shift
+     count.
+
+     Shift count operands are probably signed more often than unsigned.
+     Warning about this would cause far more annoyance than good.
+
+   * Warning about assigning a signed value to an unsigned variable.
+
+     Such assignments must be very common; warning about them would
+     cause more annoyance than good.
+
+   * Warning when a non-void function value is ignored.
+
+     C contains many standard functions that return a value that most
+     programs choose to ignore.  One obvious example is `printf'.
+     Warning about this practice only leads the defensive programmer to
+     clutter programs with dozens of casts to `void'.  Such casts are
+     required so frequently that they become visual noise.  Writing
+     those casts becomes so automatic that they no longer convey useful
+     information about the intentions of the programmer.  For functions
+     where the return value should never be ignored, use the
+     `warn_unused_result' function attribute (*note Function
+     Attributes::).
+
+   * Making `-fshort-enums' the default.
+
+     This would cause storage layout to be incompatible with most other
+     C compilers.  And it doesn't seem very important, given that you
+     can get the same result in other ways.  The case where it matters
+     most is when the enumeration-valued object is inside a structure,
+     and in that case you can specify a field width explicitly.
+
+   * Making bit-fields unsigned by default on particular machines where
+     "the ABI standard" says to do so.
+
+     The ISO C standard leaves it up to the implementation whether a
+     bit-field declared plain `int' is signed or not.  This in effect
+     creates two alternative dialects of C.
+
+     The GNU C compiler supports both dialects; you can specify the
+     signed dialect with `-fsigned-bitfields' and the unsigned dialect
+     with `-funsigned-bitfields'.  However, this leaves open the
+     question of which dialect to use by default.
+
+     Currently, the preferred dialect makes plain bit-fields signed,
+     because this is simplest.  Since `int' is the same as `signed int'
+     in every other context, it is cleanest for them to be the same in
+     bit-fields as well.
+
+     Some computer manufacturers have published Application Binary
+     Interface standards which specify that plain bit-fields should be
+     unsigned.  It is a mistake, however, to say anything about this
+     issue in an ABI.  This is because the handling of plain bit-fields
+     distinguishes two dialects of C.  Both dialects are meaningful on
+     every type of machine.  Whether a particular object file was
+     compiled using signed bit-fields or unsigned is of no concern to
+     other object files, even if they access the same bit-fields in the
+     same data structures.
+
+     A given program is written in one or the other of these two
+     dialects.  The program stands a chance to work on most any machine
+     if it is compiled with the proper dialect.  It is unlikely to work
+     at all if compiled with the wrong dialect.
+
+     Many users appreciate the GNU C compiler because it provides an
+     environment that is uniform across machines.  These users would be
+     inconvenienced if the compiler treated plain bit-fields
+     differently on certain machines.
+
+     Occasionally users write programs intended only for a particular
+     machine type.  On these occasions, the users would benefit if the
+     GNU C compiler were to support by default the same dialect as the
+     other compilers on that machine.  But such applications are rare.
+     And users writing a program to run on more than one type of
+     machine cannot possibly benefit from this kind of compatibility.
+
+     This is why GCC does and will treat plain bit-fields in the same
+     fashion on all types of machines (by default).
+
+     There are some arguments for making bit-fields unsigned by default
+     on all machines.  If, for example, this becomes a universal de
+     facto standard, it would make sense for GCC to go along with it.
+     This is something to be considered in the future.
+
+     (Of course, users strongly concerned about portability should
+     indicate explicitly in each bit-field whether it is signed or not.
+     In this way, they write programs which have the same meaning in
+     both C dialects.)
+
+   * Undefining `__STDC__' when `-ansi' is not used.
+
+     Currently, GCC defines `__STDC__' unconditionally.  This provides
+     good results in practice.
+
+     Programmers normally use conditionals on `__STDC__' to ask whether
+     it is safe to use certain features of ISO C, such as function
+     prototypes or ISO token concatenation.  Since plain `gcc' supports
+     all the features of ISO C, the correct answer to these questions is
+     "yes".
+
+     Some users try to use `__STDC__' to check for the availability of
+     certain library facilities.  This is actually incorrect usage in
+     an ISO C program, because the ISO C standard says that a conforming
+     freestanding implementation should define `__STDC__' even though it
+     does not have the library facilities.  `gcc -ansi -pedantic' is a
+     conforming freestanding implementation, and it is therefore
+     required to define `__STDC__', even though it does not come with
+     an ISO C library.
+
+     Sometimes people say that defining `__STDC__' in a compiler that
+     does not completely conform to the ISO C standard somehow violates
+     the standard.  This is illogical.  The standard is a standard for
+     compilers that claim to support ISO C, such as `gcc -ansi'--not
+     for other compilers such as plain `gcc'.  Whatever the ISO C
+     standard says is relevant to the design of plain `gcc' without
+     `-ansi' only for pragmatic reasons, not as a requirement.
+
+     GCC normally defines `__STDC__' to be 1, and in addition defines
+     `__STRICT_ANSI__' if you specify the `-ansi' option, or a `-std'
+     option for strict conformance to some version of ISO C.  On some
+     hosts, system include files use a different convention, where
+     `__STDC__' is normally 0, but is 1 if the user specifies strict
+     conformance to the C Standard.  GCC follows the host convention
+     when processing system include files, but when processing user
+     files it follows the usual GNU C convention.
+
+   * Undefining `__STDC__' in C++.
+
+     Programs written to compile with C++-to-C translators get the
+     value of `__STDC__' that goes with the C compiler that is
+     subsequently used.  These programs must test `__STDC__' to
+     determine what kind of C preprocessor that compiler uses: whether
+     they should concatenate tokens in the ISO C fashion or in the
+     traditional fashion.
+
+     These programs work properly with GNU C++ if `__STDC__' is defined.
+     They would not work otherwise.
+
+     In addition, many header files are written to provide prototypes
+     in ISO C but not in traditional C.  Many of these header files can
+     work without change in C++ provided `__STDC__' is defined.  If
+     `__STDC__' is not defined, they will all fail, and will all need
+     to be changed to test explicitly for C++ as well.
+
+   * Deleting "empty" loops.
+
+     Historically, GCC has not deleted "empty" loops under the
+     assumption that the most likely reason you would put one in a
+     program is to have a delay, so deleting them will not make real
+     programs run any faster.
+
+     However, the rationale here is that optimization of a nonempty loop
+     cannot produce an empty one. This held for carefully written C
+     compiled with less powerful optimizers but is not always the case
+     for carefully written C++ or with more powerful optimizers.  Thus
+     GCC will remove operations from loops whenever it can determine
+     those operations are not externally visible (apart from the time
+     taken to execute them, of course).  In case the loop can be proved
+     to be finite, GCC will also remove the loop itself.
+
+     Be aware of this when performing timing tests, for instance the
+     following loop can be completely removed, provided
+     `some_expression' can provably not change any global state.
+
+          {
+             int sum = 0;
+             int ix;
+
+             for (ix = 0; ix != 10000; ix++)
+                sum += some_expression;
+          }
+
+     Even though `sum' is accumulated in the loop, no use is made of
+     that summation, so the accumulation can be removed.
+
+   * Making side effects happen in the same order as in some other
+     compiler.
+
+     It is never safe to depend on the order of evaluation of side
+     effects.  For example, a function call like this may very well
+     behave differently from one compiler to another:
+
+          void func (int, int);
+
+          int i = 2;
+          func (i++, i++);
+
+     There is no guarantee (in either the C or the C++ standard language
+     definitions) that the increments will be evaluated in any
+     particular order.  Either increment might happen first.  `func'
+     might get the arguments `2, 3', or it might get `3, 2', or even
+     `2, 2'.
+
+   * Making certain warnings into errors by default.
+
+     Some ISO C testsuites report failure when the compiler does not
+     produce an error message for a certain program.
+
+     ISO C requires a "diagnostic" message for certain kinds of invalid
+     programs, but a warning is defined by GCC to count as a
+     diagnostic.  If GCC produces a warning but not an error, that is
+     correct ISO C support.  If testsuites call this "failure", they
+     should be run with the GCC option `-pedantic-errors', which will
+     turn these warnings into errors.
+
+
+
+File: gcc.info,  Node: Warnings and Errors,  Prev: Non-bugs,  Up: Trouble
+
+10.11 Warning Messages and Error Messages
+=========================================
+
+The GNU compiler can produce two kinds of diagnostics: errors and
+warnings.  Each kind has a different purpose:
+
+     "Errors" report problems that make it impossible to compile your
+     program.  GCC reports errors with the source file name and line
+     number where the problem is apparent.
+
+     "Warnings" report other unusual conditions in your code that _may_
+     indicate a problem, although compilation can (and does) proceed.
+     Warning messages also report the source file name and line number,
+     but include the text `warning:' to distinguish them from error
+     messages.
+
+ Warnings may indicate danger points where you should check to make sure
+that your program really does what you intend; or the use of obsolete
+features; or the use of nonstandard features of GNU C or C++.  Many
+warnings are issued only if you ask for them, with one of the `-W'
+options (for instance, `-Wall' requests a variety of useful warnings).
+
+ GCC always tries to compile your program if possible; it never
+gratuitously rejects a program whose meaning is clear merely because
+(for instance) it fails to conform to a standard.  In some cases,
+however, the C and C++ standards specify that certain extensions are
+forbidden, and a diagnostic _must_ be issued by a conforming compiler.
+The `-pedantic' option tells GCC to issue warnings in such cases;
+`-pedantic-errors' says to make them errors instead.  This does not
+mean that _all_ non-ISO constructs get warnings or errors.
+
+ *Note Options to Request or Suppress Warnings: Warning Options, for
+more detail on these and related command-line options.
+
+
+File: gcc.info,  Node: Bugs,  Next: Service,  Prev: Trouble,  Up: Top
+
+11 Reporting Bugs
+*****************
+
+Your bug reports play an essential role in making GCC reliable.
+
+ When you encounter a problem, the first thing to do is to see if it is
+already known.  *Note Trouble::.  If it isn't known, then you should
+report the problem.
+
+* Menu:
+
+* Criteria:  Bug Criteria.   Have you really found a bug?
+* Reporting: Bug Reporting.  How to report a bug effectively.
+* Known: Trouble.            Known problems.
+* Help: Service.             Where to ask for help.
+
+
+File: gcc.info,  Node: Bug Criteria,  Next: Bug Reporting,  Up: Bugs
+
+11.1 Have You Found a Bug?
+==========================
+
+If you are not sure whether you have found a bug, here are some
+guidelines:
+
+   * If the compiler gets a fatal signal, for any input whatever, that
+     is a compiler bug.  Reliable compilers never crash.
+
+   * If the compiler produces invalid assembly code, for any input
+     whatever (except an `asm' statement), that is a compiler bug,
+     unless the compiler reports errors (not just warnings) which would
+     ordinarily prevent the assembler from being run.
+
+   * If the compiler produces valid assembly code that does not
+     correctly execute the input source code, that is a compiler bug.
+
+     However, you must double-check to make sure, because you may have a
+     program whose behavior is undefined, which happened by chance to
+     give the desired results with another C or C++ compiler.
+
+     For example, in many nonoptimizing compilers, you can write `x;'
+     at the end of a function instead of `return x;', with the same
+     results.  But the value of the function is undefined if `return'
+     is omitted; it is not a bug when GCC produces different results.
+
+     Problems often result from expressions with two increment
+     operators, as in `f (*p++, *p++)'.  Your previous compiler might
+     have interpreted that expression the way you intended; GCC might
+     interpret it another way.  Neither compiler is wrong.  The bug is
+     in your code.
+
+     After you have localized the error to a single source line, it
+     should be easy to check for these things.  If your program is
+     correct and well defined, you have found a compiler bug.
+
+   * If the compiler produces an error message for valid input, that is
+     a compiler bug.
+
+   * If the compiler does not produce an error message for invalid
+     input, that is a compiler bug.  However, you should note that your
+     idea of "invalid input" might be someone else's idea of "an
+     extension" or "support for traditional practice".
+
+   * If you are an experienced user of one of the languages GCC
+     supports, your suggestions for improvement of GCC are welcome in
+     any case.
+
+
+File: gcc.info,  Node: Bug Reporting,  Prev: Bug Criteria,  Up: Bugs
+
+11.2 How and where to Report Bugs
+=================================
+
+Bugs should be reported to the bug database at
+`http://bugs.buildroot.net/'.
+
+
+File: gcc.info,  Node: Service,  Next: Contributing,  Prev: Bugs,  Up: Top
+
+12 How To Get Help with GCC
+***************************
+
+If you need help installing, using or changing GCC, there are two ways
+to find it:
+
+   * Send a message to a suitable network mailing list.  First try
+     <gcc-help@gcc.gnu.org> (for help installing or using GCC), and if
+     that brings no response, try <gcc@gcc.gnu.org>.  For help changing
+     GCC, ask <gcc@gcc.gnu.org>.  If you think you have found a bug in
+     GCC, please report it following the instructions at *note Bug
+     Reporting::.
+
+   * Look in the service directory for someone who might help you for a
+     fee.  The service directory is found at
+     `http://www.gnu.org/prep/service.html'.
+
+ For further information, see `http://gcc.gnu.org/faq.html#support'.
+
+
+File: gcc.info,  Node: Contributing,  Next: Funding,  Prev: Service,  Up: Top
+
+13 Contributing to GCC Development
+**********************************
+
+If you would like to help pretest GCC releases to assure they work well,
+current development sources are available by SVN (see
+`http://gcc.gnu.org/svn.html').  Source and binary snapshots are also
+available for FTP; see `http://gcc.gnu.org/snapshots.html'.
+
+ If you would like to work on improvements to GCC, please read the
+advice at these URLs:
+
+     `http://gcc.gnu.org/contribute.html'
+     `http://gcc.gnu.org/contributewhy.html'
+
+for information on how to make useful contributions and avoid
+duplication of effort.  Suggested projects are listed at
+`http://gcc.gnu.org/projects/'.
+
+
+File: gcc.info,  Node: Funding,  Next: GNU Project,  Prev: Contributing,  Up: Top
+
+Funding Free Software
+*********************
+
+If you want to have more free software a few years from now, it makes
+sense for you to help encourage people to contribute funds for its
+development.  The most effective approach known is to encourage
+commercial redistributors to donate.
+
+ Users of free software systems can boost the pace of development by
+encouraging for-a-fee distributors to donate part of their selling price
+to free software developers--the Free Software Foundation, and others.
+
+ The way to convince distributors to do this is to demand it and expect
+it from them.  So when you compare distributors, judge them partly by
+how much they give to free software development.  Show distributors
+they must compete to be the one who gives the most.
+
+ To make this approach work, you must insist on numbers that you can
+compare, such as, "We will donate ten dollars to the Frobnitz project
+for each disk sold."  Don't be satisfied with a vague promise, such as
+"A portion of the profits are donated," since it doesn't give a basis
+for comparison.
+
+ Even a precise fraction "of the profits from this disk" is not very
+meaningful, since creative accounting and unrelated business decisions
+can greatly alter what fraction of the sales price counts as profit.
+If the price you pay is $50, ten percent of the profit is probably less
+than a dollar; it might be a few cents, or nothing at all.
+
+ Some redistributors do development work themselves.  This is useful
+too; but to keep everyone honest, you need to inquire how much they do,
+and what kind.  Some kinds of development make much more long-term
+difference than others.  For example, maintaining a separate version of
+a program contributes very little; maintaining the standard version of a
+program for the whole community contributes much.  Easy new ports
+contribute little, since someone else would surely do them; difficult
+ports such as adding a new CPU to the GNU Compiler Collection
+contribute more; major new features or packages contribute the most.
+
+ By establishing the idea that supporting further development is "the
+proper thing to do" when distributing free software for a fee, we can
+assure a steady flow of resources into making more free software.
+
+     Copyright (C) 1994 Free Software Foundation, Inc.
+     Verbatim copying and redistribution of this section is permitted
+     without royalty; alteration is not permitted.
+
+
+File: gcc.info,  Node: GNU Project,  Next: Copying,  Prev: Funding,  Up: Top
+
+The GNU Project and GNU/Linux
+*****************************
+
+The GNU Project was launched in 1984 to develop a complete Unix-like
+operating system which is free software: the GNU system.  (GNU is a
+recursive acronym for "GNU's Not Unix"; it is pronounced "guh-NEW".)
+Variants of the GNU operating system, which use the kernel Linux, are
+now widely used; though these systems are often referred to as "Linux",
+they are more accurately called GNU/Linux systems.
+
+ For more information, see:
+     `http://www.gnu.org/'
+     `http://www.gnu.org/gnu/linux-and-gnu.html'
+
+
+File: gcc.info,  Node: Copying,  Next: GNU Free Documentation License,  Prev: GNU Project,  Up: Top
+
+GNU General Public License
+**************************
+
+                        Version 3, 29 June 2007
+
+     Copyright (C) 2007 Free Software Foundation, Inc. `http://fsf.org/'
+
+     Everyone is permitted to copy and distribute verbatim copies of this
+     license document, but changing it is not allowed.
+
+Preamble
+========
+
+The GNU General Public License is a free, copyleft license for software
+and other kinds of works.
+
+ The licenses for most software and other practical works are designed
+to take away your freedom to share and change the works.  By contrast,
+the GNU General Public License is intended to guarantee your freedom to
+share and change all versions of a program-to make sure it remains free
+software for all its users.  We, the Free Software Foundation, use the
+GNU General Public License for most of our software; it applies also to
+any other work released this way by its authors.  You can apply it to
+your programs, too.
+
+ When we speak of free software, we are referring to freedom, not
+price.  Our General Public Licenses are designed to make sure that you
+have the freedom to distribute copies of free software (and charge for
+them if you wish), that you receive source code or can get it if you
+want it, that you can change the software or use pieces of it in new
+free programs, and that you know you can do these things.
+
+ To protect your rights, we need to prevent others from denying you
+these rights or asking you to surrender the rights.  Therefore, you
+have certain responsibilities if you distribute copies of the software,
+or if you modify it: responsibilities to respect the freedom of others.
+
+ For example, if you distribute copies of such a program, whether
+gratis or for a fee, you must pass on to the recipients the same
+freedoms that you received.  You must make sure that they, too, receive
+or can get the source code.  And you must show them these terms so they
+know their rights.
+
+ Developers that use the GNU GPL protect your rights with two steps:
+(1) assert copyright on the software, and (2) offer you this License
+giving you legal permission to copy, distribute and/or modify it.
+
+ For the developers' and authors' protection, the GPL clearly explains
+that there is no warranty for this free software.  For both users' and
+authors' sake, the GPL requires that modified versions be marked as
+changed, so that their problems will not be attributed erroneously to
+authors of previous versions.
+
+ Some devices are designed to deny users access to install or run
+modified versions of the software inside them, although the
+manufacturer can do so.  This is fundamentally incompatible with the
+aim of protecting users' freedom to change the software.  The
+systematic pattern of such abuse occurs in the area of products for
+individuals to use, which is precisely where it is most unacceptable.
+Therefore, we have designed this version of the GPL to prohibit the
+practice for those products.  If such problems arise substantially in
+other domains, we stand ready to extend this provision to those domains
+in future versions of the GPL, as needed to protect the freedom of
+users.
+
+ Finally, every program is threatened constantly by software patents.
+States should not allow patents to restrict development and use of
+software on general-purpose computers, but in those that do, we wish to
+avoid the special danger that patents applied to a free program could
+make it effectively proprietary.  To prevent this, the GPL assures that
+patents cannot be used to render the program non-free.
+
+ The precise terms and conditions for copying, distribution and
+modification follow.
+
+TERMS AND CONDITIONS
+====================
+
+  0. Definitions.
+
+     "This License" refers to version 3 of the GNU General Public
+     License.
+
+     "Copyright" also means copyright-like laws that apply to other
+     kinds of works, such as semiconductor masks.
+
+     "The Program" refers to any copyrightable work licensed under this
+     License.  Each licensee is addressed as "you".  "Licensees" and
+     "recipients" may be individuals or organizations.
+
+     To "modify" a work means to copy from or adapt all or part of the
+     work in a fashion requiring copyright permission, other than the
+     making of an exact copy.  The resulting work is called a "modified
+     version" of the earlier work or a work "based on" the earlier work.
+
+     A "covered work" means either the unmodified Program or a work
+     based on the Program.
+
+     To "propagate" a work means to do anything with it that, without
+     permission, would make you directly or secondarily liable for
+     infringement under applicable copyright law, except executing it
+     on a computer or modifying a private copy.  Propagation includes
+     copying, distribution (with or without modification), making
+     available to the public, and in some countries other activities as
+     well.
+
+     To "convey" a work means any kind of propagation that enables other
+     parties to make or receive copies.  Mere interaction with a user
+     through a computer network, with no transfer of a copy, is not
+     conveying.
+
+     An interactive user interface displays "Appropriate Legal Notices"
+     to the extent that it includes a convenient and prominently visible
+     feature that (1) displays an appropriate copyright notice, and (2)
+     tells the user that there is no warranty for the work (except to
+     the extent that warranties are provided), that licensees may
+     convey the work under this License, and how to view a copy of this
+     License.  If the interface presents a list of user commands or
+     options, such as a menu, a prominent item in the list meets this
+     criterion.
+
+  1. Source Code.
+
+     The "source code" for a work means the preferred form of the work
+     for making modifications to it.  "Object code" means any
+     non-source form of a work.
+
+     A "Standard Interface" means an interface that either is an
+     official standard defined by a recognized standards body, or, in
+     the case of interfaces specified for a particular programming
+     language, one that is widely used among developers working in that
+     language.
+
+     The "System Libraries" of an executable work include anything,
+     other than the work as a whole, that (a) is included in the normal
+     form of packaging a Major Component, but which is not part of that
+     Major Component, and (b) serves only to enable use of the work
+     with that Major Component, or to implement a Standard Interface
+     for which an implementation is available to the public in source
+     code form.  A "Major Component", in this context, means a major
+     essential component (kernel, window system, and so on) of the
+     specific operating system (if any) on which the executable work
+     runs, or a compiler used to produce the work, or an object code
+     interpreter used to run it.
+
+     The "Corresponding Source" for a work in object code form means all
+     the source code needed to generate, install, and (for an executable
+     work) run the object code and to modify the work, including
+     scripts to control those activities.  However, it does not include
+     the work's System Libraries, or general-purpose tools or generally
+     available free programs which are used unmodified in performing
+     those activities but which are not part of the work.  For example,
+     Corresponding Source includes interface definition files
+     associated with source files for the work, and the source code for
+     shared libraries and dynamically linked subprograms that the work
+     is specifically designed to require, such as by intimate data
+     communication or control flow between those subprograms and other
+     parts of the work.
+
+     The Corresponding Source need not include anything that users can
+     regenerate automatically from other parts of the Corresponding
+     Source.
+
+     The Corresponding Source for a work in source code form is that
+     same work.
+
+  2. Basic Permissions.
+
+     All rights granted under this License are granted for the term of
+     copyright on the Program, and are irrevocable provided the stated
+     conditions are met.  This License explicitly affirms your unlimited
+     permission to run the unmodified Program.  The output from running
+     a covered work is covered by this License only if the output,
+     given its content, constitutes a covered work.  This License
+     acknowledges your rights of fair use or other equivalent, as
+     provided by copyright law.
+
+     You may make, run and propagate covered works that you do not
+     convey, without conditions so long as your license otherwise
+     remains in force.  You may convey covered works to others for the
+     sole purpose of having them make modifications exclusively for
+     you, or provide you with facilities for running those works,
+     provided that you comply with the terms of this License in
+     conveying all material for which you do not control copyright.
+     Those thus making or running the covered works for you must do so
+     exclusively on your behalf, under your direction and control, on
+     terms that prohibit them from making any copies of your
+     copyrighted material outside their relationship with you.
+
+     Conveying under any other circumstances is permitted solely under
+     the conditions stated below.  Sublicensing is not allowed; section
+     10 makes it unnecessary.
+
+  3. Protecting Users' Legal Rights From Anti-Circumvention Law.
+
+     No covered work shall be deemed part of an effective technological
+     measure under any applicable law fulfilling obligations under
+     article 11 of the WIPO copyright treaty adopted on 20 December
+     1996, or similar laws prohibiting or restricting circumvention of
+     such measures.
+
+     When you convey a covered work, you waive any legal power to forbid
+     circumvention of technological measures to the extent such
+     circumvention is effected by exercising rights under this License
+     with respect to the covered work, and you disclaim any intention
+     to limit operation or modification of the work as a means of
+     enforcing, against the work's users, your or third parties' legal
+     rights to forbid circumvention of technological measures.
+
+  4. Conveying Verbatim Copies.
+
+     You may convey verbatim copies of the Program's source code as you
+     receive it, in any medium, provided that you conspicuously and
+     appropriately publish on each copy an appropriate copyright notice;
+     keep intact all notices stating that this License and any
+     non-permissive terms added in accord with section 7 apply to the
+     code; keep intact all notices of the absence of any warranty; and
+     give all recipients a copy of this License along with the Program.
+
+     You may charge any price or no price for each copy that you convey,
+     and you may offer support or warranty protection for a fee.
+
+  5. Conveying Modified Source Versions.
+
+     You may convey a work based on the Program, or the modifications to
+     produce it from the Program, in the form of source code under the
+     terms of section 4, provided that you also meet all of these
+     conditions:
+
+       a. The work must carry prominent notices stating that you
+          modified it, and giving a relevant date.
+
+       b. The work must carry prominent notices stating that it is
+          released under this License and any conditions added under
+          section 7.  This requirement modifies the requirement in
+          section 4 to "keep intact all notices".
+
+       c. You must license the entire work, as a whole, under this
+          License to anyone who comes into possession of a copy.  This
+          License will therefore apply, along with any applicable
+          section 7 additional terms, to the whole of the work, and all
+          its parts, regardless of how they are packaged.  This License
+          gives no permission to license the work in any other way, but
+          it does not invalidate such permission if you have separately
+          received it.
+
+       d. If the work has interactive user interfaces, each must display
+          Appropriate Legal Notices; however, if the Program has
+          interactive interfaces that do not display Appropriate Legal
+          Notices, your work need not make them do so.
+
+     A compilation of a covered work with other separate and independent
+     works, which are not by their nature extensions of the covered
+     work, and which are not combined with it such as to form a larger
+     program, in or on a volume of a storage or distribution medium, is
+     called an "aggregate" if the compilation and its resulting
+     copyright are not used to limit the access or legal rights of the
+     compilation's users beyond what the individual works permit.
+     Inclusion of a covered work in an aggregate does not cause this
+     License to apply to the other parts of the aggregate.
+
+  6. Conveying Non-Source Forms.
+
+     You may convey a covered work in object code form under the terms
+     of sections 4 and 5, provided that you also convey the
+     machine-readable Corresponding Source under the terms of this
+     License, in one of these ways:
+
+       a. Convey the object code in, or embodied in, a physical product
+          (including a physical distribution medium), accompanied by the
+          Corresponding Source fixed on a durable physical medium
+          customarily used for software interchange.
+
+       b. Convey the object code in, or embodied in, a physical product
+          (including a physical distribution medium), accompanied by a
+          written offer, valid for at least three years and valid for
+          as long as you offer spare parts or customer support for that
+          product model, to give anyone who possesses the object code
+          either (1) a copy of the Corresponding Source for all the
+          software in the product that is covered by this License, on a
+          durable physical medium customarily used for software
+          interchange, for a price no more than your reasonable cost of
+          physically performing this conveying of source, or (2) access
+          to copy the Corresponding Source from a network server at no
+          charge.
+
+       c. Convey individual copies of the object code with a copy of
+          the written offer to provide the Corresponding Source.  This
+          alternative is allowed only occasionally and noncommercially,
+          and only if you received the object code with such an offer,
+          in accord with subsection 6b.
+
+       d. Convey the object code by offering access from a designated
+          place (gratis or for a charge), and offer equivalent access
+          to the Corresponding Source in the same way through the same
+          place at no further charge.  You need not require recipients
+          to copy the Corresponding Source along with the object code.
+          If the place to copy the object code is a network server, the
+          Corresponding Source may be on a different server (operated
+          by you or a third party) that supports equivalent copying
+          facilities, provided you maintain clear directions next to
+          the object code saying where to find the Corresponding Source.
+          Regardless of what server hosts the Corresponding Source, you
+          remain obligated to ensure that it is available for as long
+          as needed to satisfy these requirements.
+
+       e. Convey the object code using peer-to-peer transmission,
+          provided you inform other peers where the object code and
+          Corresponding Source of the work are being offered to the
+          general public at no charge under subsection 6d.
+
+
+     A separable portion of the object code, whose source code is
+     excluded from the Corresponding Source as a System Library, need
+     not be included in conveying the object code work.
+
+     A "User Product" is either (1) a "consumer product", which means
+     any tangible personal property which is normally used for personal,
+     family, or household purposes, or (2) anything designed or sold for
+     incorporation into a dwelling.  In determining whether a product
+     is a consumer product, doubtful cases shall be resolved in favor of
+     coverage.  For a particular product received by a particular user,
+     "normally used" refers to a typical or common use of that class of
+     product, regardless of the status of the particular user or of the
+     way in which the particular user actually uses, or expects or is
+     expected to use, the product.  A product is a consumer product
+     regardless of whether the product has substantial commercial,
+     industrial or non-consumer uses, unless such uses represent the
+     only significant mode of use of the product.
+
+     "Installation Information" for a User Product means any methods,
+     procedures, authorization keys, or other information required to
+     install and execute modified versions of a covered work in that
+     User Product from a modified version of its Corresponding Source.
+     The information must suffice to ensure that the continued
+     functioning of the modified object code is in no case prevented or
+     interfered with solely because modification has been made.
+
+     If you convey an object code work under this section in, or with,
+     or specifically for use in, a User Product, and the conveying
+     occurs as part of a transaction in which the right of possession
+     and use of the User Product is transferred to the recipient in
+     perpetuity or for a fixed term (regardless of how the transaction
+     is characterized), the Corresponding Source conveyed under this
+     section must be accompanied by the Installation Information.  But
+     this requirement does not apply if neither you nor any third party
+     retains the ability to install modified object code on the User
+     Product (for example, the work has been installed in ROM).
+
+     The requirement to provide Installation Information does not
+     include a requirement to continue to provide support service,
+     warranty, or updates for a work that has been modified or
+     installed by the recipient, or for the User Product in which it
+     has been modified or installed.  Access to a network may be denied
+     when the modification itself materially and adversely affects the
+     operation of the network or violates the rules and protocols for
+     communication across the network.
+
+     Corresponding Source conveyed, and Installation Information
+     provided, in accord with this section must be in a format that is
+     publicly documented (and with an implementation available to the
+     public in source code form), and must require no special password
+     or key for unpacking, reading or copying.
+
+  7. Additional Terms.
+
+     "Additional permissions" are terms that supplement the terms of
+     this License by making exceptions from one or more of its
+     conditions.  Additional permissions that are applicable to the
+     entire Program shall be treated as though they were included in
+     this License, to the extent that they are valid under applicable
+     law.  If additional permissions apply only to part of the Program,
+     that part may be used separately under those permissions, but the
+     entire Program remains governed by this License without regard to
+     the additional permissions.
+
+     When you convey a copy of a covered work, you may at your option
+     remove any additional permissions from that copy, or from any part
+     of it.  (Additional permissions may be written to require their own
+     removal in certain cases when you modify the work.)  You may place
+     additional permissions on material, added by you to a covered work,
+     for which you have or can give appropriate copyright permission.
+
+     Notwithstanding any other provision of this License, for material
+     you add to a covered work, you may (if authorized by the copyright
+     holders of that material) supplement the terms of this License
+     with terms:
+
+       a. Disclaiming warranty or limiting liability differently from
+          the terms of sections 15 and 16 of this License; or
+
+       b. Requiring preservation of specified reasonable legal notices
+          or author attributions in that material or in the Appropriate
+          Legal Notices displayed by works containing it; or
+
+       c. Prohibiting misrepresentation of the origin of that material,
+          or requiring that modified versions of such material be
+          marked in reasonable ways as different from the original
+          version; or
+
+       d. Limiting the use for publicity purposes of names of licensors
+          or authors of the material; or
+
+       e. Declining to grant rights under trademark law for use of some
+          trade names, trademarks, or service marks; or
+
+       f. Requiring indemnification of licensors and authors of that
+          material by anyone who conveys the material (or modified
+          versions of it) with contractual assumptions of liability to
+          the recipient, for any liability that these contractual
+          assumptions directly impose on those licensors and authors.
+
+     All other non-permissive additional terms are considered "further
+     restrictions" within the meaning of section 10.  If the Program as
+     you received it, or any part of it, contains a notice stating that
+     it is governed by this License along with a term that is a further
+     restriction, you may remove that term.  If a license document
+     contains a further restriction but permits relicensing or
+     conveying under this License, you may add to a covered work
+     material governed by the terms of that license document, provided
+     that the further restriction does not survive such relicensing or
+     conveying.
+
+     If you add terms to a covered work in accord with this section, you
+     must place, in the relevant source files, a statement of the
+     additional terms that apply to those files, or a notice indicating
+     where to find the applicable terms.
+
+     Additional terms, permissive or non-permissive, may be stated in
+     the form of a separately written license, or stated as exceptions;
+     the above requirements apply either way.
+
+  8. Termination.
+
+     You may not propagate or modify a covered work except as expressly
+     provided under this License.  Any attempt otherwise to propagate or
+     modify it is void, and will automatically terminate your rights
+     under this License (including any patent licenses granted under
+     the third paragraph of section 11).
+
+     However, if you cease all violation of this License, then your
+     license from a particular copyright holder is reinstated (a)
+     provisionally, unless and until the copyright holder explicitly
+     and finally terminates your license, and (b) permanently, if the
+     copyright holder fails to notify you of the violation by some
+     reasonable means prior to 60 days after the cessation.
+
+     Moreover, your license from a particular copyright holder is
+     reinstated permanently if the copyright holder notifies you of the
+     violation by some reasonable means, this is the first time you have
+     received notice of violation of this License (for any work) from
+     that copyright holder, and you cure the violation prior to 30 days
+     after your receipt of the notice.
+
+     Termination of your rights under this section does not terminate
+     the licenses of parties who have received copies or rights from
+     you under this License.  If your rights have been terminated and
+     not permanently reinstated, you do not qualify to receive new
+     licenses for the same material under section 10.
+
+  9. Acceptance Not Required for Having Copies.
+
+     You are not required to accept this License in order to receive or
+     run a copy of the Program.  Ancillary propagation of a covered work
+     occurring solely as a consequence of using peer-to-peer
+     transmission to receive a copy likewise does not require
+     acceptance.  However, nothing other than this License grants you
+     permission to propagate or modify any covered work.  These actions
+     infringe copyright if you do not accept this License.  Therefore,
+     by modifying or propagating a covered work, you indicate your
+     acceptance of this License to do so.
+
+ 10. Automatic Licensing of Downstream Recipients.
+
+     Each time you convey a covered work, the recipient automatically
+     receives a license from the original licensors, to run, modify and
+     propagate that work, subject to this License.  You are not
+     responsible for enforcing compliance by third parties with this
+     License.
+
+     An "entity transaction" is a transaction transferring control of an
+     organization, or substantially all assets of one, or subdividing an
+     organization, or merging organizations.  If propagation of a
+     covered work results from an entity transaction, each party to that
+     transaction who receives a copy of the work also receives whatever
+     licenses to the work the party's predecessor in interest had or
+     could give under the previous paragraph, plus a right to
+     possession of the Corresponding Source of the work from the
+     predecessor in interest, if the predecessor has it or can get it
+     with reasonable efforts.
+
+     You may not impose any further restrictions on the exercise of the
+     rights granted or affirmed under this License.  For example, you
+     may not impose a license fee, royalty, or other charge for
+     exercise of rights granted under this License, and you may not
+     initiate litigation (including a cross-claim or counterclaim in a
+     lawsuit) alleging that any patent claim is infringed by making,
+     using, selling, offering for sale, or importing the Program or any
+     portion of it.
+
+ 11. Patents.
+
+     A "contributor" is a copyright holder who authorizes use under this
+     License of the Program or a work on which the Program is based.
+     The work thus licensed is called the contributor's "contributor
+     version".
+
+     A contributor's "essential patent claims" are all patent claims
+     owned or controlled by the contributor, whether already acquired or
+     hereafter acquired, that would be infringed by some manner,
+     permitted by this License, of making, using, or selling its
+     contributor version, but do not include claims that would be
+     infringed only as a consequence of further modification of the
+     contributor version.  For purposes of this definition, "control"
+     includes the right to grant patent sublicenses in a manner
+     consistent with the requirements of this License.
+
+     Each contributor grants you a non-exclusive, worldwide,
+     royalty-free patent license under the contributor's essential
+     patent claims, to make, use, sell, offer for sale, import and
+     otherwise run, modify and propagate the contents of its
+     contributor version.
+
+     In the following three paragraphs, a "patent license" is any
+     express agreement or commitment, however denominated, not to
+     enforce a patent (such as an express permission to practice a
+     patent or covenant not to sue for patent infringement).  To
+     "grant" such a patent license to a party means to make such an
+     agreement or commitment not to enforce a patent against the party.
+
+     If you convey a covered work, knowingly relying on a patent
+     license, and the Corresponding Source of the work is not available
+     for anyone to copy, free of charge and under the terms of this
+     License, through a publicly available network server or other
+     readily accessible means, then you must either (1) cause the
+     Corresponding Source to be so available, or (2) arrange to deprive
+     yourself of the benefit of the patent license for this particular
+     work, or (3) arrange, in a manner consistent with the requirements
+     of this License, to extend the patent license to downstream
+     recipients.  "Knowingly relying" means you have actual knowledge
+     that, but for the patent license, your conveying the covered work
+     in a country, or your recipient's use of the covered work in a
+     country, would infringe one or more identifiable patents in that
+     country that you have reason to believe are valid.
+
+     If, pursuant to or in connection with a single transaction or
+     arrangement, you convey, or propagate by procuring conveyance of, a
+     covered work, and grant a patent license to some of the parties
+     receiving the covered work authorizing them to use, propagate,
+     modify or convey a specific copy of the covered work, then the
+     patent license you grant is automatically extended to all
+     recipients of the covered work and works based on it.
+
+     A patent license is "discriminatory" if it does not include within
+     the scope of its coverage, prohibits the exercise of, or is
+     conditioned on the non-exercise of one or more of the rights that
+     are specifically granted under this License.  You may not convey a
+     covered work if you are a party to an arrangement with a third
+     party that is in the business of distributing software, under
+     which you make payment to the third party based on the extent of
+     your activity of conveying the work, and under which the third
+     party grants, to any of the parties who would receive the covered
+     work from you, a discriminatory patent license (a) in connection
+     with copies of the covered work conveyed by you (or copies made
+     from those copies), or (b) primarily for and in connection with
+     specific products or compilations that contain the covered work,
+     unless you entered into that arrangement, or that patent license
+     was granted, prior to 28 March 2007.
+
+     Nothing in this License shall be construed as excluding or limiting
+     any implied license or other defenses to infringement that may
+     otherwise be available to you under applicable patent law.
+
+ 12. No Surrender of Others' Freedom.
+
+     If conditions are imposed on you (whether by court order,
+     agreement or otherwise) that contradict the conditions of this
+     License, they do not excuse you from the conditions of this
+     License.  If you cannot convey a covered work so as to satisfy
+     simultaneously your obligations under this License and any other
+     pertinent obligations, then as a consequence you may not convey it
+     at all.  For example, if you agree to terms that obligate you to
+     collect a royalty for further conveying from those to whom you
+     convey the Program, the only way you could satisfy both those
+     terms and this License would be to refrain entirely from conveying
+     the Program.
+
+ 13. Use with the GNU Affero General Public License.
+
+     Notwithstanding any other provision of this License, you have
+     permission to link or combine any covered work with a work licensed
+     under version 3 of the GNU Affero General Public License into a
+     single combined work, and to convey the resulting work.  The terms
+     of this License will continue to apply to the part which is the
+     covered work, but the special requirements of the GNU Affero
+     General Public License, section 13, concerning interaction through
+     a network will apply to the combination as such.
+
+ 14. Revised Versions of this License.
+
+     The Free Software Foundation may publish revised and/or new
+     versions of the GNU General Public License from time to time.
+     Such new versions will be similar in spirit to the present
+     version, but may differ in detail to address new problems or
+     concerns.
+
+     Each version is given a distinguishing version number.  If the
+     Program specifies that a certain numbered version of the GNU
+     General Public License "or any later version" applies to it, you
+     have the option of following the terms and conditions either of
+     that numbered version or of any later version published by the
+     Free Software Foundation.  If the Program does not specify a
+     version number of the GNU General Public License, you may choose
+     any version ever published by the Free Software Foundation.
+
+     If the Program specifies that a proxy can decide which future
+     versions of the GNU General Public License can be used, that
+     proxy's public statement of acceptance of a version permanently
+     authorizes you to choose that version for the Program.
+
+     Later license versions may give you additional or different
+     permissions.  However, no additional obligations are imposed on any
+     author or copyright holder as a result of your choosing to follow a
+     later version.
+
+ 15. Disclaimer of Warranty.
+
+     THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
+     APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE
+     COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS"
+     WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+     INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+     MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE ENTIRE
+     RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU.
+     SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL
+     NECESSARY SERVICING, REPAIR OR CORRECTION.
+
+ 16. Limitation of Liability.
+
+     IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN
+     WRITING WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MODIFIES
+     AND/OR CONVEYS THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU
+     FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR
+     CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE
+     THE PROGRAM (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA
+     BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD
+     PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER
+     PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF
+     THE POSSIBILITY OF SUCH DAMAGES.
+
+ 17. Interpretation of Sections 15 and 16.
+
+     If the disclaimer of warranty and limitation of liability provided
+     above cannot be given local legal effect according to their terms,
+     reviewing courts shall apply local law that most closely
+     approximates an absolute waiver of all civil liability in
+     connection with the Program, unless a warranty or assumption of
+     liability accompanies a copy of the Program in return for a fee.
+
+
+END OF TERMS AND CONDITIONS
+===========================
+
+How to Apply These Terms to Your New Programs
+=============================================
+
+If you develop a new program, and you want it to be of the greatest
+possible use to the public, the best way to achieve this is to make it
+free software which everyone can redistribute and change under these
+terms.
+
+ To do so, attach the following notices to the program.  It is safest
+to attach them to the start of each source file to most effectively
+state the exclusion of warranty; and each file should have at least the
+"copyright" line and a pointer to where the full notice is found.
+
+     ONE LINE TO GIVE THE PROGRAM'S NAME AND A BRIEF IDEA OF WHAT IT DOES.
+     Copyright (C) YEAR NAME OF AUTHOR
+
+     This program is free software: you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published by
+     the Free Software Foundation, either version 3 of the License, or (at
+     your option) any later version.
+
+     This program is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with this program.  If not, see `http://www.gnu.org/licenses/'.
+
+ Also add information on how to contact you by electronic and paper
+mail.
+
+ If the program does terminal interaction, make it output a short
+notice like this when it starts in an interactive mode:
+
+     PROGRAM Copyright (C) YEAR NAME OF AUTHOR
+     This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
+     This is free software, and you are welcome to redistribute it
+     under certain conditions; type `show c' for details.
+
+ The hypothetical commands `show w' and `show c' should show the
+appropriate parts of the General Public License.  Of course, your
+program's commands might be different; for a GUI interface, you would
+use an "about box".
+
+ You should also get your employer (if you work as a programmer) or
+school, if any, to sign a "copyright disclaimer" for the program, if
+necessary.  For more information on this, and how to apply and follow
+the GNU GPL, see `http://www.gnu.org/licenses/'.
+
+ The GNU General Public License does not permit incorporating your
+program into proprietary programs.  If your program is a subroutine
+library, you may consider it more useful to permit linking proprietary
+applications with the library.  If this is what you want to do, use the
+GNU Lesser General Public License instead of this License.  But first,
+please read `http://www.gnu.org/philosophy/why-not-lgpl.html'.
+
+
+File: gcc.info,  Node: GNU Free Documentation License,  Next: Contributors,  Prev: Copying,  Up: Top
+
+GNU Free Documentation License
+******************************
+
+                      Version 1.2, November 2002
+
+     Copyright (C) 2000,2001,2002 Free Software Foundation, Inc.
+     51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+
+     Everyone is permitted to copy and distribute verbatim copies
+     of this license document, but changing it is not allowed.
+
+  0. PREAMBLE
+
+     The purpose of this License is to make a manual, textbook, or other
+     functional and useful document "free" in the sense of freedom: to
+     assure everyone the effective freedom to copy and redistribute it,
+     with or without modifying it, either commercially or
+     noncommercially.  Secondarily, this License preserves for the
+     author and publisher a way to get credit for their work, while not
+     being considered responsible for modifications made by others.
+
+     This License is a kind of "copyleft", which means that derivative
+     works of the document must themselves be free in the same sense.
+     It complements the GNU General Public License, which is a copyleft
+     license designed for free software.
+
+     We have designed this License in order to use it for manuals for
+     free software, because free software needs free documentation: a
+     free program should come with manuals providing the same freedoms
+     that the software does.  But this License is not limited to
+     software manuals; it can be used for any textual work, regardless
+     of subject matter or whether it is published as a printed book.
+     We recommend this License principally for works whose purpose is
+     instruction or reference.
+
+  1. APPLICABILITY AND DEFINITIONS
+
+     This License applies to any manual or other work, in any medium,
+     that contains a notice placed by the copyright holder saying it
+     can be distributed under the terms of this License.  Such a notice
+     grants a world-wide, royalty-free license, unlimited in duration,
+     to use that work under the conditions stated herein.  The
+     "Document", below, refers to any such manual or work.  Any member
+     of the public is a licensee, and is addressed as "you".  You
+     accept the license if you copy, modify or distribute the work in a
+     way requiring permission under copyright law.
+
+     A "Modified Version" of the Document means any work containing the
+     Document or a portion of it, either copied verbatim, or with
+     modifications and/or translated into another language.
+
+     A "Secondary Section" is a named appendix or a front-matter section
+     of the Document that deals exclusively with the relationship of the
+     publishers or authors of the Document to the Document's overall
+     subject (or to related matters) and contains nothing that could
+     fall directly within that overall subject.  (Thus, if the Document
+     is in part a textbook of mathematics, a Secondary Section may not
+     explain any mathematics.)  The relationship could be a matter of
+     historical connection with the subject or with related matters, or
+     of legal, commercial, philosophical, ethical or political position
+     regarding them.
+
+     The "Invariant Sections" are certain Secondary Sections whose
+     titles are designated, as being those of Invariant Sections, in
+     the notice that says that the Document is released under this
+     License.  If a section does not fit the above definition of
+     Secondary then it is not allowed to be designated as Invariant.
+     The Document may contain zero Invariant Sections.  If the Document
+     does not identify any Invariant Sections then there are none.
+
+     The "Cover Texts" are certain short passages of text that are
+     listed, as Front-Cover Texts or Back-Cover Texts, in the notice
+     that says that the Document is released under this License.  A
+     Front-Cover Text may be at most 5 words, and a Back-Cover Text may
+     be at most 25 words.
+
+     A "Transparent" copy of the Document means a machine-readable copy,
+     represented in a format whose specification is available to the
+     general public, that is suitable for revising the document
+     straightforwardly with generic text editors or (for images
+     composed of pixels) generic paint programs or (for drawings) some
+     widely available drawing editor, and that is suitable for input to
+     text formatters or for automatic translation to a variety of
+     formats suitable for input to text formatters.  A copy made in an
+     otherwise Transparent file format whose markup, or absence of
+     markup, has been arranged to thwart or discourage subsequent
+     modification by readers is not Transparent.  An image format is
+     not Transparent if used for any substantial amount of text.  A
+     copy that is not "Transparent" is called "Opaque".
+
+     Examples of suitable formats for Transparent copies include plain
+     ASCII without markup, Texinfo input format, LaTeX input format,
+     SGML or XML using a publicly available DTD, and
+     standard-conforming simple HTML, PostScript or PDF designed for
+     human modification.  Examples of transparent image formats include
+     PNG, XCF and JPG.  Opaque formats include proprietary formats that
+     can be read and edited only by proprietary word proc

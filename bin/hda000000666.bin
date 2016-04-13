@@ -1,0 +1,1517 @@
+ names of the functional units
+separated by commas.  Don't use name `nothing', it is reserved for
+other goals.
+
+ AUTOMATON-NAME is a string giving the name of the automaton with which
+the unit is bound.  The automaton should be described in construction
+`define_automaton'.  You should give "automaton-name", if there is a
+defined automaton.
+
+ The assignment of units to automata are constrained by the uses of the
+units in insn reservations.  The most important constraint is: if a
+unit reservation is present on a particular cycle of an alternative for
+an insn reservation, then some unit from the same automaton must be
+present on the same cycle for the other alternatives of the insn
+reservation.  The rest of the constraints are mentioned in the
+description of the subsequent constructions.
+
+ The following construction describes CPU functional units analogously
+to `define_cpu_unit'.  The reservation of such units can be queried for
+an automaton state.  The instruction scheduler never queries
+reservation of functional units for given automaton state.  So as a
+rule, you don't need this construction.  This construction could be
+used for future code generation goals (e.g. to generate VLIW insn
+templates).
+
+     (define_query_cpu_unit UNIT-NAMES [AUTOMATON-NAME])
+
+ UNIT-NAMES is a string giving names of the functional units separated
+by commas.
+
+ AUTOMATON-NAME is a string giving the name of the automaton with which
+the unit is bound.
+
+ The following construction is the major one to describe pipeline
+characteristics of an instruction.
+
+     (define_insn_reservation INSN-NAME DEFAULT_LATENCY
+                              CONDITION REGEXP)
+
+ DEFAULT_LATENCY is a number giving latency time of the instruction.
+There is an important difference between the old description and the
+automaton based pipeline description.  The latency time is used for all
+dependencies when we use the old description.  In the automaton based
+pipeline description, the given latency time is only used for true
+dependencies.  The cost of anti-dependencies is always zero and the
+cost of output dependencies is the difference between latency times of
+the producing and consuming insns (if the difference is negative, the
+cost is considered to be zero).  You can always change the default
+costs for any description by using the target hook
+`TARGET_SCHED_ADJUST_COST' (*note Scheduling::).
+
+ INSN-NAME is a string giving the internal name of the insn.  The
+internal names are used in constructions `define_bypass' and in the
+automaton description file generated for debugging.  The internal name
+has nothing in common with the names in `define_insn'.  It is a good
+practice to use insn classes described in the processor manual.
+
+ CONDITION defines what RTL insns are described by this construction.
+You should remember that you will be in trouble if CONDITION for two or
+more different `define_insn_reservation' constructions is TRUE for an
+insn.  In this case what reservation will be used for the insn is not
+defined.  Such cases are not checked during generation of the pipeline
+hazards recognizer because in general recognizing that two conditions
+may have the same value is quite difficult (especially if the conditions
+contain `symbol_ref').  It is also not checked during the pipeline
+hazard recognizer work because it would slow down the recognizer
+considerably.
+
+ REGEXP is a string describing the reservation of the cpu's functional
+units by the instruction.  The reservations are described by a regular
+expression according to the following syntax:
+
+            regexp = regexp "," oneof
+                   | oneof
+
+            oneof = oneof "|" allof
+                  | allof
+
+            allof = allof "+" repeat
+                  | repeat
+
+            repeat = element "*" number
+                   | element
+
+            element = cpu_function_unit_name
+                    | reservation_name
+                    | result_name
+                    | "nothing"
+                    | "(" regexp ")"
+
+   * `,' is used for describing the start of the next cycle in the
+     reservation.
+
+   * `|' is used for describing a reservation described by the first
+     regular expression *or* a reservation described by the second
+     regular expression *or* etc.
+
+   * `+' is used for describing a reservation described by the first
+     regular expression *and* a reservation described by the second
+     regular expression *and* etc.
+
+   * `*' is used for convenience and simply means a sequence in which
+     the regular expression are repeated NUMBER times with cycle
+     advancing (see `,').
+
+   * `cpu_function_unit_name' denotes reservation of the named
+     functional unit.
+
+   * `reservation_name' -- see description of construction
+     `define_reservation'.
+
+   * `nothing' denotes no unit reservations.
+
+ Sometimes unit reservations for different insns contain common parts.
+In such case, you can simplify the pipeline description by describing
+the common part by the following construction
+
+     (define_reservation RESERVATION-NAME REGEXP)
+
+ RESERVATION-NAME is a string giving name of REGEXP.  Functional unit
+names and reservation names are in the same name space.  So the
+reservation names should be different from the functional unit names
+and can not be the reserved name `nothing'.
+
+ The following construction is used to describe exceptions in the
+latency time for given instruction pair.  This is so called bypasses.
+
+     (define_bypass NUMBER OUT_INSN_NAMES IN_INSN_NAMES
+                    [GUARD])
+
+ NUMBER defines when the result generated by the instructions given in
+string OUT_INSN_NAMES will be ready for the instructions given in
+string IN_INSN_NAMES.  The instructions in the string are separated by
+commas.
+
+ GUARD is an optional string giving the name of a C function which
+defines an additional guard for the bypass.  The function will get the
+two insns as parameters.  If the function returns zero the bypass will
+be ignored for this case.  The additional guard is necessary to
+recognize complicated bypasses, e.g. when the consumer is only an
+address of insn `store' (not a stored value).
+
+ The following five constructions are usually used to describe VLIW
+processors, or more precisely, to describe a placement of small
+instructions into VLIW instruction slots.  They can be used for RISC
+processors, too.
+
+     (exclusion_set UNIT-NAMES UNIT-NAMES)
+     (presence_set UNIT-NAMES PATTERNS)
+     (final_presence_set UNIT-NAMES PATTERNS)
+     (absence_set UNIT-NAMES PATTERNS)
+     (final_absence_set UNIT-NAMES PATTERNS)
+
+ UNIT-NAMES is a string giving names of functional units separated by
+commas.
+
+ PATTERNS is a string giving patterns of functional units separated by
+comma.  Currently pattern is one unit or units separated by
+white-spaces.
+
+ The first construction (`exclusion_set') means that each functional
+unit in the first string can not be reserved simultaneously with a unit
+whose name is in the second string and vice versa.  For example, the
+construction is useful for describing processors (e.g. some SPARC
+processors) with a fully pipelined floating point functional unit which
+can execute simultaneously only single floating point insns or only
+double floating point insns.
+
+ The second construction (`presence_set') means that each functional
+unit in the first string can not be reserved unless at least one of
+pattern of units whose names are in the second string is reserved.
+This is an asymmetric relation.  For example, it is useful for
+description that VLIW `slot1' is reserved after `slot0' reservation.
+We could describe it by the following construction
+
+     (presence_set "slot1" "slot0")
+
+ Or `slot1' is reserved only after `slot0' and unit `b0' reservation.
+In this case we could write
+
+     (presence_set "slot1" "slot0 b0")
+
+ The third construction (`final_presence_set') is analogous to
+`presence_set'.  The difference between them is when checking is done.
+When an instruction is issued in given automaton state reflecting all
+current and planned unit reservations, the automaton state is changed.
+The first state is a source state, the second one is a result state.
+Checking for `presence_set' is done on the source state reservation,
+checking for `final_presence_set' is done on the result reservation.
+This construction is useful to describe a reservation which is actually
+two subsequent reservations.  For example, if we use
+
+     (presence_set "slot1" "slot0")
+
+ the following insn will be never issued (because `slot1' requires
+`slot0' which is absent in the source state).
+
+     (define_reservation "insn_and_nop" "slot0 + slot1")
+
+ but it can be issued if we use analogous `final_presence_set'.
+
+ The forth construction (`absence_set') means that each functional unit
+in the first string can be reserved only if each pattern of units whose
+names are in the second string is not reserved.  This is an asymmetric
+relation (actually `exclusion_set' is analogous to this one but it is
+symmetric).  For example it might be useful in a VLIW description to
+say that `slot0' cannot be reserved after either `slot1' or `slot2'
+have been reserved.  This can be described as:
+
+     (absence_set "slot0" "slot1, slot2")
+
+ Or `slot2' can not be reserved if `slot0' and unit `b0' are reserved
+or `slot1' and unit `b1' are reserved.  In this case we could write
+
+     (absence_set "slot2" "slot0 b0, slot1 b1")
+
+ All functional units mentioned in a set should belong to the same
+automaton.
+
+ The last construction (`final_absence_set') is analogous to
+`absence_set' but checking is done on the result (state) reservation.
+See comments for `final_presence_set'.
+
+ You can control the generator of the pipeline hazard recognizer with
+the following construction.
+
+     (automata_option OPTIONS)
+
+ OPTIONS is a string giving options which affect the generated code.
+Currently there are the following options:
+
+   * "no-minimization" makes no minimization of the automaton.  This is
+     only worth to do when we are debugging the description and need to
+     look more accurately at reservations of states.
+
+   * "time" means printing time statistics about the generation of
+     automata.
+
+   * "stats" means printing statistics about the generated automata
+     such as the number of DFA states, NDFA states and arcs.
+
+   * "v" means a generation of the file describing the result automata.
+     The file has suffix `.dfa' and can be used for the description
+     verification and debugging.
+
+   * "w" means a generation of warning instead of error for
+     non-critical errors.
+
+   * "ndfa" makes nondeterministic finite state automata.  This affects
+     the treatment of operator `|' in the regular expressions.  The
+     usual treatment of the operator is to try the first alternative
+     and, if the reservation is not possible, the second alternative.
+     The nondeterministic treatment means trying all alternatives, some
+     of them may be rejected by reservations in the subsequent insns.
+
+   * "progress" means output of a progress bar showing how many states
+     were generated so far for automaton being processed.  This is
+     useful during debugging a DFA description.  If you see too many
+     generated states, you could interrupt the generator of the pipeline
+     hazard recognizer and try to figure out a reason for generation of
+     the huge automaton.
+
+ As an example, consider a superscalar RISC machine which can issue
+three insns (two integer insns and one floating point insn) on the
+cycle but can finish only two insns.  To describe this, we define the
+following functional units.
+
+     (define_cpu_unit "i0_pipeline, i1_pipeline, f_pipeline")
+     (define_cpu_unit "port0, port1")
+
+ All simple integer insns can be executed in any integer pipeline and
+their result is ready in two cycles.  The simple integer insns are
+issued into the first pipeline unless it is reserved, otherwise they
+are issued into the second pipeline.  Integer division and
+multiplication insns can be executed only in the second integer
+pipeline and their results are ready correspondingly in 8 and 4 cycles.
+The integer division is not pipelined, i.e. the subsequent integer
+division insn can not be issued until the current division insn
+finished.  Floating point insns are fully pipelined and their results
+are ready in 3 cycles.  Where the result of a floating point insn is
+used by an integer insn, an additional delay of one cycle is incurred.
+To describe all of this we could specify
+
+     (define_cpu_unit "div")
+
+     (define_insn_reservation "simple" 2 (eq_attr "type" "int")
+                              "(i0_pipeline | i1_pipeline), (port0 | port1)")
+
+     (define_insn_reservation "mult" 4 (eq_attr "type" "mult")
+                              "i1_pipeline, nothing*2, (port0 | port1)")
+
+     (define_insn_reservation "div" 8 (eq_attr "type" "div")
+                              "i1_pipeline, div*7, div + (port0 | port1)")
+
+     (define_insn_reservation "float" 3 (eq_attr "type" "float")
+                              "f_pipeline, nothing, (port0 | port1))
+
+     (define_bypass 4 "float" "simple,mult,div")
+
+ To simplify the description we could describe the following reservation
+
+     (define_reservation "finish" "port0|port1")
+
+ and use it in all `define_insn_reservation' as in the following
+construction
+
+     (define_insn_reservation "simple" 2 (eq_attr "type" "int")
+                              "(i0_pipeline | i1_pipeline), finish")
+
+ ---------- Footnotes ----------
+
+ (1) However, the size of the automaton depends on   processor
+complexity.  To limit this effect, machine descriptions   can split
+orthogonal parts of the machine description among several   automata:
+but then, since each of these must be stepped independently,   this
+does cause a small decrease in the algorithm's performance.
+
+
+File: gccint.info,  Node: Conditional Execution,  Next: Constant Definitions,  Prev: Insn Attributes,  Up: Machine Desc
+
+14.20 Conditional Execution
+===========================
+
+A number of architectures provide for some form of conditional
+execution, or predication.  The hallmark of this feature is the ability
+to nullify most of the instructions in the instruction set.  When the
+instruction set is large and not entirely symmetric, it can be quite
+tedious to describe these forms directly in the `.md' file.  An
+alternative is the `define_cond_exec' template.
+
+     (define_cond_exec
+       [PREDICATE-PATTERN]
+       "CONDITION"
+       "OUTPUT-TEMPLATE")
+
+ PREDICATE-PATTERN is the condition that must be true for the insn to
+be executed at runtime and should match a relational operator.  One can
+use `match_operator' to match several relational operators at once.
+Any `match_operand' operands must have no more than one alternative.
+
+ CONDITION is a C expression that must be true for the generated
+pattern to match.
+
+ OUTPUT-TEMPLATE is a string similar to the `define_insn' output
+template (*note Output Template::), except that the `*' and `@' special
+cases do not apply.  This is only useful if the assembly text for the
+predicate is a simple prefix to the main insn.  In order to handle the
+general case, there is a global variable `current_insn_predicate' that
+will contain the entire predicate if the current insn is predicated,
+and will otherwise be `NULL'.
+
+ When `define_cond_exec' is used, an implicit reference to the
+`predicable' instruction attribute is made.  *Note Insn Attributes::.
+This attribute must be boolean (i.e. have exactly two elements in its
+LIST-OF-VALUES).  Further, it must not be used with complex
+expressions.  That is, the default and all uses in the insns must be a
+simple constant, not dependent on the alternative or anything else.
+
+ For each `define_insn' for which the `predicable' attribute is true, a
+new `define_insn' pattern will be generated that matches a predicated
+version of the instruction.  For example,
+
+     (define_insn "addsi"
+       [(set (match_operand:SI 0 "register_operand" "r")
+             (plus:SI (match_operand:SI 1 "register_operand" "r")
+                      (match_operand:SI 2 "register_operand" "r")))]
+       "TEST1"
+       "add %2,%1,%0")
+
+     (define_cond_exec
+       [(ne (match_operand:CC 0 "register_operand" "c")
+            (const_int 0))]
+       "TEST2"
+       "(%0)")
+
+generates a new pattern
+
+     (define_insn ""
+       [(cond_exec
+          (ne (match_operand:CC 3 "register_operand" "c") (const_int 0))
+          (set (match_operand:SI 0 "register_operand" "r")
+               (plus:SI (match_operand:SI 1 "register_operand" "r")
+                        (match_operand:SI 2 "register_operand" "r"))))]
+       "(TEST2) && (TEST1)"
+       "(%3) add %2,%1,%0")
+
+
+File: gccint.info,  Node: Constant Definitions,  Next: Iterators,  Prev: Conditional Execution,  Up: Machine Desc
+
+14.21 Constant Definitions
+==========================
+
+Using literal constants inside instruction patterns reduces legibility
+and can be a maintenance problem.
+
+ To overcome this problem, you may use the `define_constants'
+expression.  It contains a vector of name-value pairs.  From that point
+on, wherever any of the names appears in the MD file, it is as if the
+corresponding value had been written instead.  You may use
+`define_constants' multiple times; each appearance adds more constants
+to the table.  It is an error to redefine a constant with a different
+value.
+
+ To come back to the a29k load multiple example, instead of
+
+     (define_insn ""
+       [(match_parallel 0 "load_multiple_operation"
+          [(set (match_operand:SI 1 "gpc_reg_operand" "=r")
+                (match_operand:SI 2 "memory_operand" "m"))
+           (use (reg:SI 179))
+           (clobber (reg:SI 179))])]
+       ""
+       "loadm 0,0,%1,%2")
+
+ You could write:
+
+     (define_constants [
+         (R_BP 177)
+         (R_FC 178)
+         (R_CR 179)
+         (R_Q  180)
+     ])
+
+     (define_insn ""
+       [(match_parallel 0 "load_multiple_operation"
+          [(set (match_operand:SI 1 "gpc_reg_operand" "=r")
+                (match_operand:SI 2 "memory_operand" "m"))
+           (use (reg:SI R_CR))
+           (clobber (reg:SI R_CR))])]
+       ""
+       "loadm 0,0,%1,%2")
+
+ The constants that are defined with a define_constant are also output
+in the insn-codes.h header file as #defines.
+
+
+File: gccint.info,  Node: Iterators,  Prev: Constant Definitions,  Up: Machine Desc
+
+14.22 Iterators
+===============
+
+Ports often need to define similar patterns for more than one machine
+mode or for more than one rtx code.  GCC provides some simple iterator
+facilities to make this process easier.
+
+* Menu:
+
+* Mode Iterators::         Generating variations of patterns for different modes.
+* Code Iterators::         Doing the same for codes.
+
+
+File: gccint.info,  Node: Mode Iterators,  Next: Code Iterators,  Up: Iterators
+
+14.22.1 Mode Iterators
+----------------------
+
+Ports often need to define similar patterns for two or more different
+modes.  For example:
+
+   * If a processor has hardware support for both single and double
+     floating-point arithmetic, the `SFmode' patterns tend to be very
+     similar to the `DFmode' ones.
+
+   * If a port uses `SImode' pointers in one configuration and `DImode'
+     pointers in another, it will usually have very similar `SImode'
+     and `DImode' patterns for manipulating pointers.
+
+ Mode iterators allow several patterns to be instantiated from one
+`.md' file template.  They can be used with any type of rtx-based
+construct, such as a `define_insn', `define_split', or
+`define_peephole2'.
+
+* Menu:
+
+* Defining Mode Iterators:: Defining a new mode iterator.
+* Substitutions::	    Combining mode iterators with substitutions
+* Examples::		    Examples
+
+
+File: gccint.info,  Node: Defining Mode Iterators,  Next: Substitutions,  Up: Mode Iterators
+
+14.22.1.1 Defining Mode Iterators
+.................................
+
+The syntax for defining a mode iterator is:
+
+     (define_mode_iterator NAME [(MODE1 "COND1") ... (MODEN "CONDN")])
+
+ This allows subsequent `.md' file constructs to use the mode suffix
+`:NAME'.  Every construct that does so will be expanded N times, once
+with every use of `:NAME' replaced by `:MODE1', once with every use
+replaced by `:MODE2', and so on.  In the expansion for a particular
+MODEI, every C condition will also require that CONDI be true.
+
+ For example:
+
+     (define_mode_iterator P [(SI "Pmode == SImode") (DI "Pmode == DImode")])
+
+ defines a new mode suffix `:P'.  Every construct that uses `:P' will
+be expanded twice, once with every `:P' replaced by `:SI' and once with
+every `:P' replaced by `:DI'.  The `:SI' version will only apply if
+`Pmode == SImode' and the `:DI' version will only apply if `Pmode ==
+DImode'.
+
+ As with other `.md' conditions, an empty string is treated as "always
+true".  `(MODE "")' can also be abbreviated to `MODE'.  For example:
+
+     (define_mode_iterator GPR [SI (DI "TARGET_64BIT")])
+
+ means that the `:DI' expansion only applies if `TARGET_64BIT' but that
+the `:SI' expansion has no such constraint.
+
+ Iterators are applied in the order they are defined.  This can be
+significant if two iterators are used in a construct that requires
+substitutions.  *Note Substitutions::.
+
+
+File: gccint.info,  Node: Substitutions,  Next: Examples,  Prev: Defining Mode Iterators,  Up: Mode Iterators
+
+14.22.1.2 Substitution in Mode Iterators
+........................................
+
+If an `.md' file construct uses mode iterators, each version of the
+construct will often need slightly different strings or modes.  For
+example:
+
+   * When a `define_expand' defines several `addM3' patterns (*note
+     Standard Names::), each expander will need to use the appropriate
+     mode name for M.
+
+   * When a `define_insn' defines several instruction patterns, each
+     instruction will often use a different assembler mnemonic.
+
+   * When a `define_insn' requires operands with different modes, using
+     an iterator for one of the operand modes usually requires a
+     specific mode for the other operand(s).
+
+ GCC supports such variations through a system of "mode attributes".
+There are two standard attributes: `mode', which is the name of the
+mode in lower case, and `MODE', which is the same thing in upper case.
+You can define other attributes using:
+
+     (define_mode_attr NAME [(MODE1 "VALUE1") ... (MODEN "VALUEN")])
+
+ where NAME is the name of the attribute and VALUEI is the value
+associated with MODEI.
+
+ When GCC replaces some :ITERATOR with :MODE, it will scan each string
+and mode in the pattern for sequences of the form `<ITERATOR:ATTR>',
+where ATTR is the name of a mode attribute.  If the attribute is
+defined for MODE, the whole `<...>' sequence will be replaced by the
+appropriate attribute value.
+
+ For example, suppose an `.md' file has:
+
+     (define_mode_iterator P [(SI "Pmode == SImode") (DI "Pmode == DImode")])
+     (define_mode_attr load [(SI "lw") (DI "ld")])
+
+ If one of the patterns that uses `:P' contains the string
+`"<P:load>\t%0,%1"', the `SI' version of that pattern will use
+`"lw\t%0,%1"' and the `DI' version will use `"ld\t%0,%1"'.
+
+ Here is an example of using an attribute for a mode:
+
+     (define_mode_iterator LONG [SI DI])
+     (define_mode_attr SHORT [(SI "HI") (DI "SI")])
+     (define_insn ...
+       (sign_extend:LONG (match_operand:<LONG:SHORT> ...)) ...)
+
+ The `ITERATOR:' prefix may be omitted, in which case the substitution
+will be attempted for every iterator expansion.
+
+
+File: gccint.info,  Node: Examples,  Prev: Substitutions,  Up: Mode Iterators
+
+14.22.1.3 Mode Iterator Examples
+................................
+
+Here is an example from the MIPS port.  It defines the following modes
+and attributes (among others):
+
+     (define_mode_iterator GPR [SI (DI "TARGET_64BIT")])
+     (define_mode_attr d [(SI "") (DI "d")])
+
+ and uses the following template to define both `subsi3' and `subdi3':
+
+     (define_insn "sub<mode>3"
+       [(set (match_operand:GPR 0 "register_operand" "=d")
+             (minus:GPR (match_operand:GPR 1 "register_operand" "d")
+                        (match_operand:GPR 2 "register_operand" "d")))]
+       ""
+       "<d>subu\t%0,%1,%2"
+       [(set_attr "type" "arith")
+        (set_attr "mode" "<MODE>")])
+
+ This is exactly equivalent to:
+
+     (define_insn "subsi3"
+       [(set (match_operand:SI 0 "register_operand" "=d")
+             (minus:SI (match_operand:SI 1 "register_operand" "d")
+                       (match_operand:SI 2 "register_operand" "d")))]
+       ""
+       "subu\t%0,%1,%2"
+       [(set_attr "type" "arith")
+        (set_attr "mode" "SI")])
+
+     (define_insn "subdi3"
+       [(set (match_operand:DI 0 "register_operand" "=d")
+             (minus:DI (match_operand:DI 1 "register_operand" "d")
+                       (match_operand:DI 2 "register_operand" "d")))]
+       ""
+       "dsubu\t%0,%1,%2"
+       [(set_attr "type" "arith")
+        (set_attr "mode" "DI")])
+
+
+File: gccint.info,  Node: Code Iterators,  Prev: Mode Iterators,  Up: Iterators
+
+14.22.2 Code Iterators
+----------------------
+
+Code iterators operate in a similar way to mode iterators.  *Note Mode
+Iterators::.
+
+ The construct:
+
+     (define_code_iterator NAME [(CODE1 "COND1") ... (CODEN "CONDN")])
+
+ defines a pseudo rtx code NAME that can be instantiated as CODEI if
+condition CONDI is true.  Each CODEI must have the same rtx format.
+*Note RTL Classes::.
+
+ As with mode iterators, each pattern that uses NAME will be expanded N
+times, once with all uses of NAME replaced by CODE1, once with all uses
+replaced by CODE2, and so on.  *Note Defining Mode Iterators::.
+
+ It is possible to define attributes for codes as well as for modes.
+There are two standard code attributes: `code', the name of the code in
+lower case, and `CODE', the name of the code in upper case.  Other
+attributes are defined using:
+
+     (define_code_attr NAME [(CODE1 "VALUE1") ... (CODEN "VALUEN")])
+
+ Here's an example of code iterators in action, taken from the MIPS
+port:
+
+     (define_code_iterator any_cond [unordered ordered unlt unge uneq ltgt unle ungt
+                                     eq ne gt ge lt le gtu geu ltu leu])
+
+     (define_expand "b<code>"
+       [(set (pc)
+             (if_then_else (any_cond:CC (cc0)
+                                        (const_int 0))
+                           (label_ref (match_operand 0 ""))
+                           (pc)))]
+       ""
+     {
+       gen_conditional_branch (operands, <CODE>);
+       DONE;
+     })
+
+ This is equivalent to:
+
+     (define_expand "bunordered"
+       [(set (pc)
+             (if_then_else (unordered:CC (cc0)
+                                         (const_int 0))
+                           (label_ref (match_operand 0 ""))
+                           (pc)))]
+       ""
+     {
+       gen_conditional_branch (operands, UNORDERED);
+       DONE;
+     })
+
+     (define_expand "bordered"
+       [(set (pc)
+             (if_then_else (ordered:CC (cc0)
+                                       (const_int 0))
+                           (label_ref (match_operand 0 ""))
+                           (pc)))]
+       ""
+     {
+       gen_conditional_branch (operands, ORDERED);
+       DONE;
+     })
+
+     ...
+
+
+File: gccint.info,  Node: Target Macros,  Next: Host Config,  Prev: Machine Desc,  Up: Top
+
+15 Target Description Macros and Functions
+******************************************
+
+In addition to the file `MACHINE.md', a machine description includes a
+C header file conventionally given the name `MACHINE.h' and a C source
+file named `MACHINE.c'.  The header file defines numerous macros that
+convey the information about the target machine that does not fit into
+the scheme of the `.md' file.  The file `tm.h' should be a link to
+`MACHINE.h'.  The header file `config.h' includes `tm.h' and most
+compiler source files include `config.h'.  The source file defines a
+variable `targetm', which is a structure containing pointers to
+functions and data relating to the target machine.  `MACHINE.c' should
+also contain their definitions, if they are not defined elsewhere in
+GCC, and other functions called through the macros defined in the `.h'
+file.
+
+* Menu:
+
+* Target Structure::    The `targetm' variable.
+* Driver::              Controlling how the driver runs the compilation passes.
+* Run-time Target::     Defining `-m' options like `-m68000' and `-m68020'.
+* Per-Function Data::   Defining data structures for per-function information.
+* Storage Layout::      Defining sizes and alignments of data.
+* Type Layout::         Defining sizes and properties of basic user data types.
+* Registers::           Naming and describing the hardware registers.
+* Register Classes::    Defining the classes of hardware registers.
+* Old Constraints::     The old way to define machine-specific constraints.
+* Stack and Calling::   Defining which way the stack grows and by how much.
+* Varargs::		Defining the varargs macros.
+* Trampolines::         Code set up at run time to enter a nested function.
+* Library Calls::       Controlling how library routines are implicitly called.
+* Addressing Modes::    Defining addressing modes valid for memory operands.
+* Anchored Addresses::  Defining how `-fsection-anchors' should work.
+* Condition Code::      Defining how insns update the condition code.
+* Costs::               Defining relative costs of different operations.
+* Scheduling::          Adjusting the behavior of the instruction scheduler.
+* Sections::            Dividing storage into text, data, and other sections.
+* PIC::			Macros for position independent code.
+* Assembler Format::    Defining how to write insns and pseudo-ops to output.
+* Debugging Info::      Defining the format of debugging output.
+* Floating Point::      Handling floating point for cross-compilers.
+* Mode Switching::      Insertion of mode-switching instructions.
+* Target Attributes::   Defining target-specific uses of `__attribute__'.
+* MIPS Coprocessors::   MIPS coprocessor support and how to customize it.
+* PCH Target::          Validity checking for precompiled headers.
+* C++ ABI::             Controlling C++ ABI changes.
+* Misc::                Everything else.
+
+
+File: gccint.info,  Node: Target Structure,  Next: Driver,  Up: Target Macros
+
+15.1 The Global `targetm' Variable
+==================================
+
+ -- Variable: struct gcc_target targetm
+     The target `.c' file must define the global `targetm' variable
+     which contains pointers to functions and data relating to the
+     target machine.  The variable is declared in `target.h';
+     `target-def.h' defines the macro `TARGET_INITIALIZER' which is
+     used to initialize the variable, and macros for the default
+     initializers for elements of the structure.  The `.c' file should
+     override those macros for which the default definition is
+     inappropriate.  For example:
+          #include "target.h"
+          #include "target-def.h"
+
+          /* Initialize the GCC target structure.  */
+
+          #undef TARGET_COMP_TYPE_ATTRIBUTES
+          #define TARGET_COMP_TYPE_ATTRIBUTES MACHINE_comp_type_attributes
+
+          struct gcc_target targetm = TARGET_INITIALIZER;
+
+Where a macro should be defined in the `.c' file in this manner to form
+part of the `targetm' structure, it is documented below as a "Target
+Hook" with a prototype.  Many macros will change in future from being
+defined in the `.h' file to being part of the `targetm' structure.
+
+
+File: gccint.info,  Node: Driver,  Next: Run-time Target,  Prev: Target Structure,  Up: Target Macros
+
+15.2 Controlling the Compilation Driver, `gcc'
+==============================================
+
+You can control the compilation driver.
+
+ -- Macro: SWITCH_TAKES_ARG (CHAR)
+     A C expression which determines whether the option `-CHAR' takes
+     arguments.  The value should be the number of arguments that
+     option takes-zero, for many options.
+
+     By default, this macro is defined as `DEFAULT_SWITCH_TAKES_ARG',
+     which handles the standard options properly.  You need not define
+     `SWITCH_TAKES_ARG' unless you wish to add additional options which
+     take arguments.  Any redefinition should call
+     `DEFAULT_SWITCH_TAKES_ARG' and then check for additional options.
+
+ -- Macro: WORD_SWITCH_TAKES_ARG (NAME)
+     A C expression which determines whether the option `-NAME' takes
+     arguments.  The value should be the number of arguments that
+     option takes-zero, for many options.  This macro rather than
+     `SWITCH_TAKES_ARG' is used for multi-character option names.
+
+     By default, this macro is defined as
+     `DEFAULT_WORD_SWITCH_TAKES_ARG', which handles the standard options
+     properly.  You need not define `WORD_SWITCH_TAKES_ARG' unless you
+     wish to add additional options which take arguments.  Any
+     redefinition should call `DEFAULT_WORD_SWITCH_TAKES_ARG' and then
+     check for additional options.
+
+ -- Macro: SWITCH_CURTAILS_COMPILATION (CHAR)
+     A C expression which determines whether the option `-CHAR' stops
+     compilation before the generation of an executable.  The value is
+     boolean, nonzero if the option does stop an executable from being
+     generated, zero otherwise.
+
+     By default, this macro is defined as
+     `DEFAULT_SWITCH_CURTAILS_COMPILATION', which handles the standard
+     options properly.  You need not define
+     `SWITCH_CURTAILS_COMPILATION' unless you wish to add additional
+     options which affect the generation of an executable.  Any
+     redefinition should call `DEFAULT_SWITCH_CURTAILS_COMPILATION' and
+     then check for additional options.
+
+ -- Macro: SWITCHES_NEED_SPACES
+     A string-valued C expression which enumerates the options for which
+     the linker needs a space between the option and its argument.
+
+     If this macro is not defined, the default value is `""'.
+
+ -- Macro: TARGET_OPTION_TRANSLATE_TABLE
+     If defined, a list of pairs of strings, the first of which is a
+     potential command line target to the `gcc' driver program, and the
+     second of which is a space-separated (tabs and other whitespace
+     are not supported) list of options with which to replace the first
+     option.  The target defining this list is responsible for assuring
+     that the results are valid.  Replacement options may not be the
+     `--opt' style, they must be the `-opt' style.  It is the intention
+     of this macro to provide a mechanism for substitution that affects
+     the multilibs chosen, such as one option that enables many
+     options, some of which select multilibs.  Example nonsensical
+     definition, where `-malt-abi', `-EB', and `-mspoo' cause different
+     multilibs to be chosen:
+
+          #define TARGET_OPTION_TRANSLATE_TABLE \
+          { "-fast",   "-march=fast-foo -malt-abi -I/usr/fast-foo" }, \
+          { "-compat", "-EB -malign=4 -mspoo" }
+
+ -- Macro: DRIVER_SELF_SPECS
+     A list of specs for the driver itself.  It should be a suitable
+     initializer for an array of strings, with no surrounding braces.
+
+     The driver applies these specs to its own command line between
+     loading default `specs' files (but not command-line specified
+     ones) and choosing the multilib directory or running any
+     subcommands.  It applies them in the order given, so each spec can
+     depend on the options added by earlier ones.  It is also possible
+     to remove options using `%<OPTION' in the usual way.
+
+     This macro can be useful when a port has several interdependent
+     target options.  It provides a way of standardizing the command
+     line so that the other specs are easier to write.
+
+     Do not define this macro if it does not need to do anything.
+
+ -- Macro: OPTION_DEFAULT_SPECS
+     A list of specs used to support configure-time default options
+     (i.e.  `--with' options) in the driver.  It should be a suitable
+     initializer for an array of structures, each containing two
+     strings, without the outermost pair of surrounding braces.
+
+     The first item in the pair is the name of the default.  This must
+     match the code in `config.gcc' for the target.  The second item is
+     a spec to apply if a default with this name was specified.  The
+     string `%(VALUE)' in the spec will be replaced by the value of the
+     default everywhere it occurs.
+
+     The driver will apply these specs to its own command line between
+     loading default `specs' files and processing `DRIVER_SELF_SPECS',
+     using the same mechanism as `DRIVER_SELF_SPECS'.
+
+     Do not define this macro if it does not need to do anything.
+
+ -- Macro: CPP_SPEC
+     A C string constant that tells the GCC driver program options to
+     pass to CPP.  It can also specify how to translate options you
+     give to GCC into options for GCC to pass to the CPP.
+
+     Do not define this macro if it does not need to do anything.
+
+ -- Macro: CPLUSPLUS_CPP_SPEC
+     This macro is just like `CPP_SPEC', but is used for C++, rather
+     than C.  If you do not define this macro, then the value of
+     `CPP_SPEC' (if any) will be used instead.
+
+ -- Macro: CC1_SPEC
+     A C string constant that tells the GCC driver program options to
+     pass to `cc1', `cc1plus', `f771', and the other language front
+     ends.  It can also specify how to translate options you give to
+     GCC into options for GCC to pass to front ends.
+
+     Do not define this macro if it does not need to do anything.
+
+ -- Macro: CC1PLUS_SPEC
+     A C string constant that tells the GCC driver program options to
+     pass to `cc1plus'.  It can also specify how to translate options
+     you give to GCC into options for GCC to pass to the `cc1plus'.
+
+     Do not define this macro if it does not need to do anything.  Note
+     that everything defined in CC1_SPEC is already passed to `cc1plus'
+     so there is no need to duplicate the contents of CC1_SPEC in
+     CC1PLUS_SPEC.
+
+ -- Macro: ASM_SPEC
+     A C string constant that tells the GCC driver program options to
+     pass to the assembler.  It can also specify how to translate
+     options you give to GCC into options for GCC to pass to the
+     assembler.  See the file `sun3.h' for an example of this.
+
+     Do not define this macro if it does not need to do anything.
+
+ -- Macro: ASM_FINAL_SPEC
+     A C string constant that tells the GCC driver program how to run
+     any programs which cleanup after the normal assembler.  Normally,
+     this is not needed.  See the file `mips.h' for an example of this.
+
+     Do not define this macro if it does not need to do anything.
+
+ -- Macro: AS_NEEDS_DASH_FOR_PIPED_INPUT
+     Define this macro, with no value, if the driver should give the
+     assembler an argument consisting of a single dash, `-', to
+     instruct it to read from its standard input (which will be a pipe
+     connected to the output of the compiler proper).  This argument is
+     given after any `-o' option specifying the name of the output file.
+
+     If you do not define this macro, the assembler is assumed to read
+     its standard input if given no non-option arguments.  If your
+     assembler cannot read standard input at all, use a `%{pipe:%e}'
+     construct; see `mips.h' for instance.
+
+ -- Macro: LINK_SPEC
+     A C string constant that tells the GCC driver program options to
+     pass to the linker.  It can also specify how to translate options
+     you give to GCC into options for GCC to pass to the linker.
+
+     Do not define this macro if it does not need to do anything.
+
+ -- Macro: LIB_SPEC
+     Another C string constant used much like `LINK_SPEC'.  The
+     difference between the two is that `LIB_SPEC' is used at the end
+     of the command given to the linker.
+
+     If this macro is not defined, a default is provided that loads the
+     standard C library from the usual place.  See `gcc.c'.
+
+ -- Macro: LIBGCC_SPEC
+     Another C string constant that tells the GCC driver program how
+     and when to place a reference to `libgcc.a' into the linker
+     command line.  This constant is placed both before and after the
+     value of `LIB_SPEC'.
+
+     If this macro is not defined, the GCC driver provides a default
+     that passes the string `-lgcc' to the linker.
+
+ -- Macro: REAL_LIBGCC_SPEC
+     By default, if `ENABLE_SHARED_LIBGCC' is defined, the
+     `LIBGCC_SPEC' is not directly used by the driver program but is
+     instead modified to refer to different versions of `libgcc.a'
+     depending on the values of the command line flags `-static',
+     `-shared', `-static-libgcc', and `-shared-libgcc'.  On targets
+     where these modifications are inappropriate, define
+     `REAL_LIBGCC_SPEC' instead.  `REAL_LIBGCC_SPEC' tells the driver
+     how to place a reference to `libgcc' on the link command line,
+     but, unlike `LIBGCC_SPEC', it is used unmodified.
+
+ -- Macro: USE_LD_AS_NEEDED
+     A macro that controls the modifications to `LIBGCC_SPEC' mentioned
+     in `REAL_LIBGCC_SPEC'.  If nonzero, a spec will be generated that
+     uses -as-needed and the shared libgcc in place of the static
+     exception handler library, when linking without any of `-static',
+     `-static-libgcc', or `-shared-libgcc'.
+
+ -- Macro: LINK_EH_SPEC
+     If defined, this C string constant is added to `LINK_SPEC'.  When
+     `USE_LD_AS_NEEDED' is zero or undefined, it also affects the
+     modifications to `LIBGCC_SPEC' mentioned in `REAL_LIBGCC_SPEC'.
+
+ -- Macro: STARTFILE_SPEC
+     Another C string constant used much like `LINK_SPEC'.  The
+     difference between the two is that `STARTFILE_SPEC' is used at the
+     very beginning of the command given to the linker.
+
+     If this macro is not defined, a default is provided that loads the
+     standard C startup file from the usual place.  See `gcc.c'.
+
+ -- Macro: ENDFILE_SPEC
+     Another C string constant used much like `LINK_SPEC'.  The
+     difference between the two is that `ENDFILE_SPEC' is used at the
+     very end of the command given to the linker.
+
+     Do not define this macro if it does not need to do anything.
+
+ -- Macro: THREAD_MODEL_SPEC
+     GCC `-v' will print the thread model GCC was configured to use.
+     However, this doesn't work on platforms that are multilibbed on
+     thread models, such as AIX 4.3.  On such platforms, define
+     `THREAD_MODEL_SPEC' such that it evaluates to a string without
+     blanks that names one of the recognized thread models.  `%*', the
+     default value of this macro, will expand to the value of
+     `thread_file' set in `config.gcc'.
+
+ -- Macro: SYSROOT_SUFFIX_SPEC
+     Define this macro to add a suffix to the target sysroot when GCC is
+     configured with a sysroot.  This will cause GCC to search for
+     usr/lib, et al, within sysroot+suffix.
+
+ -- Macro: SYSROOT_HEADERS_SUFFIX_SPEC
+     Define this macro to add a headers_suffix to the target sysroot
+     when GCC is configured with a sysroot.  This will cause GCC to
+     pass the updated sysroot+headers_suffix to CPP, causing it to
+     search for usr/include, et al, within sysroot+headers_suffix.
+
+ -- Macro: EXTRA_SPECS
+     Define this macro to provide additional specifications to put in
+     the `specs' file that can be used in various specifications like
+     `CC1_SPEC'.
+
+     The definition should be an initializer for an array of structures,
+     containing a string constant, that defines the specification name,
+     and a string constant that provides the specification.
+
+     Do not define this macro if it does not need to do anything.
+
+     `EXTRA_SPECS' is useful when an architecture contains several
+     related targets, which have various `..._SPECS' which are similar
+     to each other, and the maintainer would like one central place to
+     keep these definitions.
+
+     For example, the PowerPC System V.4 targets use `EXTRA_SPECS' to
+     define either `_CALL_SYSV' when the System V calling sequence is
+     used or `_CALL_AIX' when the older AIX-based calling sequence is
+     used.
+
+     The `config/rs6000/rs6000.h' target file defines:
+
+          #define EXTRA_SPECS \
+            { "cpp_sysv_default", CPP_SYSV_DEFAULT },
+
+          #define CPP_SYS_DEFAULT ""
+
+     The `config/rs6000/sysv.h' target file defines:
+          #undef CPP_SPEC
+          #define CPP_SPEC \
+          "%{posix: -D_POSIX_SOURCE } \
+          %{mcall-sysv: -D_CALL_SYSV } \
+          %{!mcall-sysv: %(cpp_sysv_default) } \
+          %{msoft-float: -D_SOFT_FLOAT} %{mcpu=403: -D_SOFT_FLOAT}"
+
+          #undef CPP_SYSV_DEFAULT
+          #define CPP_SYSV_DEFAULT "-D_CALL_SYSV"
+
+     while the `config/rs6000/eabiaix.h' target file defines
+     `CPP_SYSV_DEFAULT' as:
+
+          #undef CPP_SYSV_DEFAULT
+          #define CPP_SYSV_DEFAULT "-D_CALL_AIX"
+
+ -- Macro: LINK_LIBGCC_SPECIAL_1
+     Define this macro if the driver program should find the library
+     `libgcc.a'.  If you do not define this macro, the driver program
+     will pass the argument `-lgcc' to tell the linker to do the search.
+
+ -- Macro: LINK_GCC_C_SEQUENCE_SPEC
+     The sequence in which libgcc and libc are specified to the linker.
+     By default this is `%G %L %G'.
+
+ -- Macro: LINK_COMMAND_SPEC
+     A C string constant giving the complete command line need to
+     execute the linker.  When you do this, you will need to update
+     your port each time a change is made to the link command line
+     within `gcc.c'.  Therefore, define this macro only if you need to
+     completely redefine the command line for invoking the linker and
+     there is no other way to accomplish the effect you need.
+     Overriding this macro may be avoidable by overriding
+     `LINK_GCC_C_SEQUENCE_SPEC' instead.
+
+ -- Macro: LINK_ELIMINATE_DUPLICATE_LDIRECTORIES
+     A nonzero value causes `collect2' to remove duplicate
+     `-LDIRECTORY' search directories from linking commands.  Do not
+     give it a nonzero value if removing duplicate search directories
+     changes the linker's semantics.
+
+ -- Macro: MULTILIB_DEFAULTS
+     Define this macro as a C expression for the initializer of an
+     array of string to tell the driver program which options are
+     defaults for this target and thus do not need to be handled
+     specially when using `MULTILIB_OPTIONS'.
+
+     Do not define this macro if `MULTILIB_OPTIONS' is not defined in
+     the target makefile fragment or if none of the options listed in
+     `MULTILIB_OPTIONS' are set by default.  *Note Target Fragment::.
+
+ -- Macro: RELATIVE_PREFIX_NOT_LINKDIR
+     Define this macro to tell `gcc' that it should only translate a
+     `-B' prefix into a `-L' linker option if the prefix indicates an
+     absolute file name.
+
+ -- Macro: MD_EXEC_PREFIX
+     If defined, this macro is an additional prefix to try after
+     `STANDARD_EXEC_PREFIX'.  `MD_EXEC_PREFIX' is not searched when the
+     `-b' option is used, or the compiler is built as a cross compiler.
+     If you define `MD_EXEC_PREFIX', then be sure to add it to the list
+     of directories used to find the assembler in `configure.in'.
+
+ -- Macro: STANDARD_STARTFILE_PREFIX
+     Define this macro as a C string constant if you wish to override
+     the standard choice of `libdir' as the default prefix to try when
+     searching for startup files such as `crt0.o'.
+     `STANDARD_STARTFILE_PREFIX' is not searched when the compiler is
+     built as a cross compiler.
+
+ -- Macro: STANDARD_STARTFILE_PREFIX_1
+     Define this macro as a C string constant if you wish to override
+     the standard choice of `/lib' as a prefix to try after the default
+     prefix when searching for startup files such as `crt0.o'.
+     `STANDARD_STARTFILE_PREFIX_1' is not searched when the compiler is
+     built as a cross compiler.
+
+ -- Macro: STANDARD_STARTFILE_PREFIX_2
+     Define this macro as a C string constant if you wish to override
+     the standard choice of `/lib' as yet another prefix to try after
+     the default prefix when searching for startup files such as
+     `crt0.o'.  `STANDARD_STARTFILE_PREFIX_2' is not searched when the
+     compiler is built as a cross compiler.
+
+ -- Macro: MD_STARTFILE_PREFIX
+     If defined, this macro supplies an additional prefix to try after
+     the standard prefixes.  `MD_EXEC_PREFIX' is not searched when the
+     `-b' option is used, or when the compiler is built as a cross
+     compiler.
+
+ -- Macro: MD_STARTFILE_PREFIX_1
+     If defined, this macro supplies yet another prefix to try after the
+     standard prefixes.  It is not searched when the `-b' option is
+     used, or when the compiler is built as a cross compiler.
+
+ -- Macro: INIT_ENVIRONMENT
+     Define this macro as a C string constant if you wish to set
+     environment variables for programs called by the driver, such as
+     the assembler and loader.  The driver passes the value of this
+     macro to `putenv' to initialize the necessary environment
+     variables.
+
+ -- Macro: LOCAL_INCLUDE_DIR
+     Define this macro as a C string constant if you wish to override
+     the standard choice of `/usr/local/include' as the default prefix
+     to try when searching for local header files.  `LOCAL_INCLUDE_DIR'
+     comes before `SYSTEM_INCLUDE_DIR' in the search order.
+
+     Cross compilers do not search either `/usr/local/include' or its
+     replacement.
+
+ -- Macro: MODIFY_TARGET_NAME
+     Define this macro if you wish to define command-line switches that
+     modify the default target name.
+
+     For each switch, you can include a string to be appended to the
+     first part of the configuration name or a string to be deleted
+     from the configuration name, if present.  The definition should be
+     an initializer for an array of structures.  Each array element
+     should have three elements: the switch name (a string constant,
+     including the initial dash), one of the enumeration codes `ADD' or
+     `DELETE' to indicate whether the string should be inserted or
+     deleted, and the string to be inserted or deleted (a string
+     constant).
+
+     For example, on a machine where `64' at the end of the
+     configuration name denotes a 64-bit target and you want the `-32'
+     and `-64' switches to select between 32- and 64-bit targets, you
+     would code
+
+          #define MODIFY_TARGET_NAME \
+            { { "-32", DELETE, "64"}, \
+               {"-64", ADD, "64"}}
+
+ -- Macro: SYSTEM_INCLUDE_DIR
+     Define this macro as a C string constant if you wish to specify a
+     system-specific directory to search for header files before the
+     standard directory.  `SYSTEM_INCLUDE_DIR' comes before
+     `STANDARD_INCLUDE_DIR' in the search order.
+
+     Cross compilers do not use this macro and do not search the
+     directory specified.
+
+ -- Macro: STANDARD_INCLUDE_DIR
+     Define this macro as a C string constant if you wish to override
+     the standard choice of `/usr/include' as the default prefix to try
+     when searching for header files.
+
+     Cross compilers ignore this macro and do not search either
+     `/usr/include' or its replacement.
+
+ -- Macro: STANDARD_INCLUDE_COMPONENT
+     The "component" corresponding to `STANDARD_INCLUDE_DIR'.  See
+     `INCLUDE_DEFAULTS', below, for the description of components.  If
+     you do not define this macro, no component is used.
+
+ -- Macro: INCLUDE_DEFAULTS
+     Define this macro if you wish to override the entire default
+     search path for include files.  For a native compiler, the default
+     search path usually consists of `GCC_INCLUDE_DIR',
+     `LOCAL_INCLUDE_DIR', `SYSTEM_INCLUDE_DIR',
+     `GPLUSPLUS_INCLUDE_DIR', and `STANDARD_INCLUDE_DIR'.  In addition,
+     `GPLUSPLUS_INCLUDE_DIR' and `GCC_INCLUDE_DIR' are defined
+     automatically by `Makefile', and specify private search areas for
+     GCC.  The directory `GPLUSPLUS_INCLUDE_DIR' is used only for C++
+     programs.
+
+     The definition should be an initializer for an array of structures.
+     Each array element should have four elements: the directory name (a
+     string constant), the component name (also a string constant), a
+     flag for C++-only directories, and a flag showing that the
+     includes in the directory don't need to be wrapped in `extern `C''
+     when compiling C++.  Mark the end of the array with a null element.
+
+     The component name denotes what GNU package the include file is
+     part of, if any, in all uppercase letters.  For example, it might
+     be `GCC' or `BINUTILS'.  If the package is part of a
+     vendor-supplied operating system, code the component name as `0'.
+
+     For example, here is the definition used for VAX/VMS:
+
+          #define INCLUDE_DEFAULTS \
+          {                                       \
+            { "GNU_GXX_INCLUDE:", "G++", 1, 1},   \
+            { "GNU_CC_INCLUDE:", "GCC", 0, 0},    \
+            { "SYS$SYSROOT:[SYSLIB.]", 0, 0, 0},  \
+            { ".", 0, 0, 0},                      \
+            { 0, 0, 0, 0}                         \
+          }
+
+ Here is the order of prefixes tried for exec files:
+
+  1. Any prefixes specified by the user with `-B'.
+
+  2. The environment variable `GCC_EXEC_PREFIX' or, if `GCC_EXEC_PREFIX'
+     is not set and the compiler has not been installed in the
+     configure-time PREFIX, the location in which the compiler has
+     actually been installed.
+
+  3. The directories specified by the environment variable
+     `COMPILER_PATH'.
+
+  4. The macro `STANDARD_EXEC_PREFIX', if the compiler has been
+     installed in the configured-time PREFIX.
+
+  5. The location `/usr/libexec/gcc/', but only if this is a native
+     compiler.
+
+  6. The location `/usr/lib/gcc/', but only if this is a native
+     compiler.
+
+  7. The macro `MD_EXEC_PREFIX', if defined, but only if this is a
+     native compiler.
+
+ Here is the order of prefixes tried for startfiles:
+
+  1. Any prefixes specified by the user with `-B'.
+
+  2. The environment variable `GCC_EXEC_PREFIX' or its automatically
+     determined value based on the installed toolchain location.
+
+  3. The directories specified by the environment variable
+     `LIBRARY_PATH' (or port-specific name; native only, cross
+     compilers do not use this).
+
+  4. The macro `STANDARD_EXEC_PREFIX', but only if the toolchain is
+     installed in the configured PREFIX or this is a native compiler.
+
+  5. The location `/usr/lib/gcc/', but only if this is a native
+     compiler.
+
+  6. The macro `MD_EXEC_PREFIX', if defined, but only if this is a
+     native compiler.
+
+  7. The macro `MD_STARTFILE_PREFIX', if defined, but only if this is a
+     native compiler, or we have a target system root.
+
+  8. The macro `MD_STARTFILE_PREFIX_1', if defined, but only if this is
+     a native compiler, or we have a target system root.
+
+  9. The macro `STANDARD_STARTFILE_PREFIX', with any sysroot
+     modifications.  If this path is relative it will be prefixed by
+     `GCC_EXEC_PREFIX' and the machine suffix or `STANDARD_EXEC_PREFIX'
+     and the machine suffix.
+
+ 10. The macro `STANDARD_STARTFILE_PREFIX_1', but only if this is a
+     native compiler, or we have a target system root. The default for
+     this macro is `/lib/'.
+
+ 11. The macro `STANDARD_STARTFILE_PREFIX_2', but only if this is a
+     native compiler, or we have a target system root. The default for
+     this macro is `/usr/lib/'.
+
+
+File: gccint.info,  Node: Run-time Target,  Next: Per-Function Data,  Prev: Driver,  Up: Target Macros
+
+15.3 Run-time Target Specification
+==================================
+
+Here are run-time target specifications.
+
+ -- Macro: TARGET_CPU_CPP_BUILTINS ()
+     This function-like macro expands to a block of code that defines
+     built-in preprocessor macros and assertions for the target CPU,
+     using the functions `builtin_define', `builtin_define_std' and
+     `builtin_assert'.  When the front end calls this macro it provides
+     a trailing semicolon, and since it has finished command line
+     option processing your code can use those results freely.
+
+     `builtin_assert' takes a string in the form you pass to the
+     command-line option `-A', such as `cpu=mips', and creates the
+     assertion.  `builtin_define' takes a string in the form accepted
+     by option `-D' and unconditionally defines the macro.
+
+     `builtin_define_std' takes a string representing the name of an
+     object-like macro.  If it doesn't lie in the user's namespace,
+     `builtin_define_std' defines it unconditionally.  Otherwise, it
+     defines a version with two leading underscores, and another version
+     with two leading and trailing underscores, and defines the original
+     only if an ISO standard was not requested on the command line.  For
+     example, passing `unix' defines `__unix', `__unix__' and possibly
+     `unix'; passing `_mips' defines `__mips', `__mips__' and possibly
+     `_mips', and passing `_ABI64' defines only `_ABI64'.
+
+     You can also test for the C dialect being compiled.  The variable
+     `c_language' is set to one of `clk_c', `clk_cplusplus' or
+     `clk_objective_c'.  Note that if we are preprocessing assembler,
+     this variable will be `clk_c' but the function-like macro
+     `preprocessing_asm_p()' will return true, so you might want to
+     check for that first.  If you need to check for strict ANSI, the
+     variable `flag_iso' can be used.  The function-like macro
+     `preprocessing_trad_p()' can be used to check for traditional
+     preprocessing.
+
+ -- Macro: TARGET_OS_CPP_BUILTINS ()
+     Similarly to `TARGET_CPU_CPP_BUILTINS' but this macro is optional
+     and is used for the target operating system instead.
+
+ -- Macro: TARGET_OBJFMT_CPP_BUILTINS ()
+     Similarly to `TARGET_CPU_CPP_BUILTINS' but this macro is optional
+     and is used for the target object format.  `elfos.h' uses this
+     macro to define `__ELF__', so you probably do not need to define
+     it yourself.
+
+ -- Variable: extern int target_flags
+     This variable is declared in `options.h', which is included before
+     any target-specific headers.
+
+ -- Variable: Target Hook int TARGET_DEFAULT_TARGET_FLAGS
+     This variable specifies the initial value of `target_flags'.  Its
+     default setting is 0.
+
+ -- Target Hook: bool TARGET_HANDLE_OPTION (size_t CODE, const char
+          *ARG, int VALUE)
+     This hook is called whenever the user specifies one of the
+     target-specific options described by the `.opt' definition files
+     (*note Options::).  It has the opportunity to do some
+     option-specific processing and should return true if the option is
+     valid.  The default definition does nothing but return true.
+
+     CODE specifies the `OPT_NAME' enumeration value associated with
+     the selected option; NAME is just a rendering of the option name
+     in which non-alphanumeric characters are replaced by underscores.
+     ARG specifies the string argument and is null if no argument was
+     given.  If the option is flagged as a `UInteger' (*note Option
+     properties::), VALUE is the numeric value of the argument.
+     Otherwise VALUE is 1 if the positive form of the option was used
+     and 0 if the "no-" form was.
+
+ -- Target Hook: bool TARGET_HANDLE_C_OPTION (size_t CODE, const char
+          *ARG, int VALUE)
+     This target hook is called whenever the user specifies one of the
+     target-specific C language family options described by the `.opt'
+     definition files(*note Options::).  It has the opportunity to do
+     some option-specific processing and should return true if the
+     option is valid.  The default definition does nothing but return
+     false.
+
+     In general, you should use `TARGET_HANDLE_OPTION' to handle
+     options.  However, if processing an option requires routines that
+     are only available in the C (and related language) front ends,
+     then you should use `TARGET_HANDLE_C_OPTION' instead.
+
+ -- Macro: TARGET_VERSION
+     This macro is a C statement to print on `stderr' a string
+     describing the particular machine description choice.  Every
+     machine description should define `TARGET_VERSION'.  For example:
+
+          #ifdef MOTOROLA
+          #define TARGET_VERSION \
+            fprintf (stderr, " (68k, Motorola syntax)");
+          #else
+          #define TARGET_VERSION \
+            fprintf (stderr, " (68k, MIT syntax)");
+          #endif
+
+ -- Macro: OVERRIDE_OPTIONS
+     Sometimes certain combinations of command options do not make
+     sense on a particular target machine.  You can define a macro
+     `OVERRIDE_OPTIONS' to take account of this.  This macro, if
+     defined, is executed once just after all the command options have
+     been parsed.
+
+     Don't use this macro to turn on various extra optimizations for
+     `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.
+
+ -- Macro: C_COMMON_OVERRIDE_OPTIONS
+     This is similar to `OVERRIDE_OPTIONS' but is only used in the C
+     language frontends (C, Objective-C, C++, Objective-C++) and so can
+     be used to alter option flag variables which only exist in those
+     frontends.
+
+ -- Macro: OPTIMIZATION_OPTIONS (LEVEL, SIZE)
+     Some machines may desire to change what optimizations are
+     performed for various optimization levels.   This macro, if
+     defined, is executed once just after the optimization level is
+     determined and before the remainder of the command options have
+     been parsed.  Values set in this macro are used as the default
+     values for the other command line options.
+
+     LEVEL is the optimization level specified; 2 if `-O2' is
+     specified, 1 if `-O' is specified, and 0 if neither is specified.
+
+     SIZE is nonzero if `-Os' is specified and zero otherwise.
+
+     You should not use this macro to change options that are not
+     machine-specific.  These should uniformly selected by the same
+     optimization level on all supported machines.  Use this macro to
+     enable machine-specific optimizations.
+
+     *Do not examine `write_symbols' in this macro!* The debugging
+     options are not supposed to alter the generated code.
+
+ -- Target Hook: bool TARGET_HELP (void)
+     This hook is called in response to the user invoking
+     `--target-help' on the command line.  It gives the target a chance
+     to display extra information on the target specific command line
+     options found in its `.opt' file.
+
+ -- Macro: CAN_DEBUG_WITHOUT_FP
+     Define this macro if debugging can be performed even without a
+     frame pointer.  If this macro is defined, GCC will turn on the
+     `-fomit-frame-pointer' option whenever `-O' is specified.
+
+
+File: gccint.info,  Node: Per-Function Data,  Next: Storage Layout,  Prev: Run-time Target,  Up: Target Macros
+
+15.4 Defining data structures for per-function information.
+===========================================================
+
+If the target needs to store information on a per-function basis, GCC
+provides a macro and a couple of variables to allow this.  Note, just
+using statics to store the information is a bad idea, since GCC supports
+nested functions, so you can be halfway through encoding one function
+when another one comes along.
+
+ GCC defines a data structure called `struct function' which contains
+all of the data specific to an individual function.  This structure
+contains a field called `machine' whose type is `struct
+machine_function *', which can be used by targets to point to their own
+specific data.
+
+ If a target needs per-function specific data it should define the type
+`struct machine_function' and also the macro `INIT_EXPANDERS'.  This
+macro should be used to initialize the function pointer
+`init_machine_status'.  This pointer is explained below.
+
+ One typical use of per-function, target specific data is to create an
+RTX to hold the register containing the function's return address.  This
+RTX can then be used to implement the `__builtin_return_address'
+function, for level 0.
+
+ Note--earlier implementations of GCC used a single data area to hold
+all of the per-function information.  Thus when processing of a nested
+function began the old per-function data had to be pushed onto a stack,
+and when the processing was finished, it had to be popped off the
+stack.  GCC used to provide function pointers called
+`save_machine_status' and `restore_machine_status' to handle the saving
+and restoring of the target specific information.  Since the single
+data area approach is no longer used, these pointers are no longer
+supported.
+
+ -- Macro: INIT_EXPANDERS
+     Macro called to initialize any target specific information.  This
+     macro is called once per function, before generation of any RTL
+     has begun.  The intention of this macro is to allow the
+     initialization of the function pointer `init_machine_status'.
+
+ -- Variable: void (*)(struct function *) init_machine_status
+     If this function pointer is non-`NULL' it will be called once per
+     function, before function compilation starts, in order to allow the
+     target to perform any target specific initialization of the
+     `struct function' structure.  It is intended that this would be
+     used to initialize the `machine' of that structure.
+
+     `struct machine_function' structures are expected to be freed by
+     GC.  Generally, any memory that they reference must be allocated
+     by using `ggc_alloc', including the structure itself.
+
+
+File: gccint.info,  Node: Storage Layout,  Next: Type Layout,  Prev: Per-Function Data,  Up: Target Macros
+
+15.5 Storage Layout
+===================
+
+Note that the definitions of the macros in this table which are sizes or
+alignments measured in bits do not need to be constant.  They can be C
+expressions that refer to static variables, such as the `target_flags'.
+*Note Run-time Target::.
+
+ -- Macro: BITS_BIG_ENDIAN
+     Define this macro to have the value 1 if the most significant bit
+     in a byte has the lowest number; otherwise define it to have the
+     value ze

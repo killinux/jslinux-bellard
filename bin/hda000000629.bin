@@ -1,0 +1,2234 @@
+u must
+place two consecutive colons surrounding the place where the output
+operands would go.
+
+ As of GCC version 3.1, it is also possible to specify input and output
+operands using symbolic names which can be referenced within the
+assembler code.  These names are specified inside square brackets
+preceding the constraint string, and can be referenced inside the
+assembler code using `%[NAME]' instead of a percentage sign followed by
+the operand number.  Using named operands the above example could look
+like:
+
+     asm ("fsinx %[angle],%[output]"
+          : [output] "=f" (result)
+          : [angle] "f" (angle));
+
+Note that the symbolic operand names have no relation whatsoever to
+other C identifiers.  You may use any name you like, even those of
+existing C symbols, but you must ensure that no two operands within the
+same assembler construct use the same symbolic name.
+
+ Output operand expressions must be lvalues; the compiler can check
+this.  The input operands need not be lvalues.  The compiler cannot
+check whether the operands have data types that are reasonable for the
+instruction being executed.  It does not parse the assembler instruction
+template and does not know what it means or even whether it is valid
+assembler input.  The extended `asm' feature is most often used for
+machine instructions the compiler itself does not know exist.  If the
+output expression cannot be directly addressed (for example, it is a
+bit-field), your constraint must allow a register.  In that case, GCC
+will use the register as the output of the `asm', and then store that
+register into the output.
+
+ The ordinary output operands must be write-only; GCC will assume that
+the values in these operands before the instruction are dead and need
+not be generated.  Extended asm supports input-output or read-write
+operands.  Use the constraint character `+' to indicate such an operand
+and list it with the output operands.  You should only use read-write
+operands when the constraints for the operand (or the operand in which
+only some of the bits are to be changed) allow a register.
+
+ You may, as an alternative, logically split its function into two
+separate operands, one input operand and one write-only output operand.
+The connection between them is expressed by constraints which say they
+need to be in the same location when the instruction executes.  You can
+use the same C expression for both operands, or different expressions.
+For example, here we write the (fictitious) `combine' instruction with
+`bar' as its read-only source operand and `foo' as its read-write
+destination:
+
+     asm ("combine %2,%0" : "=r" (foo) : "0" (foo), "g" (bar));
+
+The constraint `"0"' for operand 1 says that it must occupy the same
+location as operand 0.  A number in constraint is allowed only in an
+input operand and it must refer to an output operand.
+
+ Only a number in the constraint can guarantee that one operand will be
+in the same place as another.  The mere fact that `foo' is the value of
+both operands is not enough to guarantee that they will be in the same
+place in the generated assembler code.  The following would not work
+reliably:
+
+     asm ("combine %2,%0" : "=r" (foo) : "r" (foo), "g" (bar));
+
+ Various optimizations or reloading could cause operands 0 and 1 to be
+in different registers; GCC knows no reason not to do so.  For example,
+the compiler might find a copy of the value of `foo' in one register and
+use it for operand 1, but generate the output operand 0 in a different
+register (copying it afterward to `foo''s own address).  Of course,
+since the register for operand 1 is not even mentioned in the assembler
+code, the result will not work, but GCC can't tell that.
+
+ As of GCC version 3.1, one may write `[NAME]' instead of the operand
+number for a matching constraint.  For example:
+
+     asm ("cmoveq %1,%2,%[result]"
+          : [result] "=r"(result)
+          : "r" (test), "r"(new), "[result]"(old));
+
+ Sometimes you need to make an `asm' operand be a specific register,
+but there's no matching constraint letter for that register _by
+itself_.  To force the operand into that register, use a local variable
+for the operand and specify the register in the variable declaration.
+*Note Explicit Reg Vars::.  Then for the `asm' operand, use any
+register constraint letter that matches the register:
+
+     register int *p1 asm ("r0") = ...;
+     register int *p2 asm ("r1") = ...;
+     register int *result asm ("r0");
+     asm ("sysint" : "=r" (result) : "0" (p1), "r" (p2));
+
+ In the above example, beware that a register that is call-clobbered by
+the target ABI will be overwritten by any function call in the
+assignment, including library calls for arithmetic operators.  Assuming
+it is a call-clobbered register, this may happen to `r0' above by the
+assignment to `p2'.  If you have to use such a register, use temporary
+variables for expressions between the register assignment and use:
+
+     int t1 = ...;
+     register int *p1 asm ("r0") = ...;
+     register int *p2 asm ("r1") = t1;
+     register int *result asm ("r0");
+     asm ("sysint" : "=r" (result) : "0" (p1), "r" (p2));
+
+ Some instructions clobber specific hard registers.  To describe this,
+write a third colon after the input operands, followed by the names of
+the clobbered hard registers (given as strings).  Here is a realistic
+example for the VAX:
+
+     asm volatile ("movc3 %0,%1,%2"
+                   : /* no outputs */
+                   : "g" (from), "g" (to), "g" (count)
+                   : "r0", "r1", "r2", "r3", "r4", "r5");
+
+ You may not write a clobber description in a way that overlaps with an
+input or output operand.  For example, you may not have an operand
+describing a register class with one member if you mention that register
+in the clobber list.  Variables declared to live in specific registers
+(*note Explicit Reg Vars::), and used as asm input or output operands
+must have no part mentioned in the clobber description.  There is no
+way for you to specify that an input operand is modified without also
+specifying it as an output operand.  Note that if all the output
+operands you specify are for this purpose (and hence unused), you will
+then also need to specify `volatile' for the `asm' construct, as
+described below, to prevent GCC from deleting the `asm' statement as
+unused.
+
+ If you refer to a particular hardware register from the assembler code,
+you will probably have to list the register after the third colon to
+tell the compiler the register's value is modified.  In some assemblers,
+the register names begin with `%'; to produce one `%' in the assembler
+code, you must write `%%' in the input.
+
+ If your assembler instruction can alter the condition code register,
+add `cc' to the list of clobbered registers.  GCC on some machines
+represents the condition codes as a specific hardware register; `cc'
+serves to name this register.  On other machines, the condition code is
+handled differently, and specifying `cc' has no effect.  But it is
+valid no matter what the machine.
+
+ If your assembler instructions access memory in an unpredictable
+fashion, add `memory' to the list of clobbered registers.  This will
+cause GCC to not keep memory values cached in registers across the
+assembler instruction and not optimize stores or loads to that memory.
+You will also want to add the `volatile' keyword if the memory affected
+is not listed in the inputs or outputs of the `asm', as the `memory'
+clobber does not count as a side-effect of the `asm'.  If you know how
+large the accessed memory is, you can add it as input or output but if
+this is not known, you should add `memory'.  As an example, if you
+access ten bytes of a string, you can use a memory input like:
+
+     {"m"( ({ struct { char x[10]; } *p = (void *)ptr ; *p; }) )}.
+
+ Note that in the following example the memory input is necessary,
+otherwise GCC might optimize the store to `x' away:
+     int foo ()
+     {
+       int x = 42;
+       int *y = &x;
+       int result;
+       asm ("magic stuff accessing an 'int' pointed to by '%1'"
+             "=&d" (r) : "a" (y), "m" (*y));
+       return result;
+     }
+
+ You can put multiple assembler instructions together in a single `asm'
+template, separated by the characters normally used in assembly code
+for the system.  A combination that works in most places is a newline
+to break the line, plus a tab character to move to the instruction field
+(written as `\n\t').  Sometimes semicolons can be used, if the
+assembler allows semicolons as a line-breaking character.  Note that
+some assembler dialects use semicolons to start a comment.  The input
+operands are guaranteed not to use any of the clobbered registers, and
+neither will the output operands' addresses, so you can read and write
+the clobbered registers as many times as you like.  Here is an example
+of multiple instructions in a template; it assumes the subroutine
+`_foo' accepts arguments in registers 9 and 10:
+
+     asm ("movl %0,r9\n\tmovl %1,r10\n\tcall _foo"
+          : /* no outputs */
+          : "g" (from), "g" (to)
+          : "r9", "r10");
+
+ Unless an output operand has the `&' constraint modifier, GCC may
+allocate it in the same register as an unrelated input operand, on the
+assumption the inputs are consumed before the outputs are produced.
+This assumption may be false if the assembler code actually consists of
+more than one instruction.  In such a case, use `&' for each output
+operand that may not overlap an input.  *Note Modifiers::.
+
+ If you want to test the condition code produced by an assembler
+instruction, you must include a branch and a label in the `asm'
+construct, as follows:
+
+     asm ("clr %0\n\tfrob %1\n\tbeq 0f\n\tmov #1,%0\n0:"
+          : "g" (result)
+          : "g" (input));
+
+This assumes your assembler supports local labels, as the GNU assembler
+and most Unix assemblers do.
+
+ Speaking of labels, jumps from one `asm' to another are not supported.
+The compiler's optimizers do not know about these jumps, and therefore
+they cannot take account of them when deciding how to optimize.
+
+ Usually the most convenient way to use these `asm' instructions is to
+encapsulate them in macros that look like functions.  For example,
+
+     #define sin(x)       \
+     ({ double __value, __arg = (x);   \
+        asm ("fsinx %1,%0": "=f" (__value): "f" (__arg));  \
+        __value; })
+
+Here the variable `__arg' is used to make sure that the instruction
+operates on a proper `double' value, and to accept only those arguments
+`x' which can convert automatically to a `double'.
+
+ Another way to make sure the instruction operates on the correct data
+type is to use a cast in the `asm'.  This is different from using a
+variable `__arg' in that it converts more different types.  For
+example, if the desired type were `int', casting the argument to `int'
+would accept a pointer with no complaint, while assigning the argument
+to an `int' variable named `__arg' would warn about using a pointer
+unless the caller explicitly casts it.
+
+ If an `asm' has output operands, GCC assumes for optimization purposes
+the instruction has no side effects except to change the output
+operands.  This does not mean instructions with a side effect cannot be
+used, but you must be careful, because the compiler may eliminate them
+if the output operands aren't used, or move them out of loops, or
+replace two with one if they constitute a common subexpression.  Also,
+if your instruction does have a side effect on a variable that otherwise
+appears not to change, the old value of the variable may be reused later
+if it happens to be found in a register.
+
+ You can prevent an `asm' instruction from being deleted by writing the
+keyword `volatile' after the `asm'.  For example:
+
+     #define get_and_set_priority(new)              \
+     ({ int __old;                                  \
+        asm volatile ("get_and_set_priority %0, %1" \
+                      : "=g" (__old) : "g" (new));  \
+        __old; })
+
+The `volatile' keyword indicates that the instruction has important
+side-effects.  GCC will not delete a volatile `asm' if it is reachable.
+(The instruction can still be deleted if GCC can prove that
+control-flow will never reach the location of the instruction.)  Note
+that even a volatile `asm' instruction can be moved relative to other
+code, including across jump instructions.  For example, on many targets
+there is a system register which can be set to control the rounding
+mode of floating point operations.  You might try setting it with a
+volatile `asm', like this PowerPC example:
+
+            asm volatile("mtfsf 255,%0" : : "f" (fpenv));
+            sum = x + y;
+
+This will not work reliably, as the compiler may move the addition back
+before the volatile `asm'.  To make it work you need to add an
+artificial dependency to the `asm' referencing a variable in the code
+you don't want moved, for example:
+
+         asm volatile ("mtfsf 255,%1" : "=X"(sum): "f"(fpenv));
+         sum = x + y;
+
+ Similarly, you can't expect a sequence of volatile `asm' instructions
+to remain perfectly consecutive.  If you want consecutive output, use a
+single `asm'.  Also, GCC will perform some optimizations across a
+volatile `asm' instruction; GCC does not "forget everything" when it
+encounters a volatile `asm' instruction the way some other compilers do.
+
+ An `asm' instruction without any output operands will be treated
+identically to a volatile `asm' instruction.
+
+ It is a natural idea to look for a way to give access to the condition
+code left by the assembler instruction.  However, when we attempted to
+implement this, we found no way to make it work reliably.  The problem
+is that output operands might need reloading, which would result in
+additional following "store" instructions.  On most machines, these
+instructions would alter the condition code before there was time to
+test it.  This problem doesn't arise for ordinary "test" and "compare"
+instructions because they don't have any output operands.
+
+ For reasons similar to those described above, it is not possible to
+give an assembler instruction access to the condition code left by
+previous instructions.
+
+ If you are writing a header file that should be includable in ISO C
+programs, write `__asm__' instead of `asm'.  *Note Alternate Keywords::.
+
+5.37.1 Size of an `asm'
+-----------------------
+
+Some targets require that GCC track the size of each instruction used in
+order to generate correct code.  Because the final length of an `asm'
+is only known by the assembler, GCC must make an estimate as to how big
+it will be.  The estimate is formed by counting the number of
+statements in the pattern of the `asm' and multiplying that by the
+length of the longest instruction on that processor.  Statements in the
+`asm' are identified by newline characters and whatever statement
+separator characters are supported by the assembler; on most processors
+this is the ``;'' character.
+
+ Normally, GCC's estimate is perfectly adequate to ensure that correct
+code is generated, but it is possible to confuse the compiler if you use
+pseudo instructions or assembler macros that expand into multiple real
+instructions or if you use assembler directives that expand to more
+space in the object file than would be needed for a single instruction.
+If this happens then the assembler will produce a diagnostic saying that
+a label is unreachable.
+
+5.37.2 i386 floating point asm operands
+---------------------------------------
+
+There are several rules on the usage of stack-like regs in asm_operands
+insns.  These rules apply only to the operands that are stack-like regs:
+
+  1. Given a set of input regs that die in an asm_operands, it is
+     necessary to know which are implicitly popped by the asm, and
+     which must be explicitly popped by gcc.
+
+     An input reg that is implicitly popped by the asm must be
+     explicitly clobbered, unless it is constrained to match an output
+     operand.
+
+  2. For any input reg that is implicitly popped by an asm, it is
+     necessary to know how to adjust the stack to compensate for the
+     pop.  If any non-popped input is closer to the top of the
+     reg-stack than the implicitly popped reg, it would not be possible
+     to know what the stack looked like--it's not clear how the rest of
+     the stack "slides up".
+
+     All implicitly popped input regs must be closer to the top of the
+     reg-stack than any input that is not implicitly popped.
+
+     It is possible that if an input dies in an insn, reload might use
+     the input reg for an output reload.  Consider this example:
+
+          asm ("foo" : "=t" (a) : "f" (b));
+
+     This asm says that input B is not popped by the asm, and that the
+     asm pushes a result onto the reg-stack, i.e., the stack is one
+     deeper after the asm than it was before.  But, it is possible that
+     reload will think that it can use the same reg for both the input
+     and the output, if input B dies in this insn.
+
+     If any input operand uses the `f' constraint, all output reg
+     constraints must use the `&' earlyclobber.
+
+     The asm above would be written as
+
+          asm ("foo" : "=&t" (a) : "f" (b));
+
+  3. Some operands need to be in particular places on the stack.  All
+     output operands fall in this category--there is no other way to
+     know which regs the outputs appear in unless the user indicates
+     this in the constraints.
+
+     Output operands must specifically indicate which reg an output
+     appears in after an asm.  `=f' is not allowed: the operand
+     constraints must select a class with a single reg.
+
+  4. Output operands may not be "inserted" between existing stack regs.
+     Since no 387 opcode uses a read/write operand, all output operands
+     are dead before the asm_operands, and are pushed by the
+     asm_operands.  It makes no sense to push anywhere but the top of
+     the reg-stack.
+
+     Output operands must start at the top of the reg-stack: output
+     operands may not "skip" a reg.
+
+  5. Some asm statements may need extra stack space for internal
+     calculations.  This can be guaranteed by clobbering stack registers
+     unrelated to the inputs and outputs.
+
+
+ Here are a couple of reasonable asms to want to write.  This asm takes
+one input, which is internally popped, and produces two outputs.
+
+     asm ("fsincos" : "=t" (cos), "=u" (sin) : "0" (inp));
+
+ This asm takes two inputs, which are popped by the `fyl2xp1' opcode,
+and replaces them with one output.  The user must code the `st(1)'
+clobber for reg-stack.c to know that `fyl2xp1' pops both inputs.
+
+     asm ("fyl2xp1" : "=t" (result) : "0" (x), "u" (y) : "st(1)");
+
+
+File: gcc.info,  Node: Constraints,  Next: Asm Labels,  Prev: Extended Asm,  Up: C Extensions
+
+5.38 Constraints for `asm' Operands
+===================================
+
+Here are specific details on what constraint letters you can use with
+`asm' operands.  Constraints can say whether an operand may be in a
+register, and which kinds of register; whether the operand can be a
+memory reference, and which kinds of address; whether the operand may
+be an immediate constant, and which possible values it may have.
+Constraints can also require two operands to match.
+
+* Menu:
+
+* Simple Constraints::  Basic use of constraints.
+* Multi-Alternative::   When an insn has two alternative constraint-patterns.
+* Modifiers::           More precise control over effects of constraints.
+* Machine Constraints:: Special constraints for some particular machines.
+
+
+File: gcc.info,  Node: Simple Constraints,  Next: Multi-Alternative,  Up: Constraints
+
+5.38.1 Simple Constraints
+-------------------------
+
+The simplest kind of constraint is a string full of letters, each of
+which describes one kind of operand that is permitted.  Here are the
+letters that are allowed:
+
+whitespace
+     Whitespace characters are ignored and can be inserted at any
+     position except the first.  This enables each alternative for
+     different operands to be visually aligned in the machine
+     description even if they have different number of constraints and
+     modifiers.
+
+`m'
+     A memory operand is allowed, with any kind of address that the
+     machine supports in general.
+
+`o'
+     A memory operand is allowed, but only if the address is
+     "offsettable".  This means that adding a small integer (actually,
+     the width in bytes of the operand, as determined by its machine
+     mode) may be added to the address and the result is also a valid
+     memory address.
+
+     For example, an address which is constant is offsettable; so is an
+     address that is the sum of a register and a constant (as long as a
+     slightly larger constant is also within the range of
+     address-offsets supported by the machine); but an autoincrement or
+     autodecrement address is not offsettable.  More complicated
+     indirect/indexed addresses may or may not be offsettable depending
+     on the other addressing modes that the machine supports.
+
+     Note that in an output operand which can be matched by another
+     operand, the constraint letter `o' is valid only when accompanied
+     by both `<' (if the target machine has predecrement addressing)
+     and `>' (if the target machine has preincrement addressing).
+
+`V'
+     A memory operand that is not offsettable.  In other words,
+     anything that would fit the `m' constraint but not the `o'
+     constraint.
+
+`<'
+     A memory operand with autodecrement addressing (either
+     predecrement or postdecrement) is allowed.
+
+`>'
+     A memory operand with autoincrement addressing (either
+     preincrement or postincrement) is allowed.
+
+`r'
+     A register operand is allowed provided that it is in a general
+     register.
+
+`i'
+     An immediate integer operand (one with constant value) is allowed.
+     This includes symbolic constants whose values will be known only at
+     assembly time or later.
+
+`n'
+     An immediate integer operand with a known numeric value is allowed.
+     Many systems cannot support assembly-time constants for operands
+     less than a word wide.  Constraints for these operands should use
+     `n' rather than `i'.
+
+`I', `J', `K', ... `P'
+     Other letters in the range `I' through `P' may be defined in a
+     machine-dependent fashion to permit immediate integer operands with
+     explicit integer values in specified ranges.  For example, on the
+     68000, `I' is defined to stand for the range of values 1 to 8.
+     This is the range permitted as a shift count in the shift
+     instructions.
+
+`E'
+     An immediate floating operand (expression code `const_double') is
+     allowed, but only if the target floating point format is the same
+     as that of the host machine (on which the compiler is running).
+
+`F'
+     An immediate floating operand (expression code `const_double' or
+     `const_vector') is allowed.
+
+`G', `H'
+     `G' and `H' may be defined in a machine-dependent fashion to
+     permit immediate floating operands in particular ranges of values.
+
+`s'
+     An immediate integer operand whose value is not an explicit
+     integer is allowed.
+
+     This might appear strange; if an insn allows a constant operand
+     with a value not known at compile time, it certainly must allow
+     any known value.  So why use `s' instead of `i'?  Sometimes it
+     allows better code to be generated.
+
+     For example, on the 68000 in a fullword instruction it is possible
+     to use an immediate operand; but if the immediate value is between
+     -128 and 127, better code results from loading the value into a
+     register and using the register.  This is because the load into
+     the register can be done with a `moveq' instruction.  We arrange
+     for this to happen by defining the letter `K' to mean "any integer
+     outside the range -128 to 127", and then specifying `Ks' in the
+     operand constraints.
+
+`g'
+     Any register, memory or immediate integer operand is allowed,
+     except for registers that are not general registers.
+
+`X'
+     Any operand whatsoever is allowed.
+
+`0', `1', `2', ... `9'
+     An operand that matches the specified operand number is allowed.
+     If a digit is used together with letters within the same
+     alternative, the digit should come last.
+
+     This number is allowed to be more than a single digit.  If multiple
+     digits are encountered consecutively, they are interpreted as a
+     single decimal integer.  There is scant chance for ambiguity,
+     since to-date it has never been desirable that `10' be interpreted
+     as matching either operand 1 _or_ operand 0.  Should this be
+     desired, one can use multiple alternatives instead.
+
+     This is called a "matching constraint" and what it really means is
+     that the assembler has only a single operand that fills two roles
+     which `asm' distinguishes.  For example, an add instruction uses
+     two input operands and an output operand, but on most CISC
+     machines an add instruction really has only two operands, one of
+     them an input-output operand:
+
+          addl #35,r12
+
+     Matching constraints are used in these circumstances.  More
+     precisely, the two operands that match must include one input-only
+     operand and one output-only operand.  Moreover, the digit must be a
+     smaller number than the number of the operand that uses it in the
+     constraint.
+
+`p'
+     An operand that is a valid memory address is allowed.  This is for
+     "load address" and "push address" instructions.
+
+     `p' in the constraint must be accompanied by `address_operand' as
+     the predicate in the `match_operand'.  This predicate interprets
+     the mode specified in the `match_operand' as the mode of the memory
+     reference for which the address would be valid.
+
+OTHER-LETTERS
+     Other letters can be defined in machine-dependent fashion to stand
+     for particular classes of registers or other arbitrary operand
+     types.  `d', `a' and `f' are defined on the 68000/68020 to stand
+     for data, address and floating point registers.
+
+
+File: gcc.info,  Node: Multi-Alternative,  Next: Modifiers,  Prev: Simple Constraints,  Up: Constraints
+
+5.38.2 Multiple Alternative Constraints
+---------------------------------------
+
+Sometimes a single instruction has multiple alternative sets of possible
+operands.  For example, on the 68000, a logical-or instruction can
+combine register or an immediate value into memory, or it can combine
+any kind of operand into a register; but it cannot combine one memory
+location into another.
+
+ These constraints are represented as multiple alternatives.  An
+alternative can be described by a series of letters for each operand.
+The overall constraint for an operand is made from the letters for this
+operand from the first alternative, a comma, the letters for this
+operand from the second alternative, a comma, and so on until the last
+alternative.
+
+ If all the operands fit any one alternative, the instruction is valid.
+Otherwise, for each alternative, the compiler counts how many
+instructions must be added to copy the operands so that that
+alternative applies.  The alternative requiring the least copying is
+chosen.  If two alternatives need the same amount of copying, the one
+that comes first is chosen.  These choices can be altered with the `?'
+and `!' characters:
+
+`?'
+     Disparage slightly the alternative that the `?' appears in, as a
+     choice when no alternative applies exactly.  The compiler regards
+     this alternative as one unit more costly for each `?' that appears
+     in it.
+
+`!'
+     Disparage severely the alternative that the `!' appears in.  This
+     alternative can still be used if it fits without reloading, but if
+     reloading is needed, some other alternative will be used.
+
+
+File: gcc.info,  Node: Modifiers,  Next: Machine Constraints,  Prev: Multi-Alternative,  Up: Constraints
+
+5.38.3 Constraint Modifier Characters
+-------------------------------------
+
+Here are constraint modifier characters.
+
+`='
+     Means that this operand is write-only for this instruction: the
+     previous value is discarded and replaced by output data.
+
+`+'
+     Means that this operand is both read and written by the
+     instruction.
+
+     When the compiler fixes up the operands to satisfy the constraints,
+     it needs to know which operands are inputs to the instruction and
+     which are outputs from it.  `=' identifies an output; `+'
+     identifies an operand that is both input and output; all other
+     operands are assumed to be input only.
+
+     If you specify `=' or `+' in a constraint, you put it in the first
+     character of the constraint string.
+
+`&'
+     Means (in a particular alternative) that this operand is an
+     "earlyclobber" operand, which is modified before the instruction is
+     finished using the input operands.  Therefore, this operand may
+     not lie in a register that is used as an input operand or as part
+     of any memory address.
+
+     `&' applies only to the alternative in which it is written.  In
+     constraints with multiple alternatives, sometimes one alternative
+     requires `&' while others do not.  See, for example, the `movdf'
+     insn of the 68000.
+
+     An input operand can be tied to an earlyclobber operand if its only
+     use as an input occurs before the early result is written.  Adding
+     alternatives of this form often allows GCC to produce better code
+     when only some of the inputs can be affected by the earlyclobber.
+     See, for example, the `mulsi3' insn of the ARM.
+
+     `&' does not obviate the need to write `='.
+
+`%'
+     Declares the instruction to be commutative for this operand and the
+     following operand.  This means that the compiler may interchange
+     the two operands if that is the cheapest way to make all operands
+     fit the constraints.  GCC can only handle one commutative pair in
+     an asm; if you use more, the compiler may fail.  Note that you
+     need not use the modifier if the two alternatives are strictly
+     identical; this would only waste time in the reload pass.  The
+     modifier is not operational after register allocation, so the
+     result of `define_peephole2' and `define_split's performed after
+     reload cannot rely on `%' to make the intended insn match.
+
+`#'
+     Says that all following characters, up to the next comma, are to be
+     ignored as a constraint.  They are significant only for choosing
+     register preferences.
+
+`*'
+     Says that the following character should be ignored when choosing
+     register preferences.  `*' has no effect on the meaning of the
+     constraint as a constraint, and no effect on reloading.
+
+
+
+File: gcc.info,  Node: Machine Constraints,  Prev: Modifiers,  Up: Constraints
+
+5.38.4 Constraints for Particular Machines
+------------------------------------------
+
+Whenever possible, you should use the general-purpose constraint letters
+in `asm' arguments, since they will convey meaning more readily to
+people reading your code.  Failing that, use the constraint letters
+that usually have very similar meanings across architectures.  The most
+commonly used constraints are `m' and `r' (for memory and
+general-purpose registers respectively; *note Simple Constraints::), and
+`I', usually the letter indicating the most common immediate-constant
+format.
+
+ Each architecture defines additional constraints.  These constraints
+are used by the compiler itself for instruction generation, as well as
+for `asm' statements; therefore, some of the constraints are not
+particularly useful for `asm'.  Here is a summary of some of the
+machine-dependent constraints available on some particular machines; it
+includes both constraints that are useful for `asm' and constraints
+that aren't.  The compiler source file mentioned in the table heading
+for each architecture is the definitive reference for the meanings of
+that architecture's constraints.
+
+_ARM family--`config/arm/arm.h'_
+
+    `f'
+          Floating-point register
+
+    `w'
+          VFP floating-point register
+
+    `F'
+          One of the floating-point constants 0.0, 0.5, 1.0, 2.0, 3.0,
+          4.0, 5.0 or 10.0
+
+    `G'
+          Floating-point constant that would satisfy the constraint `F'
+          if it were negated
+
+    `I'
+          Integer that is valid as an immediate operand in a data
+          processing instruction.  That is, an integer in the range 0
+          to 255 rotated by a multiple of 2
+
+    `J'
+          Integer in the range -4095 to 4095
+
+    `K'
+          Integer that satisfies constraint `I' when inverted (ones
+          complement)
+
+    `L'
+          Integer that satisfies constraint `I' when negated (twos
+          complement)
+
+    `M'
+          Integer in the range 0 to 32
+
+    `Q'
+          A memory reference where the exact address is in a single
+          register (``m'' is preferable for `asm' statements)
+
+    `R'
+          An item in the constant pool
+
+    `S'
+          A symbol in the text segment of the current file
+
+    `Uv'
+          A memory reference suitable for VFP load/store insns
+          (reg+constant offset)
+
+    `Uy'
+          A memory reference suitable for iWMMXt load/store
+          instructions.
+
+    `Uq'
+          A memory reference suitable for the ARMv4 ldrsb instruction.
+
+_AVR family--`config/avr/constraints.md'_
+
+    `l'
+          Registers from r0 to r15
+
+    `a'
+          Registers from r16 to r23
+
+    `d'
+          Registers from r16 to r31
+
+    `w'
+          Registers from r24 to r31.  These registers can be used in
+          `adiw' command
+
+    `e'
+          Pointer register (r26-r31)
+
+    `b'
+          Base pointer register (r28-r31)
+
+    `q'
+          Stack pointer register (SPH:SPL)
+
+    `t'
+          Temporary register r0
+
+    `x'
+          Register pair X (r27:r26)
+
+    `y'
+          Register pair Y (r29:r28)
+
+    `z'
+          Register pair Z (r31:r30)
+
+    `I'
+          Constant greater than -1, less than 64
+
+    `J'
+          Constant greater than -64, less than 1
+
+    `K'
+          Constant integer 2
+
+    `L'
+          Constant integer 0
+
+    `M'
+          Constant that fits in 8 bits
+
+    `N'
+          Constant integer -1
+
+    `O'
+          Constant integer 8, 16, or 24
+
+    `P'
+          Constant integer 1
+
+    `G'
+          A floating point constant 0.0
+
+    `R'
+          Integer constant in the range -6 ... 5.
+
+    `Q'
+          A memory address based on Y or Z pointer with displacement.
+
+_CRX Architecture--`config/crx/crx.h'_
+
+    `b'
+          Registers from r0 to r14 (registers without stack pointer)
+
+    `l'
+          Register r16 (64-bit accumulator lo register)
+
+    `h'
+          Register r17 (64-bit accumulator hi register)
+
+    `k'
+          Register pair r16-r17. (64-bit accumulator lo-hi pair)
+
+    `I'
+          Constant that fits in 3 bits
+
+    `J'
+          Constant that fits in 4 bits
+
+    `K'
+          Constant that fits in 5 bits
+
+    `L'
+          Constant that is one of -1, 4, -4, 7, 8, 12, 16, 20, 32, 48
+
+    `G'
+          Floating point constant that is legal for store immediate
+
+_Hewlett-Packard PA-RISC--`config/pa/pa.h'_
+
+    `a'
+          General register 1
+
+    `f'
+          Floating point register
+
+    `q'
+          Shift amount register
+
+    `x'
+          Floating point register (deprecated)
+
+    `y'
+          Upper floating point register (32-bit), floating point
+          register (64-bit)
+
+    `Z'
+          Any register
+
+    `I'
+          Signed 11-bit integer constant
+
+    `J'
+          Signed 14-bit integer constant
+
+    `K'
+          Integer constant that can be deposited with a `zdepi'
+          instruction
+
+    `L'
+          Signed 5-bit integer constant
+
+    `M'
+          Integer constant 0
+
+    `N'
+          Integer constant that can be loaded with a `ldil' instruction
+
+    `O'
+          Integer constant whose value plus one is a power of 2
+
+    `P'
+          Integer constant that can be used for `and' operations in
+          `depi' and `extru' instructions
+
+    `S'
+          Integer constant 31
+
+    `U'
+          Integer constant 63
+
+    `G'
+          Floating-point constant 0.0
+
+    `A'
+          A `lo_sum' data-linkage-table memory operand
+
+    `Q'
+          A memory operand that can be used as the destination operand
+          of an integer store instruction
+
+    `R'
+          A scaled or unscaled indexed memory operand
+
+    `T'
+          A memory operand for floating-point loads and stores
+
+    `W'
+          A register indirect memory operand
+
+_PowerPC and IBM RS6000--`config/rs6000/rs6000.h'_
+
+    `b'
+          Address base register
+
+    `f'
+          Floating point register
+
+    `v'
+          Vector register
+
+    `h'
+          `MQ', `CTR', or `LINK' register
+
+    `q'
+          `MQ' register
+
+    `c'
+          `CTR' register
+
+    `l'
+          `LINK' register
+
+    `x'
+          `CR' register (condition register) number 0
+
+    `y'
+          `CR' register (condition register)
+
+    `z'
+          `FPMEM' stack memory for FPR-GPR transfers
+
+    `I'
+          Signed 16-bit constant
+
+    `J'
+          Unsigned 16-bit constant shifted left 16 bits (use `L'
+          instead for `SImode' constants)
+
+    `K'
+          Unsigned 16-bit constant
+
+    `L'
+          Signed 16-bit constant shifted left 16 bits
+
+    `M'
+          Constant larger than 31
+
+    `N'
+          Exact power of 2
+
+    `O'
+          Zero
+
+    `P'
+          Constant whose negation is a signed 16-bit constant
+
+    `G'
+          Floating point constant that can be loaded into a register
+          with one instruction per word
+
+    `H'
+          Integer/Floating point constant that can be loaded into a
+          register using three instructions
+
+    `Q'
+          Memory operand that is an offset from a register (`m' is
+          preferable for `asm' statements)
+
+    `Z'
+          Memory operand that is an indexed or indirect from a register
+          (`m' is preferable for `asm' statements)
+
+    `R'
+          AIX TOC entry
+
+    `a'
+          Address operand that is an indexed or indirect from a
+          register (`p' is preferable for `asm' statements)
+
+    `S'
+          Constant suitable as a 64-bit mask operand
+
+    `T'
+          Constant suitable as a 32-bit mask operand
+
+    `U'
+          System V Release 4 small data area reference
+
+    `t'
+          AND masks that can be performed by two rldic{l, r}
+          instructions
+
+    `W'
+          Vector constant that does not require memory
+
+
+_MorphoTech family--`config/mt/mt.h'_
+
+    `I'
+          Constant for an arithmetic insn (16-bit signed integer).
+
+    `J'
+          The constant 0.
+
+    `K'
+          Constant for a logical insn (16-bit zero-extended integer).
+
+    `L'
+          A constant that can be loaded with `lui' (i.e. the bottom 16
+          bits are zero).
+
+    `M'
+          A constant that takes two words to load (i.e. not matched by
+          `I', `K', or `L').
+
+    `N'
+          Negative 16-bit constants other than -65536.
+
+    `O'
+          A 15-bit signed integer constant.
+
+    `P'
+          A positive 16-bit constant.
+
+_Intel 386--`config/i386/constraints.md'_
+
+    `R'
+          Legacy register--the eight integer registers available on all
+          i386 processors (`a', `b', `c', `d', `si', `di', `bp', `sp').
+
+    `q'
+          Any register accessible as `Rl'.  In 32-bit mode, `a', `b',
+          `c', and `d'; in 64-bit mode, any integer register.
+
+    `Q'
+          Any register accessible as `Rh': `a', `b', `c', and `d'.
+
+    `a'
+          The `a' register.
+
+    `b'
+          The `b' register.
+
+    `c'
+          The `c' register.
+
+    `d'
+          The `d' register.
+
+    `S'
+          The `si' register.
+
+    `D'
+          The `di' register.
+
+    `A'
+          The `a' and `d' registers, as a pair (for instructions that
+          return half the result in one and half in the other).
+
+    `f'
+          Any 80387 floating-point (stack) register.
+
+    `t'
+          Top of 80387 floating-point stack (`%st(0)').
+
+    `u'
+          Second from top of 80387 floating-point stack (`%st(1)').
+
+    `y'
+          Any MMX register.
+
+    `x'
+          Any SSE register.
+
+    `Yz'
+          First SSE register (`%xmm0').
+
+    `I'
+          Integer constant in the range 0 ... 31, for 32-bit shifts.
+
+    `J'
+          Integer constant in the range 0 ... 63, for 64-bit shifts.
+
+    `K'
+          Signed 8-bit integer constant.
+
+    `L'
+          `0xFF' or `0xFFFF', for andsi as a zero-extending move.
+
+    `M'
+          0, 1, 2, or 3 (shifts for the `lea' instruction).
+
+    `N'
+          Unsigned 8-bit integer constant (for `in' and `out'
+          instructions).
+
+    `G'
+          Standard 80387 floating point constant.
+
+    `C'
+          Standard SSE floating point constant.
+
+    `e'
+          32-bit signed integer constant, or a symbolic reference known
+          to fit that range (for immediate operands in sign-extending
+          x86-64 instructions).
+
+    `Z'
+          32-bit unsigned integer constant, or a symbolic reference
+          known to fit that range (for immediate operands in
+          zero-extending x86-64 instructions).
+
+
+_Intel IA-64--`config/ia64/ia64.h'_
+
+    `a'
+          General register `r0' to `r3' for `addl' instruction
+
+    `b'
+          Branch register
+
+    `c'
+          Predicate register (`c' as in "conditional")
+
+    `d'
+          Application register residing in M-unit
+
+    `e'
+          Application register residing in I-unit
+
+    `f'
+          Floating-point register
+
+    `m'
+          Memory operand.  Remember that `m' allows postincrement and
+          postdecrement which require printing with `%Pn' on IA-64.
+          Use `S' to disallow postincrement and postdecrement.
+
+    `G'
+          Floating-point constant 0.0 or 1.0
+
+    `I'
+          14-bit signed integer constant
+
+    `J'
+          22-bit signed integer constant
+
+    `K'
+          8-bit signed integer constant for logical instructions
+
+    `L'
+          8-bit adjusted signed integer constant for compare pseudo-ops
+
+    `M'
+          6-bit unsigned integer constant for shift counts
+
+    `N'
+          9-bit signed integer constant for load and store
+          postincrements
+
+    `O'
+          The constant zero
+
+    `P'
+          0 or -1 for `dep' instruction
+
+    `Q'
+          Non-volatile memory for floating-point loads and stores
+
+    `R'
+          Integer constant in the range 1 to 4 for `shladd' instruction
+
+    `S'
+          Memory operand except postincrement and postdecrement
+
+_FRV--`config/frv/frv.h'_
+
+    `a'
+          Register in the class `ACC_REGS' (`acc0' to `acc7').
+
+    `b'
+          Register in the class `EVEN_ACC_REGS' (`acc0' to `acc7').
+
+    `c'
+          Register in the class `CC_REGS' (`fcc0' to `fcc3' and `icc0'
+          to `icc3').
+
+    `d'
+          Register in the class `GPR_REGS' (`gr0' to `gr63').
+
+    `e'
+          Register in the class `EVEN_REGS' (`gr0' to `gr63').  Odd
+          registers are excluded not in the class but through the use
+          of a machine mode larger than 4 bytes.
+
+    `f'
+          Register in the class `FPR_REGS' (`fr0' to `fr63').
+
+    `h'
+          Register in the class `FEVEN_REGS' (`fr0' to `fr63').  Odd
+          registers are excluded not in the class but through the use
+          of a machine mode larger than 4 bytes.
+
+    `l'
+          Register in the class `LR_REG' (the `lr' register).
+
+    `q'
+          Register in the class `QUAD_REGS' (`gr2' to `gr63').
+          Register numbers not divisible by 4 are excluded not in the
+          class but through the use of a machine mode larger than 8
+          bytes.
+
+    `t'
+          Register in the class `ICC_REGS' (`icc0' to `icc3').
+
+    `u'
+          Register in the class `FCC_REGS' (`fcc0' to `fcc3').
+
+    `v'
+          Register in the class `ICR_REGS' (`cc4' to `cc7').
+
+    `w'
+          Register in the class `FCR_REGS' (`cc0' to `cc3').
+
+    `x'
+          Register in the class `QUAD_FPR_REGS' (`fr0' to `fr63').
+          Register numbers not divisible by 4 are excluded not in the
+          class but through the use of a machine mode larger than 8
+          bytes.
+
+    `z'
+          Register in the class `SPR_REGS' (`lcr' and `lr').
+
+    `A'
+          Register in the class `QUAD_ACC_REGS' (`acc0' to `acc7').
+
+    `B'
+          Register in the class `ACCG_REGS' (`accg0' to `accg7').
+
+    `C'
+          Register in the class `CR_REGS' (`cc0' to `cc7').
+
+    `G'
+          Floating point constant zero
+
+    `I'
+          6-bit signed integer constant
+
+    `J'
+          10-bit signed integer constant
+
+    `L'
+          16-bit signed integer constant
+
+    `M'
+          16-bit unsigned integer constant
+
+    `N'
+          12-bit signed integer constant that is negative--i.e. in the
+          range of -2048 to -1
+
+    `O'
+          Constant zero
+
+    `P'
+          12-bit signed integer constant that is greater than
+          zero--i.e. in the range of 1 to 2047.
+
+
+_Blackfin family--`config/bfin/bfin.h'_
+
+    `a'
+          P register
+
+    `d'
+          D register
+
+    `z'
+          A call clobbered P register.
+
+    `qN'
+          A single register.  If N is in the range 0 to 7, the
+          corresponding D register.  If it is `A', then the register P0.
+
+    `D'
+          Even-numbered D register
+
+    `W'
+          Odd-numbered D register
+
+    `e'
+          Accumulator register.
+
+    `A'
+          Even-numbered accumulator register.
+
+    `B'
+          Odd-numbered accumulator register.
+
+    `b'
+          I register
+
+    `v'
+          B register
+
+    `f'
+          M register
+
+    `c'
+          Registers used for circular buffering, i.e. I, B, or L
+          registers.
+
+    `C'
+          The CC register.
+
+    `t'
+          LT0 or LT1.
+
+    `k'
+          LC0 or LC1.
+
+    `u'
+          LB0 or LB1.
+
+    `x'
+          Any D, P, B, M, I or L register.
+
+    `y'
+          Additional registers typically used only in prologues and
+          epilogues: RETS, RETN, RETI, RETX, RETE, ASTAT, SEQSTAT and
+          USP.
+
+    `w'
+          Any register except accumulators or CC.
+
+    `Ksh'
+          Signed 16 bit integer (in the range -32768 to 32767)
+
+    `Kuh'
+          Unsigned 16 bit integer (in the range 0 to 65535)
+
+    `Ks7'
+          Signed 7 bit integer (in the range -64 to 63)
+
+    `Ku7'
+          Unsigned 7 bit integer (in the range 0 to 127)
+
+    `Ku5'
+          Unsigned 5 bit integer (in the range 0 to 31)
+
+    `Ks4'
+          Signed 4 bit integer (in the range -8 to 7)
+
+    `Ks3'
+          Signed 3 bit integer (in the range -3 to 4)
+
+    `Ku3'
+          Unsigned 3 bit integer (in the range 0 to 7)
+
+    `PN'
+          Constant N, where N is a single-digit constant in the range 0
+          to 4.
+
+    `PA'
+          An integer equal to one of the MACFLAG_XXX constants that is
+          suitable for use with either accumulator.
+
+    `PB'
+          An integer equal to one of the MACFLAG_XXX constants that is
+          suitable for use only with accumulator A1.
+
+    `M1'
+          Constant 255.
+
+    `M2'
+          Constant 65535.
+
+    `J'
+          An integer constant with exactly a single bit set.
+
+    `L'
+          An integer constant with all bits set except exactly one.
+
+    `H'
+
+    `Q'
+          Any SYMBOL_REF.
+
+_M32C--`config/m32c/m32c.c'_
+
+    `Rsp'
+    `Rfb'
+    `Rsb'
+          `$sp', `$fb', `$sb'.
+
+    `Rcr'
+          Any control register, when they're 16 bits wide (nothing if
+          control registers are 24 bits wide)
+
+    `Rcl'
+          Any control register, when they're 24 bits wide.
+
+    `R0w'
+    `R1w'
+    `R2w'
+    `R3w'
+          $r0, $r1, $r2, $r3.
+
+    `R02'
+          $r0 or $r2, or $r2r0 for 32 bit values.
+
+    `R13'
+          $r1 or $r3, or $r3r1 for 32 bit values.
+
+    `Rdi'
+          A register that can hold a 64 bit value.
+
+    `Rhl'
+          $r0 or $r1 (registers with addressable high/low bytes)
+
+    `R23'
+          $r2 or $r3
+
+    `Raa'
+          Address registers
+
+    `Raw'
+          Address registers when they're 16 bits wide.
+
+    `Ral'
+          Address registers when they're 24 bits wide.
+
+    `Rqi'
+          Registers that can hold QI values.
+
+    `Rad'
+          Registers that can be used with displacements ($a0, $a1, $sb).
+
+    `Rsi'
+          Registers that can hold 32 bit values.
+
+    `Rhi'
+          Registers that can hold 16 bit values.
+
+    `Rhc'
+          Registers chat can hold 16 bit values, including all control
+          registers.
+
+    `Rra'
+          $r0 through R1, plus $a0 and $a1.
+
+    `Rfl'
+          The flags register.
+
+    `Rmm'
+          The memory-based pseudo-registers $mem0 through $mem15.
+
+    `Rpi'
+          Registers that can hold pointers (16 bit registers for r8c,
+          m16c; 24 bit registers for m32cm, m32c).
+
+    `Rpa'
+          Matches multiple registers in a PARALLEL to form a larger
+          register.  Used to match function return values.
+
+    `Is3'
+          -8 ... 7
+
+    `IS1'
+          -128 ... 127
+
+    `IS2'
+          -32768 ... 32767
+
+    `IU2'
+          0 ... 65535
+
+    `In4'
+          -8 ... -1 or 1 ... 8
+
+    `In5'
+          -16 ... -1 or 1 ... 16
+
+    `In6'
+          -32 ... -1 or 1 ... 32
+
+    `IM2'
+          -65536 ... -1
+
+    `Ilb'
+          An 8 bit value with exactly one bit set.
+
+    `Ilw'
+          A 16 bit value with exactly one bit set.
+
+    `Sd'
+          The common src/dest memory addressing modes.
+
+    `Sa'
+          Memory addressed using $a0 or $a1.
+
+    `Si'
+          Memory addressed with immediate addresses.
+
+    `Ss'
+          Memory addressed using the stack pointer ($sp).
+
+    `Sf'
+          Memory addressed using the frame base register ($fb).
+
+    `Ss'
+          Memory addressed using the small base register ($sb).
+
+    `S1'
+          $r1h
+
+_MIPS--`config/mips/constraints.md'_
+
+    `d'
+          An address register.  This is equivalent to `r' unless
+          generating MIPS16 code.
+
+    `f'
+          A floating-point register (if available).
+
+    `h'
+          The `hi' register.
+
+    `l'
+          The `lo' register.
+
+    `x'
+          The `hi' and `lo' registers.
+
+    `c'
+          A register suitable for use in an indirect jump.  This will
+          always be `$25' for `-mabicalls'.
+
+    `v'
+          Register `$3'.  Do not use this constraint in new code; it is
+          retained only for compatibility with glibc.
+
+    `y'
+          Equivalent to `r'; retained for backwards compatibility.
+
+    `z'
+          A floating-point condition code register.
+
+    `I'
+          A signed 16-bit constant (for arithmetic instructions).
+
+    `J'
+          Integer zero.
+
+    `K'
+          An unsigned 16-bit constant (for logic instructions).
+
+    `L'
+          A signed 32-bit constant in which the lower 16 bits are zero.
+          Such constants can be loaded using `lui'.
+
+    `M'
+          A constant that cannot be loaded using `lui', `addiu' or
+          `ori'.
+
+    `N'
+          A constant in the range -65535 to -1 (inclusive).
+
+    `O'
+          A signed 15-bit constant.
+
+    `P'
+          A constant in the range 1 to 65535 (inclusive).
+
+    `G'
+          Floating-point zero.
+
+    `R'
+          An address that can be used in a non-macro load or store.
+
+_Motorola 680x0--`config/m68k/constraints.md'_
+
+    `a'
+          Address register
+
+    `d'
+          Data register
+
+    `f'
+          68881 floating-point register, if available
+
+    `I'
+          Integer in the range 1 to 8
+
+    `J'
+          16-bit signed number
+
+    `K'
+          Signed number whose magnitude is greater than 0x80
+
+    `L'
+          Integer in the range -8 to -1
+
+    `M'
+          Signed number whose magnitude is greater than 0x100
+
+    `N'
+          Range 24 to 31, rotatert:SI 8 to 1 expressed as rotate
+
+    `O'
+          16 (for rotate using swap)
+
+    `P'
+          Range 8 to 15, rotatert:HI 8 to 1 expressed as rotate
+
+    `R'
+          Numbers that mov3q can handle
+
+    `G'
+          Floating point constant that is not a 68881 constant
+
+    `S'
+          Operands that satisfy 'm' when -mpcrel is in effect
+
+    `T'
+          Operands that satisfy 's' when -mpcrel is not in effect
+
+    `Q'
+          Address register indirect addressing mode
+
+    `U'
+          Register offset addressing
+
+    `W'
+          const_call_operand
+
+    `Cs'
+          symbol_ref or const
+
+    `Ci'
+          const_int
+
+    `C0'
+          const_int 0
+
+    `Cj'
+          Range of signed numbers that don't fit in 16 bits
+
+    `Cmvq'
+          Integers valid for mvq
+
+    `Capsw'
+          Integers valid for a moveq followed by a swap
+
+    `Cmvz'
+          Integers valid for mvz
+
+    `Cmvs'
+          Integers valid for mvs
+
+    `Ap'
+          push_operand
+
+    `Ac'
+          Non-register operands allowed in clr
+
+
+_Motorola 68HC11 & 68HC12 families--`config/m68hc11/m68hc11.h'_
+
+    `a'
+          Register `a'
+
+    `b'
+          Register `b'
+
+    `d'
+          Register `d'
+
+    `q'
+          An 8-bit register
+
+    `t'
+          Temporary soft register _.tmp
+
+    `u'
+          A soft register _.d1 to _.d31
+
+    `w'
+          Stack pointer register
+
+    `x'
+          Register `x'
+
+    `y'
+          Register `y'
+
+    `z'
+          Pseudo register `z' (replaced by `x' or `y' at the end)
+
+    `A'
+          An address register: x, y or z
+
+    `B'
+          An address register: x or y
+
+    `D'
+          Register pair (x:d) to form a 32-bit value
+
+    `L'
+          Constants in the range -65536 to 65535
+
+    `M'
+          Constants whose 16-bit low part is zero
+
+    `N'
+          Constant integer 1 or -1
+
+    `O'
+          Constant integer 16
+
+    `P'
+          Constants in the range -8 to 2
+
+
+_SPARC--`config/sparc/sparc.h'_
+
+    `f'
+          Floating-point register on the SPARC-V8 architecture and
+          lower floating-point register on the SPARC-V9 architecture.
+
+    `e'
+          Floating-point register.  It is equivalent to `f' on the
+          SPARC-V8 architecture and contains both lower and upper
+          floating-point registers on the SPARC-V9 architecture.
+
+    `c'
+          Floating-point condition code register.
+
+    `d'
+          Lower floating-point register.  It is only valid on the
+          SPARC-V9 architecture when the Visual Instruction Set is
+          available.
+
+    `b'
+          Floating-point register.  It is only valid on the SPARC-V9
+          architecture when the Visual Instruction Set is available.
+
+    `h'
+          64-bit global or out register for the SPARC-V8+ architecture.
+
+    `D'
+          A vector constant
+
+    `I'
+          Signed 13-bit constant
+
+    `J'
+          Zero
+
+    `K'
+          32-bit constant with the low 12 bits clear (a constant that
+          can be loaded with the `sethi' instruction)
+
+    `L'
+          A constant in the range supported by `movcc' instructions
+
+    `M'
+          A constant in the range supported by `movrcc' instructions
+
+    `N'
+          Same as `K', except that it verifies that bits that are not
+          in the lower 32-bit range are all zero.  Must be used instead
+          of `K' for modes wider than `SImode'
+
+    `O'
+          The constant 4096
+
+    `G'
+          Floating-point zero
+
+    `H'
+          Signed 13-bit constant, sign-extended to 32 or 64 bits
+
+    `Q'
+          Floating-point constant whose integral representation can be
+          moved into an integer register using a single sethi
+          instruction
+
+    `R'
+          Floating-point constant whose integral representation can be
+          moved into an integer register using a single mov instruction
+
+    `S'
+          Floating-point constant whose integral representation can be
+          moved into an integer register using a high/lo_sum
+          instruction sequence
+
+    `T'
+          Memory address aligned to an 8-byte boundary
+
+    `U'
+          Even register
+
+    `W'
+          Memory address for `e' constraint registers
+
+    `Y'
+          Vector zero
+
+
+_SPU--`config/spu/spu.h'_
+
+    `a'
+          An immediate which can be loaded with the il/ila/ilh/ilhu
+          instructions.  const_int is treated as a 64 bit value.
+
+    `c'
+          An immediate for and/xor/or instructions.  const_int is
+          treated as a 64 bit value.
+
+    `d'
+          An immediate for the `iohl' instruction.  const_int is
+          treated as a 64 bit value.
+
+    `f'
+          An immediate which can be loaded with `fsmbi'.
+
+    `A'
+          An immediate which can be loaded with the il/ila/ilh/ilhu
+          instructions.  const_int is treated as a 32 bit value.
+
+    `B'
+          An immediate for most arithmetic instructions.  const_int is
+          treated as a 32 bit value.
+
+    `C'
+          An immediate for and/xor/or instructions.  const_int is
+          treated as a 32 bit value.
+
+    `D'
+          An immediate for the `iohl' instruction.  const_int is
+          treated as a 32 bit value.
+
+    `I'
+          A constant in the range [-64, 63] for shift/rotate
+          instructions.
+
+    `J'
+          An unsigned 7-bit constant for conversion/nop/channel
+          instructions.
+
+    `K'
+          A signed 10-bit constant for most arithmetic instructions.
+
+    `M'
+          A signed 16 bit immediate for `stop'.
+
+    `N'
+          An unsigned 16-bit constant for `iohl' and `fsmbi'.
+
+    `O'
+          An unsigned 7-bit constant whose 3 least significant bits are
+          0.
+
+    `P'
+          An unsigned 3-bit constant for 16-byte rotates and shifts
+
+    `R'
+          Call operand, reg, for indirect calls
+
+    `S'
+          Call operand, symbol, for relative calls.
+
+    `T'
+          Call operand, const_int, for absolute calls.
+
+    `U'
+          An immediate which can be loaded with the il/ila/ilh/ilhu
+          instructions.  const_int is sign extended to 128 bit.
+
+    `W'
+          An immediate for shift and rotate instructions.  const_int is
+          treated as a 32 bit value.
+
+    `Y'
+          An immediate for and/xor/or instructions.  const_int is sign
+          extended as a 128 bit.
+
+    `Z'
+          An immediate for the `iohl' instruction.  const_int is sign
+          extended to 128 bit.
+
+
+_S/390 and zSeries--`config/s390/s390.h'_
+
+    `a'
+          Address register (general purpose register except r0)
+
+    `c'
+          Condition code register
+
+    `d'
+          Data register (arbitrary general purpose register)
+
+    `f'
+          Floating-point register
+
+    `I'
+          Unsigned 8-bit constant (0-255)
+
+    `J'
+          Unsigned 12-bit constant (0-4095)
+
+    `K'
+          Signed 16-bit constant (-32768-32767)
+
+    `L'
+          Value appropriate as displacement.
+         `(0..4095)'
+               for short displacement
+
+         `(-524288..524287)'
+               for long displacement
+
+    `M'
+          Constant integer with a value of 0x7fffffff.
+
+    `N'
+          Multiple letter constraint followed by 4 parameter letters.
+         `0..9:'
+               number of the part counting from most to least
+               significant
+
+         `H,Q:'
+               mode of the part
+
+         `D,S,H:'
+               mode of the containing operand
+
+         `0,F:'
+               value of the other parts (F--all bits set)
+          The constraint matches if the specified part of a constant
+          has a value different from its other parts.
+
+    `Q'
+          Memory reference without index register and with short
+          displacement.
+
+    `R'
+          Memory reference with index register and short displacement.
+
+    `S'
+          Memory reference without index register but with long
+          displacement.
+
+    `T'
+          Memory reference with index register and long displacement.
+
+    `U'
+          Pointer with short displacement.
+
+    `W'
+          Pointer with long displacement.
+
+    `Y'
+          Shift count operand.
+
+
+_Score family--`config/score/score.h'_
+
+    `d'
+          Registers from r0 to r32.
+
+    `e'
+          Registers from r0 to r16.
+
+    `t'
+          r8--r11 or r22--r27 registers.
+
+    `h'
+          hi register.
+
+    `l'
+          lo register.
+
+    `x'
+          hi + lo register.
+
+    `q'
+          cnt register.
+
+    `y'
+          lcb register.
+
+    `z'
+          scb register.
+
+    `a'
+          cnt + lcb + scb register.
+
+    `c'
+          cr0--cr15 register.
+
+    `b'
+          cp1 registers.
+
+    `f'
+          cp2 registers.
+
+    `i'
+          cp3 registers.
+
+    `j'
+          cp1 + cp2 + cp3 registers.
+
+    `I'
+          High 16-bit constant (32-bit constant with 16 LSBs zero).
+
+    `J'
+          Unsigned 5 bit integer (in the range 0 to 31).
+
+    `K'
+          Unsigned 16 bit integer (in the range 0 to 65535).
+
+    `L'
+          Signed 16 bit integer (in the range -32768 to 32767).
+
+    `M'
+          Unsigned 14 bit integer (in the range 0 to 16383).
+
+    `N'
+          Signed 14 bit integer (in the range -8192 to 8191).
+
+    `Z'
+          Any SYMBOL_REF.
+
+_Xstormy16--`config/stormy16/stormy16.h'_
+
+    `a'
+          Register r0.
+
+    `b'
+          Register r1.
+
+    `c'
+          Register r2.
+
+    `d'
+          Register r8.
+
+    `e'
+          Registers r0 through r7.
+
+    `t'
+          Registers r0 and r1.
+
+    `y'
+          The carry register.
+
+    `z'
+          Registers r8 and r9.
+
+    `I'
+          A constant between 0 and 3 inclusive.
+
+    `J'
+          A constant that has exactly one bit set.
+
+    `K'
+          A constant that has exactly one bit clear.
+
+    `L'
+          A constant between 0 and 255 inclusive.
+
+    `M'
+          A constant between -255 and 0 inclusive.
+
+    `N'
+          A constant between -3 and 0 inclusive.
+
+    `O'
+          A constant between 1 and 4 inclusive.
+
+    `P'
+          A constant between -4 and -1 inclusive.
+
+    `Q'
+          A memory reference that is a stack push.
+
+    `R'
+          A memory reference that is a stack pop.
+
+    `S'
+          A memory reference that refers to a constant address of known
+          value.
+
+    `T'
+          The register indicated by Rx (not implemented yet).
+
+    `U'
+          A constant that is not between 2 and 15 inclusive.
+
+    `Z'
+          The constant 0.
+
+
+_Xtensa--`config/xtensa/constraints.md'_
+
+    `a'
+          General-purpose 32-bit register
+
+    `b'
+          One-bit boolean register
+
+    `A'
+          MAC16 40-bit accumulator register
+
+    `I'
+          Signed 12-bit integer constant, for use in MOVI instructions
+
+    `J'
+          Signed 8-bit integer constant, for use in ADDI instructions
+
+    `K'
+          Integer constant valid for BccI instructions
+
+    `L'
+          Unsigned constant valid for BccUI instructions
+
+
+
+
+File: gcc.info,  Node: Asm Labels,  Next: Explicit Reg Vars,  Prev: Constraints,  Up: C Extensions
+
+5.39 Controlling Names Used in Assembler Code
+=============================================
+
+You can specify the name to be used in the assembler code for a C
+function or variable by writing the `asm' (or `__asm__') keyword after
+the declarator as follows:
+
+     int foo asm ("myfoo") = 2;
+
+This specifies that the name to be used for the variable `foo' in the
+assembler code should be `myfoo' rather than the usual `_foo'.
+
+ On systems where an underscore is normally prepended to the name of a C
+function or variable, this feature allows you to define names for the
+linker that do not start with an underscore.
+
+ It does not make sense to use this feature with a non-static local
+variable since such variables do not have assembler names.  If you are
+trying to put the variable in a particular register, see *note Explicit
+Reg Vars::.  GCC presently accepts such code with a warning, but will
+probably be changed to issue an error, rather than a warning, in the
+future.
+
+ You cannot use `asm' in this way in a function _definition_; but you
+can get the same effect by writing a declaration for the function
+before its definition and putting `asm' there, like this:
+
+     extern func () asm ("FUNC");
+
+     func (x, y)
+          int x, y;
+     /* ... */
+
+ It is up to you to make sure that the assembler names you choose do not
+conflict with any other assembler symbols.  Also, you must not use a
+register name; that would produce completely invalid assembler code.
+GCC does not as yet have the ability to store static variables in
+registers.  Perhaps that will be added.
+
+
+File: gcc.info,  Node: Explicit Reg Vars,  Next: Alternate Keywords,  Prev: Asm Labels,  Up: C Extensions
+
+5.40 Variables in Specified Registers
+=====================================
+
+GNU C allows you to put a few global variables into specified hardware
+registers.  You can also specify the register in which an ordinary
+register variable should be allocated.
+
+   * Global register variables reserve registers throughout the program.
+     This may be useful in programs such as programming language
+     interpreters which have a couple of global variables that are
+     accessed very often.
+
+   * Local register variables in specific registers do not reserve the
+     registers, except at the point where they are used as input or
+     output operands in an `asm' statement and the `asm' statement
+     itself is not deleted.  The compiler's data flow analysis is
+     capable of determining where the specified registers contain live
+     values, and where they are available for other uses.  Stores into
+     local register variables may be deleted when they appear to be
+     dead according to dataflow analysis.  References to local register
+     variables may be deleted or moved or simplified.
+
+     These local variables are sometimes convenient for use with the
+     extended `asm' feature (*note Extended Asm::), if you want to
+     write one output of the assembler instruction directly into a
+     particular register.  (This will work provided the register you
+     specify fits the constraints specified for that operand in the
+     `asm'.)
+
+* Menu:
+
+* Global Reg Vars::
+* Local Reg Vars::
+
+
+File: gc

@@ -1,0 +1,1440 @@
+c.info,  Node: Global Reg Vars,  Next: Local Reg Vars,  Up: Explicit Reg Vars
+
+5.40.1 Defining Global Register Variables
+-----------------------------------------
+
+You can define a global register variable in GNU C like this:
+
+     register int *foo asm ("a5");
+
+Here `a5' is the name of the register which should be used.  Choose a
+register which is normally saved and restored by function calls on your
+machine, so that library routines will not clobber it.
+
+ Naturally the register name is cpu-dependent, so you would need to
+conditionalize your program according to cpu type.  The register `a5'
+would be a good choice on a 68000 for a variable of pointer type.  On
+machines with register windows, be sure to choose a "global" register
+that is not affected magically by the function call mechanism.
+
+ In addition, operating systems on one type of cpu may differ in how
+they name the registers; then you would need additional conditionals.
+For example, some 68000 operating systems call this register `%a5'.
+
+ Eventually there may be a way of asking the compiler to choose a
+register automatically, but first we need to figure out how it should
+choose and how to enable you to guide the choice.  No solution is
+evident.
+
+ Defining a global register variable in a certain register reserves that
+register entirely for this use, at least within the current compilation.
+The register will not be allocated for any other purpose in the
+functions in the current compilation.  The register will not be saved
+and restored by these functions.  Stores into this register are never
+deleted even if they would appear to be dead, but references may be
+deleted or moved or simplified.
+
+ It is not safe to access the global register variables from signal
+handlers, or from more than one thread of control, because the system
+library routines may temporarily use the register for other things
+(unless you recompile them specially for the task at hand).
+
+ It is not safe for one function that uses a global register variable to
+call another such function `foo' by way of a third function `lose' that
+was compiled without knowledge of this variable (i.e. in a different
+source file in which the variable wasn't declared).  This is because
+`lose' might save the register and put some other value there.  For
+example, you can't expect a global register variable to be available in
+the comparison-function that you pass to `qsort', since `qsort' might
+have put something else in that register.  (If you are prepared to
+recompile `qsort' with the same global register variable, you can solve
+this problem.)
+
+ If you want to recompile `qsort' or other source files which do not
+actually use your global register variable, so that they will not use
+that register for any other purpose, then it suffices to specify the
+compiler option `-ffixed-REG'.  You need not actually add a global
+register declaration to their source code.
+
+ A function which can alter the value of a global register variable
+cannot safely be called from a function compiled without this variable,
+because it could clobber the value the caller expects to find there on
+return.  Therefore, the function which is the entry point into the part
+of the program that uses the global register variable must explicitly
+save and restore the value which belongs to its caller.
+
+ On most machines, `longjmp' will restore to each global register
+variable the value it had at the time of the `setjmp'.  On some
+machines, however, `longjmp' will not change the value of global
+register variables.  To be portable, the function that called `setjmp'
+should make other arrangements to save the values of the global register
+variables, and to restore them in a `longjmp'.  This way, the same
+thing will happen regardless of what `longjmp' does.
+
+ All global register variable declarations must precede all function
+definitions.  If such a declaration could appear after function
+definitions, the declaration would be too late to prevent the register
+from being used for other purposes in the preceding functions.
+
+ Global register variables may not have initial values, because an
+executable file has no means to supply initial contents for a register.
+
+ On the SPARC, there are reports that g3 ... g7 are suitable registers,
+but certain library functions, such as `getwd', as well as the
+subroutines for division and remainder, modify g3 and g4.  g1 and g2
+are local temporaries.
+
+ On the 68000, a2 ... a5 should be suitable, as should d2 ... d7.  Of
+course, it will not do to use more than a few of those.
+
+
+File: gcc.info,  Node: Local Reg Vars,  Prev: Global Reg Vars,  Up: Explicit Reg Vars
+
+5.40.2 Specifying Registers for Local Variables
+-----------------------------------------------
+
+You can define a local register variable with a specified register like
+this:
+
+     register int *foo asm ("a5");
+
+Here `a5' is the name of the register which should be used.  Note that
+this is the same syntax used for defining global register variables,
+but for a local variable it would appear within a function.
+
+ Naturally the register name is cpu-dependent, but this is not a
+problem, since specific registers are most often useful with explicit
+assembler instructions (*note Extended Asm::).  Both of these things
+generally require that you conditionalize your program according to cpu
+type.
+
+ In addition, operating systems on one type of cpu may differ in how
+they name the registers; then you would need additional conditionals.
+For example, some 68000 operating systems call this register `%a5'.
+
+ Defining such a register variable does not reserve the register; it
+remains available for other uses in places where flow control determines
+the variable's value is not live.
+
+ This option does not guarantee that GCC will generate code that has
+this variable in the register you specify at all times.  You may not
+code an explicit reference to this register in the _assembler
+instruction template_ part of an `asm' statement and assume it will
+always refer to this variable.  However, using the variable as an `asm'
+_operand_ guarantees that the specified register is used for the
+operand.
+
+ Stores into local register variables may be deleted when they appear
+to be dead according to dataflow analysis.  References to local
+register variables may be deleted or moved or simplified.
+
+ As for global register variables, it's recommended that you choose a
+register which is normally saved and restored by function calls on your
+machine, so that library routines will not clobber it.  A common
+pitfall is to initialize multiple call-clobbered registers with
+arbitrary expressions, where a function call or library call for an
+arithmetic operator will overwrite a register value from a previous
+assignment, for example `r0' below:
+     register int *p1 asm ("r0") = ...;
+     register int *p2 asm ("r1") = ...;
+ In those cases, a solution is to use a temporary variable for each
+arbitrary expression.   *Note Example of asm with clobbered asm reg::.
+
+
+File: gcc.info,  Node: Alternate Keywords,  Next: Incomplete Enums,  Prev: Explicit Reg Vars,  Up: C Extensions
+
+5.41 Alternate Keywords
+=======================
+
+`-ansi' and the various `-std' options disable certain keywords.  This
+causes trouble when you want to use GNU C extensions, or a
+general-purpose header file that should be usable by all programs,
+including ISO C programs.  The keywords `asm', `typeof' and `inline'
+are not available in programs compiled with `-ansi' or `-std' (although
+`inline' can be used in a program compiled with `-std=c99').  The ISO
+C99 keyword `restrict' is only available when `-std=gnu99' (which will
+eventually be the default) or `-std=c99' (or the equivalent
+`-std=iso9899:1999') is used.
+
+ The way to solve these problems is to put `__' at the beginning and
+end of each problematical keyword.  For example, use `__asm__' instead
+of `asm', and `__inline__' instead of `inline'.
+
+ Other C compilers won't accept these alternative keywords; if you want
+to compile with another compiler, you can define the alternate keywords
+as macros to replace them with the customary keywords.  It looks like
+this:
+
+     #ifndef __GNUC__
+     #define __asm__ asm
+     #endif
+
+ `-pedantic' and other options cause warnings for many GNU C extensions.
+You can prevent such warnings within one expression by writing
+`__extension__' before the expression.  `__extension__' has no effect
+aside from this.
+
+
+File: gcc.info,  Node: Incomplete Enums,  Next: Function Names,  Prev: Alternate Keywords,  Up: C Extensions
+
+5.42 Incomplete `enum' Types
+============================
+
+You can define an `enum' tag without specifying its possible values.
+This results in an incomplete type, much like what you get if you write
+`struct foo' without describing the elements.  A later declaration
+which does specify the possible values completes the type.
+
+ You can't allocate variables or storage using the type while it is
+incomplete.  However, you can work with pointers to that type.
+
+ This extension may not be very useful, but it makes the handling of
+`enum' more consistent with the way `struct' and `union' are handled.
+
+ This extension is not supported by GNU C++.
+
+
+File: gcc.info,  Node: Function Names,  Next: Return Address,  Prev: Incomplete Enums,  Up: C Extensions
+
+5.43 Function Names as Strings
+==============================
+
+GCC provides three magic variables which hold the name of the current
+function, as a string.  The first of these is `__func__', which is part
+of the C99 standard:
+
+     The identifier `__func__' is implicitly declared by the translator
+     as if, immediately following the opening brace of each function
+     definition, the declaration
+          static const char __func__[] = "function-name";
+
+     appeared, where function-name is the name of the lexically-enclosing
+     function.  This name is the unadorned name of the function.
+
+ `__FUNCTION__' is another name for `__func__'.  Older versions of GCC
+recognize only this name.  However, it is not standardized.  For
+maximum portability, we recommend you use `__func__', but provide a
+fallback definition with the preprocessor:
+
+     #if __STDC_VERSION__ < 199901L
+     # if __GNUC__ >= 2
+     #  define __func__ __FUNCTION__
+     # else
+     #  define __func__ "<unknown>"
+     # endif
+     #endif
+
+ In C, `__PRETTY_FUNCTION__' is yet another name for `__func__'.
+However, in C++, `__PRETTY_FUNCTION__' contains the type signature of
+the function as well as its bare name.  For example, this program:
+
+     extern "C" {
+     extern int printf (char *, ...);
+     }
+
+     class a {
+      public:
+       void sub (int i)
+         {
+           printf ("__FUNCTION__ = %s\n", __FUNCTION__);
+           printf ("__PRETTY_FUNCTION__ = %s\n", __PRETTY_FUNCTION__);
+         }
+     };
+
+     int
+     main (void)
+     {
+       a ax;
+       ax.sub (0);
+       return 0;
+     }
+
+gives this output:
+
+     __FUNCTION__ = sub
+     __PRETTY_FUNCTION__ = void a::sub(int)
+
+ These identifiers are not preprocessor macros.  In GCC 3.3 and
+earlier, in C only, `__FUNCTION__' and `__PRETTY_FUNCTION__' were
+treated as string literals; they could be used to initialize `char'
+arrays, and they could be concatenated with other string literals.  GCC
+3.4 and later treat them as variables, like `__func__'.  In C++,
+`__FUNCTION__' and `__PRETTY_FUNCTION__' have always been variables.
+
+
+File: gcc.info,  Node: Return Address,  Next: Vector Extensions,  Prev: Function Names,  Up: C Extensions
+
+5.44 Getting the Return or Frame Address of a Function
+======================================================
+
+These functions may be used to get information about the callers of a
+function.
+
+ -- Built-in Function: void * __builtin_return_address (unsigned int
+          LEVEL)
+     This function returns the return address of the current function,
+     or of one of its callers.  The LEVEL argument is number of frames
+     to scan up the call stack.  A value of `0' yields the return
+     address of the current function, a value of `1' yields the return
+     address of the caller of the current function, and so forth.  When
+     inlining the expected behavior is that the function will return
+     the address of the function that will be returned to.  To work
+     around this behavior use the `noinline' function attribute.
+
+     The LEVEL argument must be a constant integer.
+
+     On some machines it may be impossible to determine the return
+     address of any function other than the current one; in such cases,
+     or when the top of the stack has been reached, this function will
+     return `0' or a random value.  In addition,
+     `__builtin_frame_address' may be used to determine if the top of
+     the stack has been reached.
+
+     This function should only be used with a nonzero argument for
+     debugging purposes.
+
+ -- Built-in Function: void * __builtin_frame_address (unsigned int
+          LEVEL)
+     This function is similar to `__builtin_return_address', but it
+     returns the address of the function frame rather than the return
+     address of the function.  Calling `__builtin_frame_address' with a
+     value of `0' yields the frame address of the current function, a
+     value of `1' yields the frame address of the caller of the current
+     function, and so forth.
+
+     The frame is the area on the stack which holds local variables and
+     saved registers.  The frame address is normally the address of the
+     first word pushed on to the stack by the function.  However, the
+     exact definition depends upon the processor and the calling
+     convention.  If the processor has a dedicated frame pointer
+     register, and the function has a frame, then
+     `__builtin_frame_address' will return the value of the frame
+     pointer register.
+
+     On some machines it may be impossible to determine the frame
+     address of any function other than the current one; in such cases,
+     or when the top of the stack has been reached, this function will
+     return `0' if the first frame pointer is properly initialized by
+     the startup code.
+
+     This function should only be used with a nonzero argument for
+     debugging purposes.
+
+
+File: gcc.info,  Node: Vector Extensions,  Next: Offsetof,  Prev: Return Address,  Up: C Extensions
+
+5.45 Using vector instructions through built-in functions
+=========================================================
+
+On some targets, the instruction set contains SIMD vector instructions
+that operate on multiple values contained in one large register at the
+same time.  For example, on the i386 the MMX, 3Dnow! and SSE extensions
+can be used this way.
+
+ The first step in using these extensions is to provide the necessary
+data types.  This should be done using an appropriate `typedef':
+
+     typedef int v4si __attribute__ ((vector_size (16)));
+
+ The `int' type specifies the base type, while the attribute specifies
+the vector size for the variable, measured in bytes.  For example, the
+declaration above causes the compiler to set the mode for the `v4si'
+type to be 16 bytes wide and divided into `int' sized units.  For a
+32-bit `int' this means a vector of 4 units of 4 bytes, and the
+corresponding mode of `foo' will be V4SI.
+
+ The `vector_size' attribute is only applicable to integral and float
+scalars, although arrays, pointers, and function return values are
+allowed in conjunction with this construct.
+
+ All the basic integer types can be used as base types, both as signed
+and as unsigned: `char', `short', `int', `long', `long long'.  In
+addition, `float' and `double' can be used to build floating-point
+vector types.
+
+ Specifying a combination that is not valid for the current architecture
+will cause GCC to synthesize the instructions using a narrower mode.
+For example, if you specify a variable of type `V4SI' and your
+architecture does not allow for this specific SIMD type, GCC will
+produce code that uses 4 `SIs'.
+
+ The types defined in this manner can be used with a subset of normal C
+operations.  Currently, GCC will allow using the following operators on
+these types: `+, -, *, /, unary minus, ^, |, &, ~'.
+
+ The operations behave like C++ `valarrays'.  Addition is defined as
+the addition of the corresponding elements of the operands.  For
+example, in the code below, each of the 4 elements in A will be added
+to the corresponding 4 elements in B and the resulting vector will be
+stored in C.
+
+     typedef int v4si __attribute__ ((vector_size (16)));
+
+     v4si a, b, c;
+
+     c = a + b;
+
+ Subtraction, multiplication, division, and the logical operations
+operate in a similar manner.  Likewise, the result of using the unary
+minus or complement operators on a vector type is a vector whose
+elements are the negative or complemented values of the corresponding
+elements in the operand.
+
+ You can declare variables and use them in function calls and returns,
+as well as in assignments and some casts.  You can specify a vector
+type as a return type for a function.  Vector types can also be used as
+function arguments.  It is possible to cast from one vector type to
+another, provided they are of the same size (in fact, you can also cast
+vectors to and from other datatypes of the same size).
+
+ You cannot operate between vectors of different lengths or different
+signedness without a cast.
+
+ A port that supports hardware vector operations, usually provides a set
+of built-in functions that can be used to operate on vectors.  For
+example, a function to add two vectors and multiply the result by a
+third could look like this:
+
+     v4si f (v4si a, v4si b, v4si c)
+     {
+       v4si tmp = __builtin_addv4si (a, b);
+       return __builtin_mulv4si (tmp, c);
+     }
+
+
+File: gcc.info,  Node: Offsetof,  Next: Atomic Builtins,  Prev: Vector Extensions,  Up: C Extensions
+
+5.46 Offsetof
+=============
+
+GCC implements for both C and C++ a syntactic extension to implement
+the `offsetof' macro.
+
+     primary:
+     	"__builtin_offsetof" "(" `typename' "," offsetof_member_designator ")"
+
+     offsetof_member_designator:
+     	  `identifier'
+     	| offsetof_member_designator "." `identifier'
+     	| offsetof_member_designator "[" `expr' "]"
+
+ This extension is sufficient such that
+
+     #define offsetof(TYPE, MEMBER)  __builtin_offsetof (TYPE, MEMBER)
+
+ is a suitable definition of the `offsetof' macro.  In C++, TYPE may be
+dependent.  In either case, MEMBER may consist of a single identifier,
+or a sequence of member accesses and array references.
+
+
+File: gcc.info,  Node: Atomic Builtins,  Next: Object Size Checking,  Prev: Offsetof,  Up: C Extensions
+
+5.47 Built-in functions for atomic memory access
+================================================
+
+The following builtins are intended to be compatible with those
+described in the `Intel Itanium Processor-specific Application Binary
+Interface', section 7.4.  As such, they depart from the normal GCC
+practice of using the "__builtin_" prefix, and further that they are
+overloaded such that they work on multiple types.
+
+ The definition given in the Intel documentation allows only for the
+use of the types `int', `long', `long long' as well as their unsigned
+counterparts.  GCC will allow any integral scalar or pointer type that
+is 1, 2, 4 or 8 bytes in length.
+
+ Not all operations are supported by all target processors.  If a
+particular operation cannot be implemented on the target processor, a
+warning will be generated and a call an external function will be
+generated.  The external function will carry the same name as the
+builtin, with an additional suffix `_N' where N is the size of the data
+type.
+
+ In most cases, these builtins are considered a "full barrier".  That
+is, no memory operand will be moved across the operation, either
+forward or backward.  Further, instructions will be issued as necessary
+to prevent the processor from speculating loads across the operation
+and from queuing stores after the operation.
+
+ All of the routines are are described in the Intel documentation to
+take "an optional list of variables protected by the memory barrier".
+It's not clear what is meant by that; it could mean that _only_ the
+following variables are protected, or it could mean that these variables
+should in addition be protected.  At present GCC ignores this list and
+protects all variables which are globally accessible.  If in the future
+we make some use of this list, an empty list will continue to mean all
+globally accessible variables.
+
+`TYPE __sync_fetch_and_add (TYPE *ptr, TYPE value, ...)'
+`TYPE __sync_fetch_and_sub (TYPE *ptr, TYPE value, ...)'
+`TYPE __sync_fetch_and_or (TYPE *ptr, TYPE value, ...)'
+`TYPE __sync_fetch_and_and (TYPE *ptr, TYPE value, ...)'
+`TYPE __sync_fetch_and_xor (TYPE *ptr, TYPE value, ...)'
+`TYPE __sync_fetch_and_nand (TYPE *ptr, TYPE value, ...)'
+     These builtins perform the operation suggested by the name, and
+     returns the value that had previously been in memory.  That is,
+
+          { tmp = *ptr; *ptr OP= value; return tmp; }
+          { tmp = *ptr; *ptr = ~tmp & value; return tmp; }   // nand
+
+`TYPE __sync_add_and_fetch (TYPE *ptr, TYPE value, ...)'
+`TYPE __sync_sub_and_fetch (TYPE *ptr, TYPE value, ...)'
+`TYPE __sync_or_and_fetch (TYPE *ptr, TYPE value, ...)'
+`TYPE __sync_and_and_fetch (TYPE *ptr, TYPE value, ...)'
+`TYPE __sync_xor_and_fetch (TYPE *ptr, TYPE value, ...)'
+`TYPE __sync_nand_and_fetch (TYPE *ptr, TYPE value, ...)'
+     These builtins perform the operation suggested by the name, and
+     return the new value.  That is,
+
+          { *ptr OP= value; return *ptr; }
+          { *ptr = ~*ptr & value; return *ptr; }   // nand
+
+`bool __sync_bool_compare_and_swap (TYPE *ptr, TYPE oldval TYPE newval, ...)'
+`TYPE __sync_val_compare_and_swap (TYPE *ptr, TYPE oldval TYPE newval, ...)'
+     These builtins perform an atomic compare and swap.  That is, if
+     the current value of `*PTR' is OLDVAL, then write NEWVAL into
+     `*PTR'.
+
+     The "bool" version returns true if the comparison is successful and
+     NEWVAL was written.  The "val" version returns the contents of
+     `*PTR' before the operation.
+
+`__sync_synchronize (...)'
+     This builtin issues a full memory barrier.
+
+`TYPE __sync_lock_test_and_set (TYPE *ptr, TYPE value, ...)'
+     This builtin, as described by Intel, is not a traditional
+     test-and-set operation, but rather an atomic exchange operation.
+     It writes VALUE into `*PTR', and returns the previous contents of
+     `*PTR'.
+
+     Many targets have only minimal support for such locks, and do not
+     support a full exchange operation.  In this case, a target may
+     support reduced functionality here by which the _only_ valid value
+     to store is the immediate constant 1.  The exact value actually
+     stored in `*PTR' is implementation defined.
+
+     This builtin is not a full barrier, but rather an "acquire
+     barrier".  This means that references after the builtin cannot
+     move to (or be speculated to) before the builtin, but previous
+     memory stores may not be globally visible yet, and previous memory
+     loads may not yet be satisfied.
+
+`void __sync_lock_release (TYPE *ptr, ...)'
+     This builtin releases the lock acquired by
+     `__sync_lock_test_and_set'.  Normally this means writing the
+     constant 0 to `*PTR'.
+
+     This builtin is not a full barrier, but rather a "release barrier".
+     This means that all previous memory stores are globally visible,
+     and all previous memory loads have been satisfied, but following
+     memory reads are not prevented from being speculated to before the
+     barrier.
+
+
+File: gcc.info,  Node: Object Size Checking,  Next: Other Builtins,  Prev: Atomic Builtins,  Up: C Extensions
+
+5.48 Object Size Checking Builtins
+==================================
+
+GCC implements a limited buffer overflow protection mechanism that can
+prevent some buffer overflow attacks.
+
+ -- Built-in Function: size_t __builtin_object_size (void * PTR, int
+          TYPE)
+     is a built-in construct that returns a constant number of bytes
+     from PTR to the end of the object PTR pointer points to (if known
+     at compile time).  `__builtin_object_size' never evaluates its
+     arguments for side-effects.  If there are any side-effects in
+     them, it returns `(size_t) -1' for TYPE 0 or 1 and `(size_t) 0'
+     for TYPE 2 or 3.  If there are multiple objects PTR can point to
+     and all of them are known at compile time, the returned number is
+     the maximum of remaining byte counts in those objects if TYPE & 2
+     is 0 and minimum if nonzero.  If it is not possible to determine
+     which objects PTR points to at compile time,
+     `__builtin_object_size' should return `(size_t) -1' for TYPE 0 or
+     1 and `(size_t) 0' for TYPE 2 or 3.
+
+     TYPE is an integer constant from 0 to 3.  If the least significant
+     bit is clear, objects are whole variables, if it is set, a closest
+     surrounding subobject is considered the object a pointer points to.
+     The second bit determines if maximum or minimum of remaining bytes
+     is computed.
+
+          struct V { char buf1[10]; int b; char buf2[10]; } var;
+          char *p = &var.buf1[1], *q = &var.b;
+
+          /* Here the object p points to is var.  */
+          assert (__builtin_object_size (p, 0) == sizeof (var) - 1);
+          /* The subobject p points to is var.buf1.  */
+          assert (__builtin_object_size (p, 1) == sizeof (var.buf1) - 1);
+          /* The object q points to is var.  */
+          assert (__builtin_object_size (q, 0)
+          	== (char *) (&var + 1) - (char *) &var.b);
+          /* The subobject q points to is var.b.  */
+          assert (__builtin_object_size (q, 1) == sizeof (var.b));
+
+ There are built-in functions added for many common string operation
+functions, e.g., for `memcpy' `__builtin___memcpy_chk' built-in is
+provided.  This built-in has an additional last argument, which is the
+number of bytes remaining in object the DEST argument points to or
+`(size_t) -1' if the size is not known.
+
+ The built-in functions are optimized into the normal string functions
+like `memcpy' if the last argument is `(size_t) -1' or if it is known
+at compile time that the destination object will not be overflown.  If
+the compiler can determine at compile time the object will be always
+overflown, it issues a warning.
+
+ The intended use can be e.g.
+
+     #undef memcpy
+     #define bos0(dest) __builtin_object_size (dest, 0)
+     #define memcpy(dest, src, n) \
+       __builtin___memcpy_chk (dest, src, n, bos0 (dest))
+
+     char *volatile p;
+     char buf[10];
+     /* It is unknown what object p points to, so this is optimized
+        into plain memcpy - no checking is possible.  */
+     memcpy (p, "abcde", n);
+     /* Destination is known and length too.  It is known at compile
+        time there will be no overflow.  */
+     memcpy (&buf[5], "abcde", 5);
+     /* Destination is known, but the length is not known at compile time.
+        This will result in __memcpy_chk call that can check for overflow
+        at runtime.  */
+     memcpy (&buf[5], "abcde", n);
+     /* Destination is known and it is known at compile time there will
+        be overflow.  There will be a warning and __memcpy_chk call that
+        will abort the program at runtime.  */
+     memcpy (&buf[6], "abcde", 5);
+
+ Such built-in functions are provided for `memcpy', `mempcpy',
+`memmove', `memset', `strcpy', `stpcpy', `strncpy', `strcat' and
+`strncat'.
+
+ There are also checking built-in functions for formatted output
+functions.
+     int __builtin___sprintf_chk (char *s, int flag, size_t os, const char *fmt, ...);
+     int __builtin___snprintf_chk (char *s, size_t maxlen, int flag, size_t os,
+     			      const char *fmt, ...);
+     int __builtin___vsprintf_chk (char *s, int flag, size_t os, const char *fmt,
+     			      va_list ap);
+     int __builtin___vsnprintf_chk (char *s, size_t maxlen, int flag, size_t os,
+     			       const char *fmt, va_list ap);
+
+ The added FLAG argument is passed unchanged to `__sprintf_chk' etc.
+functions and can contain implementation specific flags on what
+additional security measures the checking function might take, such as
+handling `%n' differently.
+
+ The OS argument is the object size S points to, like in the other
+built-in functions.  There is a small difference in the behavior
+though, if OS is `(size_t) -1', the built-in functions are optimized
+into the non-checking functions only if FLAG is 0, otherwise the
+checking function is called with OS argument set to `(size_t) -1'.
+
+ In addition to this, there are checking built-in functions
+`__builtin___printf_chk', `__builtin___vprintf_chk',
+`__builtin___fprintf_chk' and `__builtin___vfprintf_chk'.  These have
+just one additional argument, FLAG, right before format string FMT.  If
+the compiler is able to optimize them to `fputc' etc. functions, it
+will, otherwise the checking function should be called and the FLAG
+argument passed to it.
+
+
+File: gcc.info,  Node: Other Builtins,  Next: Target Builtins,  Prev: Object Size Checking,  Up: C Extensions
+
+5.49 Other built-in functions provided by GCC
+=============================================
+
+GCC provides a large number of built-in functions other than the ones
+mentioned above.  Some of these are for internal use in the processing
+of exceptions or variable-length argument lists and will not be
+documented here because they may change from time to time; we do not
+recommend general use of these functions.
+
+ The remaining functions are provided for optimization purposes.
+
+ GCC includes built-in versions of many of the functions in the standard
+C library.  The versions prefixed with `__builtin_' will always be
+treated as having the same meaning as the C library function even if you
+specify the `-fno-builtin' option.  (*note C Dialect Options::) Many of
+these functions are only optimized in certain cases; if they are not
+optimized in a particular case, a call to the library function will be
+emitted.
+
+ Outside strict ISO C mode (`-ansi', `-std=c89' or `-std=c99'), the
+functions `_exit', `alloca', `bcmp', `bzero', `dcgettext', `dgettext',
+`dremf', `dreml', `drem', `exp10f', `exp10l', `exp10', `ffsll', `ffsl',
+`ffs', `fprintf_unlocked', `fputs_unlocked', `gammaf', `gammal',
+`gamma', `gammaf_r', `gammal_r', `gamma_r', `gettext', `index',
+`isascii', `j0f', `j0l', `j0', `j1f', `j1l', `j1', `jnf', `jnl', `jn',
+`lgammaf_r', `lgammal_r', `lgamma_r', `mempcpy', `pow10f', `pow10l',
+`pow10', `printf_unlocked', `rindex', `scalbf', `scalbl', `scalb',
+`signbit', `signbitf', `signbitl', `signbitd32', `signbitd64',
+`signbitd128', `significandf', `significandl', `significand', `sincosf',
+`sincosl', `sincos', `stpcpy', `stpncpy', `strcasecmp', `strdup',
+`strfmon', `strncasecmp', `strndup', `toascii', `y0f', `y0l', `y0',
+`y1f', `y1l', `y1', `ynf', `ynl' and `yn' may be handled as built-in
+functions.  All these functions have corresponding versions prefixed
+with `__builtin_', which may be used even in strict C89 mode.
+
+ The ISO C99 functions `_Exit', `acoshf', `acoshl', `acosh', `asinhf',
+`asinhl', `asinh', `atanhf', `atanhl', `atanh', `cabsf', `cabsl',
+`cabs', `cacosf', `cacoshf', `cacoshl', `cacosh', `cacosl', `cacos',
+`cargf', `cargl', `carg', `casinf', `casinhf', `casinhl', `casinh',
+`casinl', `casin', `catanf', `catanhf', `catanhl', `catanh', `catanl',
+`catan', `cbrtf', `cbrtl', `cbrt', `ccosf', `ccoshf', `ccoshl',
+`ccosh', `ccosl', `ccos', `cexpf', `cexpl', `cexp', `cimagf', `cimagl',
+`cimag', `clogf', `clogl', `clog', `conjf', `conjl', `conj',
+`copysignf', `copysignl', `copysign', `cpowf', `cpowl', `cpow',
+`cprojf', `cprojl', `cproj', `crealf', `creall', `creal', `csinf',
+`csinhf', `csinhl', `csinh', `csinl', `csin', `csqrtf', `csqrtl',
+`csqrt', `ctanf', `ctanhf', `ctanhl', `ctanh', `ctanl', `ctan',
+`erfcf', `erfcl', `erfc', `erff', `erfl', `erf', `exp2f', `exp2l',
+`exp2', `expm1f', `expm1l', `expm1', `fdimf', `fdiml', `fdim', `fmaf',
+`fmal', `fmaxf', `fmaxl', `fmax', `fma', `fminf', `fminl', `fmin',
+`hypotf', `hypotl', `hypot', `ilogbf', `ilogbl', `ilogb', `imaxabs',
+`isblank', `iswblank', `lgammaf', `lgammal', `lgamma', `llabs',
+`llrintf', `llrintl', `llrint', `llroundf', `llroundl', `llround',
+`log1pf', `log1pl', `log1p', `log2f', `log2l', `log2', `logbf',
+`logbl', `logb', `lrintf', `lrintl', `lrint', `lroundf', `lroundl',
+`lround', `nearbyintf', `nearbyintl', `nearbyint', `nextafterf',
+`nextafterl', `nextafter', `nexttowardf', `nexttowardl', `nexttoward',
+`remainderf', `remainderl', `remainder', `remquof', `remquol',
+`remquo', `rintf', `rintl', `rint', `roundf', `roundl', `round',
+`scalblnf', `scalblnl', `scalbln', `scalbnf', `scalbnl', `scalbn',
+`snprintf', `tgammaf', `tgammal', `tgamma', `truncf', `truncl', `trunc',
+`vfscanf', `vscanf', `vsnprintf' and `vsscanf' are handled as built-in
+functions except in strict ISO C90 mode (`-ansi' or `-std=c89').
+
+ There are also built-in versions of the ISO C99 functions `acosf',
+`acosl', `asinf', `asinl', `atan2f', `atan2l', `atanf', `atanl',
+`ceilf', `ceill', `cosf', `coshf', `coshl', `cosl', `expf', `expl',
+`fabsf', `fabsl', `floorf', `floorl', `fmodf', `fmodl', `frexpf',
+`frexpl', `ldexpf', `ldexpl', `log10f', `log10l', `logf', `logl',
+`modfl', `modf', `powf', `powl', `sinf', `sinhf', `sinhl', `sinl',
+`sqrtf', `sqrtl', `tanf', `tanhf', `tanhl' and `tanl' that are
+recognized in any mode since ISO C90 reserves these names for the
+purpose to which ISO C99 puts them.  All these functions have
+corresponding versions prefixed with `__builtin_'.
+
+ The ISO C94 functions `iswalnum', `iswalpha', `iswcntrl', `iswdigit',
+`iswgraph', `iswlower', `iswprint', `iswpunct', `iswspace', `iswupper',
+`iswxdigit', `towlower' and `towupper' are handled as built-in functions
+except in strict ISO C90 mode (`-ansi' or `-std=c89').
+
+ The ISO C90 functions `abort', `abs', `acos', `asin', `atan2', `atan',
+`calloc', `ceil', `cosh', `cos', `exit', `exp', `fabs', `floor', `fmod',
+`fprintf', `fputs', `frexp', `fscanf', `isalnum', `isalpha', `iscntrl',
+`isdigit', `isgraph', `islower', `isprint', `ispunct', `isspace',
+`isupper', `isxdigit', `tolower', `toupper', `labs', `ldexp', `log10',
+`log', `malloc', `memchr', `memcmp', `memcpy', `memset', `modf', `pow',
+`printf', `putchar', `puts', `scanf', `sinh', `sin', `snprintf',
+`sprintf', `sqrt', `sscanf', `strcat', `strchr', `strcmp', `strcpy',
+`strcspn', `strlen', `strncat', `strncmp', `strncpy', `strpbrk',
+`strrchr', `strspn', `strstr', `tanh', `tan', `vfprintf', `vprintf' and
+`vsprintf' are all recognized as built-in functions unless
+`-fno-builtin' is specified (or `-fno-builtin-FUNCTION' is specified
+for an individual function).  All of these functions have corresponding
+versions prefixed with `__builtin_'.
+
+ GCC provides built-in versions of the ISO C99 floating point comparison
+macros that avoid raising exceptions for unordered operands.  They have
+the same names as the standard macros ( `isgreater', `isgreaterequal',
+`isless', `islessequal', `islessgreater', and `isunordered') , with
+`__builtin_' prefixed.  We intend for a library implementor to be able
+to simply `#define' each standard macro to its built-in equivalent.  In
+the same fashion, GCC provides `isfinite' and `isnormal' built-ins used
+with `__builtin_' prefixed.
+
+ -- Built-in Function: int __builtin_types_compatible_p (TYPE1, TYPE2)
+     You can use the built-in function `__builtin_types_compatible_p' to
+     determine whether two types are the same.
+
+     This built-in function returns 1 if the unqualified versions of the
+     types TYPE1 and TYPE2 (which are types, not expressions) are
+     compatible, 0 otherwise.  The result of this built-in function can
+     be used in integer constant expressions.
+
+     This built-in function ignores top level qualifiers (e.g., `const',
+     `volatile').  For example, `int' is equivalent to `const int'.
+
+     The type `int[]' and `int[5]' are compatible.  On the other hand,
+     `int' and `char *' are not compatible, even if the size of their
+     types, on the particular architecture are the same.  Also, the
+     amount of pointer indirection is taken into account when
+     determining similarity.  Consequently, `short *' is not similar to
+     `short **'.  Furthermore, two types that are typedefed are
+     considered compatible if their underlying types are compatible.
+
+     An `enum' type is not considered to be compatible with another
+     `enum' type even if both are compatible with the same integer
+     type; this is what the C standard specifies.  For example, `enum
+     {foo, bar}' is not similar to `enum {hot, dog}'.
+
+     You would typically use this function in code whose execution
+     varies depending on the arguments' types.  For example:
+
+          #define foo(x)                                                  \
+            ({                                                           \
+              typeof (x) tmp = (x);                                       \
+              if (__builtin_types_compatible_p (typeof (x), long double)) \
+                tmp = foo_long_double (tmp);                              \
+              else if (__builtin_types_compatible_p (typeof (x), double)) \
+                tmp = foo_double (tmp);                                   \
+              else if (__builtin_types_compatible_p (typeof (x), float))  \
+                tmp = foo_float (tmp);                                    \
+              else                                                        \
+                abort ();                                                 \
+              tmp;                                                        \
+            })
+
+     _Note:_ This construct is only available for C.
+
+
+ -- Built-in Function: TYPE __builtin_choose_expr (CONST_EXP, EXP1,
+          EXP2)
+     You can use the built-in function `__builtin_choose_expr' to
+     evaluate code depending on the value of a constant expression.
+     This built-in function returns EXP1 if CONST_EXP, which is a
+     constant expression that must be able to be determined at compile
+     time, is nonzero.  Otherwise it returns 0.
+
+     This built-in function is analogous to the `? :' operator in C,
+     except that the expression returned has its type unaltered by
+     promotion rules.  Also, the built-in function does not evaluate
+     the expression that was not chosen.  For example, if CONST_EXP
+     evaluates to true, EXP2 is not evaluated even if it has
+     side-effects.
+
+     This built-in function can return an lvalue if the chosen argument
+     is an lvalue.
+
+     If EXP1 is returned, the return type is the same as EXP1's type.
+     Similarly, if EXP2 is returned, its return type is the same as
+     EXP2.
+
+     Example:
+
+          #define foo(x)                                                    \
+            __builtin_choose_expr (                                         \
+              __builtin_types_compatible_p (typeof (x), double),            \
+              foo_double (x),                                               \
+              __builtin_choose_expr (                                       \
+                __builtin_types_compatible_p (typeof (x), float),           \
+                foo_float (x),                                              \
+                /* The void expression results in a compile-time error  \
+                   when assigning the result to something.  */          \
+                (void)0))
+
+     _Note:_ This construct is only available for C.  Furthermore, the
+     unused expression (EXP1 or EXP2 depending on the value of
+     CONST_EXP) may still generate syntax errors.  This may change in
+     future revisions.
+
+
+ -- Built-in Function: int __builtin_constant_p (EXP)
+     You can use the built-in function `__builtin_constant_p' to
+     determine if a value is known to be constant at compile-time and
+     hence that GCC can perform constant-folding on expressions
+     involving that value.  The argument of the function is the value
+     to test.  The function returns the integer 1 if the argument is
+     known to be a compile-time constant and 0 if it is not known to be
+     a compile-time constant.  A return of 0 does not indicate that the
+     value is _not_ a constant, but merely that GCC cannot prove it is
+     a constant with the specified value of the `-O' option.
+
+     You would typically use this function in an embedded application
+     where memory was a critical resource.  If you have some complex
+     calculation, you may want it to be folded if it involves
+     constants, but need to call a function if it does not.  For
+     example:
+
+          #define Scale_Value(X)      \
+            (__builtin_constant_p (X) \
+            ? ((X) * SCALE + OFFSET) : Scale (X))
+
+     You may use this built-in function in either a macro or an inline
+     function.  However, if you use it in an inlined function and pass
+     an argument of the function as the argument to the built-in, GCC
+     will never return 1 when you call the inline function with a
+     string constant or compound literal (*note Compound Literals::)
+     and will not return 1 when you pass a constant numeric value to
+     the inline function unless you specify the `-O' option.
+
+     You may also use `__builtin_constant_p' in initializers for static
+     data.  For instance, you can write
+
+          static const int table[] = {
+             __builtin_constant_p (EXPRESSION) ? (EXPRESSION) : -1,
+             /* ... */
+          };
+
+     This is an acceptable initializer even if EXPRESSION is not a
+     constant expression.  GCC must be more conservative about
+     evaluating the built-in in this case, because it has no
+     opportunity to perform optimization.
+
+     Previous versions of GCC did not accept this built-in in data
+     initializers.  The earliest version where it is completely safe is
+     3.0.1.
+
+ -- Built-in Function: long __builtin_expect (long EXP, long C)
+     You may use `__builtin_expect' to provide the compiler with branch
+     prediction information.  In general, you should prefer to use
+     actual profile feedback for this (`-fprofile-arcs'), as
+     programmers are notoriously bad at predicting how their programs
+     actually perform.  However, there are applications in which this
+     data is hard to collect.
+
+     The return value is the value of EXP, which should be an integral
+     expression.  The semantics of the built-in are that it is expected
+     that EXP == C.  For example:
+
+          if (__builtin_expect (x, 0))
+            foo ();
+
+     would indicate that we do not expect to call `foo', since we
+     expect `x' to be zero.  Since you are limited to integral
+     expressions for EXP, you should use constructions such as
+
+          if (__builtin_expect (ptr != NULL, 1))
+            error ();
+
+     when testing pointer or floating-point values.
+
+ -- Built-in Function: void __builtin_trap (void)
+     This function causes the program to exit abnormally.  GCC
+     implements this function by using a target-dependent mechanism
+     (such as intentionally executing an illegal instruction) or by
+     calling `abort'.  The mechanism used may vary from release to
+     release so you should not rely on any particular implementation.
+
+ -- Built-in Function: void __builtin___clear_cache (char *BEGIN, char
+          *END)
+     This function is used to flush the processor's instruction cache
+     for the region of memory between BEGIN inclusive and END
+     exclusive.  Some targets require that the instruction cache be
+     flushed, after modifying memory containing code, in order to obtain
+     deterministic behavior.
+
+     If the target does not require instruction cache flushes,
+     `__builtin___clear_cache' has no effect.  Otherwise either
+     instructions are emitted in-line to clear the instruction cache or
+     a call to the `__clear_cache' function in libgcc is made.
+
+ -- Built-in Function: void __builtin_prefetch (const void *ADDR, ...)
+     This function is used to minimize cache-miss latency by moving
+     data into a cache before it is accessed.  You can insert calls to
+     `__builtin_prefetch' into code for which you know addresses of
+     data in memory that is likely to be accessed soon.  If the target
+     supports them, data prefetch instructions will be generated.  If
+     the prefetch is done early enough before the access then the data
+     will be in the cache by the time it is accessed.
+
+     The value of ADDR is the address of the memory to prefetch.  There
+     are two optional arguments, RW and LOCALITY.  The value of RW is a
+     compile-time constant one or zero; one means that the prefetch is
+     preparing for a write to the memory address and zero, the default,
+     means that the prefetch is preparing for a read.  The value
+     LOCALITY must be a compile-time constant integer between zero and
+     three.  A value of zero means that the data has no temporal
+     locality, so it need not be left in the cache after the access.  A
+     value of three means that the data has a high degree of temporal
+     locality and should be left in all levels of cache possible.
+     Values of one and two mean, respectively, a low or moderate degree
+     of temporal locality.  The default is three.
+
+          for (i = 0; i < n; i++)
+            {
+              a[i] = a[i] + b[i];
+              __builtin_prefetch (&a[i+j], 1, 1);
+              __builtin_prefetch (&b[i+j], 0, 1);
+              /* ... */
+            }
+
+     Data prefetch does not generate faults if ADDR is invalid, but the
+     address expression itself must be valid.  For example, a prefetch
+     of `p->next' will not fault if `p->next' is not a valid address,
+     but evaluation will fault if `p' is not a valid address.
+
+     If the target does not support data prefetch, the address
+     expression is evaluated if it includes side effects but no other
+     code is generated and GCC does not issue a warning.
+
+ -- Built-in Function: double __builtin_huge_val (void)
+     Returns a positive infinity, if supported by the floating-point
+     format, else `DBL_MAX'.  This function is suitable for
+     implementing the ISO C macro `HUGE_VAL'.
+
+ -- Built-in Function: float __builtin_huge_valf (void)
+     Similar to `__builtin_huge_val', except the return type is `float'.
+
+ -- Built-in Function: long double __builtin_huge_vall (void)
+     Similar to `__builtin_huge_val', except the return type is `long
+     double'.
+
+ -- Built-in Function: double __builtin_inf (void)
+     Similar to `__builtin_huge_val', except a warning is generated if
+     the target floating-point format does not support infinities.
+
+ -- Built-in Function: _Decimal32 __builtin_infd32 (void)
+     Similar to `__builtin_inf', except the return type is `_Decimal32'.
+
+ -- Built-in Function: _Decimal64 __builtin_infd64 (void)
+     Similar to `__builtin_inf', except the return type is `_Decimal64'.
+
+ -- Built-in Function: _Decimal128 __builtin_infd128 (void)
+     Similar to `__builtin_inf', except the return type is
+     `_Decimal128'.
+
+ -- Built-in Function: float __builtin_inff (void)
+     Similar to `__builtin_inf', except the return type is `float'.
+     This function is suitable for implementing the ISO C99 macro
+     `INFINITY'.
+
+ -- Built-in Function: long double __builtin_infl (void)
+     Similar to `__builtin_inf', except the return type is `long
+     double'.
+
+ -- Built-in Function: double __builtin_nan (const char *str)
+     This is an implementation of the ISO C99 function `nan'.
+
+     Since ISO C99 defines this function in terms of `strtod', which we
+     do not implement, a description of the parsing is in order.  The
+     string is parsed as by `strtol'; that is, the base is recognized by
+     leading `0' or `0x' prefixes.  The number parsed is placed in the
+     significand such that the least significant bit of the number is
+     at the least significant bit of the significand.  The number is
+     truncated to fit the significand field provided.  The significand
+     is forced to be a quiet NaN.
+
+     This function, if given a string literal all of which would have
+     been consumed by strtol, is evaluated early enough that it is
+     considered a compile-time constant.
+
+ -- Built-in Function: _Decimal32 __builtin_nand32 (const char *str)
+     Similar to `__builtin_nan', except the return type is `_Decimal32'.
+
+ -- Built-in Function: _Decimal64 __builtin_nand64 (const char *str)
+     Similar to `__builtin_nan', except the return type is `_Decimal64'.
+
+ -- Built-in Function: _Decimal128 __builtin_nand128 (const char *str)
+     Similar to `__builtin_nan', except the return type is
+     `_Decimal128'.
+
+ -- Built-in Function: float __builtin_nanf (const char *str)
+     Similar to `__builtin_nan', except the return type is `float'.
+
+ -- Built-in Function: long double __builtin_nanl (const char *str)
+     Similar to `__builtin_nan', except the return type is `long
+     double'.
+
+ -- Built-in Function: double __builtin_nans (const char *str)
+     Similar to `__builtin_nan', except the significand is forced to be
+     a signaling NaN.  The `nans' function is proposed by WG14 N965.
+
+ -- Built-in Function: float __builtin_nansf (const char *str)
+     Similar to `__builtin_nans', except the return type is `float'.
+
+ -- Built-in Function: long double __builtin_nansl (const char *str)
+     Similar to `__builtin_nans', except the return type is `long
+     double'.
+
+ -- Built-in Function: int __builtin_ffs (unsigned int x)
+     Returns one plus the index of the least significant 1-bit of X, or
+     if X is zero, returns zero.
+
+ -- Built-in Function: int __builtin_clz (unsigned int x)
+     Returns the number of leading 0-bits in X, starting at the most
+     significant bit position.  If X is 0, the result is undefined.
+
+ -- Built-in Function: int __builtin_ctz (unsigned int x)
+     Returns the number of trailing 0-bits in X, starting at the least
+     significant bit position.  If X is 0, the result is undefined.
+
+ -- Built-in Function: int __builtin_popcount (unsigned int x)
+     Returns the number of 1-bits in X.
+
+ -- Built-in Function: int __builtin_parity (unsigned int x)
+     Returns the parity of X, i.e. the number of 1-bits in X modulo 2.
+
+ -- Built-in Function: int __builtin_ffsl (unsigned long)
+     Similar to `__builtin_ffs', except the argument type is `unsigned
+     long'.
+
+ -- Built-in Function: int __builtin_clzl (unsigned long)
+     Similar to `__builtin_clz', except the argument type is `unsigned
+     long'.
+
+ -- Built-in Function: int __builtin_ctzl (unsigned long)
+     Similar to `__builtin_ctz', except the argument type is `unsigned
+     long'.
+
+ -- Built-in Function: int __builtin_popcountl (unsigned long)
+     Similar to `__builtin_popcount', except the argument type is
+     `unsigned long'.
+
+ -- Built-in Function: int __builtin_parityl (unsigned long)
+     Similar to `__builtin_parity', except the argument type is
+     `unsigned long'.
+
+ -- Built-in Function: int __builtin_ffsll (unsigned long long)
+     Similar to `__builtin_ffs', except the argument type is `unsigned
+     long long'.
+
+ -- Built-in Function: int __builtin_clzll (unsigned long long)
+     Similar to `__builtin_clz', except the argument type is `unsigned
+     long long'.
+
+ -- Built-in Function: int __builtin_ctzll (unsigned long long)
+     Similar to `__builtin_ctz', except the argument type is `unsigned
+     long long'.
+
+ -- Built-in Function: int __builtin_popcountll (unsigned long long)
+     Similar to `__builtin_popcount', except the argument type is
+     `unsigned long long'.
+
+ -- Built-in Function: int __builtin_parityll (unsigned long long)
+     Similar to `__builtin_parity', except the argument type is
+     `unsigned long long'.
+
+ -- Built-in Function: double __builtin_powi (double, int)
+     Returns the first argument raised to the power of the second.
+     Unlike the `pow' function no guarantees about precision and
+     rounding are made.
+
+ -- Built-in Function: float __builtin_powif (float, int)
+     Similar to `__builtin_powi', except the argument and return types
+     are `float'.
+
+ -- Built-in Function: long double __builtin_powil (long double, int)
+     Similar to `__builtin_powi', except the argument and return types
+     are `long double'.
+
+ -- Built-in Function: int32_t __builtin_bswap32 (int32_t x)
+     Returns X with the order of the bytes reversed; for example,
+     `0xaabbccdd' becomes `0xddccbbaa'.  Byte here always means exactly
+     8 bits.
+
+ -- Built-in Function: int64_t __builtin_bswap64 (int64_t x)
+     Similar to `__builtin_bswap32', except the argument and return
+     types are 64-bit.
+
+
+File: gcc.info,  Node: Target Builtins,  Next: Target Format Checks,  Prev: Other Builtins,  Up: C Extensions
+
+5.50 Built-in Functions Specific to Particular Target Machines
+==============================================================
+
+On some target machines, GCC supports many built-in functions specific
+to those machines.  Generally these generate calls to specific machine
+instructions, but allow the compiler to schedule those calls.
+
+* Menu:
+
+* Alpha Built-in Functions::
+* ARM iWMMXt Built-in Functions::
+* ARM NEON Intrinsics::
+* Blackfin Built-in Functions::
+* FR-V Built-in Functions::
+* X86 Built-in Functions::
+* MIPS DSP Built-in Functions::
+* MIPS Paired-Single Support::
+* PowerPC AltiVec Built-in Functions::
+* SPARC VIS Built-in Functions::
+* SPU Built-in Functions::
+
+
+File: gcc.info,  Node: Alpha Built-in Functions,  Next: ARM iWMMXt Built-in Functions,  Up: Target Builtins
+
+5.50.1 Alpha Built-in Functions
+-------------------------------
+
+These built-in functions are available for the Alpha family of
+processors, depending on the command-line switches used.
+
+ The following built-in functions are always available.  They all
+generate the machine instruction that is part of the name.
+
+     long __builtin_alpha_implver (void)
+     long __builtin_alpha_rpcc (void)
+     long __builtin_alpha_amask (long)
+     long __builtin_alpha_cmpbge (long, long)
+     long __builtin_alpha_extbl (long, long)
+     long __builtin_alpha_extwl (long, long)
+     long __builtin_alpha_extll (long, long)
+     long __builtin_alpha_extql (long, long)
+     long __builtin_alpha_extwh (long, long)
+     long __builtin_alpha_extlh (long, long)
+     long __builtin_alpha_extqh (long, long)
+     long __builtin_alpha_insbl (long, long)
+     long __builtin_alpha_inswl (long, long)
+     long __builtin_alpha_insll (long, long)
+     long __builtin_alpha_insql (long, long)
+     long __builtin_alpha_inswh (long, long)
+     long __builtin_alpha_inslh (long, long)
+     long __builtin_alpha_insqh (long, long)
+     long __builtin_alpha_mskbl (long, long)
+     long __builtin_alpha_mskwl (long, long)
+     long __builtin_alpha_mskll (long, long)
+     long __builtin_alpha_mskql (long, long)
+     long __builtin_alpha_mskwh (long, long)
+     long __builtin_alpha_msklh (long, long)
+     long __builtin_alpha_mskqh (long, long)
+     long __builtin_alpha_umulh (long, long)
+     long __builtin_alpha_zap (long, long)
+     long __builtin_alpha_zapnot (long, long)
+
+ The following built-in functions are always with `-mmax' or
+`-mcpu=CPU' where CPU is `pca56' or later.  They all generate the
+machine instruction that is part of the name.
+
+     long __builtin_alpha_pklb (long)
+     long __builtin_alpha_pkwb (long)
+     long __builtin_alpha_unpkbl (long)
+     long __builtin_alpha_unpkbw (long)
+     long __builtin_alpha_minub8 (long, long)
+     long __builtin_alpha_minsb8 (long, long)
+     long __builtin_alpha_minuw4 (long, long)
+     long __builtin_alpha_minsw4 (long, long)
+     long __builtin_alpha_maxub8 (long, long)
+     long __builtin_alpha_maxsb8 (long, long)
+     long __builtin_alpha_maxuw4 (long, long)
+     long __builtin_alpha_maxsw4 (long, long)
+     long __builtin_alpha_perr (long, long)
+
+ The following built-in functions are always with `-mcix' or
+`-mcpu=CPU' where CPU is `ev67' or later.  They all generate the
+machine instruction that is part of the name.
+
+     long __builtin_alpha_cttz (long)
+     long __builtin_alpha_ctlz (long)
+     long __builtin_alpha_ctpop (long)
+
+ The following builtins are available on systems that use the OSF/1
+PALcode.  Normally they invoke the `rduniq' and `wruniq' PAL calls, but
+when invoked with `-mtls-kernel', they invoke `rdval' and `wrval'.
+
+     void *__builtin_thread_pointer (void)
+     void __builtin_set_thread_pointer (void *)
+
+
+File: gcc.info,  Node: ARM iWMMXt Built-in Functions,  Next: ARM NEON Intrinsics,  Prev: Alpha Built-in Functions,  Up: Target Builtins
+
+5.50.2 ARM iWMMXt Built-in Functions
+------------------------------------
+
+These built-in functions are available for the ARM family of processors
+when the `-mcpu=iwmmxt' switch is used:
+
+     typedef int v2si __attribute__ ((vector_size (8)));
+     typedef short v4hi __attribute__ ((vector_size (8)));
+     typedef char v8qi __attribute__ ((vector_size (8)));
+
+     int __builtin_arm_getwcx (int)
+     void __builtin_arm_setwcx (int, int)
+     int __builtin_arm_textrmsb (v8qi, int)
+     int __builtin_arm_textrmsh (v4hi, int)
+     int __builtin_arm_textrmsw (v2si, int)
+     int __builtin_arm_textrmub (v8qi, int)
+     int __builtin_arm_textrmuh (v4hi, int)
+     int __builtin_arm_textrmuw (v2si, int)
+     v8qi __builtin_arm_tinsrb (v8qi, int)
+     v4hi __builtin_arm_tinsrh (v4hi, int)
+     v2si __builtin_arm_tinsrw (v2si, int)
+     long long __builtin_arm_tmia (long long, int, int)
+     long long __builtin_arm_tmiabb (long long, int, int)
+     long long __builtin_arm_tmiabt (long long, int, int)
+     long long __builtin_arm_tmiaph (long long, int, int)
+     long long __builtin_arm_tmiatb (long long, int, int)
+     long long __builtin_arm_tmiatt (long long, int, int)
+     int __builtin_arm_tmovmskb (v8qi)
+     int __builtin_arm_tmovmskh (v4hi)
+     int __builtin_arm_tmovmskw (v2si)
+     long long __builtin_arm_waccb (v8qi)
+     long long __builtin_arm_wacch (v4hi)
+     long long __builtin_arm_waccw (v2si)
+     v8qi __builtin_arm_waddb (v8qi, v8qi)
+     v8qi __builtin_arm_waddbss (v8qi, v8qi)
+     v8qi __builtin_arm_waddbus (v8qi, v8qi)
+     v4hi __builtin_arm_waddh (v4hi, v4hi)
+     v4hi __builtin_arm_waddhss (v4hi, v4hi)
+     v4hi __builtin_arm_waddhus (v4hi, v4hi)
+     v2si __builtin_arm_waddw (v2si, v2si)
+     v2si __builtin_arm_waddwss (v2si, v2si)
+     v2si __builtin_arm_waddwus (v2si, v2si)
+     v8qi __builtin_arm_walign (v8qi, v8qi, int)
+     long long __builtin_arm_wand(long long, long long)
+     long long __builtin_arm_wandn (long long, long long)
+     v8qi __builtin_arm_wavg2b (v8qi, v8qi)
+     v8qi __builtin_arm_wavg2br (v8qi, v8qi)
+     v4hi __builtin_arm_wavg2h (v4hi, v4hi)
+     v4hi __builtin_arm_wavg2hr (v4hi, v4hi)
+     v8qi __builtin_arm_wcmpeqb (v8qi, v8qi)
+     v4hi __builtin_arm_wcmpeqh (v4hi, v4hi)
+     v2si __builtin_arm_wcmpeqw (v2si, v2si)
+     v8qi __builtin_arm_wcmpgtsb (v8qi, v8qi)
+     v4hi __builtin_arm_wcmpgtsh (v4hi, v4hi)
+     v2si __builtin_arm_wcmpgtsw (v2si, v2si)
+     v8qi __builtin_arm_wcmpgtub (v8qi, v8qi)
+     v4hi __builtin_arm_wcmpgtuh (v4hi, v4hi)
+     v2si __builtin_arm_wcmpgtuw (v2si, v2si)
+     long long __builtin_arm_wmacs (long long, v4hi, v4hi)
+     long long __builtin_arm_wmacsz (v4hi, v4hi)
+     long long __builtin_arm_wmacu (long long, v4hi, v4hi)
+     long long __builtin_arm_wmacuz (v4hi, v4hi)
+     v4hi __builtin_arm_wmadds (v4hi, v4hi)
+     v4hi __builtin_arm_wmaddu (v4hi, v4hi)
+     v8qi __builtin_arm_wmaxsb (v8qi, v8qi)
+     v4hi __builtin_arm_wmaxsh (v4hi, v4hi)
+     v2si __builtin_arm_wmaxsw (v2si, v2si)
+     v8qi __builtin_arm_wmaxub (v8qi, v8qi)
+     v4hi __builtin_arm_wmaxuh (v4hi, v4hi)
+     v2si __builtin_arm_wmaxuw (v2si, v2si)
+     v8qi __builtin_arm_wminsb (v8qi, v8qi)
+     v4hi __builtin_arm_wminsh (v4hi, v4hi)
+     v2si __builtin_arm_wminsw (v2si, v2si)
+     v8qi __builtin_arm_wminub (v8qi, v8qi)
+     v4hi __builtin_arm_wminuh (v4hi, v4hi)
+     v2si __builtin_arm_wminuw (v2si, v2si)
+     v4hi __builtin_arm_wmulsm (v4hi, v4hi)
+     v4hi __builtin_arm_wmulul (v4hi, v4hi)
+     v4hi __builtin_arm_wmulum (v4hi, v4hi)
+     long long __builtin_arm_wor (long long, long long)
+     v2si __builtin_arm_wpackdss (long long, long long)
+     v2si __builtin_arm_wpackdus (long long, long long)
+     v8qi __builtin_arm_wpackhss (v4hi, v4hi)
+     v8qi __builtin_arm_wpackhus (v4hi, v4hi)
+     v4hi __builtin_arm_wpackwss (v2si, v2si)
+     v4hi __builtin_arm_wpackwus (v2si, v2si)
+     long long __builtin_arm_wrord (long long, long long)
+     long long __builtin_arm_wrordi (long long, int)
+     v4hi __builtin_arm_wrorh (v4hi, long long)
+     v4hi __builtin_arm_wrorhi (v4hi, int)
+     v2si __builtin_arm_wrorw (v2si, long long)
+     v2si __builtin_arm_wrorwi (v2si, int)
+     v2si __builtin_arm_wsadb (v8qi, v8qi)
+     v2si __builtin_arm_wsadbz (v8qi, v8qi)
+     v2si __builtin_arm_wsadh (v4hi, v4hi)
+     v2si __builtin_arm_wsadhz (v4hi, v4hi)
+     v4hi __builtin_arm_wshufh (v4hi, int)
+     long long __builtin_arm_wslld (long long, long long)
+     long long __builtin_arm_wslldi (long long, int)
+     v4hi __builtin_arm_wsllh (v4hi, long long)
+     v4hi __builtin_arm_wsllhi (v4hi, int)
+     v2si __builtin_arm_wsllw (v2si, long long)
+     v2si __builtin_arm_wsllwi (v2si, int)
+     long long __builtin_arm_wsrad (long long, long long)
+     long long __builtin_arm_wsradi (long long, int)
+     v4hi __builtin_arm_wsrah (v4hi, long long)
+     v4hi __builtin_arm_wsrahi (v4hi, int)
+     v2si __builtin_arm_wsraw (v2si, long long)
+     v2si __builtin_arm_wsrawi (v2si, int)
+     long long __builtin_arm_wsrld (long long, long long)
+     long long __builtin_arm_wsrldi (long long, int)
+     v4hi __builtin_arm_wsrlh (v4hi, long long)
+     v4hi __builtin_arm_wsrlhi (v4hi, int)
+     v2si __builtin_arm_wsrlw (v2si, long long)
+     v2si __builtin_arm_wsrlwi (v2si, int)
+     v8qi __builtin_arm_wsubb (v8qi, v8qi)
+     v8qi __builtin_arm_wsubbss (v8qi, v8qi)
+     v8qi __builtin_arm_wsubbus (v8qi, v8qi)
+     v4hi __builtin_arm_wsubh (v4hi, v4hi)
+     v4hi __builtin_arm_wsubhss (v4hi, v4hi)
+     v4hi __builtin_arm_wsubhus (v4hi, v4hi)
+     v2si __builtin_arm_wsubw (v2si, v2si)
+     v2si __builtin_arm_wsubwss (v2si, v2si)
+     v2si __builtin_arm_wsubwus (v2si, v2si)
+     v4hi __builtin_arm_wunpckehsb (v8qi)
+     v2si __builtin_arm_wunpckehsh (v4hi)
+     long long __builtin_arm_wunpckehsw (v2si)
+     v4hi __builtin_arm_wunpckehub (v8qi)
+     v2si __builtin_arm_wunpckehuh (v4hi)
+     long long __builtin_arm_wunpckehuw (v2si)
+     v4hi __builtin_arm_wunpckelsb (v8qi)
+     v2si __builtin_arm_wunpckelsh (v4hi)
+     long long __builtin_arm_wunpckelsw (v2si)
+     v4hi __builtin_arm_wunpckelub (v8qi)
+     v2si __builtin_arm_wunpckeluh (v4hi)
+     long long __builtin_arm_wunpckeluw (v2si)
+     v8qi __builtin_arm_wunpckihb (v8qi, v8qi)
+     v4hi __builtin_arm_wunpckihh (v4hi, v4hi)
+     v2si __builtin_arm_wunpckihw (v2si, v2si)
+     v8qi __builtin_arm_wunpckilb (v8qi, v8qi)
+     v4hi __builtin_arm_wunpckilh (v4hi, v4hi)
+     v2si __builtin_arm_wunpckilw (v2si, v2si)
+     long long __builtin_arm_wxor (long long, long long)
+     long long __builtin_arm_wzero ()
+
+
+File: gcc.info,  Node: ARM NEON Intrinsics,  Next: Blackfin Built-in Functions,  Prev: ARM iWMMXt Built-in Functions,  Up: Target Builtins
+
+5.50.3 ARM NEON Intrinsics
+--------------------------
+
+These built-in intrinsics for the ARM Advanced SIMD extension are
+available when the `-mfpu=neon' switch is used:
+
+5.50.3.1 Addition
+.................
+
+   * uint32x2_t vadd_u32 (uint32x2_t, uint32x2_t)
+     _Form of expected instruction(s):_ `vadd.i32 D0, D0, D0'
+
+   * uint16x4_t vadd_u16 (uint16x4_t, uint16x4_t)
+     _Form of expected instruction(s):_ `vadd.i16 D0, D0, D0'
+
+   * uint8x8_t vadd_u8 (uint8x8_t, uint8x8_t)
+     _Form of expected instruction(s):_ `vadd.i8 D0, D0, D0'
+
+   * int32x2_t vadd_s32 (int32x2_t, int32x2_t)
+     _Form of expected instruction(s):_ `vadd.i32 D0, D0, D0'
+
+   * int16x4_t vadd_s16 (int16x4_t, int16x4_t)
+     _Form of expected instruction(s):_ `vadd.i16 D0, D0, D0'
+
+   * int8x8_t vadd_s8 (int8x8_t, int8x8_t)
+     _Form of expected instruction(s):_ `vadd.i8 D0, D0, D0'
+
+   * uint64x1_t vadd_u64 (uint64x1_t, uint64x1_t)
+     _Form of expected instruction(s):_ `vadd.i64 D0, D0, D0'
+
+   * int64x1_t vadd_s64 (int64x1_t, int64x1_t)
+     _Form of expected instruction(s):_ `vadd.i64 D0, D0, D0'
+
+   * float32x2_t vadd_f32 (float32x2_t, float32x2_t)
+     _Form of expected instruction(s):_ `vadd.f32 D0, D0, D0'
+
+   * uint32x4_t vaddq_u32 (uint32x4_t, uint32x4_t)
+     _Form of expected instruction(s):_ `vadd.i32 Q0, Q0, Q0'
+
+   * uint16x8_t vaddq_u16 (uint16x8_t, uint16x8_t)
+     _Form of expected instruction(s):_ `vadd.i16 Q0, Q0, Q0'
+
+   * uint8x16_t vaddq_u8 (uint8x16_t, uint8x16_t)
+     _Form of expected instruction(s):_ `vadd.i8 Q0, Q0, Q0'
+
+   * int32x4_t vaddq_s32 (int32x4_t, int32x4_t)
+     _Form of expected instruction(s):_ `vadd.i32 Q0, Q0, Q0'
+
+   * int16x8_t vaddq_s16 (int16x8_t, int16x8_t)
+     _Form of expected instruction(s):_ `vadd.i16 Q0, Q0, Q0'
+
+   * int8x16_t vaddq_s8 (int8x16_t, int8x16_t)
+     _Form of expected instruction(s):_ `vadd.i8 Q0, Q0, Q0'
+
+   * uint64x2_t vaddq_u64 (uint64x2_t, uint64x2_t)
+     _Form of expected instruction(s):_ `vadd.i64 Q0, Q0, Q0'
+
+   * int64x2_t vaddq_s64 (int64x2_t, int64x2_t)
+     _Form of expected instruction(s):_ `vadd.i64 Q0, Q0, Q0'
+
+   * float32x4_t vaddq_f32 (float32x4_t, float32x4_t)
+     _Form of expected instruction(s):_ `vadd.f32 Q0, Q0, Q0'
+
+   * uint64x2_t vaddl_u32 (uint32x2_t, uint32x2_t)
+     _Form of expected instruction(s):_ `vaddl.u32 Q0, D0, D0

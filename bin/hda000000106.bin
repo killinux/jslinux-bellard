@@ -1,0 +1,1131 @@
+ layout,  Up: mmo
+
+3.5.2 Symbol table format
+-------------------------
+
+From mmixal.w (or really, the generated mmixal.tex) in
+`http://www-cs-faculty.stanford.edu/~knuth/programs/mmix.tar.gz'):
+"Symbols are stored and retrieved by means of a `ternary search trie',
+following ideas of Bentley and Sedgewick. (See ACM-SIAM Symp. on
+Discrete Algorithms `8' (1997), 360-369; R.Sedgewick, `Algorithms in C'
+(Reading, Mass.  Addison-Wesley, 1998), `15.4'.)  Each trie node stores
+a character, and there are branches to subtries for the cases where a
+given character is less than, equal to, or greater than the character
+in the trie.  There also is a pointer to a symbol table entry if a
+symbol ends at the current node."
+
+   So it's a tree encoded as a stream of bytes.  The stream of bytes
+acts on a single virtual global symbol, adding and removing characters
+and signalling complete symbol points.  Here, we read the stream and
+create symbols at the completion points.
+
+   First, there's a control byte `m'.  If any of the listed bits in `m'
+is nonzero, we execute what stands at the right, in the listed order:
+
+      (MMO3_LEFT)
+      0x40 - Traverse left trie.
+             (Read a new command byte and recurse.)
+
+      (MMO3_SYMBITS)
+      0x2f - Read the next byte as a character and store it in the
+             current character position; increment character position.
+             Test the bits of `m':
+
+             (MMO3_WCHAR)
+             0x80 - The character is 16-bit (so read another byte,
+                    merge into current character.
+
+             (MMO3_TYPEBITS)
+             0xf  - We have a complete symbol; parse the type, value
+                    and serial number and do what should be done
+                    with a symbol.  The type and length information
+                    is in j = (m & 0xf).
+
+                    (MMO3_REGQUAL_BITS)
+                    j == 0xf: A register variable.  The following
+                              byte tells which register.
+                    j <= 8:   An absolute symbol.  Read j bytes as the
+                              big-endian number the symbol equals.
+                              A j = 2 with two zero bytes denotes an
+                              unknown symbol.
+                    j > 8:    As with j <= 8, but add (0x20 << 56)
+                              to the value in the following j - 8
+                              bytes.
+
+                    Then comes the serial number, as a variant of
+                    uleb128, but better named ubeb128:
+                    Read bytes and shift the previous value left 7
+                    (multiply by 128).  Add in the new byte, repeat
+                    until a byte has bit 7 set.  The serial number
+                    is the computed value minus 128.
+
+             (MMO3_MIDDLE)
+             0x20 - Traverse middle trie.  (Read a new command byte
+                    and recurse.)  Decrement character position.
+
+      (MMO3_RIGHT)
+      0x10 - Traverse right trie.  (Read a new command byte and
+             recurse.)
+
+   Let's look again at the `lop_stab' for the trivial file (*note File
+layout::).
+
+      0x980b0000 - lop_stab for ":Main" = 0, serial 1.
+      0x203a4040
+      0x10404020
+      0x4d206120
+      0x69016e00
+      0x81000000
+
+   This forms the trivial trie (note that the path between ":" and "M"
+is redundant):
+
+      203a     ":"
+      40       /
+      40      /
+      10      \
+      40      /
+      40     /
+      204d  "M"
+      2061  "a"
+      2069  "i"
+      016e  "n" is the last character in a full symbol, and
+            with a value represented in one byte.
+      00    The value is 0.
+      81    The serial number is 1.
+
+
+File: bfd.info,  Node: mmo section mapping,  Prev: Symbol-table,  Up: mmo
+
+3.5.3 mmo section mapping
+-------------------------
+
+The implementation in BFD uses special data type 80 (decimal) to
+encapsulate and describe named sections, containing e.g. debug
+information.  If needed, any datum in the encapsulation will be quoted
+using lop_quote.  First comes a 32-bit word holding the number of
+32-bit words containing the zero-terminated zero-padded segment name.
+After the name there's a 32-bit word holding flags describing the
+section type.  Then comes a 64-bit big-endian word with the section
+length (in bytes), then another with the section start address.
+Depending on the type of section, the contents might follow,
+zero-padded to 32-bit boundary.  For a loadable section (such as data
+or code), the contents might follow at some later point, not
+necessarily immediately, as a lop_loc with the same start address as in
+the section description, followed by the contents.  This in effect
+forms a descriptor that must be emitted before the actual contents.
+Sections described this way must not overlap.
+
+   For areas that don't have such descriptors, synthetic sections are
+formed by BFD.  Consecutive contents in the two memory areas
+`0x0000...00' to `0x01ff...ff' and `0x2000...00' to `0x20ff...ff' are
+entered in sections named `.text' and `.data' respectively.  If an area
+is not otherwise described, but would together with a neighboring lower
+area be less than `0x40000000' bytes long, it is joined with the lower
+area and the gap is zero-filled.  For other cases, a new section is
+formed, named `.MMIX.sec.N'.  Here, N is a number, a running count
+through the mmo file, starting at 0.
+
+   A loadable section specified as:
+
+      .section secname,"ax"
+      TETRA 1,2,3,4,-1,-2009
+      BYTE 80
+
+   and linked to address `0x4', is represented by the sequence:
+
+      0x98080050 - lop_spec 80
+      0x00000002 - two 32-bit words for the section name
+      0x7365636e - "secn"
+      0x616d6500 - "ame\0"
+      0x00000033 - flags CODE, READONLY, LOAD, ALLOC
+      0x00000000 - high 32 bits of section length
+      0x0000001c - section length is 28 bytes; 6 * 4 + 1 + alignment to 32 bits
+      0x00000000 - high 32 bits of section address
+      0x00000004 - section address is 4
+      0x98010002 - 64 bits with address of following data
+      0x00000000 - high 32 bits of address
+      0x00000004 - low 32 bits: data starts at address 4
+      0x00000001 - 1
+      0x00000002 - 2
+      0x00000003 - 3
+      0x00000004 - 4
+      0xffffffff - -1
+      0xfffff827 - -2009
+      0x50000000 - 80 as a byte, padded with zeros.
+
+   Note that the lop_spec wrapping does not include the section
+contents.  Compare this to a non-loaded section specified as:
+
+      .section thirdsec
+      TETRA 200001,100002
+      BYTE 38,40
+
+   This, when linked to address `0x200000000000001c', is represented by:
+
+      0x98080050 - lop_spec 80
+      0x00000002 - two 32-bit words for the section name
+      0x7365636e - "thir"
+      0x616d6500 - "dsec"
+      0x00000010 - flag READONLY
+      0x00000000 - high 32 bits of section length
+      0x0000000c - section length is 12 bytes; 2 * 4 + 2 + alignment to 32 bits
+      0x20000000 - high 32 bits of address
+      0x0000001c - low 32 bits of address 0x200000000000001c
+      0x00030d41 - 200001
+      0x000186a2 - 100002
+      0x26280000 - 38, 40 as bytes, padded with zeros
+
+   For the latter example, the section contents must not be loaded in
+memory, and is therefore specified as part of the special data.  The
+address is usually unimportant but might provide information for e.g.
+the DWARF 2 debugging format.
+
+
+File: bfd.info,  Node: GNU Free Documentation License,  Next: BFD Index,  Prev: BFD back ends,  Up: Top
+
+                     Version 1.3, 3 November 2008
+
+     Copyright (C) 2000, 2001, 2002, 2007, 2008 Free Software Foundation, Inc.
+     `http://fsf.org/'
+
+     Everyone is permitted to copy and distribute verbatim copies
+     of this license document, but changing it is not allowed.
+
+  0. PREAMBLE
+
+     The purpose of this License is to make a manual, textbook, or other
+     functional and useful document "free" in the sense of freedom: to
+     assure everyone the effective freedom to copy and redistribute it,
+     with or without modifying it, either commercially or
+     noncommercially.  Secondarily, this License preserves for the
+     author and publisher a way to get credit for their work, while not
+     being considered responsible for modifications made by others.
+
+     This License is a kind of "copyleft", which means that derivative
+     works of the document must themselves be free in the same sense.
+     It complements the GNU General Public License, which is a copyleft
+     license designed for free software.
+
+     We have designed this License in order to use it for manuals for
+     free software, because free software needs free documentation: a
+     free program should come with manuals providing the same freedoms
+     that the software does.  But this License is not limited to
+     software manuals; it can be used for any textual work, regardless
+     of subject matter or whether it is published as a printed book.
+     We recommend this License principally for works whose purpose is
+     instruction or reference.
+
+  1. APPLICABILITY AND DEFINITIONS
+
+     This License applies to any manual or other work, in any medium,
+     that contains a notice placed by the copyright holder saying it
+     can be distributed under the terms of this License.  Such a notice
+     grants a world-wide, royalty-free license, unlimited in duration,
+     to use that work under the conditions stated herein.  The
+     "Document", below, refers to any such manual or work.  Any member
+     of the public is a licensee, and is addressed as "you".  You
+     accept the license if you copy, modify or distribute the work in a
+     way requiring permission under copyright law.
+
+     A "Modified Version" of the Document means any work containing the
+     Document or a portion of it, either copied verbatim, or with
+     modifications and/or translated into another language.
+
+     A "Secondary Section" is a named appendix or a front-matter section
+     of the Document that deals exclusively with the relationship of the
+     publishers or authors of the Document to the Document's overall
+     subject (or to related matters) and contains nothing that could
+     fall directly within that overall subject.  (Thus, if the Document
+     is in part a textbook of mathematics, a Secondary Section may not
+     explain any mathematics.)  The relationship could be a matter of
+     historical connection with the subject or with related matters, or
+     of legal, commercial, philosophical, ethical or political position
+     regarding them.
+
+     The "Invariant Sections" are certain Secondary Sections whose
+     titles are designated, as being those of Invariant Sections, in
+     the notice that says that the Document is released under this
+     License.  If a section does not fit the above definition of
+     Secondary then it is not allowed to be designated as Invariant.
+     The Document may contain zero Invariant Sections.  If the Document
+     does not identify any Invariant Sections then there are none.
+
+     The "Cover Texts" are certain short passages of text that are
+     listed, as Front-Cover Texts or Back-Cover Texts, in the notice
+     that says that the Document is released under this License.  A
+     Front-Cover Text may be at most 5 words, and a Back-Cover Text may
+     be at most 25 words.
+
+     A "Transparent" copy of the Document means a machine-readable copy,
+     represented in a format whose specification is available to the
+     general public, that is suitable for revising the document
+     straightforwardly with generic text editors or (for images
+     composed of pixels) generic paint programs or (for drawings) some
+     widely available drawing editor, and that is suitable for input to
+     text formatters or for automatic translation to a variety of
+     formats suitable for input to text formatters.  A copy made in an
+     otherwise Transparent file format whose markup, or absence of
+     markup, has been arranged to thwart or discourage subsequent
+     modification by readers is not Transparent.  An image format is
+     not Transparent if used for any substantial amount of text.  A
+     copy that is not "Transparent" is called "Opaque".
+
+     Examples of suitable formats for Transparent copies include plain
+     ASCII without markup, Texinfo input format, LaTeX input format,
+     SGML or XML using a publicly available DTD, and
+     standard-conforming simple HTML, PostScript or PDF designed for
+     human modification.  Examples of transparent image formats include
+     PNG, XCF and JPG.  Opaque formats include proprietary formats that
+     can be read and edited only by proprietary word processors, SGML or
+     XML for which the DTD and/or processing tools are not generally
+     available, and the machine-generated HTML, PostScript or PDF
+     produced by some word processors for output purposes only.
+
+     The "Title Page" means, for a printed book, the title page itself,
+     plus such following pages as are needed to hold, legibly, the
+     material this License requires to appear in the title page.  For
+     works in formats which do not have any title page as such, "Title
+     Page" means the text near the most prominent appearance of the
+     work's title, preceding the beginning of the body of the text.
+
+     The "publisher" means any person or entity that distributes copies
+     of the Document to the public.
+
+     A section "Entitled XYZ" means a named subunit of the Document
+     whose title either is precisely XYZ or contains XYZ in parentheses
+     following text that translates XYZ in another language.  (Here XYZ
+     stands for a specific section name mentioned below, such as
+     "Acknowledgements", "Dedications", "Endorsements", or "History".)
+     To "Preserve the Title" of such a section when you modify the
+     Document means that it remains a section "Entitled XYZ" according
+     to this definition.
+
+     The Document may include Warranty Disclaimers next to the notice
+     which states that this License applies to the Document.  These
+     Warranty Disclaimers are considered to be included by reference in
+     this License, but only as regards disclaiming warranties: any other
+     implication that these Warranty Disclaimers may have is void and
+     has no effect on the meaning of this License.
+
+  2. VERBATIM COPYING
+
+     You may copy and distribute the Document in any medium, either
+     commercially or noncommercially, provided that this License, the
+     copyright notices, and the license notice saying this License
+     applies to the Document are reproduced in all copies, and that you
+     add no other conditions whatsoever to those of this License.  You
+     may not use technical measures to obstruct or control the reading
+     or further copying of the copies you make or distribute.  However,
+     you may accept compensation in exchange for copies.  If you
+     distribute a large enough number of copies you must also follow
+     the conditions in section 3.
+
+     You may also lend copies, under the same conditions stated above,
+     and you may publicly display copies.
+
+  3. COPYING IN QUANTITY
+
+     If you publish printed copies (or copies in media that commonly
+     have printed covers) of the Document, numbering more than 100, and
+     the Document's license notice requires Cover Texts, you must
+     enclose the copies in covers that carry, clearly and legibly, all
+     these Cover Texts: Front-Cover Texts on the front cover, and
+     Back-Cover Texts on the back cover.  Both covers must also clearly
+     and legibly identify you as the publisher of these copies.  The
+     front cover must present the full title with all words of the
+     title equally prominent and visible.  You may add other material
+     on the covers in addition.  Copying with changes limited to the
+     covers, as long as they preserve the title of the Document and
+     satisfy these conditions, can be treated as verbatim copying in
+     other respects.
+
+     If the required texts for either cover are too voluminous to fit
+     legibly, you should put the first ones listed (as many as fit
+     reasonably) on the actual cover, and continue the rest onto
+     adjacent pages.
+
+     If you publish or distribute Opaque copies of the Document
+     numbering more than 100, you must either include a
+     machine-readable Transparent copy along with each Opaque copy, or
+     state in or with each Opaque copy a computer-network location from
+     which the general network-using public has access to download
+     using public-standard network protocols a complete Transparent
+     copy of the Document, free of added material.  If you use the
+     latter option, you must take reasonably prudent steps, when you
+     begin distribution of Opaque copies in quantity, to ensure that
+     this Transparent copy will remain thus accessible at the stated
+     location until at least one year after the last time you
+     distribute an Opaque copy (directly or through your agents or
+     retailers) of that edition to the public.
+
+     It is requested, but not required, that you contact the authors of
+     the Document well before redistributing any large number of
+     copies, to give them a chance to provide you with an updated
+     version of the Document.
+
+  4. MODIFICATIONS
+
+     You may copy and distribute a Modified Version of the Document
+     under the conditions of sections 2 and 3 above, provided that you
+     release the Modified Version under precisely this License, with
+     the Modified Version filling the role of the Document, thus
+     licensing distribution and modification of the Modified Version to
+     whoever possesses a copy of it.  In addition, you must do these
+     things in the Modified Version:
+
+       A. Use in the Title Page (and on the covers, if any) a title
+          distinct from that of the Document, and from those of
+          previous versions (which should, if there were any, be listed
+          in the History section of the Document).  You may use the
+          same title as a previous version if the original publisher of
+          that version gives permission.
+
+       B. List on the Title Page, as authors, one or more persons or
+          entities responsible for authorship of the modifications in
+          the Modified Version, together with at least five of the
+          principal authors of the Document (all of its principal
+          authors, if it has fewer than five), unless they release you
+          from this requirement.
+
+       C. State on the Title page the name of the publisher of the
+          Modified Version, as the publisher.
+
+       D. Preserve all the copyright notices of the Document.
+
+       E. Add an appropriate copyright notice for your modifications
+          adjacent to the other copyright notices.
+
+       F. Include, immediately after the copyright notices, a license
+          notice giving the public permission to use the Modified
+          Version under the terms of this License, in the form shown in
+          the Addendum below.
+
+       G. Preserve in that license notice the full lists of Invariant
+          Sections and required Cover Texts given in the Document's
+          license notice.
+
+       H. Include an unaltered copy of this License.
+
+       I. Preserve the section Entitled "History", Preserve its Title,
+          and add to it an item stating at least the title, year, new
+          authors, and publisher of the Modified Version as given on
+          the Title Page.  If there is no section Entitled "History" in
+          the Document, create one stating the title, year, authors,
+          and publisher of the Document as given on its Title Page,
+          then add an item describing the Modified Version as stated in
+          the previous sentence.
+
+       J. Preserve the network location, if any, given in the Document
+          for public access to a Transparent copy of the Document, and
+          likewise the network locations given in the Document for
+          previous versions it was based on.  These may be placed in
+          the "History" section.  You may omit a network location for a
+          work that was published at least four years before the
+          Document itself, or if the original publisher of the version
+          it refers to gives permission.
+
+       K. For any section Entitled "Acknowledgements" or "Dedications",
+          Preserve the Title of the section, and preserve in the
+          section all the substance and tone of each of the contributor
+          acknowledgements and/or dedications given therein.
+
+       L. Preserve all the Invariant Sections of the Document,
+          unaltered in their text and in their titles.  Section numbers
+          or the equivalent are not considered part of the section
+          titles.
+
+       M. Delete any section Entitled "Endorsements".  Such a section
+          may not be included in the Modified Version.
+
+       N. Do not retitle any existing section to be Entitled
+          "Endorsements" or to conflict in title with any Invariant
+          Section.
+
+       O. Preserve any Warranty Disclaimers.
+
+     If the Modified Version includes new front-matter sections or
+     appendices that qualify as Secondary Sections and contain no
+     material copied from the Document, you may at your option
+     designate some or all of these sections as invariant.  To do this,
+     add their titles to the list of Invariant Sections in the Modified
+     Version's license notice.  These titles must be distinct from any
+     other section titles.
+
+     You may add a section Entitled "Endorsements", provided it contains
+     nothing but endorsements of your Modified Version by various
+     parties--for example, statements of peer review or that the text
+     has been approved by an organization as the authoritative
+     definition of a standard.
+
+     You may add a passage of up to five words as a Front-Cover Text,
+     and a passage of up to 25 words as a Back-Cover Text, to the end
+     of the list of Cover Texts in the Modified Version.  Only one
+     passage of Front-Cover Text and one of Back-Cover Text may be
+     added by (or through arrangements made by) any one entity.  If the
+     Document already includes a cover text for the same cover,
+     previously added by you or by arrangement made by the same entity
+     you are acting on behalf of, you may not add another; but you may
+     replace the old one, on explicit permission from the previous
+     publisher that added the old one.
+
+     The author(s) and publisher(s) of the Document do not by this
+     License give permission to use their names for publicity for or to
+     assert or imply endorsement of any Modified Version.
+
+  5. COMBINING DOCUMENTS
+
+     You may combine the Document with other documents released under
+     this License, under the terms defined in section 4 above for
+     modified versions, provided that you include in the combination
+     all of the Invariant Sections of all of the original documents,
+     unmodified, and list them all as Invariant Sections of your
+     combined work in its license notice, and that you preserve all
+     their Warranty Disclaimers.
+
+     The combined work need only contain one copy of this License, and
+     multiple identical Invariant Sections may be replaced with a single
+     copy.  If there are multiple Invariant Sections with the same name
+     but different contents, make the title of each such section unique
+     by adding at the end of it, in parentheses, the name of the
+     original author or publisher of that section if known, or else a
+     unique number.  Make the same adjustment to the section titles in
+     the list of Invariant Sections in the license notice of the
+     combined work.
+
+     In the combination, you must combine any sections Entitled
+     "History" in the various original documents, forming one section
+     Entitled "History"; likewise combine any sections Entitled
+     "Acknowledgements", and any sections Entitled "Dedications".  You
+     must delete all sections Entitled "Endorsements."
+
+  6. COLLECTIONS OF DOCUMENTS
+
+     You may make a collection consisting of the Document and other
+     documents released under this License, and replace the individual
+     copies of this License in the various documents with a single copy
+     that is included in the collection, provided that you follow the
+     rules of this License for verbatim copying of each of the
+     documents in all other respects.
+
+     You may extract a single document from such a collection, and
+     distribute it individually under this License, provided you insert
+     a copy of this License into the extracted document, and follow
+     this License in all other respects regarding verbatim copying of
+     that document.
+
+  7. AGGREGATION WITH INDEPENDENT WORKS
+
+     A compilation of the Document or its derivatives with other
+     separate and independent documents or works, in or on a volume of
+     a storage or distribution medium, is called an "aggregate" if the
+     copyright resulting from the compilation is not used to limit the
+     legal rights of the compilation's users beyond what the individual
+     works permit.  When the Document is included in an aggregate, this
+     License does not apply to the other works in the aggregate which
+     are not themselves derivative works of the Document.
+
+     If the Cover Text requirement of section 3 is applicable to these
+     copies of the Document, then if the Document is less than one half
+     of the entire aggregate, the Document's Cover Texts may be placed
+     on covers that bracket the Document within the aggregate, or the
+     electronic equivalent of covers if the Document is in electronic
+     form.  Otherwise they must appear on printed covers that bracket
+     the whole aggregate.
+
+  8. TRANSLATION
+
+     Translation is considered a kind of modification, so you may
+     distribute translations of the Document under the terms of section
+     4.  Replacing Invariant Sections with translations requires special
+     permission from their copyright holders, but you may include
+     translations of some or all Invariant Sections in addition to the
+     original versions of these Invariant Sections.  You may include a
+     translation of this License, and all the license notices in the
+     Document, and any Warranty Disclaimers, provided that you also
+     include the original English version of this License and the
+     original versions of those notices and disclaimers.  In case of a
+     disagreement between the translation and the original version of
+     this License or a notice or disclaimer, the original version will
+     prevail.
+
+     If a section in the Document is Entitled "Acknowledgements",
+     "Dedications", or "History", the requirement (section 4) to
+     Preserve its Title (section 1) will typically require changing the
+     actual title.
+
+  9. TERMINATION
+
+     You may not copy, modify, sublicense, or distribute the Document
+     except as expressly provided under this License.  Any attempt
+     otherwise to copy, modify, sublicense, or distribute it is void,
+     and will automatically terminate your rights under this License.
+
+     However, if you cease all violation of this License, then your
+     license from a particular copyright holder is reinstated (a)
+     provisionally, unless and until the copyright holder explicitly
+     and finally terminates your license, and (b) permanently, if the
+     copyright holder fails to notify you of the violation by some
+     reasonable means prior to 60 days after the cessation.
+
+     Moreover, your license from a particular copyright holder is
+     reinstated permanently if the copyright holder notifies you of the
+     violation by some reasonable means, this is the first time you have
+     received notice of violation of this License (for any work) from
+     that copyright holder, and you cure the violation prior to 30 days
+     after your receipt of the notice.
+
+     Termination of your rights under this section does not terminate
+     the licenses of parties who have received copies or rights from
+     you under this License.  If your rights have been terminated and
+     not permanently reinstated, receipt of a copy of some or all of
+     the same material does not give you any rights to use it.
+
+ 10. FUTURE REVISIONS OF THIS LICENSE
+
+     The Free Software Foundation may publish new, revised versions of
+     the GNU Free Documentation License from time to time.  Such new
+     versions will be similar in spirit to the present version, but may
+     differ in detail to address new problems or concerns.  See
+     `http://www.gnu.org/copyleft/'.
+
+     Each version of the License is given a distinguishing version
+     number.  If the Document specifies that a particular numbered
+     version of this License "or any later version" applies to it, you
+     have the option of following the terms and conditions either of
+     that specified version or of any later version that has been
+     published (not as a draft) by the Free Software Foundation.  If
+     the Document does not specify a version number of this License,
+     you may choose any version ever published (not as a draft) by the
+     Free Software Foundation.  If the Document specifies that a proxy
+     can decide which future versions of this License can be used, that
+     proxy's public statement of acceptance of a version permanently
+     authorizes you to choose that version for the Document.
+
+ 11. RELICENSING
+
+     "Massive Multiauthor Collaboration Site" (or "MMC Site") means any
+     World Wide Web server that publishes copyrightable works and also
+     provides prominent facilities for anybody to edit those works.  A
+     public wiki that anybody can edit is an example of such a server.
+     A "Massive Multiauthor Collaboration" (or "MMC") contained in the
+     site means any set of copyrightable works thus published on the MMC
+     site.
+
+     "CC-BY-SA" means the Creative Commons Attribution-Share Alike 3.0
+     license published by Creative Commons Corporation, a not-for-profit
+     corporation with a principal place of business in San Francisco,
+     California, as well as future copyleft versions of that license
+     published by that same organization.
+
+     "Incorporate" means to publish or republish a Document, in whole or
+     in part, as part of another Document.
+
+     An MMC is "eligible for relicensing" if it is licensed under this
+     License, and if all works that were first published under this
+     License somewhere other than this MMC, and subsequently
+     incorporated in whole or in part into the MMC, (1) had no cover
+     texts or invariant sections, and (2) were thus incorporated prior
+     to November 1, 2008.
+
+     The operator of an MMC Site may republish an MMC contained in the
+     site under CC-BY-SA on the same site at any time before August 1,
+     2009, provided the MMC is eligible for relicensing.
+
+
+ADDENDUM: How to use this License for your documents
+====================================================
+
+To use this License in a document you have written, include a copy of
+the License in the document and put the following copyright and license
+notices just after the title page:
+
+       Copyright (C)  YEAR  YOUR NAME.
+       Permission is granted to copy, distribute and/or modify this document
+       under the terms of the GNU Free Documentation License, Version 1.3
+       or any later version published by the Free Software Foundation;
+       with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+       Texts.  A copy of the license is included in the section entitled ``GNU
+       Free Documentation License''.
+
+   If you have Invariant Sections, Front-Cover Texts and Back-Cover
+Texts, replace the "with...Texts." line with this:
+
+         with the Invariant Sections being LIST THEIR TITLES, with
+         the Front-Cover Texts being LIST, and with the Back-Cover Texts
+         being LIST.
+
+   If you have Invariant Sections without Cover Texts, or some other
+combination of the three, merge those two alternatives to suit the
+situation.
+
+   If your document contains nontrivial examples of program code, we
+recommend releasing these examples in parallel under your choice of
+free software license, such as the GNU General Public License, to
+permit their use in free software.
+
+
+File: bfd.info,  Node: BFD Index,  Prev: GNU Free Documentation License,  Up: Top
+
+BFD Index
+*********
+
+ [index ]
+* Menu:
+
+* _bfd_final_link_relocate:              Relocating the section contents.
+                                                             (line   22)
+* _bfd_generic_link_add_archive_symbols: Adding symbols from an archive.
+                                                             (line   15)
+* _bfd_generic_link_add_one_symbol:      Adding symbols from an object file.
+                                                             (line   19)
+* _bfd_generic_make_empty_symbol:        symbol handling functions.
+                                                             (line   92)
+* _bfd_link_add_symbols in target vector: Adding Symbols to the Hash Table.
+                                                             (line    6)
+* _bfd_link_final_link in target vector: Performing the Final Link.
+                                                             (line    6)
+* _bfd_link_hash_table_create in target vector: Creating a Linker Hash Table.
+                                                             (line    6)
+* _bfd_relocate_contents:                Relocating the section contents.
+                                                             (line   22)
+* aout_SIZE_machine_type:                aout.               (line  147)
+* aout_SIZE_mkobject:                    aout.               (line  139)
+* aout_SIZE_new_section_hook:            aout.               (line  177)
+* aout_SIZE_set_arch_mach:               aout.               (line  164)
+* aout_SIZE_some_aout_object_p:          aout.               (line  125)
+* aout_SIZE_swap_exec_header_in:         aout.               (line  101)
+* aout_SIZE_swap_exec_header_out:        aout.               (line  113)
+* arelent_chain:                         typedef arelent.    (line  336)
+* BFD:                                   Overview.           (line    6)
+* BFD canonical format:                  Canonical format.   (line   11)
+* bfd_alloc:                             Opening and Closing.
+                                                             (line  214)
+* bfd_alloc2:                            Opening and Closing.
+                                                             (line  223)
+* bfd_alt_mach_code:                     BFD front end.      (line  708)
+* bfd_arch_bits_per_address:             Architectures.      (line  521)
+* bfd_arch_bits_per_byte:                Architectures.      (line  513)
+* bfd_arch_get_compatible:               Architectures.      (line  456)
+* bfd_arch_list:                         Architectures.      (line  447)
+* bfd_arch_mach_octets_per_byte:         Architectures.      (line  590)
+* BFD_ARELOC_BFIN_ADD:                   howto manager.      (line 1016)
+* BFD_ARELOC_BFIN_ADDR:                  howto manager.      (line 1067)
+* BFD_ARELOC_BFIN_AND:                   howto manager.      (line 1037)
+* BFD_ARELOC_BFIN_COMP:                  howto manager.      (line 1058)
+* BFD_ARELOC_BFIN_CONST:                 howto manager.      (line 1013)
+* BFD_ARELOC_BFIN_DIV:                   howto manager.      (line 1025)
+* BFD_ARELOC_BFIN_HWPAGE:                howto manager.      (line 1064)
+* BFD_ARELOC_BFIN_LAND:                  howto manager.      (line 1046)
+* BFD_ARELOC_BFIN_LEN:                   howto manager.      (line 1052)
+* BFD_ARELOC_BFIN_LOR:                   howto manager.      (line 1049)
+* BFD_ARELOC_BFIN_LSHIFT:                howto manager.      (line 1031)
+* BFD_ARELOC_BFIN_MOD:                   howto manager.      (line 1028)
+* BFD_ARELOC_BFIN_MULT:                  howto manager.      (line 1022)
+* BFD_ARELOC_BFIN_NEG:                   howto manager.      (line 1055)
+* BFD_ARELOC_BFIN_OR:                    howto manager.      (line 1040)
+* BFD_ARELOC_BFIN_PAGE:                  howto manager.      (line 1061)
+* BFD_ARELOC_BFIN_PUSH:                  howto manager.      (line 1010)
+* BFD_ARELOC_BFIN_RSHIFT:                howto manager.      (line 1034)
+* BFD_ARELOC_BFIN_SUB:                   howto manager.      (line 1019)
+* BFD_ARELOC_BFIN_XOR:                   howto manager.      (line 1043)
+* bfd_cache_close:                       File Caching.       (line   26)
+* bfd_cache_close_all:                   File Caching.       (line   39)
+* bfd_cache_init:                        File Caching.       (line   18)
+* bfd_calc_gnu_debuglink_crc32:          Opening and Closing.
+                                                             (line  250)
+* bfd_canonicalize_reloc:                BFD front end.      (line  427)
+* bfd_canonicalize_symtab:               symbol handling functions.
+                                                             (line   50)
+* bfd_check_format:                      Formats.            (line   21)
+* bfd_check_format_matches:              Formats.            (line   52)
+* bfd_check_overflow:                    typedef arelent.    (line  348)
+* bfd_close:                             Opening and Closing.
+                                                             (line  139)
+* bfd_close_all_done:                    Opening and Closing.
+                                                             (line  157)
+* bfd_coff_backend_data:                 coff.               (line  304)
+* bfd_copy_private_bfd_data:             BFD front end.      (line  566)
+* bfd_copy_private_header_data:          BFD front end.      (line  548)
+* bfd_copy_private_section_data:         section prototypes. (line  255)
+* bfd_copy_private_symbol_data:          symbol handling functions.
+                                                             (line  140)
+* bfd_core_file_failing_command:         Core Files.         (line   12)
+* bfd_core_file_failing_signal:          Core Files.         (line   21)
+* bfd_core_file_pid:                     Core Files.         (line   30)
+* bfd_create:                            Opening and Closing.
+                                                             (line  176)
+* bfd_create_gnu_debuglink_section:      Opening and Closing.
+                                                             (line  316)
+* bfd_decode_symclass:                   symbol handling functions.
+                                                             (line  111)
+* bfd_default_arch_struct:               Architectures.      (line  468)
+* bfd_default_compatible:                Architectures.      (line  530)
+* bfd_default_reloc_type_lookup:         howto manager.      (line 2405)
+* bfd_default_scan:                      Architectures.      (line  539)
+* bfd_default_set_arch_mach:             Architectures.      (line  486)
+* bfd_demangle:                          BFD front end.      (line  806)
+* bfd_emul_get_commonpagesize:           BFD front end.      (line  786)
+* bfd_emul_get_maxpagesize:              BFD front end.      (line  766)
+* bfd_emul_set_commonpagesize:           BFD front end.      (line  797)
+* bfd_emul_set_maxpagesize:              BFD front end.      (line  777)
+* bfd_errmsg:                            BFD front end.      (line  352)
+* bfd_fdopenr:                           Opening and Closing.
+                                                             (line   49)
+* bfd_fill_in_gnu_debuglink_section:     Opening and Closing.
+                                                             (line  330)
+* bfd_find_target:                       bfd_target.         (line  456)
+* bfd_find_version_for_sym:              Writing the symbol table.
+                                                             (line   80)
+* bfd_follow_gnu_debuglink:              Opening and Closing.
+                                                             (line  295)
+* bfd_fopen:                             Opening and Closing.
+                                                             (line   12)
+* bfd_format_string:                     Formats.            (line   79)
+* bfd_generic_define_common_symbol:      Writing the symbol table.
+                                                             (line   67)
+* bfd_generic_discard_group:             section prototypes. (line  281)
+* bfd_generic_gc_sections:               howto manager.      (line 2436)
+* bfd_generic_get_relocated_section_contents: howto manager. (line 2456)
+* bfd_generic_is_group_section:          section prototypes. (line  273)
+* bfd_generic_merge_sections:            howto manager.      (line 2446)
+* bfd_generic_relax_section:             howto manager.      (line 2423)
+* bfd_get_arch:                          Architectures.      (line  497)
+* bfd_get_arch_info:                     Architectures.      (line  549)
+* bfd_get_arch_size:                     BFD front end.      (line  471)
+* bfd_get_error:                         BFD front end.      (line  333)
+* bfd_get_error_handler:                 BFD front end.      (line  403)
+* bfd_get_gp_size:                       BFD front end.      (line  512)
+* bfd_get_mach:                          Architectures.      (line  505)
+* bfd_get_mtime:                         BFD front end.      (line  851)
+* bfd_get_next_mapent:                   Archives.           (line   52)
+* bfd_get_reloc_code_name:               howto manager.      (line 2414)
+* bfd_get_reloc_size:                    typedef arelent.    (line  327)
+* bfd_get_reloc_upper_bound:             BFD front end.      (line  417)
+* bfd_get_section_by_name:               section prototypes. (line   17)
+* bfd_get_section_by_name_if:            section prototypes. (line   31)
+* bfd_get_section_contents:              section prototypes. (line  228)
+* bfd_get_sign_extend_vma:               BFD front end.      (line  484)
+* bfd_get_size <1>:                      BFD front end.      (line  860)
+* bfd_get_size:                          Internal.           (line   25)
+* bfd_get_symtab_upper_bound:            symbol handling functions.
+                                                             (line    6)
+* bfd_get_target_info:                   bfd_target.         (line  472)
+* bfd_get_unique_section_name:           section prototypes. (line   50)
+* bfd_h_put_size:                        Internal.           (line   97)
+* bfd_hash_allocate:                     Creating and Freeing a Hash Table.
+                                                             (line   17)
+* bfd_hash_lookup:                       Looking Up or Entering a String.
+                                                             (line    6)
+* bfd_hash_newfunc:                      Creating and Freeing a Hash Table.
+                                                             (line   12)
+* bfd_hash_set_default_size:             Creating and Freeing a Hash Table.
+                                                             (line   25)
+* bfd_hash_table_free:                   Creating and Freeing a Hash Table.
+                                                             (line   21)
+* bfd_hash_table_init:                   Creating and Freeing a Hash Table.
+                                                             (line    6)
+* bfd_hash_table_init_n:                 Creating and Freeing a Hash Table.
+                                                             (line    6)
+* bfd_hash_traverse:                     Traversing a Hash Table.
+                                                             (line    6)
+* bfd_init:                              Initialization.     (line   11)
+* bfd_install_relocation:                typedef arelent.    (line  389)
+* bfd_is_local_label:                    symbol handling functions.
+                                                             (line   17)
+* bfd_is_local_label_name:               symbol handling functions.
+                                                             (line   26)
+* bfd_is_target_special_symbol:          symbol handling functions.
+                                                             (line   38)
+* bfd_is_undefined_symclass:             symbol handling functions.
+                                                             (line  120)
+* bfd_link_split_section:                Writing the symbol table.
+                                                             (line   44)
+* bfd_log2:                              Internal.           (line  164)
+* bfd_lookup_arch:                       Architectures.      (line  557)
+* bfd_make_debug_symbol:                 symbol handling functions.
+                                                             (line  102)
+* bfd_make_empty_symbol:                 symbol handling functions.
+                                                             (line   78)
+* bfd_make_readable:                     Opening and Closing.
+                                                             (line  200)
+* bfd_make_section:                      section prototypes. (line  129)
+* bfd_make_section_anyway:               section prototypes. (line  100)
+* bfd_make_section_anyway_with_flags:    section prototypes. (line   82)
+* bfd_make_section_old_way:              section prototypes. (line   62)
+* bfd_make_section_with_flags:           section prototypes. (line  116)
+* bfd_make_writable:                     Opening and Closing.
+                                                             (line  186)
+* bfd_malloc_and_get_section:            section prototypes. (line  245)
+* bfd_map_over_sections:                 section prototypes. (line  155)
+* bfd_merge_private_bfd_data:            BFD front end.      (line  582)
+* bfd_mmap:                              BFD front end.      (line  889)
+* bfd_octets_per_byte:                   Architectures.      (line  580)
+* bfd_open_file:                         File Caching.       (line   52)
+* bfd_openr:                             Opening and Closing.
+                                                             (line   33)
+* bfd_openr_iovec:                       Opening and Closing.
+                                                             (line   79)
+* bfd_openr_next_archived_file:          Archives.           (line   78)
+* bfd_openstreamr:                       Opening and Closing.
+                                                             (line   70)
+* bfd_openw:                             Opening and Closing.
+                                                             (line  127)
+* bfd_perform_relocation:                typedef arelent.    (line  364)
+* bfd_perror:                            BFD front end.      (line  361)
+* bfd_preserve_finish:                   BFD front end.      (line  756)
+* bfd_preserve_restore:                  BFD front end.      (line  746)
+* bfd_preserve_save:                     BFD front end.      (line  730)
+* bfd_print_symbol_vandf:                symbol handling functions.
+                                                             (line   70)
+* bfd_printable_arch_mach:               Architectures.      (line  568)
+* bfd_printable_name:                    Architectures.      (line  428)
+* bfd_put_size:                          Internal.           (line   22)
+* BFD_RELOC_12_PCREL:                    howto manager.      (line   39)
+* BFD_RELOC_14:                          howto manager.      (line   31)
+* BFD_RELOC_16:                          howto manager.      (line   30)
+* BFD_RELOC_16_BASEREL:                  howto manager.      (line   95)
+* BFD_RELOC_16_GOT_PCREL:                howto manager.      (line   52)
+* BFD_RELOC_16_GOTOFF:                   howto manager.      (line   55)
+* BFD_RELOC_16_PCREL:                    howto manager.      (line   38)
+* BFD_RELOC_16_PCREL_S2:                 howto manager.      (line  107)
+* BFD_RELOC_16_PLT_PCREL:                howto manager.      (line   63)
+* BFD_RELOC_16_PLTOFF:                   howto manager.      (line   67)
+* BFD_RELOC_16C_ABS20:                   howto manager.      (line 1969)
+* BFD_RELOC_16C_ABS20_C:                 howto manager.      (line 1970)
+* BFD_RELOC_16C_ABS24:                   howto manager.      (line 1971)
+* BFD_RELOC_16C_ABS24_C:                 howto manager.      (line 1972)
+* BFD_RELOC_16C_DISP04:                  howto manager.      (line 1949)
+* BFD_RELOC_16C_DISP04_C:                howto manager.      (line 1950)
+* BFD_RELOC_16C_DISP08:                  howto manager.      (line 1951)
+* BFD_RELOC_16C_DISP08_C:                howto manager.      (line 1952)
+* BFD_RELOC_16C_DISP16:                  howto manager.      (line 1953)
+* BFD_RELOC_16C_DISP16_C:                howto manager.      (line 1954)
+* BFD_RELOC_16C_DISP24:                  howto manager.      (line 1955)
+* BFD_RELOC_16C_DISP24_C:                howto manager.      (line 1956)
+* BFD_RELOC_16C_DISP24a:                 howto manager.      (line 1957)
+* BFD_RELOC_16C_DISP24a_C:               howto manager.      (line 1958)
+* BFD_RELOC_16C_IMM04:                   howto manager.      (line 1973)
+* BFD_RELOC_16C_IMM04_C:                 howto manager.      (line 1974)
+* BFD_RELOC_16C_IMM16:                   howto manager.      (line 1975)
+* BFD_RELOC_16C_IMM16_C:                 howto manager.      (line 1976)
+* BFD_RELOC_16C_IMM20:                   howto manager.      (line 1977)
+* BFD_RELOC_16C_IMM20_C:                 howto manager.      (line 1978)
+* BFD_RELOC_16C_IMM24:                   howto manager.      (line 1979)
+* BFD_RELOC_16C_IMM24_C:                 howto manager.      (line 1980)
+* BFD_RELOC_16C_IMM32:                   howto manager.      (line 1981)
+* BFD_RELOC_16C_IMM32_C:                 howto manager.      (line 1982)
+* BFD_RELOC_16C_NUM08:                   howto manager.      (line 1943)
+* BFD_RELOC_16C_NUM08_C:                 howto manager.      (line 1944)
+* BFD_RELOC_16C_NUM16:                   howto manager.      (line 1945)
+* BFD_RELOC_16C_NUM16_C:                 howto manager.      (line 1946)
+* BFD_RELOC_16C_NUM32:                   howto manager.      (line 1947)
+* BFD_RELOC_16C_NUM32_C:                 howto manager.      (line 1948)
+* BFD_RELOC_16C_REG04:                   howto manager.      (line 1959)
+* BFD_RELOC_16C_REG04_C:                 howto manager.      (line 1960)
+* BFD_RELOC_16C_REG04a:                  howto manager.      (line 1961)
+* BFD_RELOC_16C_REG04a_C:                howto manager.      (line 1962)
+* BFD_RELOC_16C_REG14:                   howto manager.      (line 1963)
+* BFD_RELOC_16C_REG14_C:                 howto manager.      (line 1964)
+* BFD_RELOC_16C_REG16:                   howto manager.      (line 1965)
+* BFD_RELOC_16C_REG16_C:                 howto manager.      (line 1966)
+* BFD_RELOC_16C_REG20:                   howto manager.      (line 1967)
+* BFD_RELOC_16C_REG20_C:                 howto manager.      (line 1968)
+* BFD_RELOC_23_PCREL_S2:                 howto manager.      (line  108)
+* BFD_RELOC_24:                          howto manager.      (line   29)
+* BFD_RELOC_24_PCREL:                    howto manager.      (line   37)
+* BFD_RELOC_24_PLT_PCREL:                howto manager.      (line   62)
+* BFD_RELOC_26:                          howto manager.      (line   28)
+* BFD_RELOC_32:                          howto manager.      (line   27)
+* BFD_RELOC_32_BASEREL:                  howto manager.      (line   94)
+* BFD_RELOC_32_GOT_PCREL:                howto manager.      (line   51)
+* BFD_RELOC_32_GOTOFF:                   howto manager.      (line   54)
+* BFD_RELOC_32_PCREL:                    howto manager.      (line   36)
+* BFD_RELOC_32_PCREL_S2:                 howto manager.      (line  106)
+* BFD_RELOC_32_PLT_PCREL:                howto manager.      (line   61)
+* BFD_RELOC_32_PLTOFF:                   howto manager.      (line   66)
+* BFD_RELOC_32_SECREL:                   howto manager.      (line   48)
+* BFD_RELOC_386_COPY:                    howto manager.      (line  507)
+* BFD_RELOC_386_GLOB_DAT:                howto manager.      (line  508)
+* BFD_RELOC_386_GOT32:                   howto manager.      (line  505)
+* BFD_RELOC_386_GOTOFF:                  howto manager.      (line  511)
+* BFD_RELOC_386_GOTPC:                   howto manager.      (line  512)
+* BFD_RELOC_386_IRELATIVE:               howto manager.      (line  528)
+* BFD_RELOC_386_JUMP_SLOT:               howto manager.      (line  509)
+* BFD_RELOC_386_PLT32:                   howto manager.      (line  506)
+* BFD_RELOC_386_RELATIVE:                howto manager.      (line  510)
+* BFD_RELOC_386_TLS_DESC:                howto manager.      (line  527)
+* BFD_RELOC_386_TLS_DESC_CALL:           howto manager.      (line  526)
+* BFD_RELOC_386_TLS_DTPMOD32:            howto manager.      (line  522)
+* BFD_RELOC_386_TLS_DTPOFF32:            howto manager.      (line  523)
+* BFD_RELOC_386_TLS_GD:                  howto manager.      (line  517)
+* BFD_RELOC_386_TLS_GOTDESC:             howto manager.      (line  525)
+* BFD_RELOC_386_TLS_GOTIE:               howto manager.      (line  515)
+* BFD_RELOC_386_TLS_IE:                  howto manager.      (line  514)
+* BFD_RELOC_386_TLS_IE_32:               howto manager.      (line  520)
+* BFD_RELOC_386_TLS_LDM:                 howto manager.      (line  518)
+* BFD_RELOC_386_TLS_LDO_32:              howto manager.      (line  519)
+* BFD_RELOC_386_TLS_LE:                  howto manager.      (line  516)
+* BFD_RELOC_386_TLS_LE_32:               howto manager.      (line  521)
+* BFD_RELOC_386_TLS_TPOFF:               howto manager.      (line  513)
+* BFD_RELOC_386_TLS_TPOFF32:             howto manager.      (line  524)
+* BFD_RELOC_390_12:                      howto manager.      (line 1629)
+* BFD_RELOC_390_20:                      howto manager.      (line 1729)
+* BFD_RELOC_390_COPY:                    howto manager.      (line 1638)
+* BFD_RELOC_390_GLOB_DAT:                howto manager.      (line 1641)
+* BFD_RELOC_390_GOT12:                   howto manager.      (line 1632)
+* BFD_RELOC_390_GOT16:                   howto manager.      (line 1653)
+* BFD_RELOC_390_GOT20:                   howto manager.      (line 1730)
+* BFD_RELOC_390_GOT64:                   howto manager.      (line 1671)
+* BFD_RELOC_390_GOTENT:                  howto manager.      (line 1677)
+* BFD_RELOC_390_GOTOFF64:                howto manager.      (line 1680)
+* BFD_RELOC_390_GOTPC:                   howto manager.      (line 1650)
+* BFD_RELOC_390_GOTPCDBL:                howto manager.      (line 1668)
+* BFD_RELOC_390_GOTPLT12:                howto manager.      (line 1683)
+* BFD_RELOC_390_GOTPLT16:                howto manager.      (line 1686)
+* BFD_RELOC_390_GOTPLT20:                howto manager.      (line 1731)
+* BFD_RELOC_390_GOTPLT32:                howto manager.      (line 1689)
+* BFD_RELOC_390_GOTPLT64:                howto manager.      (line 1692)
+* BFD_RELOC_390_GOTPLTENT:               howto manager.      (line 1695)
+* BFD_RELOC_390_JMP_SLOT:                howto manager.      (line 1644)
+* BFD_RELOC_390_PC16DBL:                 howto manager.      (line 1656)
+* BFD_RELOC_390_PC32DBL:                 howto manager.      (line 1662)
+* BFD_RELOC_390_PLT16DBL:                howto manager.      (line 1659)
+* BFD_RELOC_390_PLT32:                   howto manager.      (line 1635)
+* BFD_RELOC_390_PLT32DBL:                howto manager.      (line 1665)
+* BFD_RELOC_390_PLT64:                   howto manager.      (line 1674)
+* BFD_RELOC_390_PLTOFF16:                howto manager.      (line 1698)
+* BFD_RELOC_390_PLTOFF32:                howto manager.      (line 1701)
+* BFD_RELOC_390_PLTOFF64:                howto manager.      (line 1704)
+* BFD_RELOC_390_RELATIVE:                howto manager.      (line 1647)
+* BFD_RELOC_390_TLS_DTPMOD:              howto manager.      (line 1724)
+* BFD_RELOC_390_TLS_DTPOFF:              howto manager.      (line 1725)
+* BFD_RELOC_390_TLS_GD32:                howto manager.      (line 1710)
+* BFD_RELOC_390_TLS_GD64:                howto manager.      (line 1711)
+* BFD_RELOC_390_TLS_GDCALL:              howto manager.      (line 1708)
+* BFD_RELOC_390_TLS_GOTIE12:             howto manager.      (line 1712)
+* BFD_RELOC_390_TLS_GOTIE20:             howto manager.      (line 1732)
+* BFD_RELOC_390_TLS_GOTIE32:             howto manager.      (line 1713)
+* BFD_RELOC_390_TLS_GOTIE64:             howto manager.      (line 1714)
+* BFD_RELOC_390_TLS_IE32:                howto manager.      (line 1717)
+* BFD_RELOC_390_TLS_IE64:                howto manager.      (line 1718)
+* BFD_RELOC_390_TLS_IEENT:               howto manager.      (line 1719)
+* BFD_RELOC_390_TLS_LDCALL:              howto manager.      (line 1709)
+* BFD_RELOC_390_TLS_LDM32:               howto manager.      (line 1715)
+* BFD_RELOC_390_TLS_LDM64:               howto manager.      (line 1716)
+* BFD_RELOC_390_TLS_LDO32:               howto manager.      (line 1722)
+* BFD_RELOC_390_TLS_LDO64:               howto manager.      (line 1723)
+* BFD_RELOC_390_TLS_LE32:                howto manager.      (line 1720)
+* BFD_RELOC_390_TLS_LE64:                howto manager.      (line 1721)
+* BFD_RELOC_390_TLS_LOAD:                howto manager.      (line 1707)
+* BFD_RELOC_390_TLS_TPOFF:               howto manager.      (line 1726)
+* BFD_RELOC_64:                          howto manager.      (line   26)
+* BFD_RELOC_64_PCREL:                    howto manager.      (line   35)
+* BFD_RELOC_64_PLT_PCREL:                howto manager.      (line   60)
+* BFD_RELOC_64_PLTOFF:                   howto manager.      (line   65)
+* BFD_RELOC_68K_GLOB_DAT:                howto manager.      (line   74)
+* BFD_RELOC_68K_JMP_SLOT:                howto manager.      (line   75)
+* BFD_RELOC_68K_RELATIVE:                howto manager.      (line   76)
+* BFD_RELOC_68K_TLS_GD16:                howto manager.      (line   78)
+* BFD_RELOC_68K_TLS_GD32:                howto manager.      (line   77)
+* BFD_RELOC_68K_TLS_GD8:                 howto manager.      (line   79)
+* BFD_RELOC_68K_TLS_IE16:                howto manager.      (line   87)
+* BFD_RELOC_68K_TLS_IE32:                howto manager.      (line   86)
+* BFD_RELOC_68K_TLS_IE8:                 howto manager.      (line   88)
+* BFD_RELOC_68K_TLS_LDM16:               howto manager.      (line   81)
+* BFD_RELOC_68K_TLS_LDM32:               howto manager.      (line   80)
+* BFD_RELOC_68K_TLS_LDM8:                howto manager.      (line   82)
+* BFD_RELOC_68K_TLS_LDO16:               howto manager.      (line   84)
+* BFD_RELOC_68K_TLS_LDO32:               howto manager.      (line   83)
+* BFD_RELOC_68K_TLS_LDO8:                howto manager.      (line   85)
+* BFD_RELOC_68K_TLS_LE16:                howto manager.      (line   90)
+* BFD_RELOC_68K_TLS_LE32:                howto manager.      (line   89)
+* BFD_RELOC_68K_TLS_LE8:                 howto manager.      (line   91)
+* BFD_RELOC_8:                           howto manager.      (line   32)
+* BFD_RELOC_860_COPY:                    howto manager.      (line 2097)
+* BFD_RELOC_860_GLOB_DAT:                howto manager.      (line 2098)
+* BFD_RELOC_860_HAGOT:                   howto manager.      (line 2123)
+* BFD_RELOC_860_HAGOTOFF:                howto manager.      (line 2124)
+* BFD_RELOC_860_HAPC:                    howto manager.      (line 2125)
+* BFD_RELOC_860_HIGH:                    howto manager.      (line 2126)
+* BFD_RELOC_860_HIGHADJ:                 howto manager.      (line 2122)
+* BFD_RELOC_860_HIGOT:                   howto manager.      (line 2127)
+* BFD_RELOC_860_HIGOTOFF:                howto manager.      (line 2128)
+* BFD_RELOC_860_JUMP_SLOT:               howto manager.      (line 2099)
+* BFD_RELOC_860_LOGOT0:                  howto manager.      (line 2111)
+* BFD_RELOC_860_LOGOT1:                  howto manager.      (line 2113)
+* BFD_RELOC_860_LOGOTOFF0:               howto manager.      (line 2115)
+* BFD_RELOC_860_LOGOTOFF1:               howto manager.      (line 2117)
+* BFD_RELOC_860_LOGOTOFF2:               howto manager.      (line 2119)
+* BFD_RELOC_860_LOGOTOFF3:               howto manager.      (line 2120)
+* BFD_RELOC_860_LOPC:                    howto manager.      (line 2121)
+* BFD_RELOC_860_LOW0:                    howto manager.      (line 2104)
+* BFD_RELOC_860_LOW1:                    howto manager.      (line 2106)
+* BFD_RELOC_860_LOW2:                    howto manager.      (line 2108)
+* BFD_RELOC_860_LOW3:                    howto manager.      (line 2110)
+* BFD_RELOC_860_PC16:                    howto manager.      (line 2103)
+* BFD_RELOC_860_PC26:                    howto manager.      (line 2101)
+* BFD_RELOC_860_PLT26:                   howto manager.      (line 2102)
+* BFD_RELOC_860_RELATIVE:                howto manager.      (line 2100)
+* BFD_RELOC_860_SPGOT0:                  howto manager.      (line 2112)
+* BFD_RELOC_860_SPGOT1:                  howto manager.      (line 2114)
+* BFD_RELOC_860_SPGOTOFF0:               howto manager.      (line 2116)
+* BFD_RELOC_860_SPGOTOFF1:               howto manager.      (line 2118)
+* BFD_RELOC_860_SPLIT0:                  howto manager.      (line 2105)
+* BFD_RELOC_860_SPLIT1:                  howto manager.      (line 2107)
+* BFD_RELOC_860_SPLIT2:                  howto manager.      (line 2109)
+* BFD_RELOC_8_BASEREL:                   howto manager.      (line   99)
+* BFD_RELOC_8_FFnn:                      howto manager.      (line  103)
+* BFD_RELOC_8_GOT_PCREL:                 howto manager.      (line   53)
+* BFD_RELOC_8_GOTOFF:                    howto manager.      (line   59)
+* BFD_RELOC_8_PCREL:                     howto manager.      (line   40)
+* BFD_RELOC_8_PLT_PCREL:                 howto manager.      (line   64)
+* BFD_RELOC_8_PLTOFF:                    howto manager.      (line   71)
+* BFD_RELOC_ALPHA_BOH:                   howto manager.      (line  315)
+* BFD_RELOC_ALPHA_BRSGP:                 howto manager.      (line  298)
+* BFD_RELOC_ALPHA_BSR:                   howto manager.      (line  307)
+* BFD_RELOC_ALPHA_CODEADDR:              howto manager.      (line  289)
+* BFD_RELOC_ALPHA_DTPMOD64:              howto manager.      (line  321)
+* BFD_RELOC_ALPHA_DTPREL16:              howto manager.      (line  326)
+* BFD_RELOC_ALPHA_DTPREL64:              howto manager.      (line  323)
+* BFD_RELOC_ALPHA_DTPREL_HI16:           howto manager.      (line  324)
+* BFD_RELOC_ALPHA_DTPREL_LO16:           howto manager.      (line  325)
+* BFD_RELOC_ALPHA_ELF_LITERAL:           howto manager.      (line  254)
+* BFD_RELOC_ALPHA_GOTDTPREL16:           howto manager.      (line  322)
+* BFD_RELOC_ALPHA_GOTTPREL16:            howto manager.      (line  327)
+* BFD_RELOC_ALPHA_GPDISP:                howto manager.      (line  248)
+* BFD_RELOC_ALPHA_GPDISP_HI16:           howto manager.      (line  234)
+* BFD_RELOC_ALPHA_GPDISP_LO16:           howto manager.      (line  242)
+* BFD_RELOC_ALPHA_GPREL_HI16:            howto manager.      (line  293)
+* BFD_RELOC_ALPHA_GPREL_LO16:            howto manager.      (line  294)
+* BFD_RELOC_ALPHA_HINT:                  howto manager.      (line  280)
+* BFD_RELOC_ALPHA_LDA:                   howto manager.      (line  311)
+* BFD_RELOC_ALPHA_LINKAGE:               howto manager.      (line  285)
+* BFD_RELOC_ALPHA_LITERAL:               howto manager.      (line  253)
+* BFD_RELOC_ALPHA_LITUSE:                howto manager.      (line  255)
+* BFD_RELOC_ALPHA_NOP:                   howto manager.      (line  303)
+* BFD_RELOC_ALPHA_TLSGD:                 howto manager.      (line  319)
+* BFD_RELOC_ALPHA_TLSLDM:                howto manager.      (line  320)
+* BFD_RELOC_ALPHA_TPREL16:               howto manager.      (line  331)
+* BFD_RELOC_ALPHA_TPREL64:               howto manager.      (line  328)
+* BFD_RELOC_ALPHA_TPREL_HI16:            howto manager.      (line  329)
+* BFD_RELOC_ALPHA_TPREL_LO16:            howto manager.      (line  330)
+* BFD_RELOC_ARC_B22_PCREL:               howto manager.      (line  945)
+* BFD_RELOC_ARC_B26:                     howto manager.      (line  950)
+* BFD_RELOC_ARM_ADR_IMM:                 howto manager.      (line  831)
+* BFD_RELOC_ARM_ADRL_IMMEDIATE:          howto manager.      (line  817)
+* BFD_RELOC_ARM_ALU_PC_G0:               howto manager.      (line  784)
+* BFD_RELOC_ARM_ALU_PC_G0_NC:            howto manager.      (line  783)
+* BFD_RELOC_ARM_ALU_PC_G1:               howto manager.      (line  786)
+* BFD_RELOC_ARM_ALU_PC_G1_NC:            howto manager.      (line  785)
+* BFD_RELOC_ARM_ALU_PC_G2:               howto manager.      (line  787)
+* BFD_RELOC_ARM_ALU_SB_G0:               howto manager.      (line  798)
+* BFD_RELOC_ARM_ALU_SB_G0_NC:            howto manager.      (line  797)
+* BFD_RELOC_ARM_ALU_SB_G1:               howto manager.      (line  800)
+* BFD_RELOC_ARM_ALU_SB_G1_NC:            howto manager.      (line  799)
+* BFD_RELOC_ARM_ALU_SB_G2:               howto manager.      (line  801)
+* BFD_RELOC_ARM_CP_OFF_IMM:              howto manager.      (line  827)
+* BFD_RELOC_ARM_CP_OFF_IMM_S2:           howto manager.      (line  828)
+* BFD_RELOC_ARM_GLOB_DAT:                howto manager.      (line  764)
+* BFD_RELOC_ARM_GOT32:                   howto manager.      (line  765)
+* BFD_RELOC_

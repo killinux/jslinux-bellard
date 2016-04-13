@@ -1,0 +1,1442 @@
+and HP-UX 9
+linkers in which they give bogus error messages when linking some programs.
+.IP "\fB\-msoft\-float\fR" 4
+.IX Item "-msoft-float"
+Generate output containing library calls for floating point.
+\&\fBWarning:\fR the requisite libraries are not available for all \s-1HPPA\s0
+targets.  Normally the facilities of the machine's usual C compiler are
+used, but this cannot be done directly in cross-compilation.  You must make
+your own arrangements to provide suitable library functions for
+cross-compilation.  The embedded target \fBhppa1.1\-*\-pro\fR
+does provide software floating point support.
+.Sp
+\&\fB\-msoft\-float\fR changes the calling convention in the output file;
+therefore, it is only useful if you compile \fIall\fR of a program with
+this option.  In particular, you need to compile \fIlibgcc.a\fR, the
+library that comes with \s-1GCC\s0, with \fB\-msoft\-float\fR in order for
+this to work.
+.IP "\fB\-msio\fR" 4
+.IX Item "-msio"
+Generate the predefine, \f(CW\*(C`_SIO\*(C'\fR, for server \s-1IO\s0.  The default is
+\&\fB\-mwsio\fR.  This generates the predefines, \f(CW\*(C`_\|_hp9000s700\*(C'\fR,
+\&\f(CW\*(C`_\|_hp9000s700_\|_\*(C'\fR and \f(CW\*(C`_WSIO\*(C'\fR, for workstation \s-1IO\s0.  These
+options are available under HP-UX and HI-UX.
+.IP "\fB\-mgnu\-ld\fR" 4
+.IX Item "-mgnu-ld"
+Use \s-1GNU\s0 ld specific options.  This passes \fB\-shared\fR to ld when
+building a shared library.  It is the default when \s-1GCC\s0 is configured,
+explicitly or implicitly, with the \s-1GNU\s0 linker.  This option does not
+have any affect on which ld is called, it only changes what parameters
+are passed to that ld.  The ld that is called is determined by the
+\&\fB\-\-with\-ld\fR configure option, \s-1GCC\s0's program search path, and
+finally by the user's \fB\s-1PATH\s0\fR.  The linker used by \s-1GCC\s0 can be printed
+using \fBwhich `gcc \-print\-prog\-name=ld`\fR.  This option is only available
+on the 64 bit HP-UX \s-1GCC\s0, i.e. configured with \fBhppa*64*\-*\-hpux*\fR.
+.IP "\fB\-mhp\-ld\fR" 4
+.IX Item "-mhp-ld"
+Use \s-1HP\s0 ld specific options.  This passes \fB\-b\fR to ld when building
+a shared library and passes \fB+Accept TypeMismatch\fR to ld on all
+links.  It is the default when \s-1GCC\s0 is configured, explicitly or
+implicitly, with the \s-1HP\s0 linker.  This option does not have any affect on
+which ld is called, it only changes what parameters are passed to that
+ld.  The ld that is called is determined by the \fB\-\-with\-ld\fR
+configure option, \s-1GCC\s0's program search path, and finally by the user's
+\&\fB\s-1PATH\s0\fR.  The linker used by \s-1GCC\s0 can be printed using \fBwhich
+`gcc \-print\-prog\-name=ld`\fR.  This option is only available on the 64 bit
+HP-UX \s-1GCC\s0, i.e. configured with \fBhppa*64*\-*\-hpux*\fR.
+.IP "\fB\-mlong\-calls\fR" 4
+.IX Item "-mlong-calls"
+Generate code that uses long call sequences.  This ensures that a call
+is always able to reach linker generated stubs.  The default is to generate
+long calls only when the distance from the call site to the beginning
+of the function or translation unit, as the case may be, exceeds a
+predefined limit set by the branch type being used.  The limits for
+normal calls are 7,600,000 and 240,000 bytes, respectively for the
+\&\s-1PA\s0 2.0 and \s-1PA\s0 1.X architectures.  Sibcalls are always limited at
+240,000 bytes.
+.Sp
+Distances are measured from the beginning of functions when using the
+\&\fB\-ffunction\-sections\fR option, or when using the \fB\-mgas\fR
+and \fB\-mno\-portable\-runtime\fR options together under HP-UX with
+the \s-1SOM\s0 linker.
+.Sp
+It is normally not desirable to use this option as it will degrade
+performance.  However, it may be useful in large applications,
+particularly when partial linking is used to build the application.
+.Sp
+The types of long calls used depends on the capabilities of the
+assembler and linker, and the type of code being generated.  The
+impact on systems that support long absolute calls, and long pic
+symbol-difference or pc-relative calls should be relatively small.
+However, an indirect call is used on 32\-bit \s-1ELF\s0 systems in pic code
+and it is quite long.
+.IP "\fB\-munix=\fR\fIunix-std\fR" 4
+.IX Item "-munix=unix-std"
+Generate compiler predefines and select a startfile for the specified
+\&\s-1UNIX\s0 standard.  The choices for \fIunix-std\fR are \fB93\fR, \fB95\fR
+and \fB98\fR.  \fB93\fR is supported on all HP-UX versions.  \fB95\fR
+is available on HP-UX 10.10 and later.  \fB98\fR is available on HP-UX
+11.11 and later.  The default values are \fB93\fR for HP-UX 10.00,
+\&\fB95\fR for HP-UX 10.10 though to 11.00, and \fB98\fR for HP-UX 11.11
+and later.
+.Sp
+\&\fB\-munix=93\fR provides the same predefines as \s-1GCC\s0 3.3 and 3.4.
+\&\fB\-munix=95\fR provides additional predefines for \f(CW\*(C`XOPEN_UNIX\*(C'\fR
+and \f(CW\*(C`_XOPEN_SOURCE_EXTENDED\*(C'\fR, and the startfile \fIunix95.o\fR.
+\&\fB\-munix=98\fR provides additional predefines for \f(CW\*(C`_XOPEN_UNIX\*(C'\fR,
+\&\f(CW\*(C`_XOPEN_SOURCE_EXTENDED\*(C'\fR, \f(CW\*(C`_INCLUDE_\|_STDC_A1_SOURCE\*(C'\fR and
+\&\f(CW\*(C`_INCLUDE_XOPEN_SOURCE_500\*(C'\fR, and the startfile \fIunix98.o\fR.
+.Sp
+It is \fIimportant\fR to note that this option changes the interfaces
+for various library routines.  It also affects the operational behavior
+of the C library.  Thus, \fIextreme\fR care is needed in using this
+option.
+.Sp
+Library code that is intended to operate with more than one \s-1UNIX\s0
+standard must test, set and restore the variable \fI_\|_xpg4_extended_mask\fR
+as appropriate.  Most \s-1GNU\s0 software doesn't provide this capability.
+.IP "\fB\-nolibdld\fR" 4
+.IX Item "-nolibdld"
+Suppress the generation of link options to search libdld.sl when the
+\&\fB\-static\fR option is specified on HP-UX 10 and later.
+.IP "\fB\-static\fR" 4
+.IX Item "-static"
+The HP-UX implementation of setlocale in libc has a dependency on
+libdld.sl.  There isn't an archive version of libdld.sl.  Thus,
+when the \fB\-static\fR option is specified, special link options
+are needed to resolve this dependency.
+.Sp
+On HP-UX 10 and later, the \s-1GCC\s0 driver adds the necessary options to
+link with libdld.sl when the \fB\-static\fR option is specified.
+This causes the resulting binary to be dynamic.  On the 64\-bit port,
+the linkers generate dynamic binaries by default in any case.  The
+\&\fB\-nolibdld\fR option can be used to prevent the \s-1GCC\s0 driver from
+adding these link options.
+.IP "\fB\-threads\fR" 4
+.IX Item "-threads"
+Add support for multithreading with the \fIdce thread\fR library
+under HP-UX.  This option sets flags for both the preprocessor and
+linker.
+.PP
+\fIIntel 386 and \s-1AMD\s0 x86\-64 Options\fR
+.IX Subsection "Intel 386 and AMD x86-64 Options"
+.PP
+These \fB\-m\fR options are defined for the i386 and x86\-64 family of
+computers:
+.IP "\fB\-mtune=\fR\fIcpu-type\fR" 4
+.IX Item "-mtune=cpu-type"
+Tune to \fIcpu-type\fR everything applicable about the generated code, except
+for the \s-1ABI\s0 and the set of available instructions.  The choices for
+\&\fIcpu-type\fR are:
+.RS 4
+.IP "\fIgeneric\fR" 4
+.IX Item "generic"
+Produce code optimized for the most common \s-1IA32/AMD64/EM64T\s0 processors.
+If you know the \s-1CPU\s0 on which your code will run, then you should use
+the corresponding \fB\-mtune\fR option instead of
+\&\fB\-mtune=generic\fR.  But, if you do not know exactly what \s-1CPU\s0 users
+of your application will have, then you should use this option.
+.Sp
+As new processors are deployed in the marketplace, the behavior of this
+option will change.  Therefore, if you upgrade to a newer version of
+\&\s-1GCC\s0, the code generated option will change to reflect the processors
+that were most common when that version of \s-1GCC\s0 was released.
+.Sp
+There is no \fB\-march=generic\fR option because \fB\-march\fR
+indicates the instruction set the compiler can use, and there is no
+generic instruction set applicable to all processors.  In contrast,
+\&\fB\-mtune\fR indicates the processor (or, in this case, collection of
+processors) for which the code is optimized.
+.IP "\fInative\fR" 4
+.IX Item "native"
+This selects the \s-1CPU\s0 to tune for at compilation time by determining
+the processor type of the compiling machine.  Using \fB\-mtune=native\fR
+will produce code optimized for the local machine under the constraints
+of the selected instruction set.  Using \fB\-march=native\fR will
+enable all instruction subsets supported by the local machine (hence
+the result might not run on different machines).
+.IP "\fIi386\fR" 4
+.IX Item "i386"
+Original Intel's i386 \s-1CPU\s0.
+.IP "\fIi486\fR" 4
+.IX Item "i486"
+Intel's i486 \s-1CPU\s0.  (No scheduling is implemented for this chip.)
+.IP "\fIi586, pentium\fR" 4
+.IX Item "i586, pentium"
+Intel Pentium \s-1CPU\s0 with no \s-1MMX\s0 support.
+.IP "\fIpentium-mmx\fR" 4
+.IX Item "pentium-mmx"
+Intel PentiumMMX \s-1CPU\s0 based on Pentium core with \s-1MMX\s0 instruction set support.
+.IP "\fIpentiumpro\fR" 4
+.IX Item "pentiumpro"
+Intel PentiumPro \s-1CPU\s0.
+.IP "\fIi686\fR" 4
+.IX Item "i686"
+Same as \f(CW\*(C`generic\*(C'\fR, but when used as \f(CW\*(C`march\*(C'\fR option, PentiumPro
+instruction set will be used, so the code will run on all i686 family chips.
+.IP "\fIpentium2\fR" 4
+.IX Item "pentium2"
+Intel Pentium2 \s-1CPU\s0 based on PentiumPro core with \s-1MMX\s0 instruction set support.
+.IP "\fIpentium3, pentium3m\fR" 4
+.IX Item "pentium3, pentium3m"
+Intel Pentium3 \s-1CPU\s0 based on PentiumPro core with \s-1MMX\s0 and \s-1SSE\s0 instruction set
+support.
+.IP "\fIpentium-m\fR" 4
+.IX Item "pentium-m"
+Low power version of Intel Pentium3 \s-1CPU\s0 with \s-1MMX\s0, \s-1SSE\s0 and \s-1SSE2\s0 instruction set
+support.  Used by Centrino notebooks.
+.IP "\fIpentium4, pentium4m\fR" 4
+.IX Item "pentium4, pentium4m"
+Intel Pentium4 \s-1CPU\s0 with \s-1MMX\s0, \s-1SSE\s0 and \s-1SSE2\s0 instruction set support.
+.IP "\fIprescott\fR" 4
+.IX Item "prescott"
+Improved version of Intel Pentium4 \s-1CPU\s0 with \s-1MMX\s0, \s-1SSE\s0, \s-1SSE2\s0 and \s-1SSE3\s0 instruction
+set support.
+.IP "\fInocona\fR" 4
+.IX Item "nocona"
+Improved version of Intel Pentium4 \s-1CPU\s0 with 64\-bit extensions, \s-1MMX\s0, \s-1SSE\s0,
+\&\s-1SSE2\s0 and \s-1SSE3\s0 instruction set support.
+.IP "\fIcore2\fR" 4
+.IX Item "core2"
+Intel Core2 \s-1CPU\s0 with 64\-bit extensions, \s-1MMX\s0, \s-1SSE\s0, \s-1SSE2\s0, \s-1SSE3\s0 and \s-1SSSE3\s0
+instruction set support.
+.IP "\fIk6\fR" 4
+.IX Item "k6"
+\&\s-1AMD\s0 K6 \s-1CPU\s0 with \s-1MMX\s0 instruction set support.
+.IP "\fIk6\-2, k6\-3\fR" 4
+.IX Item "k6-2, k6-3"
+Improved versions of \s-1AMD\s0 K6 \s-1CPU\s0 with \s-1MMX\s0 and 3dNOW! instruction set support.
+.IP "\fIathlon, athlon-tbird\fR" 4
+.IX Item "athlon, athlon-tbird"
+\&\s-1AMD\s0 Athlon \s-1CPU\s0 with \s-1MMX\s0, 3dNOW!, enhanced 3dNOW! and \s-1SSE\s0 prefetch instructions
+support.
+.IP "\fIathlon\-4, athlon-xp, athlon-mp\fR" 4
+.IX Item "athlon-4, athlon-xp, athlon-mp"
+Improved \s-1AMD\s0 Athlon \s-1CPU\s0 with \s-1MMX\s0, 3dNOW!, enhanced 3dNOW! and full \s-1SSE\s0
+instruction set support.
+.IP "\fIk8, opteron, athlon64, athlon-fx\fR" 4
+.IX Item "k8, opteron, athlon64, athlon-fx"
+\&\s-1AMD\s0 K8 core based CPUs with x86\-64 instruction set support.  (This supersets
+\&\s-1MMX\s0, \s-1SSE\s0, \s-1SSE2\s0, 3dNOW!, enhanced 3dNOW! and 64\-bit instruction set extensions.)
+.IP "\fIk8\-sse3, opteron\-sse3, athlon64\-sse3\fR" 4
+.IX Item "k8-sse3, opteron-sse3, athlon64-sse3"
+Improved versions of k8, opteron and athlon64 with \s-1SSE3\s0 instruction set support.
+.IP "\fIamdfam10, barcelona\fR" 4
+.IX Item "amdfam10, barcelona"
+\&\s-1AMD\s0 Family 10h core based CPUs with x86\-64 instruction set support.  (This
+supersets \s-1MMX\s0, \s-1SSE\s0, \s-1SSE2\s0, \s-1SSE3\s0, \s-1SSE4A\s0, 3dNOW!, enhanced 3dNOW!, \s-1ABM\s0 and 64\-bit
+instruction set extensions.)
+.IP "\fIwinchip\-c6\fR" 4
+.IX Item "winchip-c6"
+\&\s-1IDT\s0 Winchip C6 \s-1CPU\s0, dealt in same way as i486 with additional \s-1MMX\s0 instruction
+set support.
+.IP "\fIwinchip2\fR" 4
+.IX Item "winchip2"
+\&\s-1IDT\s0 Winchip2 \s-1CPU\s0, dealt in same way as i486 with additional \s-1MMX\s0 and 3dNOW!
+instruction set support.
+.IP "\fIc3\fR" 4
+.IX Item "c3"
+Via C3 \s-1CPU\s0 with \s-1MMX\s0 and 3dNOW! instruction set support.  (No scheduling is
+implemented for this chip.)
+.IP "\fIc3\-2\fR" 4
+.IX Item "c3-2"
+Via C3\-2 \s-1CPU\s0 with \s-1MMX\s0 and \s-1SSE\s0 instruction set support.  (No scheduling is
+implemented for this chip.)
+.IP "\fIgeode\fR" 4
+.IX Item "geode"
+Embedded \s-1AMD\s0 \s-1CPU\s0 with \s-1MMX\s0 and 3dNOW! instruction set support.
+.RE
+.RS 4
+.Sp
+While picking a specific \fIcpu-type\fR will schedule things appropriately
+for that particular chip, the compiler will not generate any code that
+does not run on the i386 without the \fB\-march=\fR\fIcpu-type\fR option
+being used.
+.RE
+.IP "\fB\-march=\fR\fIcpu-type\fR" 4
+.IX Item "-march=cpu-type"
+Generate instructions for the machine type \fIcpu-type\fR.  The choices
+for \fIcpu-type\fR are the same as for \fB\-mtune\fR.  Moreover,
+specifying \fB\-march=\fR\fIcpu-type\fR implies \fB\-mtune=\fR\fIcpu-type\fR.
+.IP "\fB\-mcpu=\fR\fIcpu-type\fR" 4
+.IX Item "-mcpu=cpu-type"
+A deprecated synonym for \fB\-mtune\fR.
+.IP "\fB\-mfpmath=\fR\fIunit\fR" 4
+.IX Item "-mfpmath=unit"
+Generate floating point arithmetics for selected unit \fIunit\fR.  The choices
+for \fIunit\fR are:
+.RS 4
+.IP "\fB387\fR" 4
+.IX Item "387"
+Use the standard 387 floating point coprocessor present majority of chips and
+emulated otherwise.  Code compiled with this option will run almost everywhere.
+The temporary results are computed in 80bit precision instead of precision
+specified by the type resulting in slightly different results compared to most
+of other chips.  See \fB\-ffloat\-store\fR for more detailed description.
+.Sp
+This is the default choice for i386 compiler.
+.IP "\fBsse\fR" 4
+.IX Item "sse"
+Use scalar floating point instructions present in the \s-1SSE\s0 instruction set.
+This instruction set is supported by Pentium3 and newer chips, in the \s-1AMD\s0 line
+by Athlon\-4, Athlon-xp and Athlon-mp chips.  The earlier version of \s-1SSE\s0
+instruction set supports only single precision arithmetics, thus the double and
+extended precision arithmetics is still done using 387.  Later version, present
+only in Pentium4 and the future \s-1AMD\s0 x86\-64 chips supports double precision
+arithmetics too.
+.Sp
+For the i386 compiler, you need to use \fB\-march=\fR\fIcpu-type\fR, \fB\-msse\fR
+or \fB\-msse2\fR switches to enable \s-1SSE\s0 extensions and make this option
+effective.  For the x86\-64 compiler, these extensions are enabled by default.
+.Sp
+The resulting code should be considerably faster in the majority of cases and avoid
+the numerical instability problems of 387 code, but may break some existing
+code that expects temporaries to be 80bit.
+.Sp
+This is the default choice for the x86\-64 compiler.
+.IP "\fBsse,387\fR" 4
+.IX Item "sse,387"
+Attempt to utilize both instruction sets at once.  This effectively double the
+amount of available registers and on chips with separate execution units for
+387 and \s-1SSE\s0 the execution resources too.  Use this option with care, as it is
+still experimental, because the \s-1GCC\s0 register allocator does not model separate
+functional units well resulting in instable performance.
+.RE
+.RS 4
+.RE
+.IP "\fB\-masm=\fR\fIdialect\fR" 4
+.IX Item "-masm=dialect"
+Output asm instructions using selected \fIdialect\fR.  Supported
+choices are \fBintel\fR or \fBatt\fR (the default one).  Darwin does
+not support \fBintel\fR.
+.IP "\fB\-mieee\-fp\fR" 4
+.IX Item "-mieee-fp"
+.PD 0
+.IP "\fB\-mno\-ieee\-fp\fR" 4
+.IX Item "-mno-ieee-fp"
+.PD
+Control whether or not the compiler uses \s-1IEEE\s0 floating point
+comparisons.  These handle correctly the case where the result of a
+comparison is unordered.
+.IP "\fB\-msoft\-float\fR" 4
+.IX Item "-msoft-float"
+Generate output containing library calls for floating point.
+\&\fBWarning:\fR the requisite libraries are not part of \s-1GCC\s0.
+Normally the facilities of the machine's usual C compiler are used, but
+this can't be done directly in cross-compilation.  You must make your
+own arrangements to provide suitable library functions for
+cross-compilation.
+.Sp
+On machines where a function returns floating point results in the 80387
+register stack, some floating point opcodes may be emitted even if
+\&\fB\-msoft\-float\fR is used.
+.IP "\fB\-mno\-fp\-ret\-in\-387\fR" 4
+.IX Item "-mno-fp-ret-in-387"
+Do not use the \s-1FPU\s0 registers for return values of functions.
+.Sp
+The usual calling convention has functions return values of types
+\&\f(CW\*(C`float\*(C'\fR and \f(CW\*(C`double\*(C'\fR in an \s-1FPU\s0 register, even if there
+is no \s-1FPU\s0.  The idea is that the operating system should emulate
+an \s-1FPU\s0.
+.Sp
+The option \fB\-mno\-fp\-ret\-in\-387\fR causes such values to be returned
+in ordinary \s-1CPU\s0 registers instead.
+.IP "\fB\-mno\-fancy\-math\-387\fR" 4
+.IX Item "-mno-fancy-math-387"
+Some 387 emulators do not support the \f(CW\*(C`sin\*(C'\fR, \f(CW\*(C`cos\*(C'\fR and
+\&\f(CW\*(C`sqrt\*(C'\fR instructions for the 387.  Specify this option to avoid
+generating those instructions.  This option is the default on FreeBSD,
+OpenBSD and NetBSD.  This option is overridden when \fB\-march\fR
+indicates that the target cpu will always have an \s-1FPU\s0 and so the
+instruction will not need emulation.  As of revision 2.6.1, these
+instructions are not generated unless you also use the
+\&\fB\-funsafe\-math\-optimizations\fR switch.
+.IP "\fB\-malign\-double\fR" 4
+.IX Item "-malign-double"
+.PD 0
+.IP "\fB\-mno\-align\-double\fR" 4
+.IX Item "-mno-align-double"
+.PD
+Control whether \s-1GCC\s0 aligns \f(CW\*(C`double\*(C'\fR, \f(CW\*(C`long double\*(C'\fR, and
+\&\f(CW\*(C`long long\*(C'\fR variables on a two word boundary or a one word
+boundary.  Aligning \f(CW\*(C`double\*(C'\fR variables on a two word boundary will
+produce code that runs somewhat faster on a \fBPentium\fR at the
+expense of more memory.
+.Sp
+On x86\-64, \fB\-malign\-double\fR is enabled by default.
+.Sp
+\&\fBWarning:\fR if you use the \fB\-malign\-double\fR switch,
+structures containing the above types will be aligned differently than
+the published application binary interface specifications for the 386
+and will not be binary compatible with structures in code compiled
+without that switch.
+.IP "\fB\-m96bit\-long\-double\fR" 4
+.IX Item "-m96bit-long-double"
+.PD 0
+.IP "\fB\-m128bit\-long\-double\fR" 4
+.IX Item "-m128bit-long-double"
+.PD
+These switches control the size of \f(CW\*(C`long double\*(C'\fR type.  The i386
+application binary interface specifies the size to be 96 bits,
+so \fB\-m96bit\-long\-double\fR is the default in 32 bit mode.
+.Sp
+Modern architectures (Pentium and newer) would prefer \f(CW\*(C`long double\*(C'\fR
+to be aligned to an 8 or 16 byte boundary.  In arrays or structures
+conforming to the \s-1ABI\s0, this would not be possible.  So specifying a
+\&\fB\-m128bit\-long\-double\fR will align \f(CW\*(C`long double\*(C'\fR
+to a 16 byte boundary by padding the \f(CW\*(C`long double\*(C'\fR with an additional
+32 bit zero.
+.Sp
+In the x86\-64 compiler, \fB\-m128bit\-long\-double\fR is the default choice as
+its \s-1ABI\s0 specifies that \f(CW\*(C`long double\*(C'\fR is to be aligned on 16 byte boundary.
+.Sp
+Notice that neither of these options enable any extra precision over the x87
+standard of 80 bits for a \f(CW\*(C`long double\*(C'\fR.
+.Sp
+\&\fBWarning:\fR if you override the default value for your target \s-1ABI\s0, the
+structures and arrays containing \f(CW\*(C`long double\*(C'\fR variables will change
+their size as well as function calling convention for function taking
+\&\f(CW\*(C`long double\*(C'\fR will be modified.  Hence they will not be binary
+compatible with arrays or structures in code compiled without that switch.
+.IP "\fB\-mmlarge\-data\-threshold=\fR\fInumber\fR" 4
+.IX Item "-mmlarge-data-threshold=number"
+When \fB\-mcmodel=medium\fR is specified, the data greater than
+\&\fIthreshold\fR are placed in large data section.  This value must be the
+same across all object linked into the binary and defaults to 65535.
+.IP "\fB\-mrtd\fR" 4
+.IX Item "-mrtd"
+Use a different function-calling convention, in which functions that
+take a fixed number of arguments return with the \f(CW\*(C`ret\*(C'\fR \fInum\fR
+instruction, which pops their arguments while returning.  This saves one
+instruction in the caller since there is no need to pop the arguments
+there.
+.Sp
+You can specify that an individual function is called with this calling
+sequence with the function attribute \fBstdcall\fR.  You can also
+override the \fB\-mrtd\fR option by using the function attribute
+\&\fBcdecl\fR.
+.Sp
+\&\fBWarning:\fR this calling convention is incompatible with the one
+normally used on Unix, so you cannot use it if you need to call
+libraries compiled with the Unix compiler.
+.Sp
+Also, you must provide function prototypes for all functions that
+take variable numbers of arguments (including \f(CW\*(C`printf\*(C'\fR);
+otherwise incorrect code will be generated for calls to those
+functions.
+.Sp
+In addition, seriously incorrect code will result if you call a
+function with too many arguments.  (Normally, extra arguments are
+harmlessly ignored.)
+.IP "\fB\-mregparm=\fR\fInum\fR" 4
+.IX Item "-mregparm=num"
+Control how many registers are used to pass integer arguments.  By
+default, no registers are used to pass arguments, and at most 3
+registers can be used.  You can control this behavior for a specific
+function by using the function attribute \fBregparm\fR.
+.Sp
+\&\fBWarning:\fR if you use this switch, and
+\&\fInum\fR is nonzero, then you must build all modules with the same
+value, including any libraries.  This includes the system libraries and
+startup modules.
+.IP "\fB\-msseregparm\fR" 4
+.IX Item "-msseregparm"
+Use \s-1SSE\s0 register passing conventions for float and double arguments
+and return values.  You can control this behavior for a specific
+function by using the function attribute \fBsseregparm\fR.
+.Sp
+\&\fBWarning:\fR if you use this switch then you must build all
+modules with the same value, including any libraries.  This includes
+the system libraries and startup modules.
+.IP "\fB\-mpc32\fR" 4
+.IX Item "-mpc32"
+.PD 0
+.IP "\fB\-mpc64\fR" 4
+.IX Item "-mpc64"
+.IP "\fB\-mpc80\fR" 4
+.IX Item "-mpc80"
+.PD
+Set 80387 floating-point precision to 32, 64 or 80 bits.  When \fB\-mpc32\fR
+is specified, the significands of results of floating-point operations are
+rounded to 24 bits (single precision); \fB\-mpc64\fR rounds the the
+significands of results of floating-point operations to 53 bits (double
+precision) and \fB\-mpc80\fR rounds the significands of results of
+floating-point operations to 64 bits (extended double precision), which is
+the default.  When this option is used, floating-point operations in higher
+precisions are not available to the programmer without setting the \s-1FPU\s0
+control word explicitly.
+.Sp
+Setting the rounding of floating-point operations to less than the default
+80 bits can speed some programs by 2% or more.  Note that some mathematical
+libraries assume that extended precision (80 bit) floating-point operations
+are enabled by default; routines in such libraries could suffer significant
+loss of accuracy, typically through so-called \*(L"catastrophic cancellation\*(R",
+when this option is used to set the precision to less than extended precision.
+.IP "\fB\-mstackrealign\fR" 4
+.IX Item "-mstackrealign"
+Realign the stack at entry.  On the Intel x86, the
+\&\fB\-mstackrealign\fR option will generate an alternate prologue and
+epilogue that realigns the runtime stack.  This supports mixing legacy
+codes that keep a 4\-byte aligned stack with modern codes that keep a
+16\-byte stack for \s-1SSE\s0 compatibility.  The alternate prologue and
+epilogue are slower and bigger than the regular ones, and the
+alternate prologue requires an extra scratch register; this lowers the
+number of registers available if used in conjunction with the
+\&\f(CW\*(C`regparm\*(C'\fR attribute.  The \fB\-mstackrealign\fR option is
+incompatible with the nested function prologue; this is considered a
+hard error.  See also the attribute \f(CW\*(C`force_align_arg_pointer\*(C'\fR,
+applicable to individual functions.
+.IP "\fB\-mpreferred\-stack\-boundary=\fR\fInum\fR" 4
+.IX Item "-mpreferred-stack-boundary=num"
+Attempt to keep the stack boundary aligned to a 2 raised to \fInum\fR
+byte boundary.  If \fB\-mpreferred\-stack\-boundary\fR is not specified,
+the default is 4 (16 bytes or 128 bits).
+.Sp
+On Pentium and PentiumPro, \f(CW\*(C`double\*(C'\fR and \f(CW\*(C`long double\*(C'\fR values
+should be aligned to an 8 byte boundary (see \fB\-malign\-double\fR) or
+suffer significant run time performance penalties.  On Pentium \s-1III\s0, the
+Streaming \s-1SIMD\s0 Extension (\s-1SSE\s0) data type \f(CW\*(C`_\|_m128\*(C'\fR may not work
+properly if it is not 16 byte aligned.
+.Sp
+To ensure proper alignment of this values on the stack, the stack boundary
+must be as aligned as that required by any value stored on the stack.
+Further, every function must be generated such that it keeps the stack
+aligned.  Thus calling a function compiled with a higher preferred
+stack boundary from a function compiled with a lower preferred stack
+boundary will most likely misalign the stack.  It is recommended that
+libraries that use callbacks always use the default setting.
+.Sp
+This extra alignment does consume extra stack space, and generally
+increases code size.  Code that is sensitive to stack space usage, such
+as embedded systems and operating system kernels, may want to reduce the
+preferred alignment to \fB\-mpreferred\-stack\-boundary=2\fR.
+.IP "\fB\-mmmx\fR" 4
+.IX Item "-mmmx"
+.PD 0
+.IP "\fB\-mno\-mmx\fR" 4
+.IX Item "-mno-mmx"
+.IP "\fB\-msse\fR" 4
+.IX Item "-msse"
+.IP "\fB\-mno\-sse\fR" 4
+.IX Item "-mno-sse"
+.IP "\fB\-msse2\fR" 4
+.IX Item "-msse2"
+.IP "\fB\-mno\-sse2\fR" 4
+.IX Item "-mno-sse2"
+.IP "\fB\-msse3\fR" 4
+.IX Item "-msse3"
+.IP "\fB\-mno\-sse3\fR" 4
+.IX Item "-mno-sse3"
+.IP "\fB\-mssse3\fR" 4
+.IX Item "-mssse3"
+.IP "\fB\-mno\-ssse3\fR" 4
+.IX Item "-mno-ssse3"
+.IP "\fB\-msse4.1\fR" 4
+.IX Item "-msse4.1"
+.IP "\fB\-mno\-sse4.1\fR" 4
+.IX Item "-mno-sse4.1"
+.IP "\fB\-msse4.2\fR" 4
+.IX Item "-msse4.2"
+.IP "\fB\-mno\-sse4.2\fR" 4
+.IX Item "-mno-sse4.2"
+.IP "\fB\-msse4\fR" 4
+.IX Item "-msse4"
+.IP "\fB\-mno\-sse4\fR" 4
+.IX Item "-mno-sse4"
+.IP "\fB\-msse4a\fR" 4
+.IX Item "-msse4a"
+.IP "\fB\-mno\-sse4a\fR" 4
+.IX Item "-mno-sse4a"
+.IP "\fB\-msse5\fR" 4
+.IX Item "-msse5"
+.IP "\fB\-mno\-sse5\fR" 4
+.IX Item "-mno-sse5"
+.IP "\fB\-m3dnow\fR" 4
+.IX Item "-m3dnow"
+.IP "\fB\-mno\-3dnow\fR" 4
+.IX Item "-mno-3dnow"
+.IP "\fB\-mpopcnt\fR" 4
+.IX Item "-mpopcnt"
+.IP "\fB\-mno\-popcnt\fR" 4
+.IX Item "-mno-popcnt"
+.IP "\fB\-mabm\fR" 4
+.IX Item "-mabm"
+.IP "\fB\-mno\-abm\fR" 4
+.IX Item "-mno-abm"
+.PD
+These switches enable or disable the use of instructions in the \s-1MMX\s0,
+\&\s-1SSE\s0, \s-1SSE2\s0, \s-1SSE3\s0, \s-1SSSE3\s0, \s-1SSE4\s0.1, \s-1SSE4A\s0, \s-1SSE5\s0, \s-1ABM\s0 or 3DNow! extended
+instruction sets.
+These extensions are also available as built-in functions: see
+\&\fBX86 Built-in Functions\fR, for details of the functions enabled and
+disabled by these switches.
+.Sp
+To have \s-1SSE/SSE2\s0 instructions generated automatically from floating-point
+code (as opposed to 387 instructions), see \fB\-mfpmath=sse\fR.
+.Sp
+These options will enable \s-1GCC\s0 to use these extended instructions in
+generated code, even without \fB\-mfpmath=sse\fR.  Applications which
+perform runtime \s-1CPU\s0 detection must compile separate files for each
+supported architecture, using the appropriate flags.  In particular,
+the file containing the \s-1CPU\s0 detection code should be compiled without
+these options.
+.IP "\fB\-mcld\fR" 4
+.IX Item "-mcld"
+This option instructs \s-1GCC\s0 to emit a \f(CW\*(C`cld\*(C'\fR instruction in the prologue
+of functions that use string instructions.  String instructions depend on
+the \s-1DF\s0 flag to select between autoincrement or autodecrement mode.  While the
+\&\s-1ABI\s0 specifies the \s-1DF\s0 flag to be cleared on function entry, some operating
+systems violate this specification by not clearing the \s-1DF\s0 flag in their
+exception dispatchers.  The exception handler can be invoked with the \s-1DF\s0 flag
+set which leads to wrong direction mode, when string instructions are used.
+This option can be enabled by default on 32\-bit x86 targets by configuring
+\&\s-1GCC\s0 with the \fB\-\-enable\-cld\fR configure option.  Generation of \f(CW\*(C`cld\*(C'\fR
+instructions can be suppressed with the \fB\-mno\-cld\fR compiler option
+in this case.
+.IP "\fB\-mcx16\fR" 4
+.IX Item "-mcx16"
+This option will enable \s-1GCC\s0 to use \s-1CMPXCHG16B\s0 instruction in generated code.
+\&\s-1CMPXCHG16B\s0 allows for atomic operations on 128\-bit double quadword (or oword)
+data types.  This is useful for high resolution counters that could be updated
+by multiple processors (or cores).  This instruction is generated as part of
+atomic built-in functions: see \fBAtomic Builtins\fR for details.
+.IP "\fB\-msahf\fR" 4
+.IX Item "-msahf"
+This option will enable \s-1GCC\s0 to use \s-1SAHF\s0 instruction in generated 64\-bit code.
+Early Intel CPUs with Intel 64 lacked \s-1LAHF\s0 and \s-1SAHF\s0 instructions supported
+by \s-1AMD64\s0 until introduction of Pentium 4 G1 step in December 2005.  \s-1LAHF\s0 and
+\&\s-1SAHF\s0 are load and store instructions, respectively, for certain status flags.
+In 64\-bit mode, \s-1SAHF\s0 instruction is used to optimize \f(CW\*(C`fmod\*(C'\fR, \f(CW\*(C`drem\*(C'\fR
+or \f(CW\*(C`remainder\*(C'\fR built-in functions: see \fBOther Builtins\fR for details.
+.IP "\fB\-mrecip\fR" 4
+.IX Item "-mrecip"
+This option will enable \s-1GCC\s0 to use \s-1RCPSS\s0 and \s-1RSQRTSS\s0 instructions (and their
+vectorized variants \s-1RCPPS\s0 and \s-1RSQRTPS\s0) with an additional Newton-Rhapson step
+to increase precision instead of \s-1DIVSS\s0 and \s-1SQRTSS\s0 (and their vectorized
+variants) for single precision floating point arguments.  These instructions
+are generated only when \fB\-funsafe\-math\-optimizations\fR is enabled
+together with \fB\-finite\-math\-only\fR and \fB\-fno\-trapping\-math\fR.
+Note that while the throughput of the sequence is higher than the throughput
+of the non-reciprocal instruction, the precision of the sequence can be
+decreased by up to 2 ulp (i.e. the inverse of 1.0 equals 0.99999994).
+.IP "\fB\-mveclibabi=\fR\fItype\fR" 4
+.IX Item "-mveclibabi=type"
+Specifies the \s-1ABI\s0 type to use for vectorizing intrinsics using an
+external library.  Supported types are \f(CW\*(C`acml\*(C'\fR for the \s-1AMD\s0
+math core library style of interfacing.  \s-1GCC\s0 will currently emit
+calls to \f(CW\*(C`_\|_vrd2_sin\*(C'\fR, \f(CW\*(C`_\|_vrd2_cos\*(C'\fR, \f(CW\*(C`_\|_vrd2_exp\*(C'\fR,
+\&\f(CW\*(C`_\|_vrd2_log\*(C'\fR, \f(CW\*(C`_\|_vrd2_log2\*(C'\fR, \f(CW\*(C`_\|_vrd2_log10\*(C'\fR,
+\&\f(CW\*(C`_\|_vrs4_sinf\*(C'\fR, \f(CW\*(C`_\|_vrs4_cosf\*(C'\fR, \f(CW\*(C`_\|_vrs4_expf\*(C'\fR,
+\&\f(CW\*(C`_\|_vrs4_logf\*(C'\fR, \f(CW\*(C`_\|_vrs4_log2f\*(C'\fR, \f(CW\*(C`_\|_vrs4_log10f\*(C'\fR
+and \f(CW\*(C`_\|_vrs4_powf\*(C'\fR when using this type and \fB\-ftree\-vectorize\fR
+is enabled.  A \s-1ACML\s0 \s-1ABI\s0 compatible library will have to be specified
+at link time.
+.IP "\fB\-mpush\-args\fR" 4
+.IX Item "-mpush-args"
+.PD 0
+.IP "\fB\-mno\-push\-args\fR" 4
+.IX Item "-mno-push-args"
+.PD
+Use \s-1PUSH\s0 operations to store outgoing parameters.  This method is shorter
+and usually equally fast as method using \s-1SUB/MOV\s0 operations and is enabled
+by default.  In some cases disabling it may improve performance because of
+improved scheduling and reduced dependencies.
+.IP "\fB\-maccumulate\-outgoing\-args\fR" 4
+.IX Item "-maccumulate-outgoing-args"
+If enabled, the maximum amount of space required for outgoing arguments will be
+computed in the function prologue.  This is faster on most modern CPUs
+because of reduced dependencies, improved scheduling and reduced stack usage
+when preferred stack boundary is not equal to 2.  The drawback is a notable
+increase in code size.  This switch implies \fB\-mno\-push\-args\fR.
+.IP "\fB\-mthreads\fR" 4
+.IX Item "-mthreads"
+Support thread-safe exception handling on \fBMingw32\fR.  Code that relies
+on thread-safe exception handling must compile and link all code with the
+\&\fB\-mthreads\fR option.  When compiling, \fB\-mthreads\fR defines
+\&\fB\-D_MT\fR; when linking, it links in a special thread helper library
+\&\fB\-lmingwthrd\fR which cleans up per thread exception handling data.
+.IP "\fB\-mno\-align\-stringops\fR" 4
+.IX Item "-mno-align-stringops"
+Do not align destination of inlined string operations.  This switch reduces
+code size and improves performance in case the destination is already aligned,
+but \s-1GCC\s0 doesn't know about it.
+.IP "\fB\-minline\-all\-stringops\fR" 4
+.IX Item "-minline-all-stringops"
+By default \s-1GCC\s0 inlines string operations only when destination is known to be
+aligned at least to 4 byte boundary.  This enables more inlining, increase code
+size, but may improve performance of code that depends on fast memcpy, strlen
+and memset for short lengths.
+.IP "\fB\-minline\-stringops\-dynamically\fR" 4
+.IX Item "-minline-stringops-dynamically"
+For string operation of unknown size, inline runtime checks so for small
+blocks inline code is used, while for large blocks library call is used.
+.IP "\fB\-mstringop\-strategy=\fR\fIalg\fR" 4
+.IX Item "-mstringop-strategy=alg"
+Overwrite internal decision heuristic about particular algorithm to inline
+string operation with.  The allowed values are \f(CW\*(C`rep_byte\*(C'\fR,
+\&\f(CW\*(C`rep_4byte\*(C'\fR, \f(CW\*(C`rep_8byte\*(C'\fR for expanding using i386 \f(CW\*(C`rep\*(C'\fR prefix
+of specified size, \f(CW\*(C`byte_loop\*(C'\fR, \f(CW\*(C`loop\*(C'\fR, \f(CW\*(C`unrolled_loop\*(C'\fR for
+expanding inline loop, \f(CW\*(C`libcall\*(C'\fR for always expanding library call.
+.IP "\fB\-momit\-leaf\-frame\-pointer\fR" 4
+.IX Item "-momit-leaf-frame-pointer"
+Don't keep the frame pointer in a register for leaf functions.  This
+avoids the instructions to save, set up and restore frame pointers and
+makes an extra register available in leaf functions.  The option
+\&\fB\-fomit\-frame\-pointer\fR removes the frame pointer for all functions
+which might make debugging harder.
+.IP "\fB\-mtls\-direct\-seg\-refs\fR" 4
+.IX Item "-mtls-direct-seg-refs"
+.PD 0
+.IP "\fB\-mno\-tls\-direct\-seg\-refs\fR" 4
+.IX Item "-mno-tls-direct-seg-refs"
+.PD
+Controls whether \s-1TLS\s0 variables may be accessed with offsets from the
+\&\s-1TLS\s0 segment register (\f(CW%gs\fR for 32\-bit, \f(CW%fs\fR for 64\-bit),
+or whether the thread base pointer must be added.  Whether or not this
+is legal depends on the operating system, and whether it maps the
+segment to cover the entire \s-1TLS\s0 area.
+.Sp
+For systems that use \s-1GNU\s0 libc, the default is on.
+.IP "\fB\-mfused\-madd\fR" 4
+.IX Item "-mfused-madd"
+.PD 0
+.IP "\fB\-mno\-fused\-madd\fR" 4
+.IX Item "-mno-fused-madd"
+.PD
+Enable automatic generation of fused floating point multiply-add instructions
+if the \s-1ISA\s0 supports such instructions.  The \-mfused\-madd option is on by
+default.  The fused multiply-add instructions have a different
+rounding behavior compared to executing a multiply followed by an add.
+.PP
+These \fB\-m\fR switches are supported in addition to the above
+on \s-1AMD\s0 x86\-64 processors in 64\-bit environments.
+.IP "\fB\-m32\fR" 4
+.IX Item "-m32"
+.PD 0
+.IP "\fB\-m64\fR" 4
+.IX Item "-m64"
+.PD
+Generate code for a 32\-bit or 64\-bit environment.
+The 32\-bit environment sets int, long and pointer to 32 bits and
+generates code that runs on any i386 system.
+The 64\-bit environment sets int to 32 bits and long and pointer
+to 64 bits and generates code for \s-1AMD\s0's x86\-64 architecture. For
+darwin only the \-m64 option turns off the \fB\-fno\-pic\fR and
+\&\fB\-mdynamic\-no\-pic\fR options.
+.IP "\fB\-mno\-red\-zone\fR" 4
+.IX Item "-mno-red-zone"
+Do not use a so called red zone for x86\-64 code.  The red zone is mandated
+by the x86\-64 \s-1ABI\s0, it is a 128\-byte area beyond the location of the
+stack pointer that will not be modified by signal or interrupt handlers
+and therefore can be used for temporary data without adjusting the stack
+pointer.  The flag \fB\-mno\-red\-zone\fR disables this red zone.
+.IP "\fB\-mcmodel=small\fR" 4
+.IX Item "-mcmodel=small"
+Generate code for the small code model: the program and its symbols must
+be linked in the lower 2 \s-1GB\s0 of the address space.  Pointers are 64 bits.
+Programs can be statically or dynamically linked.  This is the default
+code model.
+.IP "\fB\-mcmodel=kernel\fR" 4
+.IX Item "-mcmodel=kernel"
+Generate code for the kernel code model.  The kernel runs in the
+negative 2 \s-1GB\s0 of the address space.
+This model has to be used for Linux kernel code.
+.IP "\fB\-mcmodel=medium\fR" 4
+.IX Item "-mcmodel=medium"
+Generate code for the medium model: The program is linked in the lower 2
+\&\s-1GB\s0 of the address space but symbols can be located anywhere in the
+address space.  Programs can be statically or dynamically linked, but
+building of shared libraries are not supported with the medium model.
+.IP "\fB\-mcmodel=large\fR" 4
+.IX Item "-mcmodel=large"
+Generate code for the large model: This model makes no assumptions
+about addresses and sizes of sections.
+.PP
+\fI\s-1IA\-64\s0 Options\fR
+.IX Subsection "IA-64 Options"
+.PP
+These are the \fB\-m\fR options defined for the Intel \s-1IA\-64\s0 architecture.
+.IP "\fB\-mbig\-endian\fR" 4
+.IX Item "-mbig-endian"
+Generate code for a big endian target.  This is the default for HP-UX.
+.IP "\fB\-mlittle\-endian\fR" 4
+.IX Item "-mlittle-endian"
+Generate code for a little endian target.  This is the default for \s-1AIX5\s0
+and GNU/Linux.
+.IP "\fB\-mgnu\-as\fR" 4
+.IX Item "-mgnu-as"
+.PD 0
+.IP "\fB\-mno\-gnu\-as\fR" 4
+.IX Item "-mno-gnu-as"
+.PD
+Generate (or don't) code for the \s-1GNU\s0 assembler.  This is the default.
+.IP "\fB\-mgnu\-ld\fR" 4
+.IX Item "-mgnu-ld"
+.PD 0
+.IP "\fB\-mno\-gnu\-ld\fR" 4
+.IX Item "-mno-gnu-ld"
+.PD
+Generate (or don't) code for the \s-1GNU\s0 linker.  This is the default.
+.IP "\fB\-mno\-pic\fR" 4
+.IX Item "-mno-pic"
+Generate code that does not use a global pointer register.  The result
+is not position independent code, and violates the \s-1IA\-64\s0 \s-1ABI\s0.
+.IP "\fB\-mvolatile\-asm\-stop\fR" 4
+.IX Item "-mvolatile-asm-stop"
+.PD 0
+.IP "\fB\-mno\-volatile\-asm\-stop\fR" 4
+.IX Item "-mno-volatile-asm-stop"
+.PD
+Generate (or don't) a stop bit immediately before and after volatile asm
+statements.
+.IP "\fB\-mregister\-names\fR" 4
+.IX Item "-mregister-names"
+.PD 0
+.IP "\fB\-mno\-register\-names\fR" 4
+.IX Item "-mno-register-names"
+.PD
+Generate (or don't) \fBin\fR, \fBloc\fR, and \fBout\fR register names for
+the stacked registers.  This may make assembler output more readable.
+.IP "\fB\-mno\-sdata\fR" 4
+.IX Item "-mno-sdata"
+.PD 0
+.IP "\fB\-msdata\fR" 4
+.IX Item "-msdata"
+.PD
+Disable (or enable) optimizations that use the small data section.  This may
+be useful for working around optimizer bugs.
+.IP "\fB\-mconstant\-gp\fR" 4
+.IX Item "-mconstant-gp"
+Generate code that uses a single constant global pointer value.  This is
+useful when compiling kernel code.
+.IP "\fB\-mauto\-pic\fR" 4
+.IX Item "-mauto-pic"
+Generate code that is self-relocatable.  This implies \fB\-mconstant\-gp\fR.
+This is useful when compiling firmware code.
+.IP "\fB\-minline\-float\-divide\-min\-latency\fR" 4
+.IX Item "-minline-float-divide-min-latency"
+Generate code for inline divides of floating point values
+using the minimum latency algorithm.
+.IP "\fB\-minline\-float\-divide\-max\-throughput\fR" 4
+.IX Item "-minline-float-divide-max-throughput"
+Generate code for inline divides of floating point values
+using the maximum throughput algorithm.
+.IP "\fB\-minline\-int\-divide\-min\-latency\fR" 4
+.IX Item "-minline-int-divide-min-latency"
+Generate code for inline divides of integer values
+using the minimum latency algorithm.
+.IP "\fB\-minline\-int\-divide\-max\-throughput\fR" 4
+.IX Item "-minline-int-divide-max-throughput"
+Generate code for inline divides of integer values
+using the maximum throughput algorithm.
+.IP "\fB\-minline\-sqrt\-min\-latency\fR" 4
+.IX Item "-minline-sqrt-min-latency"
+Generate code for inline square roots
+using the minimum latency algorithm.
+.IP "\fB\-minline\-sqrt\-max\-throughput\fR" 4
+.IX Item "-minline-sqrt-max-throughput"
+Generate code for inline square roots
+using the maximum throughput algorithm.
+.IP "\fB\-mno\-dwarf2\-asm\fR" 4
+.IX Item "-mno-dwarf2-asm"
+.PD 0
+.IP "\fB\-mdwarf2\-asm\fR" 4
+.IX Item "-mdwarf2-asm"
+.PD
+Don't (or do) generate assembler code for the \s-1DWARF2\s0 line number debugging
+info.  This may be useful when not using the \s-1GNU\s0 assembler.
+.IP "\fB\-mearly\-stop\-bits\fR" 4
+.IX Item "-mearly-stop-bits"
+.PD 0
+.IP "\fB\-mno\-early\-stop\-bits\fR" 4
+.IX Item "-mno-early-stop-bits"
+.PD
+Allow stop bits to be placed earlier than immediately preceding the
+instruction that triggered the stop bit.  This can improve instruction
+scheduling, but does not always do so.
+.IP "\fB\-mfixed\-range=\fR\fIregister-range\fR" 4
+.IX Item "-mfixed-range=register-range"
+Generate code treating the given register range as fixed registers.
+A fixed register is one that the register allocator can not use.  This is
+useful when compiling kernel code.  A register range is specified as
+two registers separated by a dash.  Multiple register ranges can be
+specified separated by a comma.
+.IP "\fB\-mtls\-size=\fR\fItls-size\fR" 4
+.IX Item "-mtls-size=tls-size"
+Specify bit size of immediate \s-1TLS\s0 offsets.  Valid values are 14, 22, and
+64.
+.IP "\fB\-mtune=\fR\fIcpu-type\fR" 4
+.IX Item "-mtune=cpu-type"
+Tune the instruction scheduling for a particular \s-1CPU\s0, Valid values are
+itanium, itanium1, merced, itanium2, and mckinley.
+.IP "\fB\-mt\fR" 4
+.IX Item "-mt"
+.PD 0
+.IP "\fB\-pthread\fR" 4
+.IX Item "-pthread"
+.PD
+Add support for multithreading using the \s-1POSIX\s0 threads library.  This
+option sets flags for both the preprocessor and linker.  It does
+not affect the thread safety of object code produced by the compiler or
+that of libraries supplied with it.  These are HP-UX specific flags.
+.IP "\fB\-milp32\fR" 4
+.IX Item "-milp32"
+.PD 0
+.IP "\fB\-mlp64\fR" 4
+.IX Item "-mlp64"
+.PD
+Generate code for a 32\-bit or 64\-bit environment.
+The 32\-bit environment sets int, long and pointer to 32 bits.
+The 64\-bit environment sets int to 32 bits and long and pointer
+to 64 bits.  These are HP-UX specific flags.
+.IP "\fB\-mno\-sched\-br\-data\-spec\fR" 4
+.IX Item "-mno-sched-br-data-spec"
+.PD 0
+.IP "\fB\-msched\-br\-data\-spec\fR" 4
+.IX Item "-msched-br-data-spec"
+.PD
+(Dis/En)able data speculative scheduling before reload.
+This will result in generation of the ld.a instructions and
+the corresponding check instructions (ld.c / chk.a).
+The default is 'disable'.
+.IP "\fB\-msched\-ar\-data\-spec\fR" 4
+.IX Item "-msched-ar-data-spec"
+.PD 0
+.IP "\fB\-mno\-sched\-ar\-data\-spec\fR" 4
+.IX Item "-mno-sched-ar-data-spec"
+.PD
+(En/Dis)able data speculative scheduling after reload.
+This will result in generation of the ld.a instructions and
+the corresponding check instructions (ld.c / chk.a).
+The default is 'enable'.
+.IP "\fB\-mno\-sched\-control\-spec\fR" 4
+.IX Item "-mno-sched-control-spec"
+.PD 0
+.IP "\fB\-msched\-control\-spec\fR" 4
+.IX Item "-msched-control-spec"
+.PD
+(Dis/En)able control speculative scheduling.  This feature is
+available only during region scheduling (i.e. before reload).
+This will result in generation of the ld.s instructions and
+the corresponding check instructions chk.s .
+The default is 'disable'.
+.IP "\fB\-msched\-br\-in\-data\-spec\fR" 4
+.IX Item "-msched-br-in-data-spec"
+.PD 0
+.IP "\fB\-mno\-sched\-br\-in\-data\-spec\fR" 4
+.IX Item "-mno-sched-br-in-data-spec"
+.PD
+(En/Dis)able speculative scheduling of the instructions that
+are dependent on the data speculative loads before reload.
+This is effective only with \fB\-msched\-br\-data\-spec\fR enabled.
+The default is 'enable'.
+.IP "\fB\-msched\-ar\-in\-data\-spec\fR" 4
+.IX Item "-msched-ar-in-data-spec"
+.PD 0
+.IP "\fB\-mno\-sched\-ar\-in\-data\-spec\fR" 4
+.IX Item "-mno-sched-ar-in-data-spec"
+.PD
+(En/Dis)able speculative scheduling of the instructions that
+are dependent on the data speculative loads after reload.
+This is effective only with \fB\-msched\-ar\-data\-spec\fR enabled.
+The default is 'enable'.
+.IP "\fB\-msched\-in\-control\-spec\fR" 4
+.IX Item "-msched-in-control-spec"
+.PD 0
+.IP "\fB\-mno\-sched\-in\-control\-spec\fR" 4
+.IX Item "-mno-sched-in-control-spec"
+.PD
+(En/Dis)able speculative scheduling of the instructions that
+are dependent on the control speculative loads.
+This is effective only with \fB\-msched\-control\-spec\fR enabled.
+The default is 'enable'.
+.IP "\fB\-msched\-ldc\fR" 4
+.IX Item "-msched-ldc"
+.PD 0
+.IP "\fB\-mno\-sched\-ldc\fR" 4
+.IX Item "-mno-sched-ldc"
+.PD
+(En/Dis)able use of simple data speculation checks ld.c .
+If disabled, only chk.a instructions will be emitted to check
+data speculative loads.
+The default is 'enable'.
+.IP "\fB\-mno\-sched\-control\-ldc\fR" 4
+.IX Item "-mno-sched-control-ldc"
+.PD 0
+.IP "\fB\-msched\-control\-ldc\fR" 4
+.IX Item "-msched-control-ldc"
+.PD
+(Dis/En)able use of ld.c instructions to check control speculative loads.
+If enabled, in case of control speculative load with no speculatively
+scheduled dependent instructions this load will be emitted as ld.sa and
+ld.c will be used to check it.
+The default is 'disable'.
+.IP "\fB\-mno\-sched\-spec\-verbose\fR" 4
+.IX Item "-mno-sched-spec-verbose"
+.PD 0
+.IP "\fB\-msched\-spec\-verbose\fR" 4
+.IX Item "-msched-spec-verbose"
+.PD
+(Dis/En)able printing of the information about speculative motions.
+.IP "\fB\-mno\-sched\-prefer\-non\-data\-spec\-insns\fR" 4
+.IX Item "-mno-sched-prefer-non-data-spec-insns"
+.PD 0
+.IP "\fB\-msched\-prefer\-non\-data\-spec\-insns\fR" 4
+.IX Item "-msched-prefer-non-data-spec-insns"
+.PD
+If enabled, data speculative instructions will be chosen for schedule
+only if there are no other choices at the moment.  This will make
+the use of the data speculation much more conservative.
+The default is 'disable'.
+.IP "\fB\-mno\-sched\-prefer\-non\-control\-spec\-insns\fR" 4
+.IX Item "-mno-sched-prefer-non-control-spec-insns"
+.PD 0
+.IP "\fB\-msched\-prefer\-non\-control\-spec\-insns\fR" 4
+.IX Item "-msched-prefer-non-control-spec-insns"
+.PD
+If enabled, control speculative instructions will be chosen for schedule
+only if there are no other choices at the moment.  This will make
+the use of the control speculation much more conservative.
+The default is 'disable'.
+.IP "\fB\-mno\-sched\-count\-spec\-in\-critical\-path\fR" 4
+.IX Item "-mno-sched-count-spec-in-critical-path"
+.PD 0
+.IP "\fB\-msched\-count\-spec\-in\-critical\-path\fR" 4
+.IX Item "-msched-count-spec-in-critical-path"
+.PD
+If enabled, speculative dependencies will be considered during
+computation of the instructions priorities.  This will make the use of the
+speculation a bit more conservative.
+The default is 'disable'.
+.PP
+\fIM32C Options\fR
+.IX Subsection "M32C Options"
+.IP "\fB\-mcpu=\fR\fIname\fR" 4
+.IX Item "-mcpu=name"
+Select the \s-1CPU\s0 for which code is generated.  \fIname\fR may be one of
+\&\fBr8c\fR for the R8C/Tiny series, \fBm16c\fR for the M16C (up to
+/60) series, \fBm32cm\fR for the M16C/80 series, or \fBm32c\fR for
+the M32C/80 series.
+.IP "\fB\-msim\fR" 4
+.IX Item "-msim"
+Specifies that the program will be run on the simulator.  This causes
+an alternate runtime library to be linked in which supports, for
+example, file I/O.  You must not use this option when generating
+programs that will run on real hardware; you must provide your own
+runtime library for whatever I/O functions are needed.
+.IP "\fB\-memregs=\fR\fInumber\fR" 4
+.IX Item "-memregs=number"
+Specifies the number of memory-based pseudo-registers \s-1GCC\s0 will use
+during code generation.  These pseudo-registers will be used like real
+registers, so there is a tradeoff between \s-1GCC\s0's ability to fit the
+code into available registers, and the performance penalty of using
+memory instead of registers.  Note that all modules in a program must
+be compiled with the same value for this option.  Because of that, you
+must not use this option with the default runtime libraries gcc
+builds.
+.PP
+\fIM32R/D Options\fR
+.IX Subsection "M32R/D Options"
+.PP
+These \fB\-m\fR options are defined for Renesas M32R/D architectures:
+.IP "\fB\-m32r2\fR" 4
+.IX Item "-m32r2"
+Generate code for the M32R/2.
+.IP "\fB\-m32rx\fR" 4
+.IX Item "-m32rx"
+Generate code for the M32R/X.
+.IP "\fB\-m32r\fR" 4
+.IX Item "-m32r"
+Generate code for the M32R.  This is the default.
+.IP "\fB\-mmodel=small\fR" 4
+.IX Item "-mmodel=small"
+Assume all objects live in the lower 16MB of memory (so that their addresses
+can be loaded with the \f(CW\*(C`ld24\*(C'\fR instruction), and assume all subroutines
+are reachable with the \f(CW\*(C`bl\*(C'\fR instruction.
+This is the default.
+.Sp
+The addressability of a particular object can be set with the
+\&\f(CW\*(C`model\*(C'\fR attribute.
+.IP "\fB\-mmodel=medium\fR" 4
+.IX Item "-mmodel=medium"
+Assume objects may be anywhere in the 32\-bit address space (the compiler
+will generate \f(CW\*(C`seth/add3\*(C'\fR instructions to load their addresses), and
+assume all subroutines are reachable with the \f(CW\*(C`bl\*(C'\fR instruction.
+.IP "\fB\-mmodel=large\fR" 4
+.IX Item "-mmodel=large"
+Assume objects may be anywhere in the 32\-bit address space (the compiler
+will generate \f(CW\*(C`seth/add3\*(C'\fR instructions to load their addresses), and
+assume subroutines may not be reachable with the \f(CW\*(C`bl\*(C'\fR instruction
+(the compiler will generate the much slower \f(CW\*(C`seth/add3/jl\*(C'\fR
+instruction sequence).
+.IP "\fB\-msdata=none\fR" 4
+.IX Item "-msdata=none"
+Disable use of the small data area.  Variables will be put into
+one of \fB.data\fR, \fBbss\fR, or \fB.rodata\fR (unless the
+\&\f(CW\*(C`section\*(C'\fR attribute has been specified).
+This is the default.
+.Sp
+The small data area consists of sections \fB.sdata\fR and \fB.sbss\fR.
+Objects may be explicitly put in the small data area with the
+\&\f(CW\*(C`section\*(C'\fR attribute using one of these sections.
+.IP "\fB\-msdata=sdata\fR" 4
+.IX Item "-msdata=sdata"
+Put small global and static data in the small data area, but do not
+generate special code to reference them.
+.IP "\fB\-msdata=use\fR" 4
+.IX Item "-msdata=use"
+Put small global and static data in the small data area, and generate
+special instructions to reference them.
+.IP "\fB\-G\fR \fInum\fR" 4
+.IX Item "-G num"
+Put global and static objects less than or equal to \fInum\fR bytes
+into the small data or bss sections instead of the normal data or bss
+sections.  The default value of \fInum\fR is 8.
+The \fB\-msdata\fR option must be set to one of \fBsdata\fR or \fBuse\fR
+for this option to have any effect.
+.Sp
+All modules should be compiled with the same \fB\-G\fR \fInum\fR value.
+Compiling with different values of \fInum\fR may or may not work; if it
+doesn't the linker will give an error message\-\-\-incorrect code will not be
+generated.
+.IP "\fB\-mdebug\fR" 4
+.IX Item "-mdebug"
+Makes the M32R specific code in the compiler display some statistics
+that might help in debugging programs.
+.IP "\fB\-malign\-loops\fR" 4
+.IX Item "-malign-loops"
+Align all loops to a 32\-byte boundary.
+.IP "\fB\-mno\-align\-loops\fR" 4
+.IX Item "-mno-align-loops"
+Do not enforce a 32\-byte alignment for loops.  This is the default.
+.IP "\fB\-missue\-rate=\fR\fInumber\fR" 4
+.IX Item "-missue-rate=number"
+Issue \fInumber\fR instructions per cycle.  \fInumber\fR can only be 1
+or 2.
+.IP "\fB\-mbranch\-cost=\fR\fInumber\fR" 4
+.IX Item "-mbranch-cost=number"
+\&\fInumber\fR can only be 1 or 2.  If it is 1 then branches will be
+preferred over conditional code, if it is 2, then the opposite will
+apply.
+.IP "\fB\-mflush\-trap=\fR\fInumber\fR" 4
+.IX Item "-mflush-trap=number"
+Specifies the trap number to use to flush the cache.  The default is
+12.  Valid numbers are between 0 and 15 inclusive.
+.IP "\fB\-mno\-flush\-trap\fR" 4
+.IX Item "-mno-flush-trap"
+Specifies that the cache cannot be flushed by using a trap.
+.IP "\fB\-mflush\-func=\fR\fIname\fR" 4
+.IX Item "-mflush-func=name"
+Specifies the name of the operating system function to call to flush
+the cache.  The default is \fI_flush_cache\fR, but a function call
+will only be used if a trap is not available.
+.IP "\fB\-mno\-flush\-func\fR" 4
+.IX Item "-mno-flush-func"
+Indicates that there is no \s-1OS\s0 function for flushing the cache.
+.PP
+\fIM680x0 Options\fR
+.IX Subsection "M680x0 Options"
+.PP
+These are the \fB\-m\fR options defined for M680x0 and ColdFire processors.
+The default settings depend on which architecture was selected when
+the compiler was configured; the defaults for the most common choices
+are given below.
+.IP "\fB\-march=\fR\fIarch\fR" 4
+.IX Item "-march=arch"
+Generate code for a specific M680x0 or ColdFire instruction set
+architecture.  Permissible values of \fIarch\fR for M680x0
+architectures are: \fB68000\fR, \fB68010\fR, \fB68020\fR,
+\&\fB68030\fR, \fB68040\fR, \fB68060\fR and \fBcpu32\fR.  ColdFire
+architectures are selected according to Freescale's \s-1ISA\s0 classification
+and the permissible values are: \fBisaa\fR, \fBisaaplus\fR,
+\&\fBisab\fR and \fBisac\fR.
+.Sp
+gcc defines a macro \fB_\|_mcf\fR\fIarch\fR\fB_\|_\fR whenever it is generating
+code for a ColdFire target.  The \fIarch\fR in this macro is one of the
+\&\fB\-march\fR arguments given above.
+.Sp
+When used together, \fB\-march\fR and \fB\-mtune\fR select code
+that runs on a family of similar processors but that is optimized
+for a particular microarchitecture.
+.IP "\fB\-mcpu=\fR\fIcpu\fR" 4
+.IX Item "-mcpu=cpu"
+Generate code for a specific M680x0 or ColdFire processor.
+The M680x0 \fIcpu\fRs are: \fB68000\fR, \fB68010\fR, \fB68020\fR,
+\&\fB68030\fR, \fB68040\fR, \fB68060\fR, \fB68302\fR, \fB68332\fR
+and \fBcpu32\fR.  The ColdFire \fIcpu\fRs are given by the table
+below, which also classifies the CPUs into families:
+.RS 4
+.IP "Family : \fB\-mcpu\fR arguments" 4
+.IX Item "Family : -mcpu arguments"
+.PD 0
+.IP "\fB51qe\fR : \fB51qe\fR" 4
+.IX Item "51qe : 51qe"
+.IP "\fB5206\fR : \fB5202\fR \fB5204\fR \fB5206\fR" 4
+.IX Item "5206 : 5202 5204 5206"
+.IP "\fB5206e\fR : \fB5206e\fR" 4
+.IX Item "5206e : 5206e"
+.IP "\fB5208\fR : \fB5207\fR \fB5208\fR" 4
+.IX Item "5208 : 5207 5208"
+.IP "\fB5211a\fR : \fB5210a\fR \fB5211a\fR" 4
+.IX Item "5211a : 5210a 5211a"
+.IP "\fB5213\fR : \fB5211\fR \fB5212\fR \fB5213\fR" 4
+.IX Item "5213 : 5211 5212 5213"
+.IP "\fB5216\fR : \fB5214\fR \fB5216\fR" 4
+.IX Item "5216 : 5214 5216"
+.IP "\fB52235\fR : \fB52230\fR \fB52231\fR \fB52232\fR \fB52233\fR \fB52234\fR \fB52235\fR" 4
+.IX Item "52235 : 52230 52231 52232 52233 52234 52235"
+.IP "\fB5225\fR : \fB5224\fR \fB5225\fR" 4
+.IX Item "5225 : 5224 5225"
+.IP "\fB5235\fR : \fB5232\fR \fB5233\fR \fB5234\fR \fB5235\fR \fB523x\fR" 4
+.IX Item "5235 : 5232 5233 5234 5235 523x"
+.IP "\fB5249\fR : \fB5249\fR" 4
+.IX Item "5249 : 5249"
+.IP "\fB5250\fR : \fB5250\fR" 4
+.IX Item "5250 : 5250"
+.IP "\fB5271\fR : \fB5270\fR \fB5271\fR" 4
+.IX Item "5271 : 5270 5271"
+.IP "\fB5272\fR : \fB5272\fR" 4
+.IX Item "5272 : 5272"
+.IP "\fB5275\fR : \fB5274\fR \fB5275\fR" 4
+.IX Item "5275 : 5274 5275"
+.IP "\fB5282\fR : \fB5280\fR \fB5281\fR \fB5282\fR \fB528x\fR" 4
+.IX Item "5282 : 5280 5281 5282 528x"
+.IP "\fB5307\fR : \fB5307\fR" 4
+.IX Item "5307 : 5307"
+.IP "\fB5329\fR : \fB5327\fR \fB5328\fR \fB5329\fR \fB532x\fR" 4
+.IX Item "5329 : 5327 5328 5329 532x"
+.IP "\fB5373\fR : \fB5372\fR \fB5373\fR \fB537x\fR" 4
+.IX Item "5373 : 5372 5373 537x"
+.IP "\fB5407\fR : \fB5407\fR" 4
+.IX Item "5407 : 5407"
+.IP "\fB5475\fR : \fB5470\fR \fB5471\fR \fB5472\fR \fB5473\fR \fB5474\fR \fB5475\fR \fB547x\fR \fB5480\fR \fB5481\fR \fB5482\fR \fB5483\fR \fB5484\fR \fB5485\fR" 4
+.IX Item "5475 : 5470 5471 5472 5473 5474 5475 547x 5480 5481 5482 5483 5484 5485"
+.RE
+.RS 4
+.PD
+.Sp
+\&\fB\-mcpu=\fR\fIcpu\fR overrides \fB\-march=\fR\fIarch\fR if
+\&\fIarch\fR is compatible with \fIcpu\fR.  Other combinations of
+\&\fB\-mcpu\fR and \fB\-march\fR are rejected.
+.Sp
+gcc defines the macro \fB_\|_mcf_cpu_\fR\fIcpu\fR when ColdFire target
+\&\fIcpu\fR is selected.  It also defines \fB_\|_mcf_family_\fR\fIfamily\fR,
+where the value of \fIfamily\fR is given by the table above.
+.RE
+.IP "\fB\-mtune=\fR\fItune\fR" 4
+.IX Item "-mtune=tune"
+Tune the code for a particular microarchitecture, within the
+constraints set by \fB\-march\fR and \fB\-mcpu\fR.
+The M680x0 microarchitectures are: \fB68000\fR, \fB68010\fR,
+\&\fB68020\fR, \fB68030\fR, \fB68040\fR, \fB68060\fR
+and \fBcpu32\fR.  The ColdFire microarchitectures
+are: \fBcfv1\fR, \fBcfv2\fR, \fBcfv3\fR, \fBcfv4\fR and \fBcfv4e\fR.
+.Sp
+You can also use \fB\-mtune=68020\-40\fR for code that needs
+to run relatively well on 68020, 68030 and 68040 targets.
+\&\fB\-mtune=68020\-60\fR is similar but includes 68060 targets
+as well.  These two options select the same tuning decisions as
+\&\fB\-m68020\-40\fR and \fB\-m68020\-60\fR respectively.
+.Sp
+gcc defines the macros \fB_\|_mc\fR\fIarch\fR and \fB_\|_mc\fR\fIarch\fR\fB_\|_\fR
+when tuning for 680x0 architecture \fIarch\fR.  It also defines
+\&\fBmc\fR\fIarch\fR unless either \fB\-ansi\fR or a non-GNU \fB\-std\fR
+option is used.  If gcc is tuning for a range of architectures,
+as selected by \fB\-mtune=68020\-40\fR or \fB\-mtune=68020\-60\fR,
+it defines the macros for every architecture in the range.
+.Sp
+gcc also defines the macro \fB_\|_m\fR\fIuarch\fR\fB_\|_\fR when tuning for
+ColdFire microarchitecture \fIuarch\fR, where \fIuarch\fR is one
+of the arguments given above.
+.IP "\fB\-m68000\fR" 4
+.IX Item "-m68000"
+.PD 0
+.IP "\fB\-mc68000\fR" 4
+.IX Item "-mc68000"
+.PD
+Generate output for a 68000.  This is the default
+when the compiler is configured for 68000\-based systems.
+It is equivalent to \fB\-march=68000\fR.
+.Sp
+Use this option for microcontrollers with a 68000 or \s-1EC000\s0 core,
+including the 68008, 68302, 68306, 68307, 68322, 68328 and 68356.
+.IP "\fB\-m68010\fR" 4
+.IX Item "-m68010"
+Generate output for a 68010.  This is the default
+when the compiler is configured for 68010\-based systems.
+It is equivalent to \fB\-march=68010\fR.
+.IP "\fB\-m68020\fR" 4
+.IX Item "-m68020"
+.PD 0
+.IP "\fB\-mc68020\fR" 4
+.IX Item "-mc68020"
+.PD
+Generate output for a 68020.  This is the default
+when the compiler is configured for 68020\-based systems.
+It is equivalent to \fB\-march=68020\fR.
+.IP "\fB\-m68030\fR" 4
+.IX Item "-m68030"
+Generate output for a 68030.  This is the default when the compiler is
+configured for 68030\-based systems.  It is equivalent to
+\&\fB\-march=68030\fR.
+.IP "\fB\-m68040\fR" 4
+.IX Item "-m68040"
+Generate output for a 68040.  This is the default when the compiler is
+configured for 68040\-based systems.  It is equivalent to
+\&\fB\-march=68040\fR.
+.Sp
+This option inhibits the use of 68881/68882 instructions that have to be
+emulated by software on the 68040.  Use this option if your 68040 does not
+have code to emulate those instructions.
+.IP "\fB\-m68060\fR" 4
+.IX Item "-m68060"
+Generate output for a 68060.  This is the default when the compiler is
+configured for 68060\-based systems.  It is equivalent to
+\&\fB\-march=68060\fR.
+.Sp
+This option inhibits the use of 68020 and 68881/68882 instructions that
+have to be emulated by software on the 68060.  Use this option if your 68060
+does not have code to emulate those instructions.
+.IP "\fB\-mcpu32\fR" 4
+.IX Item "-mcpu32"
+Generate output for a \s-1CPU32\s0.  This is the default
+when the compiler is configured for CPU32\-based systems.
+It is equivalent to \fB\-march=cpu32\fR.
+.Sp
+Use this option for microcontrollers with a
+\&\s-1CPU32\s0 or \s-1CPU32+\s0 core, including the 68330, 68331, 68332, 68333, 68334,
+68336, 68340, 68341, 68349 and 68360.
+.IP "\fB\-m5200\fR" 4
+.IX Item "-m5200"
+Generate output for a 520X ColdFire \s-1CPU\s0.  This is the default
+when the compiler is configured for 520X\-based systems.
+It is equivalent to \fB\-mcpu=5206\fR, and is now deprecated
+in favor of that option.
+.Sp
+Use this option for microcontroller with a 5200 core, including
+the \s-1MCF5202\s0, \s-1MCF5203\s0, \s-1MCF5204\s0 and \s-1MCF5206\s0.
+.IP "\fB\-m5206e\fR" 4
+.IX Item "-m5206e"
+Generate output for a 5206e ColdFire \s-1CPU\s0.  The option is now
+deprecated in favor of the equivalent \fB\-mcpu=5206e\fR.
+.IP "\fB\-m528x\fR" 4
+.IX Item "-m528x"
+Generate output for a member of the ColdFire 528X family.
+The option is now deprecated in favor of the equivalent
+\&\fB\-mcpu=528x\fR.
+.IP "\fB\-m5307\fR" 4
+.IX Item "-m5307"
+Generate output for a ColdFire 5307 \s-1CPU\s0.  The option is now deprecated
+in favor of the equivalent \fB\-mcpu=5307\fR.
+.IP "\fB\-m5407\fR" 4
+.IX Item "-m5407"
+Generate output for a ColdFire 5407 \s-1CPU\s0.  The option is now deprecated
+in favor of the equivalent \fB\-mcpu=5407\fR.
+.IP "\fB\-mcfv4e\fR" 4
+.IX Item "-mcfv4e"
+Generate output for a ColdFire V4e family \s-1CPU\s0 (e.g. 547x/548x).
+This includes use of hardware floating point instructions.
+The option is equivalent to \fB\-mcpu=547x\fR, and is now
+deprecated in favor of that option.
+.IP "\fB\-m68020\-40\fR" 4
+.IX Item "-m68020-40"
+Generate output for a 68040, without using any of the new instructions.
+This results in code which can run relatively efficiently on either a
+68020/68881 or a 68030 or a 68040.  The generated code does use the
+68881 instructions that are emulated on the 68040.
+.Sp
+The option is equivalent to \fB\-march=68020\fR \fB\-mtune=68020\-40\fR.
+.IP "\fB\-m68020\-60\fR" 4
+.IX Item "-m68020-60"
+Generate output for a 68060, without using any of the new instructions.
+This results in code which can run relatively efficiently on either a
+68020/68881 or a 68030 or a 68040.  The generated code does use the
+68881 instructions that are emulated on the 68060.
+.Sp
+The option is equivalent to \fB\-march=68020\fR \fB\-mtune=68020\-60\fR.
+.IP "\fB\-mhard\-float\fR" 4
+.IX Item "-mhard-float"
+.PD 0
+.IP "\fB\-m68881\fR" 4
+.IX Item "-m68881"
+.PD
+Generate floating-point instructions.  This is the default for 68020
+and above, and for ColdFire devices that have an \s-1FPU\s0.  It defines the
+macro \fB_\|_HAVE_68881_\|_\fR on M680x0 targets and \fB_\|_mcffpu_\|_\fR
+on ColdFire targets.
+.IP "\fB\-msoft\-float\fR" 4
+.IX Item "-msoft-float"
+Do not generate floating-point instructions; use library calls instead.
+This is the default for 68000, 68010, and 68832 targets.  It is also
+the default for ColdFire devices that have no \s-1FPU\s0.
+.IP "\fB\-mdiv\fR" 4
+.IX Item "-mdiv"
+.PD 0
+.IP "\fB\-mno\-div\fR" 4
+.IX Item "-mno-div"
+.PD
+Generate (do not generate) ColdFire hardware divide and remainder
+instructions.  If \fB\-march\fR is used without \fB\-mcpu\fR,
+the default is \*(L"on\*(R" for ColdFire architectures and \*(L"off\*(R" for M680x0
+architectures.  Otherwise, the default is taken from the target \s-1CPU\s0
+(either the default \s-1CPU\s0, or the one specified by \fB\-mcpu\fR).  For
+example, the default is \*(L"off\*(R" for \fB\-mcpu=5206\fR and \*(L"on\*(R" for
+\&\fB\-mcpu=5206e\fR.
+.Sp
+gcc defines the macro \fB_\|_mcfhwdiv_\|_\fR when this option is enabled.
+.IP "\fB\-mshort\fR" 4
+.IX Item "-mshort"
+Consider type \f(CW\*(C`int\*(C'\fR to be 16 bits wide, like \f(CW\*(C`short int\*(C'\fR.
+Additionally, parameters passed on the stack are also aligned to a
+16\-bit boundary even on targets whose \s-1API\s0 mandates promotion to 32\-bit.
+.IP "\fB\-mno\-short\fR" 4
+.IX Item "-mno-short"
+Do not consider type \f(CW\*(C`int\*(C'\fR to be 16 bits wide.  This is the default.
+.IP "\fB\-mnobitfield\fR" 4
+.IX Item "-mnobitfield"
+.PD 0
+.IP "\fB\-mno\-bitfield\fR" 4
+.IX Item "-mno-bitfield"
+.PD
+Do not use the bit-field instructions.  The \fB\-m68000\fR, \fB\-mcpu32\fR
+and \fB\-m5200\fR options imply \fB\-mnobitfield\fR.
+.IP "\fB\-mbitfield\fR" 4
+.IX Item "-mbitfield"
+Do use the bit-field instructions.  The \fB\-m68020\fR option implies
+\&\fB\-mbitfield\fR.  This is the default if you use a configuration
+designed for a 68020.
+.IP "\fB\-mrtd\fR" 4
+.IX Item "-mrtd"
+Use a different function-calling convention, in which functions
+that take a fixed number of arguments return with the \f(CW\*(C`rtd\*(C'\fR
+instruction, which pops their arguments while returning.  This
+saves one instruction in the caller since there is no need to pop
+the arguments there.
+.Sp
+This calling convention is incompatible with the one normally
+used on Unix, so you cannot use it if you need to call libraries
+compiled with the Unix compiler.
+.Sp
+Also, you must provide function prototypes for all functions that
+take variable numbers of arguments (including \f(CW\*(C`printf\*(C'\fR);
+otherwise incorrect code will be generated for calls to those
+functions.
+.Sp
+In addition, seriously incorrect code will result if you call a
+function with too many arguments.  (Normally, extra arguments are
+harmlessly ignored.)
+.Sp
+The \f(CW\*(C`rtd\*(C'\fR instruction is supported by the 68010, 68020, 68030,
+68040, 68060 and \s-1CPU32\s0 processors, but not by the 68000 or 5200.
+.IP "\fB\-mno\-rtd\fR" 4
+.IX Item "-mno-rtd"
+Do not use the calling conventions selected by \fB\-mrtd\fR.
+This is the default.
+.IP "\fB\-malign\-int\fR" 4
+.IX Item "-malign-int"
+.PD 0
+.IP "\fB\-mno\-align\-int\fR" 4
+.IX Item "-mno-align-int"
+.PD
+Control whether \s-1GCC\s0 aligns \f(CW\*(C`int\*(C'\fR, \f(CW\*(C`long\*(C'\fR, \f(CW\*(C`long long\*(C'\fR,
+\&\f(CW\*(C`float\*(C'\fR, \f(CW\*(C`double\*(C'\fR, and \f(CW\*(C`long double\*(

@@ -1,0 +1,1669 @@
+s = __sn * __sn
+                  * (__c3 + __sn*(__c1 + __sn * (__c4 + __sn * __c2)));
+
+          return (_Tp(1) + __s) / std::sqrt(__mu);
+        }
+    }
+
+
+    /**
+     *   @brief  Return the Carlson elliptic function @f$ R_J(x,y,z,p) @f$
+     *           of the third kind.
+     * 
+     *   The Carlson elliptic function of the third kind is defined by:
+     *   @f[
+     *       R_J(x,y,z,p) = \frac{3}{2} \int_0^\infty
+     *       \frac{dt}{(t + x)^{1/2}(t + y)^{1/2}(t + z)^{1/2}(t + p)}
+     *   @f]
+     *
+     *   Based on Carlson's algorithms:
+     *   -  B. C. Carlson Numer. Math. 33, 1 (1979)
+     *   -  B. C. Carlson, Special Functions of Applied Mathematics (1977)
+     *   -  Numerical Recipes in C, 2nd ed, pp. 261-269,
+     *      by Press, Teukolsky, Vetterling, Flannery (1992)
+     *
+     *   @param  __x  The first of three symmetric arguments.
+     *   @param  __y  The second of three symmetric arguments.
+     *   @param  __z  The third of three symmetric arguments.
+     *   @param  __p  The fourth argument.
+     *   @return  The Carlson elliptic function of the fourth kind.
+     */
+    template<typename _Tp>
+    _Tp
+    __ellint_rj(const _Tp __x, const _Tp __y, const _Tp __z, const _Tp __p)
+    {
+      const _Tp __min = std::numeric_limits<_Tp>::min();
+      const _Tp __max = std::numeric_limits<_Tp>::max();
+      const _Tp __lolim = std::pow(_Tp(5) * __min, _Tp(1)/_Tp(3));
+      const _Tp __uplim = _Tp(0.3L)
+                        * std::pow(_Tp(0.2L) * __max, _Tp(1)/_Tp(3));
+
+      if (__x < _Tp(0) || __y < _Tp(0) || __z < _Tp(0))
+        std::__throw_domain_error(__N("Argument less than zero "
+                                      "in __ellint_rj."));
+      else if (__x + __y < __lolim || __x + __z < __lolim
+            || __y + __z < __lolim || __p < __lolim)
+        std::__throw_domain_error(__N("Argument too small "
+                                      "in __ellint_rj"));
+      else
+        {
+          const _Tp __c0 = _Tp(1) / _Tp(4);
+          const _Tp __c1 = _Tp(3) / _Tp(14);
+          const _Tp __c2 = _Tp(1) / _Tp(3);
+          const _Tp __c3 = _Tp(3) / _Tp(22);
+          const _Tp __c4 = _Tp(3) / _Tp(26);
+
+          _Tp __xn = __x;
+          _Tp __yn = __y;
+          _Tp __zn = __z;
+          _Tp __pn = __p;
+          _Tp __sigma = _Tp(0);
+          _Tp __power4 = _Tp(1);
+
+          const _Tp __eps = std::numeric_limits<_Tp>::epsilon();
+          const _Tp __errtol = std::pow(__eps / _Tp(8), _Tp(1) / _Tp(6));
+
+          _Tp __lambda, __mu;
+          _Tp __xndev, __yndev, __zndev, __pndev;
+
+          const unsigned int __max_iter = 100;
+          for (unsigned int __iter = 0; __iter < __max_iter; ++__iter)
+            {
+              __mu = (__xn + __yn + __zn + _Tp(2) * __pn) / _Tp(5);
+              __xndev = (__mu - __xn) / __mu;
+              __yndev = (__mu - __yn) / __mu;
+              __zndev = (__mu - __zn) / __mu;
+              __pndev = (__mu - __pn) / __mu;
+              _Tp __epsilon = std::max(std::abs(__xndev), std::abs(__yndev));
+              __epsilon = std::max(__epsilon, std::abs(__zndev));
+              __epsilon = std::max(__epsilon, std::abs(__pndev));
+              if (__epsilon < __errtol)
+                break;
+              const _Tp __xnroot = std::sqrt(__xn);
+              const _Tp __ynroot = std::sqrt(__yn);
+              const _Tp __znroot = std::sqrt(__zn);
+              const _Tp __lambda = __xnroot * (__ynroot + __znroot)
+                                 + __ynroot * __znroot;
+              const _Tp __alpha1 = __pn * (__xnroot + __ynroot + __znroot)
+                                + __xnroot * __ynroot * __znroot;
+              const _Tp __alpha2 = __alpha1 * __alpha1;
+              const _Tp __beta = __pn * (__pn + __lambda)
+                                      * (__pn + __lambda);
+              __sigma += __power4 * __ellint_rc(__alpha2, __beta);
+              __power4 *= __c0;
+              __xn = __c0 * (__xn + __lambda);
+              __yn = __c0 * (__yn + __lambda);
+              __zn = __c0 * (__zn + __lambda);
+              __pn = __c0 * (__pn + __lambda);
+            }
+
+          _Tp __ea = __xndev * (__yndev + __zndev) + __yndev * __zndev;
+          _Tp __eb = __xndev * __yndev * __zndev;
+          _Tp __ec = __pndev * __pndev;
+          _Tp __e2 = __ea - _Tp(3) * __ec;
+          _Tp __e3 = __eb + _Tp(2) * __pndev * (__ea - __ec);
+          _Tp __s1 = _Tp(1) + __e2 * (-__c1 + _Tp(3) * __c3 * __e2 / _Tp(4)
+                            - _Tp(3) * __c4 * __e3 / _Tp(2));
+          _Tp __s2 = __eb * (__c2 / _Tp(2)
+                   + __pndev * (-__c3 - __c3 + __pndev * __c4));
+          _Tp __s3 = __pndev * __ea * (__c2 - __pndev * __c3)
+                   - __c2 * __pndev * __ec;
+
+          return _Tp(3) * __sigma + __power4 * (__s1 + __s2 + __s3)
+                                             / (__mu * std::sqrt(__mu));
+        }
+    }
+
+
+    /**
+     *   @brief Return the complete elliptic integral of the third kind
+     *          @f$ \Pi(k,\nu) = \Pi(k,\nu,\pi/2) @f$ using the
+     *          Carlson formulation.
+     * 
+     *   The complete elliptic integral of the third kind is defined as
+     *   @f[
+     *     \Pi(k,\nu) = \int_0^{\pi/2}
+     *                   \frac{d\theta}
+     *                 {(1 - \nu \sin^2\theta)\sqrt{1 - k^2 \sin^2\theta}}
+     *   @f]
+     * 
+     *   @param  __k  The argument of the elliptic function.
+     *   @param  __nu  The second argument of the elliptic function.
+     *   @return  The complete elliptic function of the third kind.
+     */
+    template<typename _Tp>
+    _Tp
+    __comp_ellint_3(const _Tp __k, const _Tp __nu)
+    {
+
+      if (__isnan(__k) || __isnan(__nu))
+        return std::numeric_limits<_Tp>::quiet_NaN();
+      else if (__nu == _Tp(1))
+        return std::numeric_limits<_Tp>::infinity();
+      else if (std::abs(__k) > _Tp(1))
+        std::__throw_domain_error(__N("Bad argument in __comp_ellint_3."));
+      else
+        {
+          const _Tp __kk = __k * __k;
+
+          return __ellint_rf(_Tp(0), _Tp(1) - __kk, _Tp(1))
+               - __nu
+               * __ellint_rj(_Tp(0), _Tp(1) - __kk, _Tp(1), _Tp(1) + __nu)
+               / _Tp(3);
+        }
+    }
+
+
+    /**
+     *   @brief Return the incomplete elliptic integral of the third kind
+     *          @f$ \Pi(k,\nu,\phi) @f$ using the Carlson formulation.
+     * 
+     *   The incomplete elliptic integral of the third kind is defined as
+     *   @f[
+     *     \Pi(k,\nu,\phi) = \int_0^{\phi}
+     *                       \frac{d\theta}
+     *                            {(1 - \nu \sin^2\theta)
+     *                             \sqrt{1 - k^2 \sin^2\theta}}
+     *   @f]
+     * 
+     *   @param  __k  The argument of the elliptic function.
+     *   @param  __nu  The second argument of the elliptic function.
+     *   @param  __phi  The integral limit argument of the elliptic function.
+     *   @return  The elliptic function of the third kind.
+     */
+    template<typename _Tp>
+    _Tp
+    __ellint_3(const _Tp __k, const _Tp __nu, const _Tp __phi)
+    {
+
+      if (__isnan(__k) || __isnan(__nu) || __isnan(__phi))
+        return std::numeric_limits<_Tp>::quiet_NaN();
+      else if (std::abs(__k) > _Tp(1))
+        std::__throw_domain_error(__N("Bad argument in __ellint_3."));
+      else
+        {
+          //  Reduce phi to -pi/2 < phi < +pi/2.
+          const int __n = std::floor(__phi / __numeric_constants<_Tp>::__pi()
+                                   + _Tp(0.5L));
+          const _Tp __phi_red = __phi
+                              - __n * __numeric_constants<_Tp>::__pi();
+
+          const _Tp __kk = __k * __k;
+          const _Tp __s = std::sin(__phi_red);
+          const _Tp __ss = __s * __s;
+          const _Tp __sss = __ss * __s;
+          const _Tp __c = std::cos(__phi_red);
+          const _Tp __cc = __c * __c;
+
+          const _Tp __Pi = __s
+                         * __ellint_rf(__cc, _Tp(1) - __kk * __ss, _Tp(1))
+                         - __nu * __sss
+                         * __ellint_rj(__cc, _Tp(1) - __kk * __ss, _Tp(1),
+                                       _Tp(1) + __nu * __ss) / _Tp(3);
+
+          if (__n == 0)
+            return __Pi;
+          else
+            return __Pi + _Tp(2) * __n * __comp_ellint_3(__k, __nu);
+        }
+    }
+
+  } // namespace std::tr1::__detail
+}
+}
+
+#endif // _GLIBCXX_TR1_ELL_INTEGRAL_TCC
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        // class template regex -*- C++ -*-
+
+// Copyright (C) 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/**
+ * @file tr1/regex
+ * @author Stephen M. Webb  <stephen.webb@bregmasoft.ca>
+ * This is a TR1 C++ Library header. 
+ */
+
+#ifndef _GLIBCXX_TR1_REGEX
+#define _GLIBCXX_TR1_REGEX 1
+
+#pragma GCC system_header
+
+#if defined(_GLIBCXX_INCLUDE_AS_CXX0X)
+#  error TR1 header cannot be included from C++0x header
+#endif
+
+#include <algorithm>
+#include <bitset>
+#include <iterator>
+#include <locale>
+#include <stdexcept>
+#include <string>
+#include <vector>
+#include <utility>
+
+#if defined(_GLIBCXX_INCLUDE_AS_TR1)
+#  include <tr1_impl/regex>
+#else
+#  define _GLIBCXX_INCLUDE_AS_TR1
+#  define _GLIBCXX_BEGIN_NAMESPACE_TR1 namespace tr1 {
+#  define _GLIBCXX_END_NAMESPACE_TR1 }
+#  define _GLIBCXX_TR1 tr1::
+#  include <tr1_impl/regex>
+#  undef _GLIBCXX_TR1
+#  undef _GLIBCXX_END_NAMESPACE_TR1
+#  undef _GLIBCXX_BEGIN_NAMESPACE_TR1
+#  undef _GLIBCXX_INCLUDE_AS_TR1
+#endif
+
+#endif // _GLIBCXX_TR1_REGEX
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              // TR1 cstdint -*- C++ -*-
+
+// Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file tr1/cstdint
+ *  This is a TR1 C++ Library header. 
+ */
+
+#ifndef _GLIBCXX_TR1_CSTDINT
+#define _GLIBCXX_TR1_CSTDINT 1
+
+#pragma GCC system_header
+
+#if defined(_GLIBCXX_INCLUDE_AS_CXX0X)
+#  error TR1 header cannot be included from C++0x header
+#endif
+
+#include <bits/c++config.h>
+
+// For 8.22.1/1 (see C99, Notes 219, 220, 222)
+# if _GLIBCXX_HAVE_STDINT_H
+#  ifndef __STDC_LIMIT_MACROS
+#   define _UNDEF__STDC_LIMIT_MACROS
+#   define __STDC_LIMIT_MACROS
+#  endif
+#  ifndef __STDC_CONSTANT_MACROS
+#   define _UNDEF__STDC_CONSTANT_MACROS
+#   define __STDC_CONSTANT_MACROS
+#  endif
+#  include <stdint.h>
+#  ifdef _UNDEF__STDC_LIMIT_MACROS
+#   undef __STDC_LIMIT_MACROS
+#   undef _UNDEF__STDC_LIMIT_MACROS
+#  endif
+#  ifdef _UNDEF__STDC_CONSTANT_MACROS
+#   undef __STDC_CONSTANT_MACROS
+#   undef _UNDEF__STDC_CONSTANT_MACROS
+#  endif
+# endif
+
+#if defined(_GLIBCXX_INCLUDE_AS_TR1)
+#  include <tr1_impl/cstdint>
+#else
+#  define _GLIBCXX_INCLUDE_AS_TR1
+#  define _GLIBCXX_BEGIN_NAMESPACE_TR1 namespace tr1 {
+#  define _GLIBCXX_END_NAMESPACE_TR1 }
+#  define _GLIBCXX_TR1 tr1::
+#  include <tr1_impl/cstdint>
+#  undef _GLIBCXX_TR1
+#  undef _GLIBCXX_END_NAMESPACE_TR1
+#  undef _GLIBCXX_BEGIN_NAMESPACE_TR1
+#  undef _GLIBCXX_INCLUDE_AS_TR1
+#endif
+
+#endif // _GLIBCXX_TR1_CSTDINT
+
+                                                                                                                                                                                                                                                                                                                                                                                        // TR1 stdint.h -*- C++ -*-
+
+// Copyright (C) 2006 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file tr1/stdint.h
+ *  This is a TR1 C++ Library header. 
+ */
+
+#ifndef _TR1_STDINT_H
+#define _TR1_STDINT_H 1
+
+#include <tr1/cstdint>
+
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            // Special functions -*- C++ -*-
+
+// Copyright (C) 2006, 2007, 2008
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+//
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+//
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file tr1/legendre_function.tcc
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+//
+// ISO C++ 14882 TR1: 5.2  Special functions
+//
+
+// Written by Edward Smith-Rowland based on:
+//   (1) Handbook of Mathematical Functions,
+//       ed. Milton Abramowitz and Irene A. Stegun,
+//       Dover Publications,
+//       Section 8, pp. 331-341
+//   (2) The Gnu Scientific Library, http://www.gnu.org/software/gsl
+//   (3) Numerical Recipes in C, by W. H. Press, S. A. Teukolsky,
+//       W. T. Vetterling, B. P. Flannery, Cambridge University Press (1992),
+//       2nd ed, pp. 252-254
+
+#ifndef _GLIBCXX_TR1_LEGENDRE_FUNCTION_TCC
+#define _GLIBCXX_TR1_LEGENDRE_FUNCTION_TCC 1
+
+#include "special_function_util.h"
+
+namespace std
+{
+namespace tr1
+{
+
+  // [5.2] Special functions
+
+  // Implementation-space details.
+  namespace __detail
+  {
+
+    /**
+     *   @brief  Return the Legendre polynomial by recursion on order
+     *           @f$ l @f$.
+     * 
+     *   The Legendre function of @f$ l @f$ and @f$ x @f$,
+     *   @f$ P_l(x) @f$, is defined by:
+     *   @f[
+     *     P_l(x) = \frac{1}{2^l l!}\frac{d^l}{dx^l}(x^2 - 1)^{l}
+     *   @f]
+     * 
+     *   @param  l  The order of the Legendre polynomial.  @f$l >= 0@f$.
+     *   @param  x  The argument of the Legendre polynomial.  @f$|x| <= 1@f$.
+     */
+    template<typename _Tp>
+    _Tp
+    __poly_legendre_p(const unsigned int __l, const _Tp __x)
+    {
+
+      if ((__x < _Tp(-1)) || (__x > _Tp(+1)))
+        std::__throw_domain_error(__N("Argument out of range"
+                                      " in __poly_legendre_p."));
+      else if (__isnan(__x))
+        return std::numeric_limits<_Tp>::quiet_NaN();
+      else if (__x == +_Tp(1))
+        return +_Tp(1);
+      else if (__x == -_Tp(1))
+        return (__l % 2 == 1 ? -_Tp(1) : +_Tp(1));
+      else
+        {
+          _Tp __p_lm2 = _Tp(1);
+          if (__l == 0)
+            return __p_lm2;
+
+          _Tp __p_lm1 = __x;
+          if (__l == 1)
+            return __p_lm1;
+
+          _Tp __p_l = 0;
+          for (unsigned int __ll = 2; __ll <= __l; ++__ll)
+            {
+              //  This arrangement is supposed to be better for roundoff
+              //  protection, Arfken, 2nd Ed, Eq 12.17a.
+              __p_l = _Tp(2) * __x * __p_lm1 - __p_lm2
+                    - (__x * __p_lm1 - __p_lm2) / _Tp(__ll);
+              __p_lm2 = __p_lm1;
+              __p_lm1 = __p_l;
+            }
+
+          return __p_l;
+        }
+    }
+
+
+    /**
+     *   @brief  Return the associated Legendre function by recursion
+     *           on @f$ l @f$.
+     * 
+     *   The associated Legendre function is derived from the Legendre function
+     *   @f$ P_l(x) @f$ by the Rodrigues formula:
+     *   @f[
+     *     P_l^m(x) = (1 - x^2)^{m/2}\frac{d^m}{dx^m}P_l(x)
+     *   @f]
+     * 
+     *   @param  l  The order of the associated Legendre function.
+     *              @f$ l >= 0 @f$.
+     *   @param  m  The order of the associated Legendre function.
+     *              @f$ m <= l @f$.
+     *   @param  x  The argument of the associated Legendre function.
+     *              @f$ |x| <= 1 @f$.
+     */
+    template<typename _Tp>
+    _Tp
+    __assoc_legendre_p(const unsigned int __l, const unsigned int __m,
+                       const _Tp __x)
+    {
+
+      if (__x < _Tp(-1) || __x > _Tp(+1))
+        std::__throw_domain_error(__N("Argument out of range"
+                                      " in __assoc_legendre_p."));
+      else if (__m > __l)
+        std::__throw_domain_error(__N("Degree out of range"
+                                      " in __assoc_legendre_p."));
+      else if (__isnan(__x))
+        return std::numeric_limits<_Tp>::quiet_NaN();
+      else if (__m == 0)
+        return __poly_legendre_p(__l, __x);
+      else
+        {
+          _Tp __p_mm = _Tp(1);
+          if (__m > 0)
+            {
+              //  Two square roots seem more accurate more of the time
+              //  than just one.
+              _Tp __root = std::sqrt(_Tp(1) - __x) * std::sqrt(_Tp(1) + __x);
+              _Tp __fact = _Tp(1);
+              for (unsigned int __i = 1; __i <= __m; ++__i)
+                {
+                  __p_mm *= -__fact * __root;
+                  __fact += _Tp(2);
+                }
+            }
+          if (__l == __m)
+            return __p_mm;
+
+          _Tp __p_mp1m = _Tp(2 * __m + 1) * __x * __p_mm;
+          if (__l == __m + 1)
+            return __p_mp1m;
+
+          _Tp __p_lm2m = __p_mm;
+          _Tp __P_lm1m = __p_mp1m;
+          _Tp __p_lm = _Tp(0);
+          for (unsigned int __j = __m + 2; __j <= __l; ++__j)
+            {
+              __p_lm = (_Tp(2 * __j - 1) * __x * __P_lm1m
+                      - _Tp(__j + __m - 1) * __p_lm2m) / _Tp(__j - __m);
+              __p_lm2m = __P_lm1m;
+              __P_lm1m = __p_lm;
+            }
+
+          return __p_lm;
+        }
+    }
+
+
+    /**
+     *   @brief  Return the spherical associated Legendre function.
+     * 
+     *   The spherical associated Legendre function of @f$ l @f$, @f$ m @f$,
+     *   and @f$ \theta @f$ is defined as @f$ Y_l^m(\theta,0) @f$ where
+     *   @f[
+     *      Y_l^m(\theta,\phi) = (-1)^m[\frac{(2l+1)}{4\pi}
+     *                                  \frac{(l-m)!}{(l+m)!}]
+     *                     P_l^m(\cos\theta) \exp^{im\phi}
+     *   @f]
+     *   is the spherical harmonic function and @f$ P_l^m(x) @f$ is the
+     *   associated Legendre function.
+     * 
+     *   This function differs from the associated Legendre function by
+     *   argument (@f$x = \cos(\theta)@f$) and by a normalization factor
+     *   but this factor is rather large for large @f$ l @f$ and @f$ m @f$
+     *   and so this function is stable for larger differences of @f$ l @f$
+     *   and @f$ m @f$.
+     * 
+     *   @param  l  The order of the spherical associated Legendre function.
+     *              @f$ l >= 0 @f$.
+     *   @param  m  The order of the spherical associated Legendre function.
+     *              @f$ m <= l @f$.
+     *   @param  theta  The radian angle argument of the spherical associated
+     *                  Legendre function.
+     */
+    template <typename _Tp>
+    _Tp
+    __sph_legendre(const unsigned int __l, const unsigned int __m,
+                   const _Tp __theta)
+    {
+      if (__isnan(__theta))
+        return std::numeric_limits<_Tp>::quiet_NaN();
+
+      const _Tp __x = std::cos(__theta);
+
+      if (__l < __m)
+        {
+          std::__throw_domain_error(__N("Bad argument "
+                                        "in __sph_legendre."));
+        }
+      else if (__m == 0)
+        {
+          _Tp __P = __poly_legendre_p(__l, __x);
+          _Tp __fact = std::sqrt(_Tp(2 * __l + 1)
+                     / (_Tp(4) * __numeric_constants<_Tp>::__pi()));
+          __P *= __fact;
+          return __P;
+        }
+      else if (__x == _Tp(1) || __x == -_Tp(1))
+        {
+          //  m > 0 here
+          return _Tp(0);
+        }
+      else
+        {
+          // m > 0 and |x| < 1 here
+
+          // Starting value for recursion.
+          // Y_m^m(x) = sqrt( (2m+1)/(4pi m) gamma(m+1/2)/gamma(m) )
+          //             (-1)^m (1-x^2)^(m/2) / pi^(1/4)
+          const _Tp __sgn = ( __m % 2 == 1 ? -_Tp(1) : _Tp(1));
+          const _Tp __y_mp1m_factor = __x * std::sqrt(_Tp(2 * __m + 3));
+#if _GLIBCXX_USE_C99_MATH_TR1
+          const _Tp __lncirc = std::tr1::log1p(-__x * __x);
+#else
+          const _Tp __lncirc = std::log(_Tp(1) - __x * __x);
+#endif
+          //  Gamma(m+1/2) / Gamma(m)
+#if _GLIBCXX_USE_C99_MATH_TR1
+          const _Tp __lnpoch = std::tr1::lgamma(_Tp(__m + _Tp(0.5L)))
+                             - std::tr1::lgamma(_Tp(__m));
+#else
+          const _Tp __lnpoch = __log_gamma(_Tp(__m + _Tp(0.5L)))
+                             - __log_gamma(_Tp(__m));
+#endif
+          const _Tp __lnpre_val =
+                    -_Tp(0.25L) * __numeric_constants<_Tp>::__lnpi()
+                    + _Tp(0.5L) * (__lnpoch + __m * __lncirc);
+          _Tp __sr = std::sqrt((_Tp(2) + _Tp(1) / __m)
+                   / (_Tp(4) * __numeric_constants<_Tp>::__pi()));
+          _Tp __y_mm = __sgn * __sr * std::exp(__lnpre_val);
+          _Tp __y_mp1m = __y_mp1m_factor * __y_mm;
+
+          if (__l == __m)
+            {
+              return __y_mm;
+            }
+          else if (__l == __m + 1)
+            {
+              return __y_mp1m;
+            }
+          else
+            {
+              _Tp __y_lm = _Tp(0);
+
+              // Compute Y_l^m, l > m+1, upward recursion on l.
+              for ( int __ll = __m + 2; __ll <= __l; ++__ll)
+                {
+                  const _Tp __rat1 = _Tp(__ll - __m) / _Tp(__ll + __m);
+                  const _Tp __rat2 = _Tp(__ll - __m - 1) / _Tp(__ll + __m - 1);
+                  const _Tp __fact1 = std::sqrt(__rat1 * _Tp(2 * __ll + 1)
+                                                       * _Tp(2 * __ll - 1));
+                  const _Tp __fact2 = std::sqrt(__rat1 * __rat2 * _Tp(2 * __ll + 1)
+                                                                / _Tp(2 * __ll - 3));
+                  __y_lm = (__x * __y_mp1m * __fact1
+                         - (__ll + __m - 1) * __y_mm * __fact2) / _Tp(__ll - __m);
+                  __y_mm = __y_mp1m;
+                  __y_mp1m = __y_lm;
+                }
+
+              return __y_lm;
+            }
+        }
+    }
+
+  } // namespace std::tr1::__detail
+}
+}
+
+#endif // _GLIBCXX_TR1_LEGENDRE_FUNCTION_TCC
+                                                                                                                                                                                                                                                                                                                                                                        // TR1 cwctype -*- C++ -*-
+
+// Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file tr1/cwctype
+ *  This is a TR1 C++ Library header. 
+ */
+
+#ifndef _GLIBCXX_TR1_CWCTYPE
+#define _GLIBCXX_TR1_CWCTYPE 1
+
+#pragma GCC system_header
+
+#if defined(_GLIBCXX_INCLUDE_AS_CXX0X)
+#  error TR1 header cannot be included from C++0x header
+#endif
+
+#include <cwctype>
+
+#if defined(_GLIBCXX_INCLUDE_AS_TR1)
+#  include <tr1_impl/cwctype>
+#else
+#  define _GLIBCXX_INCLUDE_AS_TR1
+#  define _GLIBCXX_BEGIN_NAMESPACE_TR1 namespace tr1 {
+#  define _GLIBCXX_END_NAMESPACE_TR1 }
+#  define _GLIBCXX_TR1 tr1::
+#  include <tr1_impl/cwctype>
+#  undef _GLIBCXX_TR1
+#  undef _GLIBCXX_END_NAMESPACE_TR1
+#  undef _GLIBCXX_BEGIN_NAMESPACE_TR1
+#  undef _GLIBCXX_INCLUDE_AS_TR1
+#endif
+
+#endif // _GLIBCXX_TR1_CWCTYPE
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      // TR1 inttypes.h -*- C++ -*-
+
+// Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file tr1/inttypes.h
+ *  This is a TR1 C++ Library header. 
+ */
+
+#ifndef _GLIBCXX_TR1_INTTYPES_H
+#define _GLIBCXX_TR1_INTTYPES_H 1
+
+#include <tr1/cinttypes>
+
+#endif // _GLIBCXX_TR1_INTTYPES_H
+                                                                                                                                                                                                                                                                                                                                                                                                                                                 // TR1 cinttypes -*- C++ -*-
+
+// Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file tr1/cinttypes
+ *  This is a TR1 C++ Library header. 
+ */
+
+#ifndef _GLIBCXX_TR1_CINTTYPES
+#define _GLIBCXX_TR1_CINTTYPES 1
+
+#pragma GCC system_header
+
+#include <tr1/cstdint>
+
+// For 8.11.1/1 (see C99, Note 184)
+#if _GLIBCXX_HAVE_INTTYPES_H
+# ifndef __STDC_FORMAT_MACROS
+#  define _UNDEF__STDC_FORMAT_MACROS
+#  define __STDC_FORMAT_MACROS
+# endif
+# include <inttypes.h>
+# ifdef _UNDEF__STDC_FORMAT_MACROS
+#  undef __STDC_FORMAT_MACROS
+#  undef _UNDEF__STDC_FORMAT_MACROS
+# endif
+#endif
+
+#if defined(_GLIBCXX_INCLUDE_AS_TR1)
+#  include <tr1_impl/cinttypes>
+#else
+#  define _GLIBCXX_INCLUDE_AS_TR1
+#  define _GLIBCXX_BEGIN_NAMESPACE_TR1 namespace tr1 {
+#  define _GLIBCXX_END_NAMESPACE_TR1 }
+#  define _GLIBCXX_TR1 tr1::
+#  include <tr1_impl/cinttypes>
+#  undef _GLIBCXX_TR1
+#  undef _GLIBCXX_END_NAMESPACE_TR1
+#  undef _GLIBCXX_BEGIN_NAMESPACE_TR1
+#  undef _GLIBCXX_INCLUDE_AS_TR1
+#endif
+
+#endif // _GLIBCXX_TR1_CINTTYPES
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        type_traits    cmath      
+functional      modified_bessel_func.tcc  ¨bessel_function.tcc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             // TR1 type_traits -*- C++ -*-
+
+// Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file tr1/type_traits
+ *  This is a TR1 C++ Library header. 
+ */
+
+#ifndef _GLIBCXX_TR1_TYPE_TRAITS
+#define _GLIBCXX_TR1_TYPE_TRAITS 1
+
+#pragma GCC system_header
+
+#if defined(_GLIBCXX_INCLUDE_AS_CXX0X)
+#  error TR1 header cannot be included from C++0x header
+#endif
+
+#include <cstddef>
+
+#if defined(_GLIBCXX_INCLUDE_AS_TR1)
+#  include <tr1_impl/type_traits>
+#else
+#  define _GLIBCXX_INCLUDE_AS_TR1
+#  define _GLIBCXX_BEGIN_NAMESPACE_TR1 namespace tr1 {
+#  define _GLIBCXX_END_NAMESPACE_TR1 }
+#  define _GLIBCXX_TR1 tr1::
+#  include <tr1_impl/type_traits>
+#  undef _GLIBCXX_TR1
+#  undef _GLIBCXX_END_NAMESPACE_TR1
+#  undef _GLIBCXX_BEGIN_NAMESPACE_TR1
+#  undef _GLIBCXX_INCLUDE_AS_TR1
+#endif
+
+namespace std
+{
+namespace tr1
+{
+#define _DEFINE_SPEC_HELPER(_Spec)                 \
+  template<>                                       \
+    struct _Spec                                   \
+    : public true_type { };
+
+#define _DEFINE_SPEC(_Trait, _Type)                \
+  _DEFINE_SPEC_HELPER(_Trait<_Type>)               \
+  _DEFINE_SPEC_HELPER(_Trait<_Type const>)         \
+  _DEFINE_SPEC_HELPER(_Trait<_Type volatile>)      \
+  _DEFINE_SPEC_HELPER(_Trait<_Type const volatile>)
+
+  template<typename>
+    struct is_reference
+    : public false_type { };
+
+  template<typename _Tp>
+    struct is_reference<_Tp&>
+    : public true_type { };
+
+  template<typename _Tp>
+    struct is_pod
+    : public integral_constant<bool, __is_pod(_Tp) || is_void<_Tp>::value>
+    { };
+
+  template<typename _Tp>
+    struct has_trivial_constructor
+    : public integral_constant<bool, is_pod<_Tp>::value>
+    { };
+
+  template<typename _Tp>
+    struct has_trivial_copy
+    : public integral_constant<bool, is_pod<_Tp>::value>
+    { };
+
+  template<typename _Tp>
+    struct has_trivial_assign
+    : public integral_constant<bool, is_pod<_Tp>::value>
+    { };
+
+  template<typename _Tp>
+    struct has_trivial_destructor
+    : public integral_constant<bool, is_pod<_Tp>::value>
+    { };
+
+  template<typename _Tp>
+    struct has_nothrow_constructor
+    : public integral_constant<bool, is_pod<_Tp>::value>
+    { };
+
+  template<typename _Tp>
+    struct has_nothrow_copy
+    : public integral_constant<bool, is_pod<_Tp>::value>
+    { };
+
+  template<typename _Tp>
+    struct has_nothrow_assign
+    : public integral_constant<bool, is_pod<_Tp>::value>
+    { };
+
+  template<typename>
+    struct is_signed
+    : public false_type { };
+  _DEFINE_SPEC(is_signed, signed char)
+  _DEFINE_SPEC(is_signed, short)
+  _DEFINE_SPEC(is_signed, int)
+  _DEFINE_SPEC(is_signed, long)
+  _DEFINE_SPEC(is_signed, long long)
+
+  template<typename>
+    struct is_unsigned
+    : public false_type { };
+  _DEFINE_SPEC(is_unsigned, unsigned char)
+  _DEFINE_SPEC(is_unsigned, unsigned short)
+  _DEFINE_SPEC(is_unsigned, unsigned int)
+  _DEFINE_SPEC(is_unsigned, unsigned long)
+  _DEFINE_SPEC(is_unsigned, unsigned long long)
+
+  template<typename _Base, typename _Derived>
+    struct __is_base_of_helper
+    {
+      typedef typename remove_cv<_Base>::type    _NoCv_Base;
+      typedef typename remove_cv<_Derived>::type _NoCv_Derived;
+      static const bool __value = (is_same<_Base, _Derived>::value
+				   || (__is_base_of(_Base, _Derived)
+				       && !is_same<_NoCv_Base,
+				                   _NoCv_Derived>::value));
+    };
+ 
+  template<typename _Base, typename _Derived>
+    struct is_base_of
+    : public integral_constant<bool,
+			       __is_base_of_helper<_Base, _Derived>::__value>
+    { };
+
+  template<typename _From, typename _To>
+    struct __is_convertible_simple
+    : public __sfinae_types
+    {
+    private:
+      static __one __test(_To);
+      static __two __test(...);
+      static _From __makeFrom();
+    
+    public:
+      static const bool __value = sizeof(__test(__makeFrom())) == 1;
+    };
+
+  template<typename _Tp>
+    struct add_reference;
+
+  template<typename _Tp>
+    struct __is_int_or_cref
+    {
+      typedef typename remove_reference<_Tp>::type __rr_Tp;
+      static const bool __value = (is_integral<_Tp>::value
+				   || (is_integral<__rr_Tp>::value
+				       && is_const<__rr_Tp>::value
+				       && !is_volatile<__rr_Tp>::value));
+    };
+
+  template<typename _From, typename _To,
+	   bool = (is_void<_From>::value || is_void<_To>::value
+		   || is_function<_To>::value || is_array<_To>::value
+		   // This special case is here only to avoid warnings.	
+		   || (is_floating_point<typename
+		       remove_reference<_From>::type>::value
+		       && __is_int_or_cref<_To>::__value))>
+    struct __is_convertible_helper
+    {
+      // "An imaginary lvalue of type From...".
+      static const bool __value = (__is_convertible_simple<typename
+				   add_reference<_From>::type, _To>::__value);
+    };
+
+  template<typename _From, typename _To>
+    struct __is_convertible_helper<_From, _To, true>
+    { static const bool __value = (is_void<_To>::value
+				   || (__is_int_or_cref<_To>::__value
+				       && !is_void<_From>::value)); };
+
+  template<typename _From, typename _To>
+    struct is_convertible
+    : public integral_constant<bool,
+			       __is_convertible_helper<_From, _To>::__value>
+    { };
+
+  // reference modifications [4.7.2].
+  template<typename _Tp>
+    struct remove_reference
+    { typedef _Tp     type; };
+
+  template<typename _Tp>
+    struct remove_reference<_Tp&>
+    { typedef _Tp     type; };
+
+  // NB: Careful with reference to void.
+  template<typename _Tp, bool = (is_void<_Tp>::value
+				 || is_reference<_Tp>::value)>
+    struct __add_reference_helper
+    { typedef _Tp&    type; };
+
+  template<typename _Tp>
+    struct __add_reference_helper<_Tp, true>
+    { typedef _Tp     type; };
+
+  template<typename _Tp>
+    struct add_reference
+    : public __add_reference_helper<_Tp>
+    { };
+
+  // other transformations [4.8].
+  template<std::size_t _Len, std::size_t _Align>
+    struct aligned_storage
+    { 
+      union type
+      {
+	unsigned char __data[_Len];
+	struct __attribute__((__aligned__((_Align)))) { } __align; 
+      };
+    };
+
+#undef _DEFINE_SPEC_HELPER
+#undef _DEFINE_SPEC
+}
+}
+
+#endif // _GLIBCXX_TR1_TYPE_TRAITS
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    // TR1 cmath -*- C++ -*-
+
+// Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file tr1/cmath
+ *  This is a TR1 C++ Library header. 
+ */
+
+#ifndef _GLIBCXX_TR1_CMATH
+#define _GLIBCXX_TR1_CMATH 1
+
+#pragma GCC system_header
+
+#if defined(_GLIBCXX_INCLUDE_AS_CXX0X)
+#  error TR1 header cannot be included from C++0x header
+#endif
+
+#include <cmath>
+
+#if defined(_GLIBCXX_INCLUDE_AS_TR1)
+#  include <tr1_impl/cmath>
+#else
+#  define _GLIBCXX_INCLUDE_AS_TR1
+#  define _GLIBCXX_BEGIN_NAMESPACE_TR1 namespace tr1 {
+#  define _GLIBCXX_END_NAMESPACE_TR1 }
+#  define _GLIBCXX_TR1 tr1::
+#  include <tr1_impl/cmath>
+#  undef _GLIBCXX_TR1
+#  undef _GLIBCXX_END_NAMESPACE_TR1
+#  undef _GLIBCXX_BEGIN_NAMESPACE_TR1
+#  undef _GLIBCXX_INCLUDE_AS_TR1
+#endif
+
+#include <bits/stl_algobase.h>
+#include <limits>
+#include <tr1/type_traits>
+
+#include <tr1/gamma.tcc>
+#include <tr1/bessel_function.tcc>
+#include <tr1/beta_function.tcc>
+#include <tr1/ell_integral.tcc>
+#include <tr1/exp_integral.tcc>
+#include <tr1/hypergeometric.tcc>
+#include <tr1/legendre_function.tcc>
+#include <tr1/modified_bessel_func.tcc>
+#include <tr1/poly_hermite.tcc>
+#include <tr1/poly_laguerre.tcc>
+#include <tr1/riemann_zeta.tcc>
+
+namespace std
+{
+namespace tr1
+{
+  /**
+   * @addtogroup tr1_math_spec_func Mathematical Special Functions
+   * A collection of advanced mathematical special functions.
+   * @{
+   */
+
+  inline float
+  assoc_laguerref(unsigned int __n, unsigned int __m, float __x)
+  { return __detail::__assoc_laguerre<float>(__n, __m, __x); }
+
+  inline long double
+  assoc_laguerrel(unsigned int __n, unsigned int __m, long double __x)
+  {
+    return __detail::__assoc_laguerre<long double>(__n, __m, __x);
+  }
+
+  ///  5.2.1.1  Associated Laguerre polynomials.
+  template<typename _Tp>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
+    assoc_laguerre(unsigned int __n, unsigned int __m, _Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote<_Tp>::__type __type;
+      return __detail::__assoc_laguerre<__type>(__n, __m, __x);
+    }
+
+  inline float
+  assoc_legendref(unsigned int __l, unsigned int __m, float __x)
+  { return __detail::__assoc_legendre_p<float>(__l, __m, __x); }
+
+  inline long double
+  assoc_legendrel(unsigned int __l, unsigned int __m, long double __x)
+  { return __detail::__assoc_legendre_p<long double>(__l, __m, __x); }
+
+  ///  5.2.1.2  Associated Legendre functions.
+  template<typename _Tp>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
+    assoc_legendre(unsigned int __l, unsigned int __m, _Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote<_Tp>::__type __type;
+      return __detail::__assoc_legendre_p<__type>(__l, __m, __x);
+    }
+
+  inline float
+  betaf(float __x, float __y)
+  { return __detail::__beta<float>(__x, __y); }
+
+  inline long double
+  betal(long double __x, long double __y)
+  { return __detail::__beta<long double>(__x, __y); }
+
+  ///  5.2.1.3  Beta functions.
+  template<typename _Tpx, typename _Tpy>
+    inline typename __gnu_cxx::__promote_2<_Tpx, _Tpy>::__type
+    beta(_Tpx __x, _Tpy __y)
+    {
+      typedef typename __gnu_cxx::__promote_2<_Tpx, _Tpy>::__type __type;
+      return __detail::__beta<__type>(__x, __y);
+    }
+
+  inline float
+  comp_ellint_1f(float __k)
+  { return __detail::__comp_ellint_1<float>(__k); }
+
+  inline long double
+  comp_ellint_1l(long double __k)
+  { return __detail::__comp_ellint_1<long double>(__k); }
+
+  ///  5.2.1.4  Complete elliptic integrals of the first kind.
+  template<typename _Tp>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
+    comp_ellint_1(_Tp __k)
+    {
+      typedef typename __gnu_cxx::__promote<_Tp>::__type __type;
+      return __detail::__comp_ellint_1<__type>(__k);
+    }
+
+  inline float
+  comp_ellint_2f(float __k)
+  { return __detail::__comp_ellint_2<float>(__k); }
+
+  inline long double
+  comp_ellint_2l(long double __k)
+  { return __detail::__comp_ellint_2<long double>(__k); }
+
+  ///  5.2.1.5  Complete elliptic integrals of the second kind.
+  template<typename _Tp>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
+    comp_ellint_2(_Tp __k)
+    {
+      typedef typename __gnu_cxx::__promote<_Tp>::__type __type;
+      return __detail::__comp_ellint_2<__type>(__k);
+    }
+
+  inline float
+  comp_ellint_3f(float __k, float __nu)
+  { return __detail::__comp_ellint_3<float>(__k, __nu); }
+
+  inline long double
+  comp_ellint_3l(long double __k, long double __nu)
+  { return __detail::__comp_ellint_3<long double>(__k, __nu); }
+
+  ///  5.2.1.6  Complete elliptic integrals of the third kind.
+  template<typename _Tp, typename _Tpn>
+    inline typename __gnu_cxx::__promote_2<_Tp, _Tpn>::__type
+    comp_ellint_3(_Tp __k, _Tpn __nu)
+    {
+      typedef typename __gnu_cxx::__promote_2<_Tp, _Tpn>::__type __type;
+      return __detail::__comp_ellint_3<__type>(__k, __nu);
+    }
+
+  inline float
+  conf_hypergf(float __a, float __c, float __x)
+  { return __detail::__conf_hyperg<float>(__a, __c, __x); }
+
+  inline long double
+  conf_hypergl(long double __a, long double __c, long double __x)
+  { return __detail::__conf_hyperg<long double>(__a, __c, __x); }
+
+  ///  5.2.1.7  Confluent hypergeometric functions.
+  template<typename _Tpa, typename _Tpc, typename _Tp>
+    inline typename __gnu_cxx::__promote_3<_Tpa, _Tpc, _Tp>::__type
+    conf_hyperg(_Tpa __a, _Tpc __c, _Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote_3<_Tpa, _Tpc, _Tp>::__type __type;
+      return __detail::__conf_hyperg<__type>(__a, __c, __x);
+    }
+
+  inline float
+  cyl_bessel_if(float __nu, float __x)
+  { return __detail::__cyl_bessel_i<float>(__nu, __x); }
+
+  inline long double
+  cyl_bessel_il(long double __nu, long double __x)
+  { return __detail::__cyl_bessel_i<long double>(__nu, __x); }
+
+  ///  5.2.1.8  Regular modified cylindrical Bessel functions.
+  template<typename _Tpnu, typename _Tp>
+    inline typename __gnu_cxx::__promote_2<_Tpnu, _Tp>::__type
+    cyl_bessel_i(_Tpnu __nu, _Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote_2<_Tpnu, _Tp>::__type __type;
+      return __detail::__cyl_bessel_i<__type>(__nu, __x);
+    }
+
+  inline float
+  cyl_bessel_jf(float __nu, float __x)
+  { return __detail::__cyl_bessel_j<float>(__nu, __x); }
+
+  inline long double
+  cyl_bessel_jl(long double __nu, long double __x)
+  { return __detail::__cyl_bessel_j<long double>(__nu, __x); }
+
+  ///  5.2.1.9  Cylindrical Bessel functions (of the first kind).
+  template<typename _Tpnu, typename _Tp>
+    inline typename __gnu_cxx::__promote_2<_Tpnu, _Tp>::__type
+    cyl_bessel_j(_Tpnu __nu, _Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote_2<_Tpnu, _Tp>::__type __type;
+      return __detail::__cyl_bessel_j<__type>(__nu, __x);
+    }
+
+  inline float
+  cyl_bessel_kf(float __nu, float __x)
+  { return __detail::__cyl_bessel_k<float>(__nu, __x); }
+
+  inline long double
+  cyl_bessel_kl(long double __nu, long double __x)
+  { return __detail::__cyl_bessel_k<long double>(__nu, __x); }
+
+  ///  5.2.1.10  Irregular modified cylindrical Bessel functions.
+  template<typename _Tpnu, typename _Tp>
+    inline typename __gnu_cxx::__promote_2<_Tpnu, _Tp>::__type
+    cyl_bessel_k(_Tpnu __nu, _Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote_2<_Tpnu, _Tp>::__type __type;
+      return __detail::__cyl_bessel_k<__type>(__nu, __x);
+    }
+
+  inline float
+  cyl_neumannf(float __nu, float __x)
+  { return __detail::__cyl_neumann_n<float>(__nu, __x); }
+
+  inline long double
+  cyl_neumannl(long double __nu, long double __x)
+  { return __detail::__cyl_neumann_n<long double>(__nu, __x); }
+
+  ///  5.2.1.11  Cylindrical Neumann functions.
+  template<typename _Tpnu, typename _Tp>
+    inline typename __gnu_cxx::__promote_2<_Tpnu, _Tp>::__type
+    cyl_neumann(_Tpnu __nu, _Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote_2<_Tpnu, _Tp>::__type __type;
+      return __detail::__cyl_neumann_n<__type>(__nu, __x);
+    }
+
+  inline float
+  ellint_1f(float __k, float __phi)
+  { return __detail::__ellint_1<float>(__k, __phi); }
+
+  inline long double
+  ellint_1l(long double __k, long double __phi)
+  { return __detail::__ellint_1<long double>(__k, __phi); }
+
+  ///  5.2.1.12  Incomplete elliptic integrals of the first kind.
+  template<typename _Tp, typename _Tpp>
+    inline typename __gnu_cxx::__promote_2<_Tp, _Tpp>::__type
+    ellint_1(_Tp __k, _Tpp __phi)
+    {
+      typedef typename __gnu_cxx::__promote_2<_Tp, _Tpp>::__type __type;
+      return __detail::__ellint_1<__type>(__k, __phi);
+    }
+
+  inline float
+  ellint_2f(float __k, float __phi)
+  { return __detail::__ellint_2<float>(__k, __phi); }
+
+  inline long double
+  ellint_2l(long double __k, long double __phi)
+  { return __detail::__ellint_2<long double>(__k, __phi); }
+
+  ///  5.2.1.13  Incomplete elliptic integrals of the second kind.
+  template<typename _Tp, typename _Tpp>
+    inline typename __gnu_cxx::__promote_2<_Tp, _Tpp>::__type
+    ellint_2(_Tp __k, _Tpp __phi)
+    {
+      typedef typename __gnu_cxx::__promote_2<_Tp, _Tpp>::__type __type;
+      return __detail::__ellint_2<__type>(__k, __phi);
+    }
+
+  inline float
+  ellint_3f(float __k, float __nu, float __phi)
+  { return __detail::__ellint_3<float>(__k, __nu, __phi); }
+
+  inline long double
+  ellint_3l(long double __k, long double __nu, long double __phi)
+  { return __detail::__ellint_3<long double>(__k, __nu, __phi); }
+
+  ///  5.2.1.14  Incomplete elliptic integrals of the third kind.
+  template<typename _Tp, typename _Tpn, typename _Tpp>
+    inline typename __gnu_cxx::__promote_3<_Tp, _Tpn, _Tpp>::__type
+    ellint_3(_Tp __k, _Tpn __nu, _Tpp __phi)
+    {
+      typedef typename __gnu_cxx::__promote_3<_Tp, _Tpn, _Tpp>::__type __type;
+      return __detail::__ellint_3<__type>(__k, __nu, __phi);
+    }
+
+  inline float
+  expintf(float __x)
+  { return __detail::__expint<float>(__x); }
+
+  inline long double
+  expintl(long double __x)
+  { return __detail::__expint<long double>(__x); }
+
+  ///  5.2.1.15  Exponential integrals.
+  template<typename _Tp>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
+    expint(_Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote<_Tp>::__type __type;
+      return __detail::__expint<__type>(__x);
+    }
+
+  inline float
+  hermitef(unsigned int __n, float __x)
+  { return __detail::__poly_hermite<float>(__n, __x); }
+
+  inline long double
+  hermitel(unsigned int __n, long double __x)
+  { return __detail::__poly_hermite<long double>(__n, __x); }
+
+  ///  5.2.1.16  Hermite polynomials.
+  template<typename _Tp>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
+    hermite(unsigned int __n, _Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote<_Tp>::__type __type;
+      return __detail::__poly_hermite<__type>(__n, __x);
+    }
+
+  inline float
+  hypergf(float __a, float __b, float __c, float __x)
+  { return __detail::__hyperg<float>(__a, __b, __c, __x); }
+
+  inline long double
+  hypergl(long double __a, long double __b, long double __c, long double __x)
+  { return __detail::__hyperg<long double>(__a, __b, __c, __x); }
+
+  ///  5.2.1.17  Hypergeº-  »-  ¼-  ½-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  ometric functions.
+  template<typename _Tpa, typename _Tpb, typename _Tpc, typename _Tp>
+    inline typename __gnu_cxx::__promote_4<_Tpa, _Tpb, _Tpc, _Tp>::__type
+    hyperg(_Tpa __a, _Tpb __b, _Tpc __c, _Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote_4<_Tpa, _Tpb, _Tpc, _Tp>::__type __type;
+      return __detail::__hyperg<__type>(__a, __b, __c, __x);
+    }
+
+  inline float
+  laguerref(unsigned int __n, float __x)
+  { return __detail::__laguerre<float>(__n, __x); }
+
+  inline long double
+  laguerrel(unsigned int __n, long double __x)
+  { return __detail::__laguerre<long double>(__n, __x); }
+
+  ///  5.2.1.18  Laguerre polynomials.
+  template<typename _Tp>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
+    laguerre(unsigned int __n, _Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote<_Tp>::__type __type;
+      return __detail::__laguerre<__type>(__n, __x);
+    }
+
+  inline float
+  legendref(unsigned int __n, float __x)
+  { return __detail::__poly_legendre_p<float>(__n, __x); }
+
+  inline long double
+  legendrel(unsigned int __n, long double __x)
+  { return __detail::__poly_legendre_p<long double>(__n, __x); }
+
+  ///  5.2.1.19  Legendre polynomials.
+  template<typename _Tp>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
+    legendre(unsigned int __n, _Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote<_Tp>::__type __type;
+      return __detail::__poly_legendre_p<__type>(__n, __x);
+    }
+
+  inline float
+  riemann_zetaf(float __x)
+  { return __detail::__riemann_zeta<float>(__x); }
+
+  inline long double
+  riemann_zetal(long double __x)
+  { return __detail::__riemann_zeta<long double>(__x); }
+
+  ///  5.2.1.20  Riemann zeta function.
+  template<typename _Tp>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
+    riemann_zeta(_Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote<_Tp>::__type __type;
+      return __detail::__riemann_zeta<__type>(__x);
+    }
+
+  inline float
+  sph_besself(unsigned int __n, float __x)
+  { return __detail::__sph_bessel<float>(__n, __x); }
+
+  inline long double
+  sph_bessell(unsigned int __n, long double __x)
+  { return __detail::__sph_bessel<long double>(__n, __x); }
+
+  ///  5.2.1.21  Spherical Bessel functions.
+  template<typename _Tp>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
+    sph_bessel(unsigned int __n, _Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote<_Tp>::__type __type;
+      return __detail::__sph_bessel<__type>(__n, __x);
+    }
+
+  inline float
+  sph_legendref(unsigned int __l, unsigned int __m, float __theta)
+  { return __detail::__sph_legendre<float>(__l, __m, __theta); }
+
+  inline long double
+  sph_legendrel(unsigned int __l, unsigned int __m, long double __theta)
+  { return __detail::__sph_legendre<long double>(__l, __m, __theta); }
+
+  ///  5.2.1.22  Spherical associated Legendre functions.
+  template<typename _Tp>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
+    sph_legendre(unsigned int __l, unsigned int __m, _Tp __theta)
+    {
+      typedef typename __gnu_cxx::__promote<_Tp>::__type __type;
+      return __detail::__sph_legendre<__type>(__l, __m, __theta);
+    }
+
+  inline float
+  sph_neumannf(unsigned int __n, float __x)
+  { return __detail::__sph_neumann<float>(__n, __x); }
+
+  inline long double
+  sph_neumannl(unsigned int __n, long double __x)
+  { return __detail::__sph_neumann<long double>(__n, __x); }
+
+  ///  5.2.1.23  Spherical Neumann functions.
+  template<typename _Tp>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
+    sph_neumann(unsigned int __n, _Tp __x)
+    {
+      typedef typename __gnu_cxx::__promote<_Tp>::__type __type;
+      return __detail::__sph_neumann<__type>(__n, __x);
+    }
+
+  /* @} */ // tr1_math_spec_func
+}
+}
+
+#endif // _GLIBCXX_TR1_CMATH
+                                                                                                                                                                                                                                                                                                                                                               // TR1 functional header -*- C++ -*-
+
+// Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file tr1/functional
+ *  This is a TR1 C++ Library header.
+ */
+
+#ifndef _GLIBCXX_TR1_FUNCTIONAL
+#define _GLIBCXX_TR1_FUNCTIONAL 1
+
+#pragma GCC system_header
+
+#if defined(_GLIBCXX_INCLUDE_AS_CXX0X)
+#  error TR1 header cannot be included from C++0x header
+#endif
+
+#include <bits/c++config.h>
+#include <bits/stl_function.h>
+
+#include <typeinfo>
+#include <new>
+#include <tr1/tuple>
+#include <tr1/type_traits>
+#include <bits/stringfwd.h>
+#include <tr1/functional_hash.h>
+#include <ext/type_traits.h>
+
+#if defined(_GLIBCXX_INCLUDE_AS_TR1)
+#  include <tr1_impl/functional>
+#else
+#  define _GLIBCXX_INCLUDE_AS_TR1

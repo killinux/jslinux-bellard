@@ -1,0 +1,1946 @@
+t_(0, __before._M_node, __v);
+	      else
+		return _M_insert_(__position._M_node,
+				  __position._M_node, __v);
+	    }
+	  else
+	    return _M_insert_unique(__v).first;
+	}
+      else if (_M_impl._M_key_compare(_S_key(__position._M_node),
+				      _KeyOfValue()(__v)))
+	{
+	  // ... then try after.
+	  const_iterator __after = __position;
+	  if (__position._M_node == _M_rightmost())
+	    return _M_insert_(0, _M_rightmost(), __v);
+	  else if (_M_impl._M_key_compare(_KeyOfValue()(__v),
+					  _S_key((++__after)._M_node)))
+	    {
+	      if (_S_right(__position._M_node) == 0)
+		return _M_insert_(0, __position._M_node, __v);
+	      else
+		return _M_insert_(__after._M_node, __after._M_node, __v);
+	    }
+	  else
+	    return _M_insert_unique(__v).first;
+	}
+      else
+	// Equivalent keys.
+	return iterator(static_cast<_Link_type>
+			(const_cast<_Base_ptr>(__position._M_node)));
+    }
+
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    typename _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::iterator
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    _M_insert_equal_(const_iterator __position, const _Val& __v)
+    {
+      // end()
+      if (__position._M_node == _M_end())
+	{
+	  if (size() > 0
+	      && !_M_impl._M_key_compare(_KeyOfValue()(__v),
+					 _S_key(_M_rightmost())))
+	    return _M_insert_(0, _M_rightmost(), __v);
+	  else
+	    return _M_insert_equal(__v);
+	}
+      else if (!_M_impl._M_key_compare(_S_key(__position._M_node),
+				       _KeyOfValue()(__v)))
+	{
+	  // First, try before...
+	  const_iterator __before = __position;
+	  if (__position._M_node == _M_leftmost()) // begin()
+	    return _M_insert_(_M_leftmost(), _M_leftmost(), __v);
+	  else if (!_M_impl._M_key_compare(_KeyOfValue()(__v),
+					   _S_key((--__before)._M_node)))
+	    {
+	      if (_S_right(__before._M_node) == 0)
+		return _M_insert_(0, __before._M_node, __v);
+	      else
+		return _M_insert_(__position._M_node,
+				  __position._M_node, __v);
+	    }
+	  else
+	    return _M_insert_equal(__v);
+	}
+      else
+	{
+	  // ... then try after.  
+	  const_iterator __after = __position;
+	  if (__position._M_node == _M_rightmost())
+	    return _M_insert_(0, _M_rightmost(), __v);
+	  else if (!_M_impl._M_key_compare(_S_key((++__after)._M_node),
+					   _KeyOfValue()(__v)))
+	    {
+	      if (_S_right(__position._M_node) == 0)
+		return _M_insert_(0, __position._M_node, __v);
+	      else
+		return _M_insert_(__after._M_node, __after._M_node, __v);
+	    }
+	  else
+	    return _M_insert_equal_lower(__v);
+	}
+    }
+
+  template<typename _Key, typename _Val, typename _KoV,
+           typename _Cmp, typename _Alloc>
+    template<class _II>
+      void
+      _Rb_tree<_Key, _Val, _KoV, _Cmp, _Alloc>::
+      _M_insert_unique(_II __first, _II __last)
+      {
+	for (; __first != __last; ++__first)
+	  _M_insert_unique_(end(), *__first);
+      }
+
+  template<typename _Key, typename _Val, typename _KoV,
+           typename _Cmp, typename _Alloc>
+    template<class _II>
+      void
+      _Rb_tree<_Key, _Val, _KoV, _Cmp, _Alloc>::
+      _M_insert_equal(_II __first, _II __last)
+      {
+	for (; __first != __last; ++__first)
+	  _M_insert_equal_(end(), *__first);
+      }
+
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    inline void
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    erase(iterator __position)
+    {
+      _Link_type __y =
+	static_cast<_Link_type>(_Rb_tree_rebalance_for_erase
+				(__position._M_node,
+				 this->_M_impl._M_header));
+      _M_destroy_node(__y);
+      --_M_impl._M_node_count;
+    }
+
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    inline void
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    erase(const_iterator __position)
+    {
+      _Link_type __y =
+	static_cast<_Link_type>(_Rb_tree_rebalance_for_erase
+				(const_cast<_Base_ptr>(__position._M_node),
+				 this->_M_impl._M_header));
+      _M_destroy_node(__y);
+      --_M_impl._M_node_count;
+    }
+
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    typename _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::size_type
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    erase(const _Key& __x)
+    {
+      pair<iterator, iterator> __p = equal_range(__x);
+      const size_type __old_size = size();
+      erase(__p.first, __p.second);
+      return __old_size - size();
+    }
+
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    void
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    erase(iterator __first, iterator __last)
+    {
+      if (__first == begin() && __last == end())
+	clear();
+      else
+	while (__first != __last)
+	  erase(__first++);
+    }
+
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    void
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    erase(const_iterator __first, const_iterator __last)
+    {
+      if (__first == begin() && __last == end())
+	clear();
+      else
+	while (__first != __last)
+	  erase(__first++);
+    }
+
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    void
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    erase(const _Key* __first, const _Key* __last)
+    {
+      while (__first != __last)
+	erase(*__first++);
+    }
+
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    typename _Rb_tree<_Key, _Val, _KeyOfValue,
+		      _Compare, _Alloc>::iterator
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    find(const _Key& __k)
+    {
+      iterator __j = _M_lower_bound(_M_begin(), _M_end(), __k);
+      return (__j == end()
+	      || _M_impl._M_key_compare(__k,
+					_S_key(__j._M_node))) ? end() : __j;
+    }
+
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    typename _Rb_tree<_Key, _Val, _KeyOfValue,
+		      _Compare, _Alloc>::const_iterator
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    find(const _Key& __k) const
+    {
+      const_iterator __j = _M_lower_bound(_M_begin(), _M_end(), __k);
+      return (__j == end()
+	      || _M_impl._M_key_compare(__k, 
+					_S_key(__j._M_node))) ? end() : __j;
+    }
+
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    typename _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::size_type
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    count(const _Key& __k) const
+    {
+      pair<const_iterator, const_iterator> __p = equal_range(__k);
+      const size_type __n = std::distance(__p.first, __p.second);
+      return __n;
+    }
+
+  unsigned int
+  _Rb_tree_black_count(const _Rb_tree_node_base* __node,
+                       const _Rb_tree_node_base* __root);
+
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    bool
+    _Rb_tree<_Key,_Val,_KeyOfValue,_Compare,_Alloc>::__rb_verify() const
+    {
+      if (_M_impl._M_node_count == 0 || begin() == end())
+	return _M_impl._M_node_count == 0 && begin() == end()
+	       && this->_M_impl._M_header._M_left == _M_end()
+	       && this->_M_impl._M_header._M_right == _M_end();
+
+      unsigned int __len = _Rb_tree_black_count(_M_leftmost(), _M_root());
+      for (const_iterator __it = begin(); __it != end(); ++__it)
+	{
+	  _Const_Link_type __x = static_cast<_Const_Link_type>(__it._M_node);
+	  _Const_Link_type __L = _S_left(__x);
+	  _Const_Link_type __R = _S_right(__x);
+
+	  if (__x->_M_color == _S_red)
+	    if ((__L && __L->_M_color == _S_red)
+		|| (__R && __R->_M_color == _S_red))
+	      return false;
+
+	  if (__L && _M_impl._M_key_compare(_S_key(__x), _S_key(__L)))
+	    return false;
+	  if (__R && _M_impl._M_key_compare(_S_key(__R), _S_key(__x)))
+	    return false;
+
+	  if (!__L && !__R && _Rb_tree_black_count(__x, _M_root()) != __len)
+	    return false;
+	}
+
+      if (_M_leftmost() != _Rb_tree_node_base::_S_minimum(_M_root()))
+	return false;
+      if (_M_rightmost() != _Rb_tree_node_base::_S_maximum(_M_root()))
+	return false;
+      return true;
+    }
+
+_GLIBCXX_END_NAMESPACE
+
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 // Raw memory manipulators -*- C++ -*-
+
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/*
+ *
+ * Copyright (c) 1994
+ * Hewlett-Packard Company
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Hewlett-Packard Company makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ *
+ *
+ * Copyright (c) 1996,1997
+ * Silicon Graphics Computer Systems, Inc.
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Silicon Graphics makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ */
+
+/** @file stl_uninitialized.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+#ifndef _STL_UNINITIALIZED_H
+#define _STL_UNINITIALIZED_H 1
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  template<bool>
+    struct __uninitialized_copy
+    {
+      template<typename _InputIterator, typename _ForwardIterator>
+        static _ForwardIterator
+        uninitialized_copy(_InputIterator __first, _InputIterator __last,
+			   _ForwardIterator __result)
+        {
+	  _ForwardIterator __cur = __result;
+	  try
+	    {
+	      for (; __first != __last; ++__first, ++__cur)
+		::new(static_cast<void*>(&*__cur)) typename
+		    iterator_traits<_ForwardIterator>::value_type(*__first);
+	      return __cur;
+	    }
+	  catch(...)
+	    {
+	      std::_Destroy(__result, __cur);
+	      __throw_exception_again;
+	    }
+	}
+    };
+
+  template<>
+    struct __uninitialized_copy<true>
+    {
+      template<typename _InputIterator, typename _ForwardIterator>
+        static _ForwardIterator
+        uninitialized_copy(_InputIterator __first, _InputIterator __last,
+			   _ForwardIterator __result)
+        { return std::copy(__first, __last, __result); }
+    };
+
+  /**
+   *  @brief Copies the range [first,last) into result.
+   *  @param  first  An input iterator.
+   *  @param  last   An input iterator.
+   *  @param  result An output iterator.
+   *  @return   result + (first - last)
+   *
+   *  Like copy(), but does not require an initialized output range.
+  */
+  template<typename _InputIterator, typename _ForwardIterator>
+    inline _ForwardIterator
+    uninitialized_copy(_InputIterator __first, _InputIterator __last,
+		       _ForwardIterator __result)
+    {
+      typedef typename iterator_traits<_InputIterator>::value_type
+	_ValueType1;
+      typedef typename iterator_traits<_ForwardIterator>::value_type
+	_ValueType2;
+
+      return std::__uninitialized_copy<(__is_pod(_ValueType1)
+					&& __is_pod(_ValueType2))>::
+	uninitialized_copy(__first, __last, __result);
+    }
+
+
+  template<bool>
+    struct __uninitialized_fill
+    {
+      template<typename _ForwardIterator, typename _Tp>
+        static void
+        uninitialized_fill(_ForwardIterator __first,
+			   _ForwardIterator __last, const _Tp& __x)
+        {
+	  _ForwardIterator __cur = __first;
+	  try
+	    {
+	      for (; __cur != __last; ++__cur)
+		std::_Construct(&*__cur, __x);
+	    }
+	  catch(...)
+	    {
+	      std::_Destroy(__first, __cur);
+	      __throw_exception_again;
+	    }
+	}
+    };
+
+  template<>
+    struct __uninitialized_fill<true>
+    {
+      template<typename _ForwardIterator, typename _Tp>
+        static void
+        uninitialized_fill(_ForwardIterator __first,
+			   _ForwardIterator __last, const _Tp& __x)
+        { std::fill(__first, __last, __x); }
+    };
+
+  /**
+   *  @brief Copies the value x into the range [first,last).
+   *  @param  first  An input iterator.
+   *  @param  last   An input iterator.
+   *  @param  x      The source value.
+   *  @return   Nothing.
+   *
+   *  Like fill(), but does not require an initialized output range.
+  */
+  template<typename _ForwardIterator, typename _Tp>
+    inline void
+    uninitialized_fill(_ForwardIterator __first, _ForwardIterator __last,
+		       const _Tp& __x)
+    {
+      typedef typename iterator_traits<_ForwardIterator>::value_type
+	_ValueType;
+
+      std::__uninitialized_fill<__is_pod(_ValueType)>::
+	uninitialized_fill(__first, __last, __x);
+    }
+
+
+  template<bool>
+    struct __uninitialized_fill_n
+    {
+      template<typename _ForwardIterator, typename _Size, typename _Tp>
+        static void
+        uninitialized_fill_n(_ForwardIterator __first, _Size __n,
+			     const _Tp& __x)
+        {
+	  _ForwardIterator __cur = __first;
+	  try
+	    {
+	      for (; __n > 0; --__n, ++__cur)
+		std::_Construct(&*__cur, __x);
+	    }
+	  catch(...)
+	    {
+	      std::_Destroy(__first, __cur);
+	      __throw_exception_again;
+	    }
+	}
+    };
+
+  template<>
+    struct __uninitialized_fill_n<true>
+    {
+      template<typename _ForwardIterator, typename _Size, typename _Tp>
+        static void
+        uninitialized_fill_n(_ForwardIterator __first, _Size __n,
+			     const _Tp& __x)
+        { std::fill_n(__first, __n, __x); }
+    };
+
+  /**
+   *  @brief Copies the value x into the range [first,first+n).
+   *  @param  first  An input iterator.
+   *  @param  n      The number of copies to make.
+   *  @param  x      The source value.
+   *  @return   Nothing.
+   *
+   *  Like fill_n(), but does not require an initialized output range.
+  */
+  template<typename _ForwardIterator, typename _Size, typename _Tp>
+    inline void
+    uninitialized_fill_n(_ForwardIterator __first, _Size __n, const _Tp& __x)
+    {
+      typedef typename iterator_traits<_ForwardIterator>::value_type
+	_ValueType;
+
+      std::__uninitialized_fill_n<__is_pod(_ValueType)>::
+	uninitialized_fill_n(__first, __n, __x);
+    }
+
+  // Extensions: versions of uninitialized_copy, uninitialized_fill,
+  //  and uninitialized_fill_n that take an allocator parameter.
+  //  We dispatch back to the standard versions when we're given the
+  //  default allocator.  For nondefault allocators we do not use 
+  //  any of the POD optimizations.
+
+  template<typename _InputIterator, typename _ForwardIterator,
+	   typename _Allocator>
+    _ForwardIterator
+    __uninitialized_copy_a(_InputIterator __first, _InputIterator __last,
+			   _ForwardIterator __result, _Allocator& __alloc)
+    {
+      _ForwardIterator __cur = __result;
+      try
+	{
+	  for (; __first != __last; ++__first, ++__cur)
+	    __alloc.construct(&*__cur, *__first);
+	  return __cur;
+	}
+      catch(...)
+	{
+	  std::_Destroy(__result, __cur, __alloc);
+	  __throw_exception_again;
+	}
+    }
+
+  template<typename _InputIterator, typename _ForwardIterator, typename _Tp>
+    inline _ForwardIterator
+    __uninitialized_copy_a(_InputIterator __first, _InputIterator __last,
+			   _ForwardIterator __result, allocator<_Tp>&)
+    { return std::uninitialized_copy(__first, __last, __result); }
+
+  template<typename _InputIterator, typename _ForwardIterator,
+	   typename _Allocator>
+    inline _ForwardIterator
+    __uninitialized_move_a(_InputIterator __first, _InputIterator __last,
+			   _ForwardIterator __result, _Allocator& __alloc)
+    {
+      return std::__uninitialized_copy_a(_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+					 _GLIBCXX_MAKE_MOVE_ITERATOR(__last),
+					 __result, __alloc);
+    }
+
+  template<typename _ForwardIterator, typename _Tp, typename _Allocator>
+    void
+    __uninitialized_fill_a(_ForwardIterator __first, _ForwardIterator __last,
+			   const _Tp& __x, _Allocator& __alloc)
+    {
+      _ForwardIterator __cur = __first;
+      try
+	{
+	  for (; __cur != __last; ++__cur)
+	    __alloc.construct(&*__cur, __x);
+	}
+      catch(...)
+	{
+	  std::_Destroy(__first, __cur, __alloc);
+	  __throw_exception_again;
+	}
+    }
+
+  template<typename _ForwardIterator, typename _Tp, typename _Tp2>
+    inline void
+    __uninitialized_fill_a(_ForwardIterator __first, _ForwardIterator __last,
+			   const _Tp& __x, allocator<_Tp2>&)
+    { std::uninitialized_fill(__first, __last, __x); }
+
+  template<typename _ForwardIterator, typename _Size, typename _Tp,
+	   typename _Allocator>
+    void
+    __uninitialized_fill_n_a(_ForwardIterator __first, _Size __n, 
+			     const _Tp& __x, _Allocator& __alloc)
+    {
+      _ForwardIterator __cur = __first;
+      try
+	{
+	  for (; __n > 0; --__n, ++__cur)
+	    __alloc.construct(&*__cur, __x);
+	}
+      catch(...)
+	{
+	  std::_Destroy(__first, __cur, __alloc);
+	  __throw_exception_again;
+	}
+    }
+
+  template<typename _ForwardIterator, typename _Size, typename _Tp,
+	   typename _Tp2>
+    inline void
+    __uninitialized_fill_n_a(_ForwardIterator __first, _Size __n, 
+			     const _Tp& __x, allocator<_Tp2>&)
+    { std::uninitialized_fill_n(__first, __n, __x); }
+
+
+  // Extensions: __uninitialized_copy_move, __uninitialized_move_copy,
+  // __uninitialized_fill_move, __uninitialized_move_fill.
+  // All of these algorithms take a user-supplied allocator, which is used
+  // for construction and destruction.
+
+  // __uninitialized_copy_move
+  // Copies [first1, last1) into [result, result + (last1 - first1)), and
+  //  move [first2, last2) into
+  //  [result, result + (last1 - first1) + (last2 - first2)).
+  template<typename _InputIterator1, typename _InputIterator2,
+	   typename _ForwardIterator, typename _Allocator>
+    inline _ForwardIterator
+    __uninitialized_copy_move(_InputIterator1 __first1,
+			      _InputIterator1 __last1,
+			      _InputIterator2 __first2,
+			      _InputIterator2 __last2,
+			      _ForwardIterator __result,
+			      _Allocator& __alloc)
+    {
+      _ForwardIterator __mid = std::__uninitialized_copy_a(__first1, __last1,
+							   __result,
+							   __alloc);
+      try
+	{
+	  return std::__uninitialized_move_a(__first2, __last2, __mid, __alloc);
+	}
+      catch(...)
+	{
+	  std::_Destroy(__result, __mid, __alloc);
+	  __throw_exception_again;
+	}
+    }
+
+  // __uninitialized_move_copy
+  // Moves [first1, last1) into [result, result + (last1 - first1)), and
+  //  copies [first2, last2) into
+  //  [result, result + (last1 - first1) + (last2 - first2)).
+  template<typename _InputIterator1, typename _InputIterator2,
+	   typename _ForwardIterator, typename _Allocator>
+    inline _ForwardIterator
+    __uninitialized_move_copy(_InputIterator1 __first1,
+			      _InputIterator1 __last1,
+			      _InputIterator2 __first2,
+			      _InputIterator2 __last2,
+			      _ForwardIterator __result,
+			      _Allocator& __alloc)
+    {
+      _ForwardIterator __mid = std::__uninitialized_move_a(__first1, __last1,
+							   __result,
+							   __alloc);
+      try
+	{
+	  return std::__uninitialized_copy_a(__first2, __last2, __mid, __alloV'  W'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          c);
+	}
+      catch(...)
+	{
+	  std::_Destroy(__result, __mid, __alloc);
+	  __throw_exception_again;
+	}
+    }
+  
+  // __uninitialized_fill_move
+  // Fills [result, mid) with x, and moves [first, last) into
+  //  [mid, mid + (last - first)).
+  template<typename _ForwardIterator, typename _Tp, typename _InputIterator,
+	   typename _Allocator>
+    inline _ForwardIterator
+    __uninitialized_fill_move(_ForwardIterator __result, _ForwardIterator __mid,
+			      const _Tp& __x, _InputIterator __first,
+			      _InputIterator __last, _Allocator& __alloc)
+    {
+      std::__uninitialized_fill_a(__result, __mid, __x, __alloc);
+      try
+	{
+	  return std::__uninitialized_move_a(__first, __last, __mid, __alloc);
+	}
+      catch(...)
+	{
+	  std::_Destroy(__result, __mid, __alloc);
+	  __throw_exception_again;
+	}
+    }
+
+  // __uninitialized_move_fill
+  // Moves [first1, last1) into [first2, first2 + (last1 - first1)), and
+  //  fills [first2 + (last1 - first1), last2) with x.
+  template<typename _InputIterator, typename _ForwardIterator, typename _Tp,
+	   typename _Allocator>
+    inline void
+    __uninitialized_move_fill(_InputIterator __first1, _InputIterator __last1,
+			      _ForwardIterator __first2,
+			      _ForwardIterator __last2, const _Tp& __x,
+			      _Allocator& __alloc)
+    {
+      _ForwardIterator __mid2 = std::__uninitialized_move_a(__first1, __last1,
+							    __first2,
+							    __alloc);
+      try
+	{
+	  std::__uninitialized_fill_a(__mid2, __last2, __x, __alloc);
+	}
+      catch(...)
+	{
+	  std::_Destroy(__first2, __mid2, __alloc);
+	  __throw_exception_again;
+	}
+    }
+
+_GLIBCXX_END_NAMESPACE
+
+#endif /* _STL_UNINITIALIZED_H */
+                                                                                                                                                                                                                                                                                                                                                                                                          // <bits/boost_sp_shared_count.h> -*- C++ -*-
+
+// Copyright (C) 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+//  shared_count.hpp
+//  Copyright (c) 2001, 2002, 2003 Peter Dimov and Multi Media Ltd.
+
+//  shared_ptr.hpp
+//  Copyright (C) 1998, 1999 Greg Colvin and Beman Dawes.
+//  Copyright (C) 2001, 2002, 2003 Peter Dimov
+
+//  weak_ptr.hpp
+//  Copyright (C) 2001, 2002, 2003 Peter Dimov
+
+//  enable_shared_from_this.hpp
+//  Copyright (C) 2002 Peter Dimov
+
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// http://www.boost.org/LICENSE_1_0.txt)
+
+// GCC Note:  based on version 1.32.0 of the Boost library.
+
+/** @file bits/boost_sp_shared_count.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+# include <c++0x_warning.h>
+#endif
+
+#if defined(_GLIBCXX_INCLUDE_AS_TR1)
+#  error C++0x header cannot be included from TR1 header
+#endif
+
+namespace std
+{
+  // counted ptr with no deleter or allocator support
+  template<typename _Ptr, _Lock_policy _Lp>
+    class _Sp_counted_ptr
+    : public _Sp_counted_base<_Lp>
+    {
+    public:
+      _Sp_counted_ptr(_Ptr __p)
+      : _M_ptr(__p) { }
+    
+      virtual void
+      _M_dispose() // nothrow
+      { delete _M_ptr; }
+      
+      virtual void
+      _M_destroy() // nothrow
+      { delete this; }
+      
+      virtual void*
+      _M_get_deleter(const std::type_info& __ti)
+      { return 0; }
+      
+    private:
+      _Sp_counted_ptr(const _Sp_counted_ptr&);
+      _Sp_counted_ptr& operator=(const _Sp_counted_ptr&);
+      
+    protected:
+      _Ptr             _M_ptr;  // copy constructor must not throw
+    };
+
+  // support for custom deleter and/or allocator
+  template<typename _Ptr, typename _Deleter, typename _Alloc, _Lock_policy _Lp>
+    class _Sp_counted_deleter
+    : public _Sp_counted_ptr<_Ptr, _Lp>
+    {
+      typedef typename _Alloc::template
+          rebind<_Sp_counted_deleter>::other _My_alloc_type;
+
+      // Helper class that stores the Deleter and also acts as an allocator.
+      // Used to dispose of the owned pointer and the internal refcount
+      // Requires that copies of _Alloc can free each other's memory.
+      struct _My_Deleter
+      : public _My_alloc_type    // copy constructor must not throw
+      {
+        _Deleter _M_del;         // copy constructor must not throw
+        _My_Deleter(_Deleter __d, const _Alloc& __a)
+          : _My_alloc_type(__a), _M_del(__d) { }
+      };
+
+    protected:
+      typedef _Sp_counted_ptr<_Ptr, _Lp> _Base_type;
+
+    public:
+      /**
+       *  @brief   
+       *  @pre     __d(__p) must not throw.
+       */
+      _Sp_counted_deleter(_Ptr __p, _Deleter __d)
+      : _Base_type(__p), _M_del(__d, _Alloc()) { }
+    
+      /**
+       *  @brief   
+       *  @pre     __d(__p) must not throw.
+       */
+      _Sp_counted_deleter(_Ptr __p, _Deleter __d, const _Alloc& __a)
+      : _Base_type(__p), _M_del(__d, __a) { }
+    
+      virtual void
+      _M_dispose() // nothrow
+      { _M_del._M_del(_Base_type::_M_ptr); }
+      
+      virtual void
+      _M_destroy() // nothrow
+      {
+        _My_alloc_type __a(_M_del);
+        this->~_Sp_counted_deleter();
+        __a.deallocate(this, 1);
+      }
+      
+      virtual void*
+      _M_get_deleter(const std::type_info& __ti)
+      { return __ti == typeid(_Deleter) ? &_M_del._M_del : 0; }
+      
+    private:
+      _Sp_counted_deleter(const _Sp_counted_deleter&);
+      _Sp_counted_deleter& operator=(const _Sp_counted_deleter&);
+      
+    protected:
+      _My_Deleter      _M_del;  // copy constructor must not throw
+    };
+
+  // helpers for make_shared / allocate_shared
+
+  template<typename _Tp>
+    struct _Sp_destroy_inplace
+    {
+      void operator()(_Tp* __p) const { if (__p) __p->~_Tp(); }
+    };
+
+  struct _Sp_make_shared_tag { };
+
+  template<typename _Tp, typename _Alloc, _Lock_policy _Lp>
+    class _Sp_counted_ptr_inplace
+    : public _Sp_counted_deleter<_Tp*, _Sp_destroy_inplace<_Tp>, _Alloc, _Lp>
+    {
+      typedef _Sp_counted_deleter<_Tp*, _Sp_destroy_inplace<_Tp>, _Alloc, _Lp>
+        _Base_type;
+
+    public:
+      _Sp_counted_ptr_inplace(_Alloc __a)
+      : _Base_type(static_cast<_Tp*>(0), _Sp_destroy_inplace<_Tp>(), __a)
+      , _M_storage()
+      {
+        void* __p = &_M_storage;
+        ::new (__p) _Tp();  // might throw
+        _Base_type::_Base_type::_M_ptr = static_cast<_Tp*>(__p);
+      }
+
+      template<typename... _Args>
+        _Sp_counted_ptr_inplace(_Alloc __a, _Args&&... __args)
+        : _Base_type(static_cast<_Tp*>(0), _Sp_destroy_inplace<_Tp>(), __a)
+        , _M_storage()
+        {
+          void* __p = &_M_storage;
+          ::new (__p) _Tp(std::forward<_Args>(__args)...);  // might throw
+          _Base_type::_Base_type::_M_ptr = static_cast<_Tp*>(__p);
+        }
+
+      // override because the allocator needs to know the dynamic type
+      virtual void
+      _M_destroy() // nothrow
+      {
+        typedef typename _Alloc::template
+            rebind<_Sp_counted_ptr_inplace>::other _My_alloc_type;
+        _My_alloc_type __a(_Base_type::_M_del);
+        this->~_Sp_counted_ptr_inplace();
+        __a.deallocate(this, 1);
+      }
+
+      // sneaky trick so __shared_ptr can get the managed pointer
+      virtual void*
+      _M_get_deleter(const std::type_info& __ti)
+      {
+        return __ti == typeid(_Sp_make_shared_tag)
+               ? static_cast<void*>(&_M_storage)
+               : _Base_type::_M_get_deleter(__ti);
+      }
+      
+    private:
+      typename aligned_storage<sizeof(_Tp), alignment_of<_Tp>::value>::type
+        _M_storage;
+    };
+
+  template<_Lock_policy _Lp = __default_lock_policy>
+    class __weak_count;
+
+  template<_Lock_policy _Lp = __default_lock_policy>
+    class __shared_count
+    {
+    public: 
+      __shared_count()
+      : _M_pi(0) // nothrow
+      { }
+  
+      template<typename _Ptr>
+        __shared_count(_Ptr __p) : _M_pi(0)
+        {
+          try
+            {
+              _M_pi = new _Sp_counted_ptr<_Ptr, _Lp>(__p);
+            }
+          catch(...)
+            {
+              delete __p;
+              __throw_exception_again;
+            }
+        }
+
+      template<typename _Ptr, typename _Deleter>
+        __shared_count(_Ptr __p, _Deleter __d) : _M_pi(0)
+        {
+          // allocator's value_type doesn't matter, will rebind it anyway
+          typedef std::allocator<int> _Alloc;
+          typedef _Sp_counted_deleter<_Ptr, _Deleter, _Alloc, _Lp> _Sp_cd_type;
+          typedef std::allocator<_Sp_cd_type> _Alloc2;
+          _Alloc2 __a2;
+          try
+            {
+              _M_pi = __a2.allocate(1);
+              new(static_cast<void*>(_M_pi)) _Sp_cd_type(__p, __d);
+            }
+          catch(...)
+            {
+              __d(__p); // Call _Deleter on __p.
+              if (_M_pi)
+                __a2.deallocate(static_cast<_Sp_cd_type*>(_M_pi), 1);
+              __throw_exception_again;
+            }
+        }
+
+      template<typename _Ptr, typename _Deleter, typename _Alloc>
+        __shared_count(_Ptr __p, _Deleter __d, _Alloc __a) : _M_pi(0)
+        {
+          typedef _Sp_counted_deleter<_Ptr, _Deleter, _Alloc, _Lp> _Sp_cd_type;
+          typedef typename _Alloc::template rebind<_Sp_cd_type>::other _Alloc2;
+          _Alloc2 __a2(__a);
+          try
+            {
+              _M_pi = __a2.allocate(1);
+              new(static_cast<void*>(_M_pi)) _Sp_cd_type(__p, __d, __a);
+            }
+          catch(...)
+            {
+              __d(__p); // Call _Deleter on __p.
+              if (_M_pi)
+                __a2.deallocate(static_cast<_Sp_cd_type*>(_M_pi), 1);
+              __throw_exception_again;
+            }
+        }
+
+      template<typename _Tp, typename _Alloc, typename... _Args>
+        __shared_count(_Sp_make_shared_tag, _Tp*, _Alloc __a, _Args&&... __args)
+        : _M_pi(0)
+        {
+          typedef _Sp_counted_ptr_inplace<_Tp, _Alloc, _Lp> _Sp_cp_type;
+          typedef typename _Alloc::template rebind<_Sp_cp_type>::other _Alloc2;
+          _Alloc2 __a2(__a);
+          try
+            {
+              _M_pi = __a2.allocate(1);
+              new(static_cast<void*>(_M_pi)) _Sp_cp_type(__a,
+                  std::forward<_Args>(__args)...);
+            }
+          catch(...)
+            {
+              if (_M_pi)
+        	__a2.deallocate(static_cast<_Sp_cp_type*>(_M_pi), 1);
+              __throw_exception_again;
+            }
+        }
+
+#if _GLIBCXX_DEPRECATED
+      // Special case for auto_ptr<_Tp> to provide the strong guarantee.
+      template<typename _Tp>
+        explicit
+        __shared_count(std::auto_ptr<_Tp>& __r)
+        : _M_pi(new _Sp_counted_ptr<_Tp*, _Lp>(__r.get()))
+        { __r.release(); }
+#endif
+  
+      // Throw bad_weak_ptr when __r._M_get_use_count() == 0.
+      explicit
+      __shared_count(const __weak_count<_Lp>& __r);
+  
+      ~__shared_count() // nothrow
+      {
+        if (_M_pi != 0)
+          _M_pi->_M_release();
+      }
+
+      __shared_count(const __shared_count& __r)
+      : _M_pi(__r._M_pi) // nothrow
+      {
+        if (_M_pi != 0)
+          _M_pi->_M_add_ref_copy();
+      }
+  
+      __shared_count&
+      operator=(const __shared_count& __r) // nothrow
+      {
+        _Sp_counted_base<_Lp>* __tmp = __r._M_pi;
+        if (__tmp != _M_pi)
+          {
+            if (__tmp != 0)
+              __tmp->_M_add_ref_copy();
+            if (_M_pi != 0)
+              _M_pi->_M_release();
+            _M_pi = __tmp;
+          }
+        return *this;
+      }
+  
+      void
+      _M_swap(__shared_count& __r) // nothrow
+      {
+        _Sp_counted_base<_Lp>* __tmp = __r._M_pi;
+        __r._M_pi = _M_pi;
+        _M_pi = __tmp;
+      }
+  
+      long
+      _M_get_use_count() const // nothrow
+      { return _M_pi != 0 ? _M_pi->_M_get_use_count() : 0; }
+
+      bool
+      _M_unique() const // nothrow
+      { return this->_M_get_use_count() == 1; }
+
+      friend inline bool
+      operator==(const __shared_count& __a, const __shared_count& __b)
+      { return __a._M_pi == __b._M_pi; }
+  
+      friend inline bool
+      operator<(const __shared_count& __a, const __shared_count& __b)
+      { return std::less<_Sp_counted_base<_Lp>*>()(__a._M_pi, __b._M_pi); }
+  
+      void*
+      _M_get_deleter(const std::type_info& __ti) const
+      { return _M_pi ? _M_pi->_M_get_deleter(__ti) : 0; }
+
+    private:
+      friend class __weak_count<_Lp>;
+
+      _Sp_counted_base<_Lp>*  _M_pi;
+    };
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            // std::rel_ops implementation -*- C++ -*-
+
+// Copyright (C) 2001, 2002, 2004, 2005, 2008 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/*
+ *
+ * Copyright (c) 1994
+ * Hewlett-Packard Company
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Hewlett-Packard Company makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ *
+ * Copyright (c) 1996,1997
+ * Silicon Graphics
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Silicon Graphics makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ *
+ */
+
+/** @file stl_relops.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ *
+ *  Inclusion of this file has been removed from
+ *  all of the other STL headers for safety reasons, except std_utility.h.
+ *  For more information, see the thread of about twenty messages starting
+ *  with http://gcc.gnu.org/ml/libstdc++/2001-01/msg00223.html, or
+ *  http://gcc.gnu.org/onlinedocs/libstdc++/faq.html#faq.ambiguous_overloads
+ *
+ *  Short summary:  the rel_ops operators should be avoided for the present.
+ */
+
+#ifndef _STL_RELOPS_H
+#define _STL_RELOPS_H 1
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  namespace rel_ops
+  {
+    /** @namespace std::rel_ops
+     *  @brief  The generated relational operators are sequestered here.
+     */
+
+    /**
+     *  @brief Defines @c != for arbitrary types, in terms of @c ==.
+     *  @param  x  A thing.
+     *  @param  y  Another thing.
+     *  @return   x != y
+     *
+     *  This function uses @c == to determine its result.
+     */
+    template <class _Tp>
+      inline bool
+      operator!=(const _Tp& __x, const _Tp& __y)
+      { return !(__x == __y); }
+
+    /**
+     *  @brief Defines @c > for arbitrary types, in terms of @c <.
+     *  @param  x  A thing.
+     *  @param  y  Another thing.
+     *  @return   x > y
+     *
+     *  This function uses @c < to determine its result.
+     */
+    template <class _Tp>
+      inline bool
+      operator>(const _Tp& __x, const _Tp& __y)
+      { return __y < __x; }
+
+    /**
+     *  @brief Defines @c <= for arbitrary types, in terms of @c <.
+     *  @param  x  A thing.
+     *  @param  y  Another thing.
+     *  @return   x <= y
+     *
+     *  This function uses @c < to determine its result.
+     */
+    template <class _Tp>
+      inline bool
+      operator<=(const _Tp& __x, const _Tp& __y)
+      { return !(__y < __x); }
+
+    /**
+     *  @brief Defines @c >= for arbitrary types, in terms of @c <.
+     *  @param  x  A thing.
+     *  @param  y  Another thing.
+     *  @return   x >= y
+     *
+     *  This function uses @c < to determine its result.
+     */
+    template <class _Tp>
+      inline bool
+      operator>=(const _Tp& __x, const _Tp& __y)
+      { return !(__x < __y); }
+
+  } // namespace rel_ops
+
+_GLIBCXX_END_NAMESPACE
+
+#endif /* _STL_RELOPS_H */
+                                                                                                                                                                                                                                                                                                 // Queue implementation -*- C++ -*-
+
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/*
+ *
+ * Copyright (c) 1994
+ * Hewlett-Packard Company
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Hewlett-Packard Company makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ *
+ *
+ * Copyright (c) 1996,1997
+ * Silicon Graphics Computer Systems, Inc.
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Silicon Graphics makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ */
+
+/** @file stl_queue.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+#ifndef _STL_QUEUE_H
+#define _STL_QUEUE_H 1
+
+#include <bits/concept_check.h>
+#include <debug/debug.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  /**
+   *  @brief  A standard container giving FIFO behavior.
+   *
+   *  @ingroup Containers
+   *  @ingroup Sequences
+   *
+   *  Meets many of the requirements of a
+   *  <a href="tables.html#65">container</a>,
+   *  but does not define anything to do with iterators.  Very few of the
+   *  other standard container interfaces are defined.
+   *
+   *  This is not a true container, but an @e adaptor.  It holds another
+   *  container, and provides a wrapper interface to that container.  The
+   *  wrapper is what enforces strict first-in-first-out %queue behavior.
+   *
+   *  The second template parameter defines the type of the underlying
+   *  sequence/container.  It defaults to std::deque, but it can be any type
+   *  that supports @c front, @c back, @c push_back, and @c pop_front,
+   *  such as std::list or an appropriate user-defined type.
+   *
+   *  Members not found in "normal" containers are @c container_type,
+   *  which is a typedef for the second Sequence parameter, and @c push and
+   *  @c pop, which are standard %queue/FIFO operations.
+  */
+  template<typename _Tp, typename _Sequence = deque<_Tp> >
+    class queue
+    {
+      // concept requirements
+      typedef typename _Sequence::value_type _Sequence_value_type;
+      __glibcxx_class_requires(_Tp, _SGIAssignableConcept)
+      __glibcxx_class_requires(_Sequence, _FrontInsertionSequenceConcept)
+      __glibcxx_class_requires(_Sequence, _BackInsertionSequenceConcept)
+      __glibcxx_class_requires2(_Tp, _Sequence_value_type, _SameTypeConcept)
+
+      template<typename _Tp1, typename _Seq1>
+        friend bool
+        operator==(const queue<_Tp1, _Seq1>&, const queue<_Tp1, _Seq1>&);
+
+      template<typename _Tp1, typename _Seq1>
+        friend bool
+        operator<(const queue<_Tp1, _Seq1>&, const queue<_Tp1, _Seq1>&);
+
+    public:
+      typedef typename _Sequence::value_type                value_type;
+      typedef typename _Sequence::reference                 reference;
+      typedef typename _Sequence::const_reference           const_reference;
+      typedef typename _Sequence::size_type                 size_type;
+      typedef          _Sequence                            container_type;
+
+    protected:
+      /**
+       *  'c' is the underlying container.  Maintainers wondering why
+       *  this isn't uglified as per style guidelines should note that
+       *  this name is specified in the standard, [23.2.3.1].  (Why?
+       *  Presumably for the same reason that it's protected instead
+       *  of private: to allow derivation.  But none of the other
+       *  containers allow for derivation.  Odd.)
+       */
+      _Sequence c;
+
+    public:
+      /**
+       *  @brief  Default constructor creates no elements.
+       */
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+      explicit
+      queue(const _Sequence& __c = _Sequence())
+      : c(__c) { }
+#else
+      explicit
+      queue(const _Sequence& __c)
+      : c(__c) { }
+
+      explicit
+      queue(_Sequence&& __c = _Sequence())
+      : c(std::move(__c)) { }
+
+      queue(queue&& __q)
+      : c(std::move(__q.c)) { }
+
+      queue&
+      operator=(queue&& __q)
+      {
+	c = std::move(__q.c);
+	return *this;
+      }
+#endif
+
+      /**
+       *  Returns true if the %queue is empty.
+       */
+      bool
+      empty() const
+      { return c.empty(); }
+
+      /**  Returns the number of elements in the %queue.  */
+      size_type
+      size() const
+      { return c.size(); }
+
+      /**
+       *  Returns a read/write reference to the data at the first
+       *  element of the %queue.
+       */
+      reference
+      front()
+      {
+	__glibcxx_requires_nonempty();
+	return c.front();
+      }
+
+      /**
+       *  Returns a read-only (constant) reference to the data at the first
+       *  element of the %queue.
+       */
+      const_reference
+      front() const
+      {
+	__glibcxx_requires_nonempty();
+	return c.front();
+      }
+
+      /**
+       *  Returns a read/write reference to the data at the last
+       *  element of the %queue.
+       */
+      reference
+      back()
+      {
+	__glibcxx_requires_nonempty();
+	return c.back();
+      }
+
+      /**
+       *  Returns a read-only (constant) reference to the data at the last
+       *  element of the %queue.
+       */
+      const_reference
+      back() const
+      {
+	__glibcxx_requires_nonempty();
+	return c.back();
+      }
+
+      /**
+       *  @brief  Add data to the end of the %queue.
+       *  @param  x  Data to be added.
+       *
+       *  This is a typical %queue operation.  The function creates an
+       *  element at the end of the %queue and assigns the given data
+       *  to it.  The time complexity of the operation depends on the
+       *  underlying sequence.
+       */
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      push(const value_type& __x)
+      { c.push_back(__x); }
+#else
+      // NB: DR 756.
+      template<typename... _Args>
+        void
+        push(_Args&&... __args)
+	{ c.push_back(std::forward<_Args>(__args)...); }
+#endif
+
+      /**
+       *  @brief  Removes first element.
+       *
+       *  This is a typical %queue operation.  It shrinks the %queue by one.
+       *  The time complexity of the operation depends on the underlying
+       *  sequence.
+       *
+       *  Note that no data is returned, and if the first element's
+       *  data is needed, it should be retrieved before pop() is
+       *  called.
+       */
+      void
+      pop()
+      {
+	__glibcxx_requires_nonempty();
+	c.pop_front();
+      }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      swap(queue&& __q)
+      { c.swap(__q.c); }
+#endif
+    };
+
+  /**
+   *  @brief  Queue equality comparison.
+   *  @param  x  A %queue.
+   *  @param  y  A %queue of the same type as @a x.
+   *  @return  True iff the size and elements of the queues are equal.
+   *
+   *  This is an equivalence relation.  Complexity and semantics depend on the
+   *  underlying sequence type, but the expected rules are:  this relation is
+   *  linear in the size of the sequences, and queues are considered equivalent
+   *  if their sequences compare equal.
+  */
+  template<typename _Tp, typename _Seq>
+    inline bool
+    operator==(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
+    { return __x.c == __y.c; }
+
+  /**
+   *  @brief  Queue ordering relation.
+   *  @param  x  A %queue.
+   *  @param  y  A %queue of the same type as @a x.
+   *  @return  True iff @a x is lexicographically less than @a y.
+   *
+   *  This is an total ordering relation.  Complexity and semantics
+   *  depend on the underlying sequence type, but the expected rules
+   *  are: this relation is linear in the size of the sequences, the
+   *  elements must be comparable with @c <, and
+   *  std::lexicographical_compare() is usually used to make the
+   *  determination.
+  */
+  template<typename _Tp, typename _Seq>
+    inline bool
+    operator<(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
+    { return __x.c < __y.c; }
+
+  /// Based on operator==
+  template<typename _Tp, typename _Seq>
+    inline bool
+    operator!=(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
+    { return !(__x == __y); }
+
+  /// Based on operator<
+  template<typename _Tp, typename _Seq>
+    inline bool
+    operator>(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
+    { return __y < __x; }
+
+  /// Based on operator<
+  template<typename _Tp, typename _Seq>
+    inline bool
+    operator<=(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
+    { return !(__y < __x); }
+
+  /// Based on operator<
+  template<typename _Tp, typename _Seq>
+    inline bool
+    operator>=(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
+    { return !(__x < __y); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Tp, typename _Seq>
+    inline void
+    swap(queue<_Tp, _Seq>& __x, queue<_Tp, _Seq>& __y)
+    { __x.swap(__y); }
+
+  template<typename _Tp, typename _Seq>
+    inline void
+    swap(queue<_Tp, _Seq>&& __x, queue<_Tp, _Seq>& __y)
+    { __x.swap(__y); }
+
+  template<typename _Tp, typename _Seq>
+    inline void
+    swap(queue<_Tp, _Seq>& __x, queue<_Tp, _Seq>&& __y)
+    { __x.swap(__y); }
+#endif
+
+  /**
+   *  @brief  A standard container automatically sorting its contents.
+   *
+   *  @ingroup Containers
+   *  @ingroup Sequences
+   *
+   *  This is not a true container, but an @e adaptor.  It holds
+   *  another container, and provides a wrapper interface to that
+   *  container.  The wrapper is what enforces priority-based sorting 
+   *  and %queue behavior.  Very few of the standard container/sequence
+   *  interface requirements are met (e.g., iterators).
+   *
+   *  The second template parameter defines the type of the underlying
+   *  sequence/container.  It defaults to std::vector, but it can be
+   *  any type that supports @c front(), @c push_back, @c pop_back,
+   *  and random-access iterators, such as std::deque or an
+   *  appropriate user-defined type.
+   *
+   *  The third template parameter supplies the means of making
+   *  priority comparisons.  It defaults to @c less<value_type> but
+   *  can be anything defining a strict weak ordering.
+   *
+   *  Members not found in "normal" containers are @c container_type,
+   *  which is a typedef for the second Sequence parameter, and @c
+   *  push, @c pop, and @c top, which are standard %queue operations.
+   *
+   *  @note No equality/comparison operators are provided for
+   *  %priority_queue.
+   *
+   *  @note Sorting of the elements takes place as they are added to,
+   *  and v'  w'  x'  y'  z'  {'  |'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      removed from, the %priority_queue using the
+   *  %priority_queue's member functions.  If you access the elements
+   *  by other means, and change their data such that the sorting
+   *  order would be different, the %priority_queue will not re-sort
+   *  the elements for you.  (How could it know to do so?)
+  */
+  template<typename _Tp, typename _Sequence = vector<_Tp>,
+	   typename _Compare  = less<typename _Sequence::value_type> >
+    class priority_queue
+    {
+      // concept requirements
+      typedef typename _Sequence::value_type _Sequence_value_type;
+      __glibcxx_class_requires(_Tp, _SGIAssignableConcept)
+      __glibcxx_class_requires(_Sequence, _SequenceConcept)
+      __glibcxx_class_requires(_Sequence, _RandomAccessContainerConcept)
+      __glibcxx_class_requires2(_Tp, _Sequence_value_type, _SameTypeConcept)
+      __glibcxx_class_requires4(_Compare, bool, _Tp, _Tp,
+				_BinaryFunctionConcept)
+
+    public:
+      typedef typename _Sequence::value_type                value_type;
+      typedef typename _Sequence::reference                 reference;
+      typedef typename _Sequence::const_reference           const_reference;
+      typedef typename _Sequence::size_type                 size_type;
+      typedef          _Sequence                            container_type;
+
+    protected:
+      //  See queue::c for notes on these names.
+      _Sequence  c;
+      _Compare   comp;
+
+    public:
+      /**
+       *  @brief  Default constructor creates no elements.
+       */
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+      explicit
+      priority_queue(const _Compare& __x = _Compare(),
+		     const _Sequence& __s = _Sequence())
+      : c(__s), comp(__x)
+      { std::make_heap(c.begin(), c.end(), comp); }
+#else
+      explicit
+      priority_queue(const _Compare& __x,
+		     const _Sequence& __s)
+      : c(__s), comp(__x)
+      { std::make_heap(c.begin(), c.end(), comp); }
+
+      explicit
+      priority_queue(const _Compare& __x = _Compare(),
+		     _Sequence&& __s = _Sequence())
+      : c(std::move(__s)), comp(__x)
+      { std::make_heap(c.begin(), c.end(), comp); }
+#endif
+
+      /**
+       *  @brief  Builds a %queue from a range.
+       *  @param  first  An input iterator.
+       *  @param  last  An input iterator.
+       *  @param  x  A comparison functor describing a strict weak ordering.
+       *  @param  s  An initial sequence with which to start.
+       *
+       *  Begins by copying @a s, inserting a copy of the elements
+       *  from @a [first,last) into the copy of @a s, then ordering
+       *  the copy according to @a x.
+       *
+       *  For more information on function objects, see the
+       *  documentation on @link s20_3_1_base functor base
+       *  classes@endlink.
+       */
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename _InputIterator>
+        priority_queue(_InputIterator __first, _InputIterator __last,
+		       const _Compare& __x = _Compare(),
+		       const _Sequence& __s = _Sequence())
+	: c(__s), comp(__x)
+        {
+	  __glibcxx_requires_valid_range(__first, __last);
+	  c.insert(c.end(), __first, __last);
+	  std::make_heap(c.begin(), c.end(), comp);
+	}
+#else
+      template<typename _InputIterator>
+        priority_queue(_InputIterator __first, _InputIterator __last,
+		       const _Compare& __x,
+		       const _Sequence& __s)
+	: c(__s), comp(__x)
+        {
+	  __glibcxx_requires_valid_range(__first, __last);
+	  c.insert(c.end(), __first, __last);
+	  std::make_heap(c.begin(), c.end(), comp);
+	}
+
+      template<typename _InputIterator>
+        priority_queue(_InputIterator __first, _InputIterator __last,
+		       const _Compare& __x = _Compare(),
+		       _Sequence&& __s = _Sequence())
+	: c(std::move(__s)), comp(__x)
+        {
+	  __glibcxx_requires_valid_range(__first, __last);
+	  c.insert(c.end(), __first, __last);
+	  std::make_heap(c.begin(), c.end(), comp);
+	}
+
+      priority_queue(priority_queue&& __pq)
+      : c(std::move(__pq.c)), comp(std::move(__pq.comp)) { }
+
+      priority_queue&
+      operator=(priority_queue&& __pq)
+      {
+	c = std::move(__pq.c);
+	comp = std::move(__pq.comp);
+	return *this;
+      }
+#endif
+
+      /**
+       *  Returns true if the %queue is empty.
+       */
+      bool
+      empty() const
+      { return c.empty(); }
+
+      /**  Returns the number of elements in the %queue.  */
+      size_type
+      size() const
+      { return c.size(); }
+
+      /**
+       *  Returns a read-only (constant) reference to the data at the first
+       *  element of the %queue.
+       */
+      const_reference
+      top() const
+      {
+	__glibcxx_requires_nonempty();
+	return c.front();
+      }
+
+      /**
+       *  @brief  Add data to the %queue.
+       *  @param  x  Data to be added.
+       *
+       *  This is a typical %queue operation.
+       *  The time complexity of the operation depends on the underlying
+       *  sequence.
+       */
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      push(const value_type& __x)
+      {
+	c.push_back(__x);
+	std::push_heap(c.begin(), c.end(), comp);
+      }
+#else
+      // NB: DR 756.
+      template<typename... _Args>
+        void
+        push(_Args&&... __args)
+	{ 
+	  c.push_back(std::forward<_Args>(__args)...);
+	  std::push_heap(c.begin(), c.end(), comp);
+	}
+#endif
+
+      /**
+       *  @brief  Removes first element.
+       *
+       *  This is a typical %queue operation.  It shrinks the %queue
+       *  by one.  The time complexity of the operation depends on the
+       *  underlying sequence.
+       *
+       *  Note that no data is returned, and if the first element's
+       *  data is needed, it should be retrieved before pop() is
+       *  called.
+       */
+      void
+      pop()
+      {
+	__glibcxx_requires_nonempty();
+	std::pop_heap(c.begin(), c.end(), comp);
+	c.pop_back();
+      }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      swap(priority_queue&& __pq)
+      {
+	using std::swap;
+	c.swap(__pq.c);
+	swap(comp, __pq.comp);
+      }
+#endif
+    };
+
+  // No equality/comparison operators are provided for priority_queue.
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Tp, typename _Sequence, typename _Compare>
+    inline void
+    swap(priority_queue<_Tp, _Sequence, _Compare>& __x,
+	 priority_queue<_Tp, _Sequence, _Compare>& __y)
+    { __x.swap(__y); }
+
+  template<typename _Tp, typename _Sequence, typename _Compare>
+    inline void
+    swap(priority_queue<_Tp, _Sequence, _Compare>&& __x,
+	 priority_queue<_Tp, _Sequence, _Compare>& __y)
+    { __x.swap(__y); }
+
+  template<typename _Tp, typename _Sequence, typename _Compare>
+    inline void
+    swap(priority_queue<_Tp, _Sequence, _Compare>& __x,
+	 priority_queue<_Tp, _Sequence, _Compare>&& __y)
+    { __x.swap(__y); }
+#endif
+
+_GLIBCXX_END_NAMESPACE
+
+#endif /* _STL_QUEUE_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                  // <algorithm> declarations  -*- C++ -*-
+
+// Copyright (C) 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+/** @file bits/algorithmfwd.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+/*
+  adjacent_find
+  binary_search
+  copy
+  copy_backward
+  count
+  count_if
+  equal
+  equal_range
+  fill
+  fill_n
+  find
+  find_end
+  find_first_of
+  find_if
+  for_each
+  generate
+  generate_n
+  includes
+  inplace_merge
+  is_heap (C++0x)
+  is_heap_until (C++0x)
+  is_sorted (C++0x)
+  is_sorted_until (C++0x)
+  iter_swap
+  lexicographical_compare
+  lower_bound
+  make_heap
+  max
+  max_element
+  merge
+  min
+  min_element
+  minmax (C++0x)
+  minmax_element (C++0x)
+  mismatch
+  next_permutation
+  nth_element
+  partial_sort
+  partial_sort_copy
+  partition
+  pop_heap
+  prev_permutation
+  push_heap
+  random_shuffle
+  remove
+  remove_copy
+  remove_copy_if
+  remove_if
+  replace
+  replace_copy
+  replace_copy_if
+  replace_if
+  reverse
+  reverse_copy
+  rotate
+  rotate_copy
+  search
+  search_n
+  set_difference
+  set_intersection
+  set_symmetric_difference
+  set_union
+  sort
+  sort_heap
+  stable_partition
+  stable_sort
+  swap
+  swap_ranges
+  transform
+  unique
+  unique_copy
+  upper_bound
+*/
+
+#ifndef _GLIBCXX_ALGORITHMFWD_H
+#define _GLIBCXX_ALGORITHMFWD_H 1
+
+#pragma GCC system_header
+
+#include <bits/c++config.h>
+#include <bits/stl_pair.h>
+#include <bits/stl_iterator_base_types.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  // adjacent_find
+
+  template<typename _FIter, typename _Tp>
+    bool 
+    binary_search(_FIter, _FIter, const _Tp&);
+
+  template<typename _FIter, typename _Tp, typename _Compare>
+    bool 
+    binary_search(_FIter, _FIter, const _Tp&, _Compare);
+
+  template<typename _IIter, typename _OIter>
+    _OIter 
+    copy(_IIter, _IIter, _OIter);
+
+  template<typename _BIter1, typename _BIter2>
+    _BIter2
+    copy_backward(_BIter1, _BIter1, _BIter2);
+
+  // count
+  // count_if
+
+  template<typename _FIter, typename _Tp>
+    pair<_FIter, _FIter>
+    equal_range(_FIter, _FIter, const _Tp&);
+
+  template<typename _FIter, typename _Tp, typename _Compare>
+    pair<_FIter, _FIter>
+    equal_range(_FIter, _FIter, const _Tp&, _Compare);
+
+  template<typename _FIter, typename _Tp>
+    void 
+    fill(_FIter, _FIter, const _Tp&);
+
+/*
+  XXX NB: retur

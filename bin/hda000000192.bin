@@ -1,0 +1,1872 @@
+estriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+//
+// ISO C++ 14882: 27.6.1  Input streams
+//
+
+/** @file istream
+ *  This is a Standard C++ Library header.
+ */
+
+#ifndef _GLIBCXX_ISTREAM
+#define _GLIBCXX_ISTREAM 1
+
+#pragma GCC system_header
+
+#include <ios>
+#include <ostream>
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  // [27.6.1.1] Template class basic_istream
+  /**
+   *  @brief  Controlling input.
+   *
+   *  This is the base class for all input streams.  It provides text
+   *  formatting of all builtin types, and communicates with any class
+   *  derived from basic_streambuf to do the actual input.
+  */
+  template<typename _CharT, typename _Traits>
+    class basic_istream : virtual public basic_ios<_CharT, _Traits>
+    {
+    public:
+      // Types (inherited from basic_ios (27.4.4)):
+      typedef _CharT                     		char_type;
+      typedef typename _Traits::int_type 		int_type;
+      typedef typename _Traits::pos_type 		pos_type;
+      typedef typename _Traits::off_type 		off_type;
+      typedef _Traits                    		traits_type;
+      
+      // Non-standard Types:
+      typedef basic_streambuf<_CharT, _Traits> 		__streambuf_type;
+      typedef basic_ios<_CharT, _Traits>		__ios_type;
+      typedef basic_istream<_CharT, _Traits>		__istream_type;
+      typedef num_get<_CharT, istreambuf_iterator<_CharT, _Traits> >        
+ 							__num_get_type;
+      typedef ctype<_CharT>           			__ctype_type;
+
+    protected:
+      // Data Members:
+      /**
+       *  The number of characters extracted in the previous unformatted
+       *  function; see gcount().
+      */
+      streamsize 		_M_gcount;
+
+    public:
+      // [27.6.1.1.1] constructor/destructor
+      /**
+       *  @brief  Base constructor.
+       *
+       *  This ctor is almost never called by the user directly, rather from
+       *  derived classes' initialization lists, which pass a pointer to
+       *  their own stream buffer.
+      */
+      explicit
+      basic_istream(__streambuf_type* __sb)
+      : _M_gcount(streamsize(0))
+      { this->init(__sb); }
+
+      /**
+       *  @brief  Base destructor.
+       *
+       *  This does very little apart from providing a virtual base dtor.
+      */
+      virtual 
+      ~basic_istream() 
+      { _M_gcount = streamsize(0); }
+
+      // [27.6.1.1.2] prefix/suffix
+      class sentry;
+      friend class sentry;
+
+      // [27.6.1.2] formatted input
+      // [27.6.1.2.3] basic_istream::operator>>
+      //@{
+      /**
+       *  @brief  Interface for manipulators.
+       *
+       *  Manipulators such as @c std::ws and @c std::dec use these
+       *  functions in constructs like "std::cin >> std::ws".  For more
+       *  information, see the iomanip header.
+      */
+      __istream_type&
+      operator>>(__istream_type& (*__pf)(__istream_type&))
+      { return __pf(*this); }
+
+      __istream_type&
+      operator>>(__ios_type& (*__pf)(__ios_type&))
+      { 
+	__pf(*this);
+	return *this;
+      }
+
+      __istream_type&
+      operator>>(ios_base& (*__pf)(ios_base&))
+      {
+	__pf(*this);
+	return *this;
+      }
+      //@}
+      
+      // [27.6.1.2.2] arithmetic extractors
+      /**
+       *  @name Arithmetic Extractors
+       *
+       *  All the @c operator>> functions (aka <em>formatted input
+       *  functions</em>) have some common behavior.  Each starts by
+       *  constructing a temporary object of type std::basic_istream::sentry
+       *  with the second argument (noskipws) set to false.  This has several
+       *  effects, concluding with the setting of a status flag; see the
+       *  sentry documentation for more.
+       *
+       *  If the sentry status is good, the function tries to extract
+       *  whatever data is appropriate for the type of the argument.
+       *
+       *  If an exception is thrown during extraction, ios_base::badbit
+       *  will be turned on in the stream's error state without causing an
+       *  ios_base::failure to be thrown.  The original exception will then
+       *  be rethrown.
+      */
+      //@{
+      /**
+       *  @brief  Basic arithmetic extractors
+       *  @param  A variable of builtin type.
+       *  @return  @c *this if successful
+       *
+       *  These functions use the stream's current locale (specifically, the
+       *  @c num_get facet) to parse the input data.
+      */
+      __istream_type& 
+      operator>>(bool& __n)
+      { return _M_extract(__n); }
+      
+      __istream_type& 
+      operator>>(short& __n);
+      
+      __istream_type& 
+      operator>>(unsigned short& __n)
+      { return _M_extract(__n); }
+
+      __istream_type& 
+      operator>>(int& __n);
+    
+      __istream_type& 
+      operator>>(unsigned int& __n)
+      { return _M_extract(__n); }
+
+      __istream_type& 
+      operator>>(long& __n)
+      { return _M_extract(__n); }
+      
+      __istream_type& 
+      operator>>(unsigned long& __n)
+      { return _M_extract(__n); }
+
+#ifdef _GLIBCXX_USE_LONG_LONG
+      __istream_type& 
+      operator>>(long long& __n)
+      { return _M_extract(__n); }
+
+      __istream_type& 
+      operator>>(unsigned long long& __n)
+      { return _M_extract(__n); }
+#endif
+
+      __istream_type& 
+      operator>>(float& __f)
+      { return _M_extract(__f); }
+
+      __istream_type& 
+      operator>>(double& __f)
+      { return _M_extract(__f); }
+
+      __istream_type& 
+      operator>>(long double& __f)
+      { return _M_extract(__f); }
+
+      __istream_type& 
+      operator>>(void*& __p)
+      { return _M_extract(__p); }
+
+      /**
+       *  @brief  Extracting into another streambuf.
+       *  @param  sb  A pointer to a streambuf
+       *
+       *  This function behaves like one of the basic arithmetic extractors,
+       *  in that it also constructs a sentry object and has the same error
+       *  handling behavior.
+       *
+       *  If @a sb is NULL, the stream will set failbit in its error state.
+       *
+       *  Characters are extracted from this stream and inserted into the
+       *  @a sb streambuf until one of the following occurs:
+       *
+       *  - the input stream reaches end-of-file,
+       *  - insertion into the output buffer fails (in this case, the
+       *    character that would have been inserted is not extracted), or
+       *  - an exception occurs (and in this case is caught)
+       *
+       *  If the function inserts no characters, failbit is set.
+      */
+      __istream_type& 
+      operator>>(__streambuf_type* __sb);
+      //@}
+      
+      // [27.6.1.3] unformatted input
+      /**
+       *  @brief  Character counting
+       *  @return  The number of characters extracted by the previous
+       *           unformatted input function dispatched for this stream.
+      */
+      streamsize 
+      gcount() const 
+      { return _M_gcount; }
+      
+      /**
+       *  @name Unformatted Input Functions
+       *
+       *  All the unformatted input functions have some common behavior.
+       *  Each starts by constructing a temporary object of type
+       *  std::basic_istream::sentry with the second argument (noskipws)
+       *  set to true.  This has several effects, concluding with the
+       *  setting of a status flag; see the sentry documentation for more.
+       *
+       *  If the sentry status is good, the function tries to extract
+       *  whatever data is appropriate for the type of the argument.
+       *
+       *  The number of characters extracted is stored for later retrieval
+       *  by gcount().
+       *
+       *  If an exception is thrown during extraction, ios_base::badbit
+       *  will be turned on in the stream's error state without causing an
+       *  ios_base::failure to be thrown.  The original exception will then
+       *  be rethrown.
+      */
+      //@{
+      /**
+       *  @brief  Simple extraction.
+       *  @return  A character, or eof().
+       *
+       *  Tries to extract a character.  If none are available, sets failbit
+       *  and returns traits::eof().
+      */
+      int_type 
+      get();
+
+      /**
+       *  @brief  Simple extraction.
+       *  @param  c  The character in which to store data.
+       *  @return  *this
+       *
+       *  Tries to extract a character and store it in @a c.  If none are
+       *  available, sets failbit and returns traits::eof().
+       *
+       *  @note  This function is not overloaded on signed char and
+       *         unsigned char.
+      */
+      __istream_type& 
+      get(char_type& __c);
+
+      /**
+       *  @brief  Simple multiple-character extraction.
+       *  @param  s  Pointer to an array.
+       *  @param  n  Maximum number of characters to store in @a s.
+       *  @param  delim  A "stop" character.
+       *  @return  *this
+       *
+       *  Characters are extracted and stored into @a s until one of the
+       *  following happens:
+       *
+       *  - @c n-1 characters are stored
+       *  - the input sequence reaches EOF
+       *  - the next character equals @a delim, in which case the character
+       *    is not extracted
+       *
+       * If no characters are stored, failbit is set in the stream's error
+       * state.
+       *
+       * In any case, a null character is stored into the next location in
+       * the array.
+       *
+       *  @note  This function is not overloaded on signed char and
+       *         unsigned char.
+      */
+      __istream_type& 
+      get(char_type* __s, streamsize __n, char_type __delim);
+
+      /**
+       *  @brief  Simple multiple-character extraction.
+       *  @param  s  Pointer to an array.
+       *  @param  n  Maximum number of characters to store in @a s.
+       *  @return  *this
+       *
+       *  Returns @c get(s,n,widen('\n')).
+      */
+      __istream_type& 
+      get(char_type* __s, streamsize __n)
+      { return this->get(__s, __n, this->widen('\n')); }
+
+      /**
+       *  @brief  Extraction into another streambuf.
+       *  @param  sb  A streambuf in which to store data.
+       *  @param  delim  A "stop" character.
+       *  @return  *this
+       *
+       *  Characters are extracted and inserted into @a sb until one of the
+       *  following happens:
+       *
+       *  - the input sequence reaches EOF
+       *  - insertion into the output buffer fails (in this case, the
+       *    character that would have been inserted is not extracted)
+       *  - the next character equals @a delim (in this case, the character
+       *    is not extracted)
+       *  - an exception occurs (and in this case is caught)
+       *
+       * If no characters are stored, failbit is set in the stream's error
+       * state.
+      */
+      __istream_type&
+      get(__streambuf_type& __sb, char_type __delim);
+
+      /**
+       *  @brief  Extraction into another streambuf.
+       *  @param  sb  A streambuf in which to store data.
+       *  @return  *this
+       *
+       *  Returns @c get(sb,widen('\n')).
+      */
+      __istream_type&
+      get(__streambuf_type& __sb)
+      { return t0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  his->get(__sb, this->widen('\n')); }
+
+      /**
+       *  @brief  String extraction.
+       *  @param  s  A character array in which to store the data.
+       *  @param  n  Maximum number of characters to extract.
+       *  @param  delim  A "stop" character.
+       *  @return  *this
+       *
+       *  Extracts and stores characters into @a s until one of the
+       *  following happens.  Note that these criteria are required to be
+       *  tested in the order listed here, to allow an input line to exactly
+       *  fill the @a s array without setting failbit.
+       *
+       *  -# the input sequence reaches end-of-file, in which case eofbit
+       *     is set in the stream error state
+       *  -# the next character equals @c delim, in which case the character
+       *     is extracted (and therefore counted in @c gcount()) but not stored
+       *  -# @c n-1 characters are stored, in which case failbit is set
+       *     in the stream error state
+       *
+       *  If no characters are extracted, failbit is set.  (An empty line of
+       *  input should therefore not cause failbit to be set.)
+       *
+       *  In any case, a null character is stored in the next location in
+       *  the array.
+      */
+      __istream_type& 
+      getline(char_type* __s, streamsize __n, char_type __delim);
+
+      /**
+       *  @brief  String extraction.
+       *  @param  s  A character array in which to store the data.
+       *  @param  n  Maximum number of characters to extract.
+       *  @return  *this
+       *
+       *  Returns @c getline(s,n,widen('\n')).
+      */
+      __istream_type& 
+      getline(char_type* __s, streamsize __n)
+      { return this->getline(__s, __n, this->widen('\n')); }
+
+      /**
+       *  @brief  Discarding characters
+       *  @param  n  Number of characters to discard.
+       *  @param  delim  A "stop" character.
+       *  @return  *this
+       *
+       *  Extracts characters and throws them away until one of the
+       *  following happens:
+       *  - if @a n @c != @c std::numeric_limits<int>::max(), @a n
+       *    characters are extracted
+       *  - the input sequence reaches end-of-file
+       *  - the next character equals @a delim (in this case, the character
+       *    is extracted); note that this condition will never occur if
+       *    @a delim equals @c traits::eof().
+       *
+       *  NB: Provide three overloads, instead of the single function
+       *  (with defaults) mandated by the Standard: this leads to a
+       *  better performing implementation, while still conforming to
+       *  the Standard.
+      */
+      __istream_type& 
+      ignore();
+
+      __istream_type& 
+      ignore(streamsize __n);
+
+      __istream_type& 
+      ignore(streamsize __n, int_type __delim);
+      
+      /**
+       *  @brief  Looking ahead in the stream
+       *  @return  The next character, or eof().
+       *
+       *  If, after constructing the sentry object, @c good() is false,
+       *  returns @c traits::eof().  Otherwise reads but does not extract
+       *  the next input character.
+      */
+      int_type 
+      peek();
+      
+      /**
+       *  @brief  Extraction without delimiters.
+       *  @param  s  A character array.
+       *  @param  n  Maximum number of characters to store.
+       *  @return  *this
+       *
+       *  If the stream state is @c good(), extracts characters and stores
+       *  them into @a s until one of the following happens:
+       *  - @a n characters are stored
+       *  - the input sequence reaches end-of-file, in which case the error
+       *    state is set to @c failbit|eofbit.
+       *
+       *  @note  This function is not overloaded on signed char and
+       *         unsigned char.
+      */
+      __istream_type& 
+      read(char_type* __s, streamsize __n);
+
+      /**
+       *  @brief  Extraction until the buffer is exhausted, but no more.
+       *  @param  s  A character array.
+       *  @param  n  Maximum number of characters to store.
+       *  @return  The number of characters extracted.
+       *
+       *  Extracts characters and stores them into @a s depending on the
+       *  number of characters remaining in the streambuf's buffer,
+       *  @c rdbuf()->in_avail(), called @c A here:
+       *  - if @c A @c == @c -1, sets eofbit and extracts no characters
+       *  - if @c A @c == @c 0, extracts no characters
+       *  - if @c A @c > @c 0, extracts @c min(A,n)
+       *
+       *  The goal is to empty the current buffer, and to not request any
+       *  more from the external input sequence controlled by the streambuf.
+      */
+      streamsize 
+      readsome(char_type* __s, streamsize __n);
+      
+      /**
+       *  @brief  Unextracting a single character.
+       *  @param  c  The character to push back into the input stream.
+       *  @return  *this
+       *
+       *  If @c rdbuf() is not null, calls @c rdbuf()->sputbackc(c).
+       *
+       *  If @c rdbuf() is null or if @c sputbackc() fails, sets badbit in
+       *  the error state.
+       *
+       *  @note  Since no characters are extracted, the next call to
+       *         @c gcount() will return 0, as required by DR 60.
+      */
+      __istream_type& 
+      putback(char_type __c);
+
+      /**
+       *  @brief  Unextracting the previous character.
+       *  @return  *this
+       *
+       *  If @c rdbuf() is not null, calls @c rdbuf()->sungetc(c).
+       *
+       *  If @c rdbuf() is null or if @c sungetc() fails, sets badbit in
+       *  the error state.
+       *
+       *  @note  Since no characters are extracted, the next call to
+       *         @c gcount() will return 0, as required by DR 60.
+      */
+      __istream_type& 
+      unget();
+
+      /**
+       *  @brief  Synchronizing the stream buffer.
+       *  @return  0 on success, -1 on failure
+       *
+       *  If @c rdbuf() is a null pointer, returns -1.
+       *
+       *  Otherwise, calls @c rdbuf()->pubsync(), and if that returns -1,
+       *  sets badbit and returns -1.
+       *
+       *  Otherwise, returns 0.
+       *
+       *  @note  This function does not count the number of characters
+       *         extracted, if any, and therefore does not affect the next
+       *         call to @c gcount().
+      */
+      int 
+      sync();
+
+      /**
+       *  @brief  Getting the current read position.
+       *  @return  A file position object.
+       *
+       *  If @c fail() is not false, returns @c pos_type(-1) to indicate
+       *  failure.  Otherwise returns @c rdbuf()->pubseekoff(0,cur,in).
+       *
+       *  @note  This function does not count the number of characters
+       *         extracted, if any, and therefore does not affect the next
+       *         call to @c gcount().
+      */
+      pos_type 
+      tellg();
+
+      /**
+       *  @brief  Changing the current read position.
+       *  @param  pos  A file position object.
+       *  @return  *this
+       *
+       *  If @c fail() is not true, calls @c rdbuf()->pubseekpos(pos).  If
+       *  that function fails, sets failbit.
+       *
+       *  @note  This function does not count the number of characters
+       *         extracted, if any, and therefore does not affect the next
+       *         call to @c gcount().
+      */
+      __istream_type& 
+      seekg(pos_type);
+
+      /**
+       *  @brief  Changing the current read position.
+       *  @param  off  A file offset object.
+       *  @param  dir  The direction in which to seek.
+       *  @return  *this
+       *
+       *  If @c fail() is not true, calls @c rdbuf()->pubseekoff(off,dir).
+       *  If that function fails, sets failbit.
+       *
+       *  @note  This function does not count the number of characters
+       *         extracted, if any, and therefore does not affect the next
+       *         call to @c gcount().
+      */
+      __istream_type& 
+      seekg(off_type, ios_base::seekdir);
+      //@}
+
+    protected:
+      basic_istream()
+      : _M_gcount(streamsize(0))
+      { this->init(0); }
+
+      template<typename _ValueT>
+        __istream_type&
+        _M_extract(_ValueT& __v);
+    };
+
+  // Explicit specialization declarations, defined in src/istream.cc.
+  template<> 
+    basic_istream<char>& 
+    basic_istream<char>::
+    getline(char_type* __s, streamsize __n, char_type __delim);
+  
+  template<>
+    basic_istream<char>&
+    basic_istream<char>::
+    ignore(streamsize __n);
+  
+  template<>
+    basic_istream<char>&
+    basic_istream<char>::
+    ignore(streamsize __n, int_type __delim);
+
+#ifdef _GLIBCXX_USE_WCHAR_T
+  template<> 
+    basic_istream<wchar_t>& 
+    basic_istream<wchar_t>::
+    getline(char_type* __s, streamsize __n, char_type __delim);
+
+  template<>
+    basic_istream<wchar_t>&
+    basic_istream<wchar_t>::
+    ignore(streamsize __n);
+  
+  template<>
+    basic_istream<wchar_t>&
+    basic_istream<wchar_t>::
+    ignore(streamsize __n, int_type __delim);
+#endif
+
+  /**
+   *  @brief  Performs setup work for input streams.
+   *
+   *  Objects of this class are created before all of the standard
+   *  extractors are run.  It is responsible for "exception-safe prefix and
+   *  suffix operations," although only prefix actions are currently required
+   *  by the standard. 
+  */
+  template<typename _CharT, typename _Traits>
+    class basic_istream<_CharT, _Traits>::sentry
+    {
+    public:
+      /// Easy access to dependant types.
+      typedef _Traits 					traits_type;
+      typedef basic_streambuf<_CharT, _Traits> 		__streambuf_type;
+      typedef basic_istream<_CharT, _Traits> 		__istream_type;
+      typedef typename __istream_type::__ctype_type 	__ctype_type;
+      typedef typename _Traits::int_type		__int_type;
+
+      /**
+       *  @brief  The constructor performs all the work.
+       *  @param  is  The input stream to guard.
+       *  @param  noskipws  Whether to consume whitespace or not.
+       *
+       *  If the stream state is good (@a is.good() is true), then the
+       *  following actions are performed, otherwise the sentry state is
+       *  false ("not okay") and failbit is set in the stream state.
+       *
+       *  The sentry's preparatory actions are:
+       *
+       *  -# if the stream is tied to an output stream, @c is.tie()->flush()
+       *     is called to synchronize the output sequence
+       *  -# if @a noskipws is false, and @c ios_base::skipws is set in
+       *     @c is.flags(), the sentry extracts and discards whitespace
+       *     characters from the stream.  The currently imbued locale is
+       *     used to determine whether each character is whitespace.
+       *
+       *  If the stream state is still good, then the sentry state becomes
+       *  true ("okay").
+      */
+      explicit
+      sentry(basic_istream<_CharT, _Traits>& __is, bool __noskipws = false);
+
+      /**
+       *  @brief  Quick status checking.
+       *  @return  The sentry state.
+       *
+       *  For ease of use, sentries may be converted to booleans.  The
+       *  return value is that of the sentry state (true == okay).
+      */
+      operator bool() const
+      { return _M_ok; }
+
+    private:
+      bool _M_ok;
+    };
+
+  // [27.6.1.2.3] character extraction templates
+  //@{
+  /**
+   *  @brief  Character extractors
+   *  @param  in  An input stream.
+   *  @param  c  A character reference.
+   *  @return  in
+   *
+   *  Behaves like one of the formatted arithmetic extractors described in
+   *  std::basic_istream.  After constructing a sentry object with good
+   *  status, this function extracts a character (if one is available) and
+   *  stores it in @a c.  Otherwise, sets failbit in the input stream.
+  */
+  template<typename _CharT, typename _Traits>
+    basic_istream<_CharT, _Traits>&
+    operator>>(basic_istream<_CharT, _Traits>& __in, _CharT& __c);
+
+  template<class _Traits>
+    inline basic_istream<char, _Traits>&
+    operator>>(basic_istream<char, _Traits>& __in, unsigned char& __c)
+    { return (__in >> reinterpret_cast<char&>(__c)); }
+
+  template<class _Traits>
+    inline basic_istream<char, _Traits>&
+    operator>>(basic_istream<char, _Traits>& __in, signed char& __c)
+    { return (__in >> reinterpret_cast<char&>(__c)); }
+  //@}
+
+  //@{
+  /**
+   *  @brief  Character string extractors
+   *  @param  in  An input stream.
+   *  @param  s  A pointer to a character array.
+   *  @return  in
+   *
+   *  Behaves like one of the formatted arithmetic extractors described in
+   *  std::basic_istream.  After constructing a sentry object with good
+   *  status, this function extracts up to @c n characters and stores them
+   *  into the array starting at @a s.  @c n is defined as:
+   *
+   *  - if @c width() is greater than zero, @c n is width()
+   *  - otherwise @c n is "the number of elements of the largest array of
+   *    @c char_type that can store a terminating @c eos." [27.6.1.2.3]/6
+   *
+   *  Characters are extracted and stored until one of the following happens:
+   *  - @c n-1 characters are stored
+   *  - EOF is reached
+   *  - the next character is whitespace according to the current locale
+   *  - the next character is a null byte (i.e., @c charT() )
+   *
+   *  @c width(0) is then called for the input stream.
+   *
+   *  If no characters are extracted, sets failbit.
+  */
+  template<typename _CharT, typename _Traits>
+    basic_istream<_CharT, _Traits>&
+    operator>>(basic_istream<_CharT, _Traits>& __in, _CharT* __s);
+
+  // Explicit specialization declaration, defined in src/istream.cc.
+  template<>
+    basic_istream<char>&
+    operator>>(basic_istream<char>& __in, char* __s);
+
+  template<class _Traits>
+    inline basic_istream<char, _Traits>&
+    operator>>(basic_istream<char, _Traits>& __in, unsigned char* __s)
+    { return (__in >> reinterpret_cast<char*>(__s)); }
+
+  template<class _Traits>
+    inline basic_istream<char, _Traits>&
+    operator>>(basic_istream<char, _Traits>& __in, signed char* __s)
+    { return (__in >> reinterpret_cast<char*>(__s)); }
+  //@}
+
+  // 27.6.1.5 Template class basic_iostream
+  /**
+   *  @brief  Merging istream and ostream capabilities.
+   *
+   *  This class multiply inherits from the input and output stream classes
+   *  simply to provide a single interface.
+  */
+  template<typename _CharT, typename _Traits>
+    class basic_iostream
+    : public basic_istream<_CharT, _Traits>, 
+      public basic_ostream<_CharT, _Traits>
+    {
+    public:
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 271. basic_iostream missing typedefs
+      // Types (inherited):
+      typedef _CharT                     		char_type;
+      typedef typename _Traits::int_type 		int_type;
+      typedef typename _Traits::pos_type 		pos_type;
+      typedef typename _Traits::off_type 		off_type;
+      typedef _Traits                    		traits_type;
+
+      // Non-standard Types:
+      typedef basic_istream<_CharT, _Traits>		__istream_type;
+      typedef basic_ostream<_CharT, _Traits>		__ostream_type;
+
+      /**
+       *  @brief  Constructor does nothing.
+       *
+       *  Both of the parent classes are initialized with the same
+       *  streambuf pointer passed to this constructor.
+      */
+      explicit
+      basic_iostream(basic_streambuf<_CharT, _Traits>* __sb)
+      : __istream_type(__sb), __ostream_type(__sb) { }
+
+      /**
+       *  @brief  Destructor does nothing.
+      */
+      virtual 
+      ~basic_iostream() { }
+
+    protected:
+      basic_iostream()
+      : __istream_type(), __ostream_type() { }
+    };
+
+  // [27.6.1.4] standard basic_istream manipulators
+  /**
+   *  @brief  Quick and easy way to eat whitespace
+   *
+   *  This manipulator extracts whitespace characters, stopping when the
+   *  next character is non-whitespace, or when the input sequence is empty.
+   *  If the sequence is empty, @c eofbit is set in the stream, but not
+   *  @c failbit.
+   *
+   *  The current locale is used to distinguish whitespace characters.
+   *
+   *  Example:
+   *  @code
+   *     MyClass   mc;
+   *
+   *     std::cin >> std::ws >> mc;
+   *  @endcode
+   *  will skip leading whitespace before calling operator>> on cin and your
+   *  object.  Note that the same effect can be achieved by creating a
+   *  std::basic_istream::sentry inside your definition of operator>>.
+  */
+  template<typename _CharT, typename _Traits>
+    basic_istream<_CharT, _Traits>& 
+    ws(basic_istream<_CharT, _Traits>& __is);
+
+_GLIBCXX_END_NAMESPACE
+
+#ifndef _GLIBCXX_EXPORT_TEMPLATE
+# include <bits/istream.tcc>
+#endif
+
+#endif	/* _GLIBCXX_ISTREAM */
+                                                               // -*- C++ -*- forwarding header.
+
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007, 2008
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+// Boston, MA 02110-1301, USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file include/ctime
+ *  This is a Standard C++ Library file.  You should @c #include this file
+ *  in your programs, rather than any of the "*.h" implementation files.
+ *
+ *  This is the C++ version of the Standard C Library header @c time.h,
+ *  and its contents are (mostly) the same as that header, but are all
+ *  contained in the namespace @c std (except for names which are defined
+ *  as macros in C).
+ */
+
+//
+// ISO C++ 14882: 20.5  Date and time
+//
+
+#pragma GCC system_header
+
+#include <cstddef>
+#include <time.h>
+
+#ifndef _GLIBCXX_CTIME
+#define _GLIBCXX_CTIME 1
+
+// Get rid of those macros defined in <time.h> in lieu of real functions.
+#undef clock
+#undef difftime
+#undef mktime
+#undef time
+#undef asctime
+#undef ctime
+#undef gmtime
+#undef localtime
+#undef strftime
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  using ::clock_t;
+  using ::time_t;
+  using ::tm;
+
+  using ::clock;
+  using ::difftime;
+  using ::mktime;
+  using ::time;
+  using ::asctime;
+  using ::ctime;
+  using ::gmtime;
+  using ::localtime;
+  using ::strftime;
+
+_GLIBCXX_END_NAMESPACE
+
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        // The template and inlines for the -*- C++ -*- valarray class.
+
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+// Boston, MA 02110-1301, USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file valarray
+ *  This is a Standard C++ Library header. 
+ */
+
+// Written by Gabriel Dos Reis <Gabriel.Dos-Reis@DPTMaths.ENS-Cachan.Fr>
+
+#ifndef _GLIBCXX_VALARRAY
+#define _GLIBCXX_VALARRAY 1
+
+#pragma GCC system_header
+
+#include <bits/c++config.h>
+#include <cstddef>
+#include <cmath>
+#include <algorithm>
+#include <debug/debug.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  template<class _Clos, typename _Tp> 
+    class _Expr;
+
+  template<typename _Tp1, typename _Tp2> 
+    class _ValArray;    
+
+  template<class _Oper, template<class, class> class _Meta, class _Dom>
+    struct _UnClos;
+
+  template<class _Oper,
+        template<class, class> class _Meta1,
+        template<class, class> class _Meta2,
+        class _Dom1, class _Dom2> 
+    class _BinClos;
+
+  template<template<class, class> class _Meta, class _Dom> 
+    class _SClos;
+
+  template<template<class, class> class _Meta, class _Dom> 
+    class _GClos;
+    
+  template<template<class, class> class _Meta, class _Dom> 
+    class _IClos;
+    
+  template<template<class, class> class _Meta, class _Dom> 
+    class _ValFunClos;
+  
+  template<template<class, class> class _Meta, class _Dom> 
+    class _RefFunClos;
+
+  template<class _Tp> class valarray;   // An array of type _Tp
+  class slice;                          // BLAS-like slice out of an array
+  template<class _Tp> class slice_array;
+  class gslice;                         // generalized slice out of an array
+  template<class _Tp> class gslice_array;
+  template<class _Tp> class mask_array;     // masked array
+  template<class _Tp> class indirect_array; // indirected array
+
+_GLIBCXX_END_NAMESPACE
+
+#include <bits/valarray_array.h>
+#include <bits/valarray_before.h>
+  
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  /**
+   *  @brief  Smart array designed to support numeric processing.
+   *
+   *  A valarray is an array that provides constraints intended to allow for
+   *  effective optimization of numeric array processing by reducing the
+   *  aliasing that can result from pointer representations.  It represents a
+   *  one-dimensional array from which different multidimensional subsets can
+   *  be accessed and modified.
+   *  
+   *  @param  Tp  Type of object in the array.
+   */
+  template<class _Tp> 
+    class valarray
+    {
+      template<class _Op>
+	struct _UnaryOp 
+	{
+	  typedef typename __fun<_Op, _Tp>::result_type __rt;
+	  typedef _Expr<_UnClos<_Op, _ValArray, _Tp>, __rt> _Rt;
+	};
+    public:
+      typedef _Tp value_type;
+      
+	// _lib.valarray.cons_ construct/destroy:
+      ///  Construct an empty array.
+      valarray();
+
+      ///  Construct an array with @a n elements.
+      explicit valarray(size_t);
+
+      ///  Construct an array with @a n elements initialized to @a t.
+      valarray(const _Tp&, size_t);
+
+      ///  Construct an array initialized to the first @a n elements of @a t.
+      valarray(const _Tp* __restrict__, size_t);
+
+      ///  Copy constructor.
+      valarray(const valarray&);
+
+      ///  Construct an array with the same size and values in @a sa.
+      valarray(const slice_array<_Tp>&);
+
+      ///  Construct an array with the same size and values in @a ga.
+      valarray(const gslice_array<_Tp>&);
+
+      ///  Construct an array with the same size and values in @a ma.
+      valarray(const mask_array<_Tp>&);
+
+      ///  Construct an array with the same size and values in @a ia.
+      valarray(const indirect_array<_Tp>&);
+
+      template<class _Dom>
+	valarray(const _Expr<_Dom, _Tp>& __e);
+
+      ~valarray();
+
+      // _lib.valarray.assign_ assignment:
+      /**
+       *  @brief  Assign elements to an array.
+       *
+       *  Assign elements of array to values in @a v.  Results are undefined
+       *  if @a v does not have the same size as this array.
+       *
+       *  @param  v  Valarray to get values from.
+       */
+      valarray<_Tp>& operator=(const valarray<_Tp>&);
+
+      /**
+       *  @brief  Assign elements to a value.
+       *
+       *  Assign all elements of array to @a t.
+       *
+       *  @param  t  Value for elements.
+       */
+      valarray<_Tp>& operator=(const _Tp&);
+
+      /**
+       *  @brief  Assign elements to an array subset.
+       *
+       *  Assign elements of array to values in @a sa.  Results are undefined
+       *  if @a sa does not have the same size as this array.
+       *
+       *  @param  sa  Array slice to get values from.
+       */
+      valarray<_Tp>& operator=(const slice_array<_Tp>&);
+
+      /**
+       *  @brief  Assign elements to an array subset.
+       *
+       *  Assign elements of array to values in @a ga.  Results are undefined
+       *  if @a ga does not have the same size as this array.
+       *
+       *  @param  ga  Array slice to get values from.
+       */
+      valarray<_Tp>& operator=(const gslice_array<_Tp>&);
+
+      /**
+       *  @brief  Assign elements to an array subset.
+       *
+       *  Assign elements of array to values in @a ma.  Results are undefined
+       *  if @a ma does not have the same size as this array.
+       *
+       *  @param  ma  Array slice to get values from.
+       */
+      valarray<_Tp>& operator=(const mask_array<_Tp>&);
+
+      /**
+       *  @brief  Assign elements to an array subset.
+       *
+       *  Assign elements of array to values in @a ia.  Results are undefined
+       *  if @a ia does not have the same size as this array.
+       *
+       *  @param  ia  Array slice to get values from.
+       */
+      valarray<_Tp>& operator=(const indirect_array<_Tp>&);
+
+      template<class _Dom> valarray<_Tp>&
+	operator= (const _Expr<_Dom, _Tp>&);
+
+      // _lib.valarray.access_ element access:
+      /**
+       *  Return a reference to the i'th array element.  
+       *
+       *  @param  i  Index of element to return.
+       *  @return  Reference to the i'th element.
+       */
+      _Tp&                operator[](size_t);
+
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 389. Const overload of valarray::operator[] returns by value.
+      const _Tp&          operator[](size_t) const;
+
+      // _lib.valarray.sub_ subset operations:
+      /**
+       *  @brief  Return an array subset.
+       *
+       *  Returns a new valarray containing the elements of the array
+       *  indicated by the slice argument.  The new valarray has the same size
+       *  as the input slice.  @see slice.
+       *
+       *  @param  s  The source slice.
+       *  @return  New valarray containing elements in @a s.
+       */
+      _Expr<_SClos<_ValArray, _Tp>, _Tp> operator[](slice) const;
+
+      /**
+       *  @brief  Return a reference to an array subset.
+       *
+       *  Returns a new valarray containing the elements of the array
+       *  indicated by the slice argument.  The new valarray has the same size
+       *  as the input slice.  @see slice.
+       *
+       *  @param  s  The source slice.
+       *  @return  New valarray containing elements in @a s.
+       */
+      slice_array<_Tp>    operator[](slice);
+
+      /**
+       *  @brief  Return an array subset.
+       *
+       *  Returns a slice_array referencing the elements of the array
+       *  indicated by the slice argument.  @see gslice.
+       *
+       *  @param  s  The source slice.
+       *  @return  Slice_array referencing elements indicated by @a s.
+       */
+      _Expr<_GClos<_ValArray, _Tp>, _Tp> operator[](const gslice&) const;
+
+      /**
+       *  @brief  Return a reference to an array subset.
+       *
+       *  Returns a new valarray containing the elements of the array
+       *  indicated by the gslice argument.  The new valarray has
+       *  the same size as the input gslice.  @see gslice.
+       *
+       *  @param  s  The source gslice.
+       *  @return  New valarray containing elements in @a s.
+       */
+      gslice_array<_Tp>   operator[](const gslice&);
+
+      /**
+       *  @brief  Return an array subset.
+       *
+       *  Returns a new valarray containing the elements of the array
+       *  indicated by the argument.  The input is a valarray of bool which
+       *  represents a bitmask indicating which elements should be copied into
+       *  the new valarray.  Each element of the array is added to the return
+       *  valarray if the corresponding element of the argument is true.
+       *
+       *  @param  m  The valarray bitmask.
+       *  @return  New valarray containing elements indicated by @a m.
+       */
+      valarray<_Tp>       operator[](const valarray<bool>&) const;
+
+      /**
+       *  @brief  Return a reference to an array subset.
+       *
+       *  Returns a new mask_array referencing the elements of the array
+       *  indicated by the argument.  The input is a valarray of bool which
+       *  represents a bitmask indicating which elements are part of the
+       *  subset.  Elements of the array are part of the subset if the
+       *  corresponding element of the argument is true.
+       *
+       *  @param  m  The valarray bitmask.
+       *  @return  New valarray containing elements indicated by @a m.
+       */
+      mask_array<_Tp>     operator[](const valarray<bool>&);
+
+      /**
+       *  @brief  Return an array subset.
+       *
+       *  Returns a new valarray containing the elements of the array
+       *  indicated by the argument.  The elements in the argument are
+       *  interpreted as the indices of elements of this valarray to copy to
+       *  the return valarray.
+       *
+       *  @param  i  The valarray element index list.
+       *  @return  New valarray containing elements in @a s.
+       */
+      _Expr<_IClos<_ValArray, _Tp>, _Tp>
+        operator[](const valarray<size_t>&) const;
+
+      /**
+       *  @brief  Return a reference to an array subset.
+       *
+       *  Returns an indirect_array referencing the elements of the array
+       *  indicated by the argument.  The elements in the argument are
+       *  interpreted as the indices of elements of this valarray to include
+       *  in the subset.  The returned indirect_array refers to these
+       *  elements.
+       *
+       *  @param  i  The valarray element index list.
+       *  @return  Indirect_array referencing elements in @a i.
+       */
+      indirect_array<_Tp> operator[](const valarray<size_t>&);
+
+      // _lib.valarray.unary_ unary operators:
+      ///  Return a new valarray by applying unary + to each element.
+      typename _UnaryOp<__unary_plus>::_Rt  operator+() const;
+
+      ///  Return a new valarray by applying unary - to each element.
+      typename _UnaryOp<__negate>::_Rt      operator-() const;
+
+      ///  Return a new valarray by applying unary ~ to each element.
+      typename _UnaryOp<__bitwise_not>::_Rt operator~() const;
+
+      ///  Return a new valarray by applying unary ! to each element.
+      typename _UnaryOp<__logical_not>::_Rt operator!() const;
+
+      // _lib.valarray.cassign_ computed assignment:
+      ///  Multiply each element ,0  -0  .0  /0  00  10  20  30  40  50  60  70  80  90  :0  ;0  <0  =0  >0  ?0  @0  A0  B0                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      of array by @a t.
+      valarray<_Tp>& operator*=(const _Tp&);
+
+      ///  Divide each element of array by @a t.
+      valarray<_Tp>& operator/=(const _Tp&);
+
+      ///  Set each element e of array to e % @a t.
+      valarray<_Tp>& operator%=(const _Tp&);
+
+      ///  Add @a t to each element of array.
+      valarray<_Tp>& operator+=(const _Tp&);
+
+      ///  Subtract @a t to each element of array.
+      valarray<_Tp>& operator-=(const _Tp&);
+
+      ///  Set each element e of array to e ^ @a t.
+      valarray<_Tp>& operator^=(const _Tp&);
+
+      ///  Set each element e of array to e & @a t.
+      valarray<_Tp>& operator&=(const _Tp&);
+
+      ///  Set each element e of array to e | @a t.
+      valarray<_Tp>& operator|=(const _Tp&);
+
+      ///  Left shift each element e of array by @a t bits.
+      valarray<_Tp>& operator<<=(const _Tp&);
+
+      ///  Right shift each element e of array by @a t bits.
+      valarray<_Tp>& operator>>=(const _Tp&);
+
+      ///  Multiply elements of array by corresponding elements of @a v.
+      valarray<_Tp>& operator*=(const valarray<_Tp>&);
+
+      ///  Divide elements of array by corresponding elements of @a v.
+      valarray<_Tp>& operator/=(const valarray<_Tp>&);
+
+      ///  Modulo elements of array by corresponding elements of @a v.
+      valarray<_Tp>& operator%=(const valarray<_Tp>&);
+
+      ///  Add corresponding elements of @a v to elements of array.
+      valarray<_Tp>& operator+=(const valarray<_Tp>&);
+
+      ///  Subtract corresponding elements of @a v from elements of array.
+      valarray<_Tp>& operator-=(const valarray<_Tp>&);
+
+      ///  Logical xor corresponding elements of @a v with elements of array.
+      valarray<_Tp>& operator^=(const valarray<_Tp>&);
+
+      ///  Logical or corresponding elements of @a v with elements of array.
+      valarray<_Tp>& operator|=(const valarray<_Tp>&);
+
+      ///  Logical and corresponding elements of @a v with elements of array.
+      valarray<_Tp>& operator&=(const valarray<_Tp>&);
+
+      ///  Left shift elements of array by corresponding elements of @a v.
+      valarray<_Tp>& operator<<=(const valarray<_Tp>&);
+
+      ///  Right shift elements of array by corresponding elements of @a v.
+      valarray<_Tp>& operator>>=(const valarray<_Tp>&);
+
+      template<class _Dom>
+	valarray<_Tp>& operator*=(const _Expr<_Dom, _Tp>&);
+      template<class _Dom>
+	valarray<_Tp>& operator/=(const _Expr<_Dom, _Tp>&);
+      template<class _Dom>
+	valarray<_Tp>& operator%=(const _Expr<_Dom, _Tp>&);
+      template<class _Dom>
+	valarray<_Tp>& operator+=(const _Expr<_Dom, _Tp>&);
+      template<class _Dom>
+	valarray<_Tp>& operator-=(const _Expr<_Dom, _Tp>&);
+      template<class _Dom>
+	valarray<_Tp>& operator^=(const _Expr<_Dom, _Tp>&);
+      template<class _Dom>
+	valarray<_Tp>& operator|=(const _Expr<_Dom, _Tp>&);
+      template<class _Dom>
+	valarray<_Tp>& operator&=(const _Expr<_Dom, _Tp>&);
+      template<class _Dom>
+        valarray<_Tp>& operator<<=(const _Expr<_Dom, _Tp>&);
+      template<class _Dom>
+	valarray<_Tp>& operator>>=(const _Expr<_Dom, _Tp>&);
+
+      // _lib.valarray.members_ member functions:
+      ///  Return the number of elements in array.
+      size_t size() const;
+
+      /**
+       *  @brief  Return the sum of all elements in the array.
+       *
+       *  Accumulates the sum of all elements into a Tp using +=.  The order
+       *  of adding the elements is unspecified.
+       */
+      _Tp    sum() const;
+
+      ///  Return the minimum element using operator<().
+      _Tp    min() const;	
+
+      ///  Return the maximum element using operator<().
+      _Tp    max() const;	
+
+      /**
+       *  @brief  Return a shifted array.
+       *
+       *  A new valarray is constructed as a copy of this array with elements
+       *  in shifted positions.  For an element with index i, the new position
+       *  is i - n.  The new valarray has the same size as the current one.
+       *  New elements without a value are set to 0.  Elements whose new
+       *  position is outside the bounds of the array are discarded.
+       *
+       *  Positive arguments shift toward index 0, discarding elements [0, n).
+       *  Negative arguments discard elements from the top of the array.
+       *
+       *  @param  n  Number of element positions to shift.
+       *  @return  New valarray with elements in shifted positions.
+       */
+      valarray<_Tp> shift (int) const;
+
+      /**
+       *  @brief  Return a rotated array.
+       *
+       *  A new valarray is constructed as a copy of this array with elements
+       *  in shifted positions.  For an element with index i, the new position
+       *  is (i - n) % size().  The new valarray has the same size as the
+       *  current one.  Elements that are shifted beyond the array bounds are
+       *  shifted into the other end of the array.  No elements are lost.
+       *
+       *  Positive arguments shift toward index 0, wrapping around the top.
+       *  Negative arguments shift towards the top, wrapping around to 0.
+       *
+       *  @param  n  Number of element positions to rotate.
+       *  @return  New valarray with elements in shifted positions.
+       */
+      valarray<_Tp> cshift(int) const;
+
+      /**
+       *  @brief  Apply a function to the array.
+       *
+       *  Returns a new valarray with elements assigned to the result of
+       *  applying func to the corresponding element of this array.  The new
+       *  array has the same size as this one.
+       *
+       *  @param  func  Function of Tp returning Tp to apply.
+       *  @return  New valarray with transformed elements.
+       */
+      _Expr<_ValFunClos<_ValArray, _Tp>, _Tp> apply(_Tp func(_Tp)) const;
+
+      /**
+       *  @brief  Apply a function to the array.
+       *
+       *  Returns a new valarray with elements assigned to the result of
+       *  applying func to the corresponding element of this array.  The new
+       *  array has the same size as this one.
+       *
+       *  @param  func  Function of const Tp& returning Tp to apply.
+       *  @return  New valarray with transformed elements.
+       */
+      _Expr<_RefFunClos<_ValArray, _Tp>, _Tp> apply(_Tp func(const _Tp&)) const;
+
+      /**
+       *  @brief  Resize array.
+       *
+       *  Resize this array to @a size and set all elements to @a c.  All
+       *  references and iterators are invalidated.
+       *
+       *  @param  size  New array size.
+       *  @param  c  New value for all elements.
+       */
+      void resize(size_t __size, _Tp __c = _Tp());
+
+    private:
+      size_t _M_size;
+      _Tp* __restrict__ _M_data;
+      
+      friend class _Array<_Tp>;
+    };
+  
+  template<typename _Tp>
+    inline const _Tp&
+    valarray<_Tp>::operator[](size_t __i) const
+    { 
+      __glibcxx_requires_subscript(__i);
+      return _M_data[__i];
+    }
+
+  template<typename _Tp>
+    inline _Tp&
+    valarray<_Tp>::operator[](size_t __i)
+    { 
+      __glibcxx_requires_subscript(__i);
+      return _M_data[__i];
+    }
+
+_GLIBCXX_END_NAMESPACE
+
+#include <bits/valarray_after.h>
+#include <bits/slice_array.h>
+#include <bits/gslice.h>
+#include <bits/gslice_array.h>
+#include <bits/mask_array.h>
+#include <bits/indirect_array.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  template<typename _Tp>
+    inline
+    valarray<_Tp>::valarray() : _M_size(0), _M_data(0) {}
+
+  template<typename _Tp>
+    inline 
+    valarray<_Tp>::valarray(size_t __n) 
+    : _M_size(__n), _M_data(__valarray_get_storage<_Tp>(__n))
+    { std::__valarray_default_construct(_M_data, _M_data + __n); }
+
+  template<typename _Tp>
+    inline
+    valarray<_Tp>::valarray(const _Tp& __t, size_t __n)
+    : _M_size(__n), _M_data(__valarray_get_storage<_Tp>(__n))
+    { std::__valarray_fill_construct(_M_data, _M_data + __n, __t); }
+
+  template<typename _Tp>
+    inline
+    valarray<_Tp>::valarray(const _Tp* __restrict__ __p, size_t __n)
+    : _M_size(__n), _M_data(__valarray_get_storage<_Tp>(__n))
+    { 
+      _GLIBCXX_DEBUG_ASSERT(__p != 0 || __n == 0);
+      std::__valarray_copy_construct(__p, __p + __n, _M_data); 
+    }
+
+  template<typename _Tp>
+    inline
+    valarray<_Tp>::valarray(const valarray<_Tp>& __v)
+    : _M_size(__v._M_size), _M_data(__valarray_get_storage<_Tp>(__v._M_size))
+    { std::__valarray_copy_construct(__v._M_data, __v._M_data + _M_size,
+				     _M_data); }
+
+  template<typename _Tp>
+    inline
+    valarray<_Tp>::valarray(const slice_array<_Tp>& __sa)
+    : _M_size(__sa._M_sz), _M_data(__valarray_get_storage<_Tp>(__sa._M_sz))
+    {
+      std::__valarray_copy_construct
+	(__sa._M_array, __sa._M_sz, __sa._M_stride, _Array<_Tp>(_M_data));
+    }
+
+  template<typename _Tp>
+    inline
+    valarray<_Tp>::valarray(const gslice_array<_Tp>& __ga)
+    : _M_size(__ga._M_index.size()),
+      _M_data(__valarray_get_storage<_Tp>(_M_size))
+    {
+      std::__valarray_copy_construct
+	(__ga._M_array, _Array<size_t>(__ga._M_index),
+	 _Array<_Tp>(_M_data), _M_size);
+    }
+
+  template<typename _Tp>
+    inline
+    valarray<_Tp>::valarray(const mask_array<_Tp>& __ma)
+    : _M_size(__ma._M_sz), _M_data(__valarray_get_storage<_Tp>(__ma._M_sz))
+    {
+      std::__valarray_copy_construct
+	(__ma._M_array, __ma._M_mask, _Array<_Tp>(_M_data), _M_size);
+    }
+
+  template<typename _Tp>
+    inline
+    valarray<_Tp>::valarray(const indirect_array<_Tp>& __ia)
+    : _M_size(__ia._M_sz), _M_data(__valarray_get_storage<_Tp>(__ia._M_sz))
+    {
+      std::__valarray_copy_construct
+	(__ia._M_array, __ia._M_index, _Array<_Tp>(_M_data), _M_size);
+    }
+
+  template<typename _Tp> template<class _Dom>
+    inline
+    valarray<_Tp>::valarray(const _Expr<_Dom, _Tp>& __e)
+    : _M_size(__e.size()), _M_data(__valarray_get_storage<_Tp>(_M_size))
+    { std::__valarray_copy_construct(__e, _M_size, _Array<_Tp>(_M_data)); }
+
+  template<typename _Tp>
+    inline
+    valarray<_Tp>::~valarray()
+    {
+      std::__valarray_destroy_elements(_M_data, _M_data + _M_size);
+      std::__valarray_release_memory(_M_data);
+    }
+
+  template<typename _Tp>
+    inline valarray<_Tp>&
+    valarray<_Tp>::operator=(const valarray<_Tp>& __v)
+    {
+      _GLIBCXX_DEBUG_ASSERT(_M_size == __v._M_size);
+      std::__valarray_copy(__v._M_data, _M_size, _M_data);
+      return *this;
+    }
+
+  template<typename _Tp>
+    inline valarray<_Tp>&
+    valarray<_Tp>::operator=(const _Tp& __t)
+    {
+      std::__valarray_fill(_M_data, _M_size, __t);
+      return *this;
+    }
+
+  template<typename _Tp>
+    inline valarray<_Tp>&
+    valarray<_Tp>::operator=(const slice_array<_Tp>& __sa)
+    {
+      _GLIBCXX_DEBUG_ASSERT(_M_size == __sa._M_sz);
+      std::__valarray_copy(__sa._M_array, __sa._M_sz,
+			   __sa._M_stride, _Array<_Tp>(_M_data));
+      return *this;
+    }
+
+  template<typename _Tp>
+    inline valarray<_Tp>&
+    valarray<_Tp>::operator=(const gslice_array<_Tp>& __ga)
+    {
+      _GLIBCXX_DEBUG_ASSERT(_M_size == __ga._M_index.size());
+      std::__valarray_copy(__ga._M_array, _Array<size_t>(__ga._M_index),
+			   _Array<_Tp>(_M_data), _M_size);
+      return *this;
+    }
+
+  template<typename _Tp>
+    inline valarray<_Tp>&
+    valarray<_Tp>::operator=(const mask_array<_Tp>& __ma)
+    {
+      _GLIBCXX_DEBUG_ASSERT(_M_size == __ma._M_sz);
+      std::__valarray_copy(__ma._M_array, __ma._M_mask,
+			   _Array<_Tp>(_M_data), _M_size);
+      return *this;
+    }
+
+  template<typename _Tp>
+    inline valarray<_Tp>&
+    valarray<_Tp>::operator=(const indirect_array<_Tp>& __ia)
+    {
+      _GLIBCXX_DEBUG_ASSERT(_M_size == __ia._M_sz);
+      std::__valarray_copy(__ia._M_array, __ia._M_index,
+			   _Array<_Tp>(_M_data), _M_size);
+      return *this;
+    }
+
+  template<typename _Tp> template<class _Dom>
+    inline valarray<_Tp>&
+    valarray<_Tp>::operator=(const _Expr<_Dom, _Tp>& __e)
+    {
+      _GLIBCXX_DEBUG_ASSERT(_M_size == __e.size());
+      std::__valarray_copy(__e, _M_size, _Array<_Tp>(_M_data));
+      return *this;
+    }
+
+  template<typename _Tp>
+    inline _Expr<_SClos<_ValArray,_Tp>, _Tp>
+    valarray<_Tp>::operator[](slice __s) const
+    {
+      typedef _SClos<_ValArray,_Tp> _Closure;
+      return _Expr<_Closure, _Tp>(_Closure (_Array<_Tp>(_M_data), __s));
+    }
+
+  template<typename _Tp>
+    inline slice_array<_Tp>
+    valarray<_Tp>::operator[](slice __s)
+    { return slice_array<_Tp>(_Array<_Tp>(_M_data), __s); }
+
+  template<typename _Tp>
+    inline _Expr<_GClos<_ValArray,_Tp>, _Tp>
+    valarray<_Tp>::operator[](const gslice& __gs) const
+    {
+      typedef _GClos<_ValArray,_Tp> _Closure;
+      return _Expr<_Closure, _Tp>
+	(_Closure(_Array<_Tp>(_M_data), __gs._M_index->_M_index));
+    }
+
+  template<typename _Tp>
+    inline gslice_array<_Tp>
+    valarray<_Tp>::operator[](const gslice& __gs)
+    {
+      return gslice_array<_Tp>
+	(_Array<_Tp>(_M_data), __gs._M_index->_M_index);
+    }
+
+  template<typename _Tp>
+    inline valarray<_Tp>
+    valarray<_Tp>::operator[](const valarray<bool>& __m) const
+    {
+      size_t __s = 0;
+      size_t __e = __m.size();
+      for (size_t __i=0; __i<__e; ++__i)
+	if (__m[__i]) ++__s;
+      return valarray<_Tp>(mask_array<_Tp>(_Array<_Tp>(_M_data), __s,
+					   _Array<bool> (__m)));
+    }
+
+  template<typename _Tp>
+    inline mask_array<_Tp>
+    valarray<_Tp>::operator[](const valarray<bool>& __m)
+    {
+      size_t __s = 0;
+      size_t __e = __m.size();
+      for (size_t __i=0; __i<__e; ++__i)
+	if (__m[__i]) ++__s;
+      return mask_array<_Tp>(_Array<_Tp>(_M_data), __s, _Array<bool>(__m));
+    }
+
+  template<typename _Tp>
+    inline _Expr<_IClos<_ValArray,_Tp>, _Tp>
+    valarray<_Tp>::operator[](const valarray<size_t>& __i) const
+    {
+      typedef _IClos<_ValArray,_Tp> _Closure;
+      return _Expr<_Closure, _Tp>(_Closure(*this, __i));
+    }
+
+  template<typename _Tp>
+    inline indirect_array<_Tp>
+    valarray<_Tp>::operator[](const valarray<size_t>& __i)
+    {
+      return indirect_array<_Tp>(_Array<_Tp>(_M_data), __i.size(),
+				 _Array<size_t>(__i));
+    }
+
+  template<class _Tp>
+    inline size_t 
+    valarray<_Tp>::size() const
+    { return _M_size; }
+
+  template<class _Tp>
+    inline _Tp
+    valarray<_Tp>::sum() const
+    {
+      _GLIBCXX_DEBUG_ASSERT(_M_size > 0);
+      return std::__valarray_sum(_M_data, _M_data + _M_size);
+    }
+
+  template<class _Tp>
+     inline valarray<_Tp>
+     valarray<_Tp>::shift(int __n) const
+     {
+       valarray<_Tp> __ret;
+
+       if (_M_size == 0)
+	 return __ret;
+
+       _Tp* __restrict__ __tmp_M_data =
+	 std::__valarray_get_storage<_Tp>(_M_size);
+
+       if (__n == 0)
+	 std::__valarray_copy_construct(_M_data,
+					_M_data + _M_size, __tmp_M_data);
+       else if (__n > 0)      // shift left
+	 {
+	   if (size_t(__n) > _M_size)
+	     __n = int(_M_size);
+
+	   std::__valarray_copy_construct(_M_data + __n,
+					  _M_data + _M_size, __tmp_M_data);
+	   std::__valarray_default_construct(__tmp_M_data + _M_size - __n,
+					     __tmp_M_data + _M_size);
+	 }
+       else                   // shift right
+	 {
+	   if (-size_t(__n) > _M_size)
+	     __n = -int(_M_size);
+
+	   std::__valarray_copy_construct(_M_data, _M_data + _M_size + __n,
+					  __tmp_M_data - __n);
+	   std::__valarray_default_construct(__tmp_M_data,
+					     __tmp_M_data - __n);
+	 }
+
+       __ret._M_size = _M_size;
+       __ret._M_data = __tmp_M_data;
+       return __ret;
+     }
+
+  template<class _Tp>
+     inline valarray<_Tp>
+     valarray<_Tp>::cshift(int __n) const
+     {
+       valarray<_Tp> __ret;
+
+       if (_M_size == 0)
+	 return __ret;
+
+       _Tp* __restrict__ __tmp_M_data =
+	 std::__valarray_get_storage<_Tp>(_M_size);
+
+       if (__n == 0)
+	 std::__valarray_copy_construct(_M_data,
+					_M_data + _M_size, __tmp_M_data);
+       else if (__n > 0)      // cshift left
+	 {
+	   if (size_t(__n) > _M_size)
+	     __n = int(__n % _M_size);
+
+	   std::__valarray_copy_construct(_M_data, _M_data + __n,
+					  __tmp_M_data + _M_size - __n);
+	   std::__valarray_copy_construct(_M_data + __n, _M_data + _M_size,
+					  __tmp_M_data);
+	 }
+       else                   // cshift right
+	 {
+	   if (-size_t(__n) > _M_size)
+	     __n = -int(-size_t(__n) % _M_size);
+
+	   std::__valarray_copy_construct(_M_data + _M_size + __n,
+					  _M_data + _M_size, __tmp_M_data);
+	   std::__valarray_copy_construct(_M_data, _M_data + _M_size + __n,
+					  __tmp_M_data - __n);
+	 }
+
+       __ret._M_size = _M_size;
+       __ret._M_data = __tmp_M_data;
+       return __ret;
+     }
+
+  template<class _Tp>
+    inline void
+    valarray<_Tp>::resize(size_t __n, _Tp __c)
+    {
+      // This complication is so to make valarray<valarray<T> > work
+      // even though it is not required by the standard.  Nobody should
+      // be saying valarray<valarray<T> > anyway.  See the specs.
+      std::__valarray_destroy_elements(_M_data, _M_data + _M_size);
+      if (_M_size != __n)
+	{
+	  std::__valarray_release_memory(_M_data);
+	  _M_size = __n;
+	  _M_data = __valarray_get_storage<_Tp>(__n);
+	}
+      std::__valarray_fill_construct(_M_data, _M_data + __n, __c);
+    }
+    
+  template<typename _Tp>
+    inline _Tp
+    valarray<_Tp>::min() const
+    {
+      _GLIBCXX_DEBUG_ASSERT(_M_size > 0);
+      return *std::min_element(_M_data, _M_data + _M_size);
+    }
+
+  template<typename _Tp>
+    inline _Tp
+    valarray<_Tp>::max() const
+    {
+      _GLIBCXX_DEBUG_ASSERT(_M_size > 0);
+      return *std::max_element(_M_data, _M_data + _M_size);
+    }
+  
+  template<class _Tp>
+    inline _Expr<_ValFunClos<_ValArray, _Tp>, _Tp>
+    valarray<_Tp>::apply(_Tp func(_Tp)) const
+    {
+      typedef _ValFunClos<_ValArray, _Tp> _Closure;
+      return _Expr<_Closure, _Tp>(_Closure(*this, func));
+    }
+
+  template<class _Tp>
+    inline _Expr<_RefFunClos<_ValArray, _Tp>, _Tp>
+    valarray<_Tp>::apply(_Tp func(const _Tp &)) const
+    {
+      typedef _RefFunClos<_ValArray, _Tp> _Closure;
+      return _Expr<_Closure, _Tp>(_Closure(*this, func));
+    }
+
+#define _DEFINE_VALARRAY_UNARY_OPERATOR(_Op, _Name)                     \
+  template<typename _Tp>						\
+    inline typename valarray<_Tp>::template _UnaryOp<_Name>::_Rt      	\
+    valarray<_Tp>::operator _Op() const					\
+    {									\
+      typedef _UnClos<_Name, _ValArray, _Tp> _Closure;	                \
+      typedef typename __fun<_Name, _Tp>::result_type _Rt;              \
+      return _Expr<_Closure, _Rt>(_Closure(*this));			\
+    }
+
+    _DEFINE_VALARRAY_UNARY_OPERATOR(+, __unary_plus)
+    _DEFINE_VALARRAY_UNARY_OPERATOR(-, __negate)
+    _DEFINE_VALARRAY_UNARY_OPERATOR(~, __bitwise_not)
+    _DEFINE_VALARRAY_UNARY_OPERATOR (!, __logical_not)
+
+#undef _DEFINE_VALARRAY_UNARY_OPERATOR
+
+#define _DEFINE_VALARRAY_AUGMENTED_ASSIGNMENT(_Op, _Name)               \
+  template<class _Tp>							\
+    inline valarray<_Tp>&						\
+    valarray<_Tp>::operator _Op##=(const _Tp &__t)			\
+    {									\
+      _Array_augmented_##_Name(_Array<_Tp>(_M_data), _M_size, __t);	\
+      return *this;							\
+    }									\
+									\
+  template<class _Tp>							\
+    inline valarray<_Tp>&						\
+    valarray<_Tp>::operator _Op##=(const valarray<_Tp> &__v)		\
+    {									\
+      _GLIBCXX_DEBUG_ASSERT(_M_size == __v._M_size);                    \
+      _Array_augmented_##_Name(_Array<_Tp>(_M_data), _M_size, 		\
+			       _Array<_Tp>(__v._M_data));		\
+      return *this;							\
+    }
+
+_DEFINE_VALARRAY_AUGMENTED_ASSIGNMENT(+, __plus)
+_DEFINE_VALARRAY_AUGMENTED_ASSIGNMENT(-, __minus)
+_DEFINE_VALARRAY_AUGMENTED_ASSIGNMENT(*, __multiplies)
+_DEFINE_VALARRAY_AUGMENTED_ASSIGNMENT(/, __divides)
+_DEFINE_VALARRAY_AUGMENTED_ASSIGNMENT(%, __modulus)
+_DEFINE_VALARRAY_AUGMENTED_ASSIGNMENT(^, __bitwise_xor)
+_DEFINE_VALARRAY_AUGMENTED_ASSIGNMENT(&, __bitwise_and)
+_DEFINE_VALARRAY_AUGMENTED_ASSIGNMENT(|, __bitwise_or)
+_DEFINE_VALARRAY_AUGMENTED_ASSIGNMENT(<<, __shift_left)
+_DEFINE_VALARRAY_AUGMENTED_ASSIGNMENT(>>, __shift_right)
+
+#undef _DEFINE_VALARRAY_AUGMENTED_ASSIGNMENT
+
+#define _DEFINE_VALARRAY_EXPR_AUGMENTED_ASSIGNMENT(_Op, _Name)          \
+  template<class _Tp> template<class _Dom>				\
+    inline valarray<_Tp>&						\
+    valarray<_Tp>::operator _Op##=(const _Expr<_Dom, _Tp>& __e)		\
+    {									\
+      _Array_augmented_##_Name(_Array<_Tp>(_M_data), __e, _M_size);	\
+      return *this;							\
+    }
+
+_DEFINE_VALARRAY_EXPR_AUGMENTED_ASSIGNMENT(+, __plus)
+_DEFINE_VALARRAY_EXPR_AUGMENTED_ASSIGNMENT(-, __minus)
+_DEFINE_VALARRAY_EXPR_AUGMENTED_ASSIGNMENT(*, __multiplies)
+_DEFINE_VALARRAY_EXPR_AUGMENTED_ASSIGNMENT(/, __divides)
+_DEFINE_VALARRAY_EXPR_AUGMENTED_ASSIGNMENT(%, __modulus)
+_DEFINE_VALARRAY_EXPR_AUGMENTED_ASSIGNMENT(^, __bitwise_xor)
+_DEFINE_VALARRAY_EXPR_AUGMENTED_ASSIGNMENT(&, __bitwise_and)
+_DEFINE_VALARRAY_EXPR_AUGMENTED_ASSIGNMENT(|, __bitwise_or

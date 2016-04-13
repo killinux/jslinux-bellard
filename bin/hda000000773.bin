@@ -1,0 +1,1797 @@
+ee(BN_RECP_CTX *recp);
+int	BN_RECP_CTX_set(BN_RECP_CTX *recp,const BIGNUM *rdiv,BN_CTX *ctx);
+int	BN_mod_mul_reciprocal(BIGNUM *r, const BIGNUM *x, const BIGNUM *y,
+	BN_RECP_CTX *recp,BN_CTX *ctx);
+int	BN_mod_exp_recp(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
+	const BIGNUM *m, BN_CTX *ctx);
+int	BN_div_recp(BIGNUM *dv, BIGNUM *rem, const BIGNUM *m,
+	BN_RECP_CTX *recp, BN_CTX *ctx);
+
+/* Functions for arithmetic over binary polynomials represented by BIGNUMs. 
+ *
+ * The BIGNUM::neg property of BIGNUMs representing binary polynomials is
+ * ignored.
+ *
+ * Note that input arguments are not const so that their bit arrays can
+ * be expanded to the appropriate size if needed.
+ */
+
+int	BN_GF2m_add(BIGNUM *r, const BIGNUM *a, const BIGNUM *b); /*r = a + b*/
+#define BN_GF2m_sub(r, a, b) BN_GF2m_add(r, a, b)
+int	BN_GF2m_mod(BIGNUM *r, const BIGNUM *a, const BIGNUM *p); /*r=a mod p*/
+int	BN_GF2m_mod_mul(BIGNUM *r, const BIGNUM *a, const BIGNUM *b,
+	const BIGNUM *p, BN_CTX *ctx); /* r = (a * b) mod p */
+int	BN_GF2m_mod_sqr(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
+	BN_CTX *ctx); /* r = (a * a) mod p */
+int	BN_GF2m_mod_inv(BIGNUM *r, const BIGNUM *b, const BIGNUM *p,
+	BN_CTX *ctx); /* r = (1 / b) mod p */
+int	BN_GF2m_mod_div(BIGNUM *r, const BIGNUM *a, const BIGNUM *b,
+	const BIGNUM *p, BN_CTX *ctx); /* r = (a / b) mod p */
+int	BN_GF2m_mod_exp(BIGNUM *r, const BIGNUM *a, const BIGNUM *b,
+	const BIGNUM *p, BN_CTX *ctx); /* r = (a ^ b) mod p */
+int	BN_GF2m_mod_sqrt(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
+	BN_CTX *ctx); /* r = sqrt(a) mod p */
+int	BN_GF2m_mod_solve_quad(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
+	BN_CTX *ctx); /* r^2 + r = a mod p */
+#define BN_GF2m_cmp(a, b) BN_ucmp((a), (b))
+/* Some functions allow for representation of the irreducible polynomials
+ * as an unsigned int[], say p.  The irreducible f(t) is then of the form:
+ *     t^p[0] + t^p[1] + ... + t^p[k]
+ * where m = p[0] > p[1] > ... > p[k] = 0.
+ */
+int	BN_GF2m_mod_arr(BIGNUM *r, const BIGNUM *a, const unsigned int p[]);
+	/* r = a mod p */
+int	BN_GF2m_mod_mul_arr(BIGNUM *r, const BIGNUM *a, const BIGNUM *b,
+	const unsigned int p[], BN_CTX *ctx); /* r = (a * b) mod p */
+int	BN_GF2m_mod_sqr_arr(BIGNUM *r, const BIGNUM *a, const unsigned int p[],
+	BN_CTX *ctx); /* r = (a * a) mod p */
+int	BN_GF2m_mod_inv_arr(BIGNUM *r, const BIGNUM *b, const unsigned int p[],
+	BN_CTX *ctx); /* r = (1 / b) mod p */
+int	BN_GF2m_mod_div_arr(BIGNUM *r, const BIGNUM *a, const BIGNUM *b,
+	const unsigned int p[], BN_CTX *ctx); /* r = (a / b) mod p */
+int	BN_GF2m_mod_exp_arr(BIGNUM *r, const BIGNUM *a, const BIGNUM *b,
+	const unsigned int p[], BN_CTX *ctx); /* r = (a ^ b) mod p */
+int	BN_GF2m_mod_sqrt_arr(BIGNUM *r, const BIGNUM *a,
+	const unsigned int p[], BN_CTX *ctx); /* r = sqrt(a) mod p */
+int	BN_GF2m_mod_solve_quad_arr(BIGNUM *r, const BIGNUM *a,
+	const unsigned int p[], BN_CTX *ctx); /* r^2 + r = a mod p */
+int	BN_GF2m_poly2arr(const BIGNUM *a, unsigned int p[], int max);
+int	BN_GF2m_arr2poly(const unsigned int p[], BIGNUM *a);
+
+/* faster mod functions for the 'NIST primes' 
+ * 0 <= a < p^2 */
+int BN_nist_mod_192(BIGNUM *r, const BIGNUM *a, const BIGNUM *p, BN_CTX *ctx);
+int BN_nist_mod_224(BIGNUM *r, const BIGNUM *a, const BIGNUM *p, BN_CTX *ctx);
+int BN_nist_mod_256(BIGNUM *r, const BIGNUM *a, const BIGNUM *p, BN_CTX *ctx);
+int BN_nist_mod_384(BIGNUM *r, const BIGNUM *a, const BIGNUM *p, BN_CTX *ctx);
+int BN_nist_mod_521(BIGNUM *r, const BIGNUM *a, const BIGNUM *p, BN_CTX *ctx);
+
+const BIGNUM *BN_get0_nist_prime_192(void);
+const BIGNUM *BN_get0_nist_prime_224(void);
+const BIGNUM *BN_get0_nist_prime_256(void);
+const BIGNUM *BN_get0_nist_prime_384(void);
+const BIGNUM *BN_get0_nist_prime_521(void);
+
+/* library internal functions */
+
+#define bn_expand(a,bits) ((((((bits+BN_BITS2-1))/BN_BITS2)) <= (a)->dmax)?\
+	(a):bn_expand2((a),(bits+BN_BITS2-1)/BN_BITS2))
+#define bn_wexpand(a,words) (((words) <= (a)->dmax)?(a):bn_expand2((a),(words)))
+BIGNUM *bn_expand2(BIGNUM *a, int words);
+#ifndef OPENSSL_NO_DEPRECATED
+BIGNUM *bn_dup_expand(const BIGNUM *a, int words); /* unused */
+#endif
+
+/* Bignum consistency macros
+ * There is one "API" macro, bn_fix_top(), for stripping leading zeroes from
+ * bignum data after direct manipulations on the data. There is also an
+ * "internal" macro, bn_check_top(), for verifying that there are no leading
+ * zeroes. Unfortunately, some auditing is required due to the fact that
+ * bn_fix_top() has become an overabused duct-tape because bignum data is
+ * occasionally passed around in an inconsistent state. So the following
+ * changes have been made to sort this out;
+ * - bn_fix_top()s implementation has been moved to bn_correct_top()
+ * - if BN_DEBUG isn't defined, bn_fix_top() maps to bn_correct_top(), and
+ *   bn_check_top() is as before.
+ * - if BN_DEBUG *is* defined;
+ *   - bn_check_top() tries to pollute unused words even if the bignum 'top' is
+ *     consistent. (ed: only if BN_DEBUG_RAND is defined)
+ *   - bn_fix_top() maps to bn_check_top() rather than "fixing" anything.
+ * The idea is to have debug builds flag up inconsistent bignums when they
+ * occur. If that occurs in a bn_fix_top(), we examine the code in question; if
+ * the use of bn_fix_top() was appropriate (ie. it follows directly after code
+ * that manipulates the bignum) it is converted to bn_correct_top(), and if it
+ * was not appropriate, we convert it permanently to bn_check_top() and track
+ * down the cause of the bug. Eventually, no internal code should be using the
+ * bn_fix_top() macro. External applications and libraries should try this with
+ * their own code too, both in terms of building against the openssl headers
+ * with BN_DEBUG defined *and* linking with a version of OpenSSL built with it
+ * defined. This not only improves external code, it provides more test
+ * coverage for openssl's own code.
+ */
+
+#ifdef BN_DEBUG
+
+/* We only need assert() when debugging */
+#include <assert.h>
+
+#ifdef BN_DEBUG_RAND
+/* To avoid "make update" cvs wars due to BN_DEBUG, use some tricks */
+#ifndef RAND_pseudo_bytes
+int RAND_pseudo_bytes(unsigned char *buf,int num);
+#define BN_DEBUG_TRIX
+#endif
+#define bn_pollute(a) \
+	do { \
+		const BIGNUM *_bnum1 = (a); \
+		if(_bnum1->top < _bnum1->dmax) { \
+			unsigned char _tmp_char; \
+			/* We cast away const without the compiler knowing, any \
+			 * *genuinely* constant variables that aren't mutable \
+			 * wouldn't be constructed with top!=dmax. */ \
+			BN_ULONG *_not_const; \
+			memcpy(&_not_const, &_bnum1->d, sizeof(BN_ULONG*)); \
+			RAND_pseudo_bytes(&_tmp_char, 1); \
+			memset((unsigned char *)(_not_const + _bnum1->top), _tmp_char, \
+				(_bnum1->dmax - _bnum1->top) * sizeof(BN_ULONG)); \
+		} \
+	} while(0)
+#ifdef BN_DEBUG_TRIX
+#undef RAND_pseudo_bytes
+#endif
+#else
+#define bn_pollute(a)
+#endif
+#define bn_check_top(a) \
+	do { \
+		const BIGNUM *_bnum2 = (a); \
+		if (_bnum2 != NULL) { \
+			assert((_bnum2->top == 0) || \
+				(_bnum2->d[_bnum2->top - 1] != 0)); \
+			bn_pollute(_bnum2); \
+		} \
+	} while(0)
+
+#define bn_fix_top(a)		bn_check_top(a)
+
+#else /* !BN_DEBUG */
+
+#define bn_pollute(a)
+#define bn_check_top(a)
+#define bn_fix_top(a)		bn_correct_top(a)
+
+#endif
+
+#define bn_correct_top(a) \
+        { \
+        BN_ULONG *ftl; \
+	if ((a)->top > 0) \
+		{ \
+		for (ftl= &((a)->d[(a)->top-1]); (a)->top > 0; (a)->top--) \
+		if (*(ftl--)) break; \
+		} \
+	bn_pollute(a); \
+	}
+
+BN_ULONG bn_mul_add_words(BN_ULONG *rp, const BN_ULONG *ap, int num, BN_ULONG w);
+BN_ULONG bn_mul_words(BN_ULONG *rp, const BN_ULONG *ap, int num, BN_ULONG w);
+void     bn_sqr_words(BN_ULONG *rp, const BN_ULONG *ap, int num);
+BN_ULONG bn_div_words(BN_ULONG h, BN_ULONG l, BN_ULONG d);
+BN_ULONG bn_add_words(BN_ULONG *rp, const BN_ULONG *ap, const BN_ULONG *bp,int num);
+BN_ULONG bn_sub_words(BN_ULONG *rp, const BN_ULONG *ap, const BN_ULONG *bp,int num);
+
+/* Primes from RFC 2409 */
+BIGNUM *get_rfc2409_prime_768(BIGNUM *bn);
+BIGNUM *get_rfc2409_prime_1024(BIGNUM *bn);
+
+/* Primes from RFC 3526 */
+BIGNUM *get_rfc3526_prime_1536(BIGNUM *bn);
+BIGNUM *get_rfc3526_prime_2048(BIGNUM *bn);
+BIGNUM *get_rfc3526_prime_3072(BIGNUM *bn);
+BIGNUM *get_rfc3526_prime_4096(BIGNUM *bn);
+BIGNUM *get_rfc3526_prime_6144(BIGNUM *bn);
+BIGNUM *get_rfc3526_prime_8192(BIGNUM *bn);
+
+int BN_bntest_rand(BIGNUM *rnd, int bits, int top,int bottom);
+
+/* BEGIN ERROR CODES */
+/* The following lines are auto generated by the script mkerr.pl. Any changes
+ * made after this point may be overwritten when the script is next run.
+ */
+void ERR_load_BN_strings(void);
+
+/* Error codes for the BN functions. */
+
+/* Function codes. */
+#define BN_F_BNRAND					 127
+#define BN_F_BN_BLINDING_CONVERT_EX			 100
+#define BN_F_BN_BLINDING_CREATE_PARAM			 128
+#define BN_F_BN_BLINDING_INVERT_EX			 101
+#define BN_F_BN_BLINDING_NEW				 102
+#define BN_F_BN_BLINDING_UPDATE				 103
+#define BN_F_BN_BN2DEC					 104
+#define BN_F_BN_BN2HEX					 105
+#define BN_F_BN_CTX_GET					 116
+#define BN_F_BN_CTX_NEW					 106
+#define BN_F_BN_CTX_START				 129
+#define BN_F_BN_DIV					 107
+#define BN_F_BN_DIV_NO_BRANCH				 138
+#define BN_F_BN_DIV_RECP				 130
+#define BN_F_BN_EXP					 123
+#define BN_F_BN_EXPAND2					 108
+#define BN_F_BN_EXPAND_INTERNAL				 120
+#define BN_F_BN_GF2M_MOD				 131
+#define BN_F_BN_GF2M_MOD_EXP				 132
+#define BN_F_BN_GF2M_MOD_MUL				 133
+#define BN_F_BN_GF2M_MOD_SOLVE_QUAD			 134
+#define BN_F_BN_GF2M_MOD_SOLVE_QUAD_ARR			 135
+#define BN_F_BN_GF2M_MOD_SQR				 136
+#define BN_F_BN_GF2M_MOD_SQRT				 137
+#define BN_F_BN_MOD_EXP2_MONT				 118
+#define BN_F_BN_MOD_EXP_MONT				 109
+#define BN_F_BN_MOD_EXP_MONT_CONSTTIME			 124
+#define BN_F_BN_MOD_EXP_MONT_WORD			 117
+#define BN_F_BN_MOD_EXP_RECP				 125
+#define BN_F_BN_MOD_EXP_SIMPLE				 126
+#define BN_F_BN_MOD_INVERSE				 110
+#define BN_F_BN_MOD_INVERSE_NO_BRANCH			 139
+#define BN_F_BN_MOD_LSHIFT_QUICK			 119
+#define BN_F_BN_MOD_MUL_RECIPROCAL			 111
+#define BN_F_BN_MOD_SQRT				 121
+#define BN_F_BN_MPI2BN					 112
+#define BN_F_BN_NEW					 113
+#define BN_F_BN_RAND					 114
+#define BN_F_BN_RAND_RANGE				 122
+#define BN_F_BN_USUB					 115
+
+/* Reason codes. */
+#define BN_R_ARG2_LT_ARG3				 100
+#define BN_R_BAD_RECIPROCAL				 101
+#define BN_R_BIGNUM_TOO_LONG				 114
+#define BN_R_CALLED_WITH_EVEN_MODULUS			 102
+#define BN_R_DIV_BY_ZERO				 103
+#define BN_R_ENCODING_ERROR				 104
+#define BN_R_EXPAND_ON_STATIC_BIGNUM_DATA		 105
+#define BN_R_INPUT_NOT_REDUCED				 110
+#define BN_R_INVALID_LENGTH				 106
+#define BN_R_INVALID_RANGE				 115
+#define BN_R_NOT_A_SQUARE				 111
+#define BN_R_NOT_INITIALIZED				 107
+#define BN_R_NO_INVERSE					 108
+#define BN_R_NO_SOLUTION				 116
+#define BN_R_P_IS_NOT_PRIME				 112
+#define BN_R_TOO_MANY_ITERATIONS			 113
+#define BN_R_TOO_MANY_TEMPORARY_VARIABLES		 109
+
+#ifdef  __cplusplus
+}
+#endif
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 This README file is copied into the directory for GCC-only header files
+when fixincludes is run by the makefile for GCC.
+
+Many of the files in this directory were automatically edited from the
+standard system header files by the fixincludes process.  They are
+system-specific, and will not work on any other kind of system.  They
+are also not part of GCC.  The reason we have to do this is because
+GCC requires ANSI C headers and many vendors supply ANSI-incompatible
+headers.
+
+Because this is an automated process, sometimes headers get "fixed"
+that do not, strictly speaking, need a fix.  As long as nothing is broken
+by the process, it is just an unfortunate collateral inconvenience.
+We would like to rectify it, if it is not "too inconvenient".
+                                                                                                                                                                                                                                                                                  F%   .   <%   ..  G%  ËSDL_stdinc.h                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    /*  DO NOT EDIT THIS FILE.
+
+    It has been auto-edited by fixincludes from:
+
+	"/usr/include/SDL/SDL_stdinc.h"
+
+    This had to be done to correct non-standard usages in the
+    original, manufacturer supplied header file.  */
+
+/*
+    SDL - Simple DirectMedia Layer
+    Copyright (C) 1997-2006 Sam Lantinga
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+    Sam Lantinga
+    slouken@libsdl.org
+*/
+
+/* This is a general header that includes C language support */
+
+#ifndef _SDL_stdinc_h
+#define _SDL_stdinc_h
+
+#include "SDL_config.h"
+
+
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_STDIO_H
+#include <stdio.h>
+#endif
+#if defined(STDC_HEADERS)
+# include <stdlib.h>
+# include <stddef.h>
+# include <stdarg.h>
+#else
+# if defined(HAVE_STDLIB_H)
+#  include <stdlib.h>
+# elif defined(HAVE_MALLOC_H)
+#  include <malloc.h>
+# endif
+# if defined(HAVE_STDDEF_H)
+#  include <stddef.h>
+# endif
+# if defined(HAVE_STDARG_H)
+#  include <stdarg.h>
+# endif
+#endif
+#ifdef HAVE_STRING_H
+# if !defined(STDC_HEADERS) && defined(HAVE_MEMORY_H)
+#  include <memory.h>
+# endif
+# include <string.h>
+#endif
+#ifdef HAVE_STRINGS_H
+# include <strings.h>
+#endif
+#if defined(HAVE_INTTYPES_H)
+# include <inttypes.h>
+#elif defined(HAVE_STDINT_H)
+# include <stdint.h>
+#endif
+#ifdef HAVE_CTYPE_H
+# include <ctype.h>
+#endif
+#ifdef HAVE_ICONV_H
+# include <iconv.h>
+#endif
+
+/* The number of elements in an array */
+#define SDL_arraysize(array)	(sizeof(array)/sizeof(array[0]))
+#define SDL_TABLESIZE(table)	SDL_arraysize(table)
+
+/* Basic data types */
+typedef enum SDL_bool {
+	SDL_FALSE = 0,
+	SDL_TRUE  = 1
+} SDL_bool;
+
+typedef int8_t		Sint8;
+typedef uint8_t		Uint8;
+typedef int16_t		Sint16;
+typedef uint16_t	Uint16;
+typedef int32_t		Sint32;
+typedef uint32_t	Uint32;
+
+#ifdef SDL_HAS_64BIT_TYPE
+typedef int64_t		Sint64;
+#ifndef SYMBIAN32_GCCE
+typedef uint64_t	Uint64;
+#endif
+#else
+/* This is really just a hack to prevent the compiler from complaining */
+typedef struct {
+	Uint32 hi;
+	Uint32 lo;
+} Uint64, Sint64;
+#endif
+
+/* Make sure the types really have the right sizes */
+#define SDL_COMPILE_TIME_ASSERT(name, x)               \
+       typedef int SDL_dummy_ ## name[(x) * 2 - 1]
+
+SDL_COMPILE_TIME_ASSERT(uint8, sizeof(Uint8) == 1);
+SDL_COMPILE_TIME_ASSERT(sint8, sizeof(Sint8) == 1);
+SDL_COMPILE_TIME_ASSERT(uint16, sizeof(Uint16) == 2);
+SDL_COMPILE_TIME_ASSERT(sint16, sizeof(Sint16) == 2);
+SDL_COMPILE_TIME_ASSERT(uint32, sizeof(Uint32) == 4);
+SDL_COMPILE_TIME_ASSERT(sint32, sizeof(Sint32) == 4);
+SDL_COMPILE_TIME_ASSERT(uint64, sizeof(Uint64) == 8);
+SDL_COMPILE_TIME_ASSERT(sint64, sizeof(Sint64) == 8);
+
+/* Check to make sure enums are the size of ints, for structure packing.
+   For both Watcom C/C++ and Borland C/C++ the compiler option that makes
+   enums having the size of an int must be enabled.
+   This is "-b" for Borland C/C++ and "-ei" for Watcom C/C++ (v11).
+*/
+/* Enable enums always int in CodeWarrior (for MPW use "-enum int") */
+#ifdef __MWERKS__
+#pragma enumsalwaysint on
+#endif
+
+typedef enum {
+	DUMMY_ENUM_VALUE
+} SDL_DUMMY_ENUM;
+
+#ifndef __NDS__
+SDL_COMPILE_TIME_ASSERT(enum, sizeof(SDL_DUMMY_ENUM) == sizeof(int));
+#endif
+
+
+#include "begin_code.h"
+/* Set up for C function definitions, even when using C++ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef HAVE_MALLOC
+#define SDL_malloc	malloc
+#else
+extern DECLSPEC void * SDLCALL SDL_malloc(size_t size);
+#endif
+
+#ifdef HAVE_CALLOC
+#define SDL_calloc	calloc
+#else
+extern DECLSPEC void * SDLCALL SDL_calloc(size_t nmemb, size_t size);
+#endif
+
+#ifdef HAVE_REALLOC
+#define SDL_realloc	realloc
+#else
+extern DECLSPEC void * SDLCALL SDL_realloc(void *mem, size_t size);
+#endif
+
+#ifdef HAVE_FREE
+#define SDL_free	free
+#else
+extern DECLSPEC void SDLCALL SDL_free(void *mem);
+#endif
+
+#if defined(HAVE_ALLOCA) && !defined(alloca)
+# if defined(HAVE_ALLOCA_H)
+#  include <alloca.h>
+# elif defined(__GNUC__)
+#  define alloca __builtin_alloca
+# elif defined(_MSC_VER)
+#  include <malloc.h>
+#  define alloca _alloca
+# elif defined(__WATCOMC__)
+#  include <malloc.h>
+# elif defined(__BORLANDC__)
+#  include <malloc.h>
+# elif defined(__DMC__)
+#  include <stdlib.h>
+# elif defined(__AIX__)
+  #pragma alloca
+# elif defined(__MRC__)
+   void *alloca (unsigned);
+# else
+   char *alloca ();
+# endif
+#endif
+#ifdef HAVE_ALLOCA
+#define SDL_stack_alloc(type, count)    (type*)alloca(sizeof(type)*(count))
+#define SDL_stack_free(data)
+#else
+#define SDL_stack_alloc(type, count)    (type*)SDL_malloc(sizeof(type)*(count))
+#define SDL_stack_free(data)            SDL_free(data)
+#endif
+
+#ifdef HAVE_GETENV
+#define SDL_getenv	getenv
+#else
+extern DECLSPEC char * SDLCALL SDL_getenv(const char *name);
+#endif
+
+#ifdef HAVE_PUTENV
+#define SDL_putenv	putenv
+#else
+extern DECLSPEC int SDLCALL SDL_putenv(const char *variable);
+#endif
+
+#ifdef HAVE_QSORT
+#define SDL_qsort	qsort
+#else
+extern DECLSPEC void SDLCALL SDL_qsort(void *base, size_t nmemb, size_t size,
+           int (*compare)(const void *, const void *));
+#endif
+
+#ifdef HAVE_ABS
+#define SDL_abs		abs
+#else
+#define SDL_abs(X)	((X) < 0 ? -(X) : (X))
+#endif
+
+#define SDL_min(x, y)	(((x) < (y)) ? (x) : (y))
+#define SDL_max(x, y)	(((x) > (y)) ? (x) : (y))
+
+#ifdef HAVE_CTYPE_H
+#define SDL_isdigit(X)  isdigit(X)
+#define SDL_isspace(X)  isspace(X)
+#define SDL_toupper(X)  toupper(X)
+#define SDL_tolower(X)  tolower(X)
+#else
+#define SDL_isdigit(X)  (((X) >= '0') && ((X) <= '9'))
+#define SDL_isspace(X)  (((X) == ' ') || ((X) == '\t') || ((X) == '\r') || ((X) == '\n'))
+#define SDL_toupper(X)  (((X) >= 'a') && ((X) <= 'z') ? ('A'+((X)-'a')) : (X))
+#define SDL_tolower(X)  (((X) >= 'A') && ((X) <= 'Z') ? ('a'+((X)-'A')) : (X))
+#endif
+
+#ifdef HAVE_MEMSET
+#define SDL_memset      memset
+#else
+extern DECLSPEC void * SDLCALL SDL_memset(void *dst, int c, size_t len);
+#endif
+
+#if defined(__GNUC__) && defined(__i386__)
+#define SDL_memset4(dst, val, len)				\
+do {								\
+	int u0, u1, u2;						\
+	__asm__ __volatile__ (					\
+		"cld\n\t"					\
+		"rep ; stosl\n\t"				\
+		: "=&D" (u0), "=&a" (u1), "=&c" (u2)		\
+		: "0" (dst), "1" (val), "2" ((Uint32)(len))	\
+		: "memory" );					\
+} while(0)
+#endif
+#ifndef SDL_memset4
+#define SDL_memset4(dst, val, len)		\
+do {						\
+	unsigned _count = (len);		\
+	unsigned _n = (_count + 3) / 4;		\
+	Uint32 *_p = (Uint32 *)(dst);		\
+	Uint32 _val = (val);			\
+        switch (_count % 4) {			\
+        case 0: do {    *_p++ = _val;		\
+        case 3:         *_p++ = _val;		\
+        case 2:         *_p++ = _val;		\
+        case 1:         *_p++ = _val;		\
+		} while ( --_n );		\
+	}					\
+} while(0)
+#endif
+
+/* We can count on memcpy existing on Mac OS X and being well-tuned. */
+#if defined(__MACH__) && defined(__APPLE__)
+#define SDL_memcpy(dst, src, len) memcpy(dst, src, len)
+#elif defined(__GNUC__) && defined(i386)
+#define SDL_memcpy(dst, src, len)					  \
+do {									  \
+	int u0, u1, u2;						  	  \
+	__asm__ __volatile__ (						  \
+		"cld\n\t"						  \
+		"rep ; movsl\n\t"					  \
+		"testb $2,%b4\n\t"					  \
+		"je 1f\n\t"						  \
+		"movsw\n"						  \
+		"1:\ttestb $1,%b4\n\t"					  \
+		"je 2f\n\t"						  \
+		"movsb\n"						  \
+		"2:"							  \
+		: "=&c" (u0), "=&D" (u1), "=&S" (u2)			  \
+		: "0" ((unsigned)(len)/4), "q" (len), "1" (dst),"2" (src) \
+		: "memory" );						  \
+} while(0)
+#endif
+#ifndef SDL_memcpy
+#ifdef HAVE_MEMCPY
+#define SDL_memcpy      memcpy
+#elif defined(HAVE_BCOPY)
+#define SDL_memcpy(d, s, n)	bcopy((s), (d), (n))
+#else
+extern DECLSPEC void * SDLCALL SDL_memcpy(void *dst, const void *src, size_t len);
+#endif
+#endif
+
+/* We can count on memcpy existing on Mac OS X and being well-tuned. */
+#if defined(__MACH__) && defined(__APPLE__)
+#define SDL_memcpy4(dst, src, len) memcpy(dst, src, (len)*4)
+#elif defined(__GNUC__) && defined(i386)
+#define SDL_memcpy4(dst, src, len)				\
+do {								\
+	int ecx, edi, esi;					\
+	__asm__ __volatile__ (					\
+		"cld\n\t"					\
+		"rep ; movsl"					\
+		: "=&c" (ecx), "=&D" (edi), "=&S" (esi)		\
+		: "0" ((unsigned)(len)), "1" (dst), "2" (src)	\
+		: "memory" );					\
+} while(0)
+#endif
+#ifndef SDL_memcpy4
+#define SDL_memcpy4(dst, src, len)	SDL_memcpy(dst, src, (len) << 2)
+#endif
+
+#if 0
+#define SDL_revcpy(dst, src, len)			\
+do {							\
+	int u0, u1, u2;					\
+	char *dstp = (char *)(dst);			\
+	char *srcp = (char *)(src);			\
+	int n = (len);					\
+	if ( n >= 4 ) {					\
+	__asm__ __volatile__ (				\
+		"std\n\t"				\
+		"rep ; movsl\n\t"			\
+		: "=&c" (u0), "=&D" (u1), "=&S" (u2)	\
+		: "0" (n >> 2),				\
+		  "1" (dstp+(n-4)), "2" (srcp+(n-4))	\
+		: "memory" );				\
+	}						\
+	switch (n & 3) {				\
+		case 3: dstp[2] = srcp[2];		\
+		case 2: dstp[1] = srcp[1];		\
+		case 1: dstp[0] = srcp[0];		\
+			break;				\
+		default:				\
+			break;				\
+	}						\
+} while(0)
+#endif
+#ifndef SDL_revcpy
+extern DECLSPEC void * SDLCALL SDL_revcpy(void *dst, const void *src, size_t len);
+#endif
+
+#ifdef HAVE_MEMMOVE
+#define SDL_memmove     memmove
+#elif defined(HAVE_BCOPY)
+#define SDL_memmove(d, s, n)	bcopy((s), (d), (n))
+#else
+#define SDL_memmove(dst, src, len)			\
+do {							\
+	if ( dst < src ) {				\
+		SDL_memcpy(dst, src, len);		\
+	} else {					\
+		SDL_revcpy(dst, src, len);		\
+	}						\
+} while(0)
+#endif
+
+#ifdef HAVE_MEMCMP
+#define SDL_memcmp      memcmp
+#else
+extern DECLSPEC int SDLCALL SDL_memcmp(const void *s1, const void *s2, size_t len);
+#endif
+
+#ifdef HAVE_STRLEN
+#define SDL_strlen      strlen
+#else
+extern DECLSPEC size_t SDLCALL SDL_strlen(const char *string);
+#endif
+
+#ifdef HAVE_STRLCPY
+#define SDL_strlcpy     strlcpy
+#else
+extern DECLSPEC size_t SDLCALL SDL_strlcpy(char *dst, const char *src, size_t maxlen);
+#endif
+
+#ifdef HAVE_STRLCAT
+#define SDL_strlcat    strlcat
+#else
+extern DECLSPEC size_t SDLCALL SDL_strlcat(char *dst, const char *src, size_t maxlen);
+#endif
+
+#ifdef HAVE_STRDUP
+#define SDL_strdup     strdup
+#else
+extern DECLSPEC char * SDLCALL SDL_strdup(const char *string);
+#endif
+
+#ifdef HAVE__STRREV
+#define SDL_strrev      _strrev
+#else
+extern DECLSPEC char * SDLCALL SDL_strrev(char *string);
+#endif
+
+#ifdef HAVE__STRUPR
+#define SDL_strupr      _strupr
+#else
+extern DECLSPEC char * SDLCALL SDL_strupr(char *string);
+#endif
+
+#ifdef HAVE__STRLWR
+#define SDL_strlwr      _strlwr
+#else
+extern DECLSPEC char * SDLCALL SDL_strlwr(char *string);
+#endif
+
+#ifdef HAVE_STRCHR
+#define SDL_strchr      strchr
+#elif defined(HAVE_INDEX)
+#define SDL_strchr      index
+#else
+extern DECLSPEC char * SDLCALL SDL_strchr(const char *string, int c);
+#endif
+
+#ifdef HAVE_STRRCHR
+#define SDL_strrchr     strrchr
+#elif defined(HAVE_RINDEX)
+#define SDL_strrchr     rindex
+#else
+extern DECLSPEC char * SDLCALL SDL_strrchr(const char *string, int c);
+#endif
+
+#ifdef HAVE_STRSTR
+#define SDL_strstr      strstr
+#else
+extern DECLSPEC char * SDLCALL SDL_strstr(const char *haystack, const char *needle);
+#endif
+
+#ifdef HAVE_ITOA
+#define SDL_itoa        itoa
+#else
+#define SDL_itoa(value, string, radix)	SDL_ltoa((long)value, string, radix)
+#endif
+
+#ifdef HAVE__LTOA
+#define SDL_ltoa        _ltoa
+#else
+extern DECLSPEC char * SDLCALL SDL_ltoa(long value, char *string, int radix);
+#endif
+
+#ifdef HAVE__UITOA
+#define SDL_uitoa       _uitoa
+#else
+#define SDL_uitoa(value, string, radix)	SDL_ultoa((long)value, string, radix)
+#endif
+
+#ifdef HAVE__ULTOA
+#define SDL_ultoa       _ultoa
+#else
+extern DECLSPEC char * SDLCALL SDL_ultoa(unsigned long value, char *string, int radix);
+#endif
+
+#ifdef HAVE_STRTOL
+#define SDL_strtol      strtol
+#else
+extern DECLSPEC long SDLCALL SDL_strtol(const char *string, char **endp, int base);
+#endif
+
+#ifdef HAVE_STRTOUL
+#define SDL_strtoul      strtoul
+#else
+extern DECLSPEC unsigned long SDLCALL SDL_strtoul(const char *string, char **endp, int base);
+#endif
+
+#ifdef SDL_HAS_64BITZ¡  [¡  \¡  ]¡                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  _TYPE
+
+#ifdef HAVE__I64TOA
+#define SDL_lltoa       _i64toa
+#else
+extern DECLSPEC char* SDLCALL SDL_lltoa(Sint64 value, char *string, int radix);
+#endif
+
+#ifdef HAVE__UI64TOA
+#define SDL_ulltoa      _ui64toa
+#else
+extern DECLSPEC char* SDLCALL SDL_ulltoa(Uint64 value, char *string, int radix);
+#endif
+
+#ifdef HAVE_STRTOLL
+#define SDL_strtoll     strtoll
+#else
+extern DECLSPEC Sint64 SDLCALL SDL_strtoll(const char *string, char **endp, int base);
+#endif
+
+#ifdef HAVE_STRTOULL
+#define SDL_strtoull     strtoull
+#else
+extern DECLSPEC Uint64 SDLCALL SDL_strtoull(const char *string, char **endp, int base);
+#endif
+
+#endif /* SDL_HAS_64BIT_TYPE */
+
+#ifdef HAVE_STRTOD
+#define SDL_strtod      strtod
+#else
+extern DECLSPEC double SDLCALL SDL_strtod(const char *string, char **endp);
+#endif
+
+#ifdef HAVE_ATOI
+#define SDL_atoi        atoi
+#else
+#define SDL_atoi(X)     SDL_strtol(X, NULL, 0)
+#endif
+
+#ifdef HAVE_ATOF
+#define SDL_atof        atof
+#else
+#define SDL_atof(X)     SDL_strtod(X, NULL)
+#endif
+
+#ifdef HAVE_STRCMP
+#define SDL_strcmp      strcmp
+#else
+extern DECLSPEC int SDLCALL SDL_strcmp(const char *str1, const char *str2);
+#endif
+
+#ifdef HAVE_STRNCMP
+#define SDL_strncmp     strncmp
+#else
+extern DECLSPEC int SDLCALL SDL_strncmp(const char *str1, const char *str2, size_t maxlen);
+#endif
+
+#ifdef HAVE_STRCASECMP
+#define SDL_strcasecmp  strcasecmp
+#elif defined(HAVE__STRICMP)
+#define SDL_strcasecmp  _stricmp
+#else
+extern DECLSPEC int SDLCALL SDL_strcasecmp(const char *str1, const char *str2);
+#endif
+
+#ifdef HAVE_STRNCASECMP
+#define SDL_strncasecmp strncasecmp
+#elif defined(HAVE__STRNICMP)
+#define SDL_strncasecmp _strnicmp
+#else
+extern DECLSPEC int SDLCALL SDL_strncasecmp(const char *str1, const char *str2, size_t maxlen);
+#endif
+
+#ifdef HAVE_SSCANF
+#define SDL_sscanf      sscanf
+#else
+extern DECLSPEC int SDLCALL SDL_sscanf(const char *text, const char *fmt, ...);
+#endif
+
+#ifdef HAVE_SNPRINTF
+#define SDL_snprintf    snprintf
+#else
+extern DECLSPEC int SDLCALL SDL_snprintf(char *text, size_t maxlen, const char *fmt, ...);
+#endif
+
+#ifdef HAVE_VSNPRINTF
+#define SDL_vsnprintf   vsnprintf
+#else
+extern DECLSPEC int SDLCALL SDL_vsnprintf(char *text, size_t maxlen, const char *fmt, va_list ap);
+#endif
+
+/* The SDL implementation of iconv() returns these error codes */
+#define SDL_ICONV_ERROR		(size_t)-1
+#define SDL_ICONV_E2BIG		(size_t)-2
+#define SDL_ICONV_EILSEQ	(size_t)-3
+#define SDL_ICONV_EINVAL	(size_t)-4
+
+#ifdef HAVE_ICONV
+#define SDL_iconv_t     iconv_t
+#define SDL_iconv_open  iconv_open
+#define SDL_iconv_close iconv_close
+#else
+typedef struct _SDL_iconv_t *SDL_iconv_t;
+extern DECLSPEC SDL_iconv_t SDLCALL SDL_iconv_open(const char *tocode, const char *fromcode);
+extern DECLSPEC int SDLCALL SDL_iconv_close(SDL_iconv_t cd);
+#endif
+extern DECLSPEC size_t SDLCALL SDL_iconv(SDL_iconv_t cd, const char **inbuf, size_t *inbytesleft, char **outbuf, size_t *outbytesleft);
+/* This function converts a string between encodings in one pass, returning a
+   string that must be freed with SDL_free() or NULL on error.
+*/
+extern DECLSPEC char * SDLCALL SDL_iconv_string(const char *tocode, const char *fromcode, const char *inbuf, size_t inbytesleft);
+#define SDL_iconv_utf8_locale(S)	SDL_iconv_string("", "UTF-8", S, SDL_strlen(S)+1)
+#define SDL_iconv_utf8_ucs2(S)		(Uint16 *)SDL_iconv_string("UCS-2", "UTF-8", S, SDL_strlen(S)+1)
+#define SDL_iconv_utf8_ucs4(S)		(Uint32 *)SDL_iconv_string("UCS-4", "UTF-8", S, SDL_strlen(S)+1)
+
+/* Ends C function definitions when using C++ */
+#ifdef __cplusplus
+}
+#endif
+#include "close_code.h"
+
+#endif /* _SDL_stdinc_h */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           H%   .   <%   ..  I%  Ëjs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              I%   .   H%   ..  J%  Ëfdlibm.h                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        /*  DO NOT EDIT THIS FILE.
+
+    It has been auto-edited by fixincludes from:
+
+	"/usr/include/xulrunner-sdk-1.9/js/fdlibm.h"
+
+    This had to be done to correct non-standard usages in the
+    original, manufacturer supplied header file.  */
+
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code, released
+ * March 31, 1998.
+ *
+ * The Initial Developer of the Original Code is
+ * Sun Microsystems, Inc.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+/* @(#)fdlibm.h 1.5 95/01/18 */
+/*
+ * ====================================================
+ * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+ *
+ * Developed at SunSoft, a Sun Microsystems, Inc. business.
+ * Permission to use, copy, modify, and distribute this
+ * software is freely granted, provided that this notice 
+ * is preserved.
+ * ====================================================
+ */
+
+/* Modified defines start here.. */
+#undef __LITTLE_ENDIAN
+
+#ifdef _WIN32
+#define huge myhuge
+#define __LITTLE_ENDIAN
+#endif
+
+#ifdef XP_OS2
+#define __LITTLE_ENDIAN
+#endif
+
+#if defined(__linux__) && (defined(__i386__) || defined(__x86_64__) || defined(__ia64) || (defined(__mips) && defined(__MIPSEL__)))
+#define __LITTLE_ENDIAN
+#endif
+
+/* End here. The rest is the standard file. */
+
+#ifdef SOLARIS	/* special setup for Sun test regime */
+#if defined(__i386__) || defined(i486) || \
+	defined(intel) || defined(x86) || defined(i86pc)
+#define __LITTLE_ENDIAN
+#endif
+#endif
+
+typedef union {
+#ifdef __LITTLE_ENDIAN
+    struct { int lo, hi; } ints;
+#else
+    struct { int hi, lo; } ints;
+#endif
+    double d;
+} fd_twoints;
+
+#define __HI(x) x.ints.hi
+#define __LO(x) x.ints.lo
+
+#undef __P
+#ifdef __STDC__
+#define	__P(p)	p
+#else
+#define	__P(p)	()
+#endif
+
+/*
+ * ANSI/POSIX
+ */
+
+extern int signgam;
+
+#define	MAXFLOAT	((float)3.40282346638528860e+38)
+
+enum fdversion {fdlibm_ieee = -1, fdlibm_svid, fdlibm_xopen, fdlibm_posix};
+
+#define _LIB_VERSION_TYPE enum fdversion
+#define _LIB_VERSION _fdlib_version  
+
+/* if global variable _LIB_VERSION is not desirable, one may 
+ * change the following to be a constant by: 
+ *	#define _LIB_VERSION_TYPE const enum version
+ * In that case, after one initializes the value _LIB_VERSION (see
+ * s_lib_version.c) during compile time, it cannot be modified
+ * in the middle of a program
+ */ 
+extern  _LIB_VERSION_TYPE  _LIB_VERSION;
+
+#define _IEEE_  fdlibm_ieee
+#define _SVID_  fdlibm_svid
+#define _XOPEN_ fdlibm_xopen
+#define _POSIX_ fdlibm_posix
+
+struct exception {
+	int type;
+	char *name;
+	double arg1;
+	double arg2;
+	double retval;
+};
+
+#define	HUGE		MAXFLOAT
+
+/* 
+ * set X_TLOSS = pi*2**52, which is possibly defined in <values.h>
+ * (one may replace the following line by "#include <values.h>")
+ */
+
+#define X_TLOSS		1.41484755040568800000e+16 
+
+#define	DOMAIN		1
+#define	SING		2
+#define	OVERFLOW	3
+#define	UNDERFLOW	4
+#define	TLOSS		5
+#define	PLOSS		6
+
+/*
+ * ANSI/POSIX
+ */
+
+extern double fd_acos __P((double));
+extern double fd_asin __P((double));
+extern double fd_atan __P((double));
+extern double fd_atan2 __P((double, double));
+extern double fd_cos __P((double));
+extern double fd_sin __P((double));
+extern double fd_tan __P((double));
+ 
+extern double fd_cosh __P((double));
+extern double fd_sinh __P((double));
+extern double fd_tanh __P((double));
+
+extern double fd_exp __P((double));
+extern double fd_frexp __P((double, int *));
+extern double fd_ldexp __P((double, int));
+extern double fd_log __P((double));
+extern double fd_log10 __P((double));
+extern double fd_modf __P((double, double *));
+
+extern double fd_pow __P((double, double));
+extern double fd_sqrt __P((double));
+
+extern double fd_ceil __P((double));
+extern double fd_fabs __P((double));
+extern double fd_floor __P((double));
+extern double fd_fmod __P((double, double));
+
+extern double fd_erf __P((double));
+extern double fd_erfc __P((double));
+extern double fd_gamma __P((double));
+extern double fd_hypot __P((double, double));
+extern int fd_isnan __P((double));
+extern int fd_finite __P((double));
+extern double fd_j0 __P((double));
+extern double fd_j1 __P((double));
+extern double fd_jn __P((int, double));
+extern double fd_lgamma __P((double));
+extern double fd_y0 __P((double));
+extern double fd_y1 __P((double));
+extern double fd_yn __P((int, double));
+
+extern double fd_acosh __P((double));
+extern double fd_asinh __P((double));
+extern double fd_atanh __P((double));
+extern double fd_cbrt __P((double));
+extern double fd_logb __P((double));
+extern double fd_nextafter __P((double, double));
+extern double fd_remainder __P((double, double));
+#ifdef _SCALB_INT
+extern double fd_scalb __P((double, int));
+#else
+extern double fd_scalb __P((double, double));
+#endif
+
+extern int fd_matherr __P((struct exception *));
+
+/*
+ * IEEE Test Vector
+ */
+extern double significand __P((double));
+
+/*
+ * Functions callable from C, intended to support IEEE arithmetic.
+ */
+extern double fd_copysign __P((double, double));
+extern int fd_ilogb __P((double));
+extern double fd_rint __P((double));
+extern double fd_scalbn __P((double, int));
+
+/*
+ * BSD math library entry points
+ */
+extern double fd_expm1 __P((double));
+extern double fd_log1p __P((double));
+
+/*
+ * Reentrant version of gamma & lgamma; passes signgam back by reference
+ * as the second argument; user must allocate space for signgam.
+ */
+#ifdef _REENTRANT
+extern double gamma_r __P((double, int *));
+extern double lgamma_r __P((double, int *));
+#endif	/* _REENTRANT */
+
+/* ieee style elementary functions */
+extern double __ieee754_sqrt __P((double));			
+extern double __ieee754_acos __P((double));			
+extern double __ieee754_acosh __P((double));			
+extern double __ieee754_log __P((double));			
+extern double __ieee754_atanh __P((double));			
+extern double __ieee754_asin __P((double));			
+extern double __ieee754_atan2 __P((double,double));			
+extern double __ieee754_exp __P((double));
+extern double __ieee754_cosh __P((double));
+extern double __ieee754_fmod __P((double,double));
+extern double __ieee754_pow __P((double,double));
+extern double __ieee754_lgamma_r __P((double,int *));
+extern double __ieee754_gamma_r __P((double,int *));
+extern double __ieee754_lgamma __P((double));
+extern double __ieee754_gamma __P((double));
+extern double __ieee754_log10 __P((double));
+extern double __ieee754_sinh __P((double));
+extern double __ieee754_hypot __P((double,double));
+extern double __ieee754_j0 __P((double));
+extern double __ieee754_j1 __P((double));
+extern double __ieee754_y0 __P((double));
+extern double __ieee754_y1 __P((double));
+extern double __ieee754_jn __P((int,double));
+extern double __ieee754_yn __P((int,double));
+extern double __ieee754_remainder __P((double,double));
+extern int    __ieee754_rem_pio2 __P((double,double*));
+#ifdef _SCALB_INT
+extern double __ieee754_scalb __P((double,int));
+#else
+extern double __ieee754_scalb __P((double,double));
+#endif
+
+/* fdlibm kernel function */
+extern double __kernel_standard __P((double,double,int,int*));
+extern double __kernel_sin __P((double,double,int));
+extern double __kernel_cos __P((double,double));
+extern double __kernel_tan __P((double,double,int));
+extern int    __kernel_rem_pio2 __P((double*,double*,int,int,int,const int*));
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           K%   .   <%   ..  L%  Ëposix_types.h                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   /*  DO NOT EDIT THIS FILE.
+
+    It has been auto-edited by fixincludes from:
+
+	"/usr/include/asm/posix_types.h"
+
+    This had to be done to correct non-standard usages in the
+    original, manufacturer supplied header file.  */
+
+/* This file fixes a bug in the __FD_ZERO macro
+   for older versions of the Linux kernel. */
+#ifndef _POSIX_TYPES_H_WRAPPER
+#include <features.h>
+ #include_next <asm/posix_types.h>
+
+#if defined(__FD_ZERO) && !defined(__GLIBC__)
+#undef __FD_ZERO
+#define __FD_ZERO(fdsetp) \
+  do { \
+    int __d0, __d1; \
+__asm__ __volatile__("cld ; rep ; stosl" \
+: "=&c" (__d0), "=&D" (__d1) \
+: "a" (0), "0" (__FDSET_LONGS), \
+  "1" ((__kernel_fd_set *) (fdsetp)) :"memory"); \
+  } while (0)
+#endif
+
+#define _POSIX_TYPES_H_WRAPPER
+#endif /* _POSIX_TYPES_H_WRAPPER */
+                                                                                                                                                                                                                                                  /* syslimits.h stands for the system's own limits.h file.
+   If we can use it ok unmodified, then we install this text.
+   If fixincludes fixes it, then the fixed version is installed
+   instead of this text.  */
+
+#define _GCC_NEXT_LIMITS_H		/* tell gcc's limits.h to recurse */
+#include_next <limits.h>
+#undef _GCC_NEXT_LIMITS_H
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      N%   .   <%   ..  O%  Ë
+Xw32defs.h                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      /*  DO NOT EDIT THIS FILE.
+
+    It has been auto-edited by fixincludes from:
+
+	"/usr/include/X11/Xw32defs.h"
+
+    This had to be done to correct non-standard usages in the
+    original, manufacturer supplied header file.  */
+
+/* $Xorg: Xw32defs.h,v 1.3 2000/08/18 04:05:44 coskrey Exp $ */
+
+#ifndef _XW32DEFS_H
+#define  _XW32DEFS_H
+
+#ifdef __GNUC__ /* mingw is more close to __unix__ than msvc */
+#if !defined(__daddr_t_defined) 
+typedef char *caddr_t;
+#endif
+#define lstat stat
+
+#else
+typedef char *caddr_t;
+
+#define access	   _access
+#define alloca	   _alloca
+#define chdir	_chdir
+#define chmod	   _chmod
+#define close	   _close
+#define creat	   _creat
+#define dup	   _dup
+#define dup2	   _dup2
+#define environ     _environ
+#define execl	 _execl
+#define execle	 _execle
+#define execlp	 _execlp
+#define execlpe  _execlpe
+#define execv	 _execv
+#define execve	 _execve
+#define execvp	 _execvp
+#define execvpe  _execvpe
+#define fdopen	  _fdopen
+#define fileno	  _fileno
+#define fstat	 _fstat
+#define getcwd	_getcwd
+#define getpid	 _getpid
+#define hypot		_hypot
+#define isascii __isascii
+#define isatty	   _isatty
+#define lseek	   _lseek
+#define mkdir	_mkdir
+#define mktemp	   _mktemp
+#define open	   _open
+#define putenv	    _putenv
+#define read	   _read
+#define rmdir	_rmdir
+#define sleep(x) Sleep((x) * 1000)
+#define stat	 _stat
+#define sys_errlist _sys_errlist
+#define sys_nerr    _sys_nerr
+#define umask	   _umask
+#define unlink	   _unlink
+#define write	   _write
+#define random   rand
+#define srandom  srand
+
+#define O_RDONLY    _O_RDONLY
+#define O_WRONLY    _O_WRONLY
+#define O_RDWR	    _O_RDWR
+#define O_APPEND    _O_APPEND
+#define O_CREAT     _O_CREAT
+#define O_TRUNC     _O_TRUNC
+#define O_EXCL	    _O_EXCL
+#define O_TEXT	    _O_TEXT
+#define O_BINARY    _O_BINARY
+#define O_RAW	    _O_BINARY
+
+#define S_IFMT	 _S_IFMT
+#define S_IFDIR  _S_IFDIR
+#define S_IFCHR  _S_IFCHR
+#define S_IFREG  _S_IFREG
+#define S_IREAD  _S_IREAD
+#define S_IWRITE _S_IWRITE
+#define S_IEXEC  _S_IEXEC
+
+#define	F_OK	0
+#define	X_OK	1
+#define	W_OK	2
+#define	R_OK	4
+#endif /* __GNUC__ */
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         P%   .   <%   ..  Q%  Ëslang.h                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         /*  DO NOT EDIT THIS FILE.
+
+    It has been auto-edited by fixincludes from:
+
+	"/usr/include/slang/slang.h"
+
+    This had to be done to correct non-standard usages in the
+    original, manufacturer supplied header file.  */
+
+#ifndef DAVIS_SLANG_H_
+#define DAVIS_SLANG_H_
+/* -*- mode: C; mode: fold; -*- */
+/*
+Copyright (C) 2004-2008 John E. Davis
+
+This file is part of the S-Lang Library.
+
+The S-Lang Library is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+
+The S-Lang Library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this library; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+USA.  
+*/
+
+#define SLANG_VERSION 20104
+#define SLANG_VERSION_STRING "2.1.4"
+/* #ifdef __DATE__ */
+/* # define SLANG_VERSION_STRING SLANG_VERSION_STRING0 " " __DATE__ */
+/* #else */
+/* # define SLANG_VERSION_STRING SLANG_VERSION_STRING0 */
+/* #endif */
+/*{{{ System Dependent Macros and Typedefs */
+
+#if defined(__WATCOMC__) && defined(DOS)
+# ifndef __MSDOS__
+#  define __MSDOS__
+# endif
+# ifndef  DOS386
+#  define  DOS386
+# endif
+# ifndef IBMPC_SYSTEM
+#  define IBMPC_SYSTEM
+# endif
+#endif /* __watcomc__ */
+
+#if defined(__unix__) || defined(__unix)
+# ifndef __unix__
+#  define __unix__ 1
+# endif
+#endif
+
+#if defined(__APPLE__)
+# ifndef __unix__
+#  define __unix__ 1		       /* cough */
+# endif
+#endif
+  
+#if !defined(__GO32__)
+# ifdef __unix__
+#  define REAL_UNIX_SYSTEM
+# endif
+#endif
+
+/* Set of the various defines for pc systems.  This includes OS/2 */
+#ifdef __GO32__
+# ifndef __DJGPP__
+#  define __DJGPP__ 1
+# endif
+# ifndef IBMPC_SYSTEM
+#   define IBMPC_SYSTEM
+# endif
+#endif
+
+#ifdef __BORLANDC__
+# ifndef IBMPC_SYSTEM
+#  define IBMPC_SYSTEM
+# endif
+#endif
+
+#ifdef __MSDOS__
+# ifndef IBMPC_SYSTEM
+#   define IBMPC_SYSTEM
+# endif
+#endif
+
+#if defined(OS2) || defined(__os2__)
+# ifndef IBMPC_SYSTEM
+#   define IBMPC_SYSTEM
+# endif
+# ifndef __os2__
+#  define __os2__
+# endif
+#endif
+
+#if defined(__NT__) || defined(__MINGW32__) /* || defined(__CYGWIN32__) */
+# ifndef IBMPC_SYSTEM
+#  define IBMPC_SYSTEM
+# endif
+#endif
+
+#if defined(WIN32) || defined(__WIN32__)
+# ifndef IBMPC_SYSTEM
+#  define IBMPC_SYSTEM
+# endif
+# ifndef __WIN32__
+#  define __WIN32__
+# endif
+#endif
+
+#if defined(IBMPC_SYSTEM) || defined(VMS)
+# ifdef REAL_UNIX_SYSTEM
+#  undef REAL_UNIX_SYSTEM
+# endif
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if 0
+}
+#endif
+
+#include <stdio.h>
+#include <stdarg.h>
+#if defined(__STDC__) || defined(__BORLANDC__) || defined(__cplusplus)
+# include <stddef.h>		       /* for offsetof */
+#endif
+
+#ifdef SIZEOF_SHORT
+# define SLANG_SIZEOF_SHORT SIZEOF_SHORT
+#endif
+#ifdef SIZEOF_INT
+# define SLANG_SIZEOF_INT SIZEOF_INT
+#endif
+#ifdef SIZEOF_FLOAT
+# define SLANG_SIZEOF_FLOAT SIZEOF_FLOAT
+#endif
+#ifdef SIZEOF_DOUBLE
+# define SLANG_SIZEOF_DOUBLE SIZEOF_DOUBLE
+#endif
+
+#if !defined(SIZEOF_SHORT) || !defined(SIZEOF_INT) || !defined(SIZEOF_LONG) || !defined(SIZEOF_FLOAT) || !defined(SIZEOF_DOUBLE)
+# include <limits.h>
+# if !defined(SIZEOF_SHORT) && defined(SHRT_MAX)
+#  if SHRT_MAX == 32767
+#   define SLANG_SIZEOF_SHORT 2
+#  else
+#   if SHRT_MAX == 2147483647L
+#    define SLANG_SIZEOF_SHORT 4
+#   endif
+#  endif
+# endif
+# if !defined(SIZEOF_INT) && defined(INT_MAX)
+#  if INT_MAX == 32767
+#   define SLANG_SIZEOF_INT 2
+#  else
+#   if INT_MAX == 2147483647L
+#    define SLANG_SIZEOF_INT 4
+#   endif
+#  endif
+# endif
+# if !defined(SIZEOF_LONG) && defined(LONG_MAX)
+#  if LONG_MAX == 32767
+#   define SLANG_SIZEOF_LONG 2
+#  else
+#   if LONG_MAX == 2147483647L
+#    define SLANG_SIZEOF_LONG 4
+#   else
+#    define SLANG_SIZEOF_LONG 8
+#   endif
+#  endif
+# endif
+#endif
+
+#ifndef SLANG_SIZEOF_SHORT
+# define SLANG_SIZEOF_SHORT 2
+#endif
+#ifndef SLANG_SIZEOF_INT
+# define SLANG_SIZEOF_INT 4
+#endif
+#ifndef SLANG_SIZEOF_LONG
+# define SLANG_SIZEOF_LONG 4
+#endif
+#ifndef SLANG_SIZEOF_FLOAT
+# define SLANG_SIZEOF_FLOAT 4
+#endif
+#ifndef SLANG_SIZEOF_DOUBLE
+# define SLANG_SIZEOF_DOUBLE 8
+#endif
+
+/* ---------------------------- Generic Macros ----------------------------- */
+
+/*  __SC__ is defined for Symantec C++
+   DOS386 is defined for -mx memory model, 32 bit DOS extender. */
+
+#if defined(__SC__) && !defined(DOS386)
+# include <dos.h>
+#endif
+
+#if defined(__BORLANDC__)
+# include <alloc.h>
+#endif
+
+#ifdef __GNUC__
+# define SLATTRIBUTE_(x) __attribute__ (x)
+#else
+# define SLATTRIBUTE_(x)
+#endif
+#define SLATTRIBUTE_PRINTF(a,b) SLATTRIBUTE_((format(printf,a,b)))
+  
+#if defined (__cplusplus) || defined(__STDC__) || defined(IBMPC_SYSTEM)
+typedef void *VOID_STAR;
+#define SLCONST const
+#else
+typedef unsigned char *VOID_STAR;
+#define SLCONST
+#endif
+
+#ifdef ENABLE_SLFUTURE_CONST
+# define SLFUTURE_CONST SLCONST
+#else
+# define SLFUTURE_CONST
+#endif
+
+typedef int (*FVOID_STAR)(void);
+
+#if defined(__MSDOS__) && defined(__BORLANDC__)
+# define SLFREE(buf)  farfree((void far *)(buf))
+# define SLMALLOC(x) farmalloc((unsigned long) (x))
+# define SLREALLOC(buf, n) farrealloc((void far *) (buf), (unsigned long) (n))
+# define SLCALLOC(n, m) farcalloc((unsigned long) (n), (unsigned long) (m))
+#else
+# if defined(VMS) && !defined(__DECC)
+#  define SLFREE VAXC$FREE_OPT
+#  define SLMALLOC VAXC$MALLOC_OPT
+#  define SLREALLOC VAXC$REALLOC_OPT
+#  define SLCALLOC VAXC$CALLOC_OPT
+# else
+#  define SLFREE(x) free((char *)(x))
+#  define SLMALLOC malloc
+#  define SLREALLOC realloc
+#  define SLCALLOC calloc
+# endif
+#endif
+
+#if (defined(__WIN32__) || defined(__CYGWIN32__)) && defined(SLANG_DLL) && SLANG_DLL
+# define SL_EXPORT __declspec(dllexport)
+# define SL_IMPORT __declspec(dllimport)
+#else
+# define SL_EXPORT
+# define SL_IMPORT
+#endif
+#ifdef SLANG_SOURCE_
+# define SL_EXTERN extern SL_EXPORT
+#else
+# define SL_EXTERN extern SL_IMPORT
+#endif
+
+SL_EXTERN char *SLdebug_malloc (unsigned long);
+SL_EXTERN char *SLdebug_calloc (unsigned long, unsigned long);
+SL_EXTERN char *SLdebug_realloc (char *, unsigned long);
+SL_EXTERN void SLdebug_free (char *);
+SL_EXTERN void SLmalloc_dump_statistics (void);
+SL_EXTERN char *SLstrcpy(register char *, register char *);
+SL_EXTERN int SLstrcmp(register char *, register char *);
+SL_EXTERN char *SLstrncpy(char *, register char *, register  int);
+
+SL_EXTERN void SLmemset (char *, char, int);
+SL_EXTERN char *SLmemchr (register char *, register char, register int);
+SL_EXTERN char *SLmemcpy (char *, char *, int);
+SL_EXTERN int SLmemcmp (char *, char *, int);
+
+/*}}}*/
+
+/* SLstrings */
+typedef char SLstr_Type;
+/* An SLstr_Type object must be treated as a constant and may only be freed
+ * by the SLang_free_slstring function and nothing else.
+ */
+SL_EXTERN SLstr_Type *SLang_create_nslstring (SLFUTURE_CONST char *, unsigned int);
+SL_EXTERN SLstr_Type *SLang_create_slstring (SLFUTURE_CONST char *);
+SL_EXTERN void SLang_free_slstring (SLstr_Type *);    /* handles NULL */
+SL_EXTERN int SLang_pop_slstring (SLstr_Type **);   /* free with SLang_free_slstring */
+SL_EXTERN SLstr_Type *SLang_concat_slstrings (SLstr_Type *a, SLstr_Type *b);
+
+SL_EXTERN void SLstring_dump_stats (void);
+
+
+/*{{{ UTF-8 and Wide Char support */
+
+#if SLANG_SIZEOF_INT == 4
+typedef unsigned int SLwchar_Type;
+# define SLANG_WCHAR_TYPE SLANG_UINT_TYPE
+# define SLang_push_wchar SLang_push_uint
+# define SLang_pop_wchar SLang_pop_uint
+#else
+typedef unsigned long SLwchar_Type;
+# define SLANG_WCHAR_TYPE SLANG_ULONG_TYPE
+# define SLang_push_wchar SLang_push_ulong
+# define SLang_pop_wchar SLang_pop_ulong
+#endif
+typedef unsigned char SLuchar_Type;
+
+/* Maximum multi-byte len for a unicode wchar */
+#define SLUTF8_MAX_MBLEN	6
+
+/* If argument is 1, force UTF-8 mode on.  If argument is 0, force mode off.
+ * If -1, determine mode from the locale.
+ * Returns 1 if enabled, 0 if not.
+ */
+SL_EXTERN int SLutf8_enable (int);
+SL_EXTERN int SLutf8_is_utf8_mode (void);
+SL_EXTERN int SLtt_utf8_enable (int);
+SL_EXTERN int SLtt_is_utf8_mode (void);
+SL_EXTERN int SLsmg_utf8_enable (int);
+SL_EXTERN int SLsmg_is_utf8_mode (void);
+SL_EXTERN int SLinterp_utf8_enable (int);
+SL_EXTERN int SLinterp_is_utf8_mode (void);
+  
+SL_EXTERN SLwchar_Type SLwchar_toupper (SLwchar_Type);
+SL_EXTERN SLwchar_Type SLwchar_tolower (SLwchar_Type);
+
+SL_EXTERN int SLwchar_wcwidth (SLwchar_Type);
+SL_EXTERN int SLwchar_isalnum (SLwchar_Type);
+SL_EXTERN int SLwchar_isalpha (SLwchar_Type);
+SL_EXTERN int SLwchar_isblank (SLwchar_Type);
+SL_EXTERN int SLwchar_iscntrl (SLwchar_Type);
+SL_EXTERN int SLwchar_isdigit (SLwchar_Type);
+SL_EXTERN int SLwchar_isgraph (SLwchar_Type);
+SL_EXTERN int SLwchar_islower (SLwchar_Type);
+SL_EXTERN int SLwchar_isprint (SLwchar_Type);
+SL_EXTERN int SLwchar_ispunct (SLwchar_Type);
+SL_EXTERN int SLwchar_isspace (SLwchar_Type);
+SL_EXTERN int SLwchar_isupper (SLwchar_Type);
+SL_EXTERN int SLwchar_isxdigit (SLwchar_Type);
+
+#define SLWCWIDTH_SINGLE_WIDTH	0x0001 /* all double width characters given as single width */
+#define SLWCWIDTH_CJK_LEGACY	0x0002 /* Ambiguous characters given width of 2 */
+SL_EXTERN int SLwchar_set_wcwidth_flags (int flags);
+
+/* The skip_char functions also skip over malformed strings counting each byte
+ * in the malformed sequence.
+ */
+SL_EXTERN SLuchar_Type *SLutf8_skip_char (SLuchar_Type *u, SLuchar_Type *umax);
+SL_EXTERN SLuchar_Type *SLutf8_bskip_char (SLuchar_Type *umin, SLuchar_Type *u);
+SL_EXTERN SLuchar_Type *SLutf8_skip_chars (SLuchar_Type *u, SLuchar_Type *umax,
+					unsigned int num, unsigned int *dnum,
+					int ignore_combining );
+SL_EXTERN SLuchar_Type *SLutf8_bskip_chars (SLuchar_Type *umin, SLuchar_Type *u,
+					  unsigned int num, unsigned int *dnum,
+					 int ignore_combining);
+
+/* The SLutf8_strup/lo functions return slstrings -- free with SLang_free_slstring */
+SL_EXTERN SLuchar_Type *SLutf8_strup (SLuchar_Type *u, SLuchar_Type *umax);
+SL_EXTERN SLuchar_Type *SLutf8_strlo (SLuchar_Type *u, SLuchar_Type *umax);
+
+SL_EXTERN SLstr_Type *SLutf8_subst_wchar (SLuchar_Type *u, SLuchar_Type *umax,
+				       SLwchar_Type wch, unsigned int pos,
+				       int ignore_combining);
+
+
+SL_EXTERN unsigned int SLutf8_strlen (SLuchar_Type *s, int ignore_combining);
+SL_EXTERN SLuchar_Type *SLutf8_decode (SLuchar_Type *u, SLuchar_Type *umax,
+				     SLwchar_Type *w, unsigned int *nconsumedp);
+SL_EXTERN SLuchar_Type *SLutf8_encode (SLwchar_Type w, SLuchar_Type *u, unsigned int ulen);
+
+SL_EXTERN int SLutf8_compare (SLuchar_Type *a, SLuchar_Type *amax, 
+                           SLuchar_Type *b, SLuchar_Type *bmax,
+                           unsigned int nchars, int case_sensitive);
+
+/* In these functions, buf is assumed to contain at least SLUTF8_MAX_MBLEN+1 
+ * bytes 
+ */
+SL_EXTERN SLuchar_Type *SLutf8_extract_utf8_char (SLuchar_Type *u, SLuchar_Type *umax, SLuchar_Type *buf);
+SL_EXTERN SLuchar_Type *SLutf8_encode_null_terminate (SLwchar_Type w, SLuchar_Type *buf);
+
+
+typedef struct SLwchar_Lut_Type SLwchar_Lut_Type;
+SL_EXTERN SLwchar_Lut_Type *SLwchar_create_lut (unsigned int num_entries);
+SL_EXTERN int SLwchar_add_range_to_lut (SLwchar_Lut_Type *r, SLwchar_Type a, SLwchar_Type b);
+SL_EXTERN SLuchar_Type *SLwchar_skip_range (SLwchar_Lut_Type *r, SLuchar_Type *p,
+					 SLuchar_Type *pmax, int ignore_combining,
+					 int invert);
+SL_EXTERN SLwchar_Lut_Type *SLwchar_strtolut (SLuchar_Type *u, 
+					   int allow_range, int allow_charclass);
+SL_EXTERN void SLwchar_free_lut (SLwchar_Lut_Type *r);
+SL_EXTERN SLuchar_Type *SLwchar_bskip_range (SLwchar_Lut_Type *r, SLuchar_Type *pmin,
+					  SLuchar_Type *p,
+					  int ignore_combining,
+					  int invert);
+SL_EXTERN int SLwchar_in_lut (SLwchar_Lut_Type *r, SLwchar_Type wch);
+
+
+typedef struct SLwchar_Map_Type SLwchar_Map_Type;
+SL_EXTERN void SLwchar_free_char_map (SLwchar_Map_Type *map);
+SL_EXTERN SLwchar_Map_Type *SLwchar_allocate_char_map (SLuchar_Type *from, SLuchar_Type *to);
+SL_EXTERN int SLwchar_apply_char_map (SLwchar_Map_Type *map, SLwchar_Type *input, SLwchar_Type *output, unsigned int num);
+
+/* This function returns a malloced string */
+SLuchar_Type *SLuchar_apply_char_map (SLwchar_Map_Type *~¡  ¡  Ä¡  Å¡  Ç¡  É¡  Ñ¡  Ö¡  Ü¡  á¡  à¡  â¡  ä¡  ã¡  å¡  ç¡  é¡  è¡  ê¡  ë¡  í¡  ì¡  î¡  ï¡  ñ¡  ó¡  ò¡  ô¡  ö¡  õ¡  ú¡  ù¡  û¡  ü¡  †¡  °¡  ¢¡  £¡  §¡  •¡  ¶¡  ß¡  ®¡  ©¡  ™¡  ´¡  ¨¡  ≠¡  Æ¡  Ø¡  ∞¡  ±¡  ≤¡  ≥¡  ¥¡  µ¡  ∂¡  ∑¡  ∏¡  π¡  ∫¡  ª¡  º¡  Ω¡  æ¡  ø¡  ¿¡  ¡¡  ¬¡  √¡  ƒ¡  ≈¡  ∆¡                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              map, SLuchar_Type *str);
+
+
+/*}}}*/
+
+/*{{{ Interpreter Typedefs */
+
+typedef unsigned int SLtype;
+/* typedef unsigned short SLtype; */
+
+typedef struct _pSLang_Name_Type
+{
+   SLFUTURE_CONST char *name;
+   struct _pSLang_Name_Type *next;
+   unsigned char name_type;
+   /* These values here map directly to byte codes.  See _slang.h.
+    */
+#define SLANG_LVARIABLE		0x01
+#define SLANG_GVARIABLE 	0x02
+#define SLANG_IVARIABLE 	0x03           /* intrinsic variables */
+   /* Note!!! For Macro MAKE_VARIABLE below to work, SLANG_IVARIABLE Must
+    be 1 less than SLANG_RVARIABLE!!! */
+#define SLANG_RVARIABLE		0x04	       /* read only variable */
+#define SLANG_INTRINSIC 	0x05
+#define SLANG_FUNCTION  	0x06
+#define SLANG_MATH_UNARY  	0x07
+#define SLANG_APP_UNARY  	0x08
+#define SLANG_ARITH_UNARY	0x09   /* private */
+#define SLANG_ARITH_BINARY	0x0A
+#define SLANG_ICONSTANT		0x0B
+#define SLANG_DCONSTANT		0x0C
+#define SLANG_FCONSTANT		0x0D
+#define SLANG_LLCONSTANT	0x0E
+#define SLANG_PVARIABLE		0x0F   /* private */
+#define SLANG_PFUNCTION		0x10   /* private */
+#define SLANG_HCONSTANT		0x11
+#define SLANG_LCONSTANT		0x12
+   /* Rest of fields depend on name type */
+}
+SLang_Name_Type;
+
+typedef struct
+{
+   SLFUTURE_CONST char *name;
+   struct _pSLang_Name_Type *next;      /* this is for the hash table */
+   char name_type;
+
+   FVOID_STAR i_fun;		       /* address of object */
+
+   /* Do not change this without modifying slang.c:execute_intrinsic_fun */
+#define SLANG_MAX_INTRIN_ARGS	7
+   SLtype arg_types [SLANG_MAX_INTRIN_ARGS];
+   unsigned char num_args;
+   SLtype return_type;
+}
+SLang_Intrin_Fun_Type;
+
+typedef struct
+{
+   SLFUTURE_CONST char *name;
+   SLang_Name_Type *next;
+   char name_type;
+
+   VOID_STAR addr;
+   SLtype type;
+}
+SLang_Intrin_Var_Type;
+
+typedef struct
+{
+   SLFUTURE_CONST char *name;
+   SLang_Name_Type *next;
+   char name_type;
+
+   int unary_op;
+}
+SLang_App_Unary_Type;
+
+typedef struct
+{
+   SLFUTURE_CONST char *name;
+   SLang_Name_Type *next;
+   char name_type;
+
+   int unary_op;
+}
+SLang_Math_Unary_Type;
+
+typedef struct
+{
+   SLF

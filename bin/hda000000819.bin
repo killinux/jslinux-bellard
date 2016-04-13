@@ -1,0 +1,2011 @@
+	    global i, n, s;
+	    n = argv();
+	    for (i = 0; i < n; i++)
+		    s += eval(argv(i));
+	    print "sum =", s;
+	    +
+
+    In executing the command:
+
+	    ./addall2 2 3 4
+
+    the $* in ths script expands to  2 3 4, and because of the "-s"
+    in the options, calc starts with argv(0) = "2", argv(1) = "3",
+    argv(2)= "4".  As there is only one calc process involved and
+    the eval() function accepts as argument any string that
+    represents the body of a calc function, the strings argv(0),
+    argv(1), ... could evaluate to any value types for which the
+    additions to be performed are defined, and variables defined in
+    one argv() can be used in later arguments.
+
+    For systems that support interpreter files, essentially the
+    same thing may be done more efficiently by using calc as an
+    interpreter.  Assuming the full path for calc is
+    /usr/local/bin/calc, one could use the file addall3 with contents
+
+	    #!/usr/bin/calc -q -s -f
+	    global i, n, s;
+	    n = argv();
+	    for (i = 1; i <= n; i++)
+		    s += eval(argv(i));
+	    print "sum =", s;
+
+	IMPORTANT NOTE:
+
+	    The -f flag must be at the very end of the #! line.
+	    The #! line must be the first line of the exeuctable file.
+	    The path after the #! must be the full path to the calc executable.
+
+    After the command:
+
+	    addall3 2 3 4
+
+    the arguments calc receives are argv(0) = "addall3", argv(1) =
+    "2", argv(3) = "3", argv(4) = "4".
+
+    Another kind of script that can be useful is sqrts1:
+
+	    calc -q 'global s; while (scanf("%s", s) == 1) print sqrt(eval(s));'
+
+    or what is essentially an interpreter equivalent sqrts2:
+
+	    #!/usr/local/bin/calc -q -f
+	    global s;
+	    while (scanf('%s', s) == 1)
+		    print sqrt(eval(s));
+
+    If sqrts is either of these scripts, the command:
+
+	    echo 27 2+3i | sqrts
+
+    or, if datafile contains the one line:
+
+	    27 2+3i
+
+    or the two lines:
+
+	    27
+	    2+3i
+
+    either:
+
+	    cat datafile | ./sqrts
+    or:
+	    ./sqrts < datafile
+
+    should display the square-roots of 27 and 2+3i.  The output could
+    be piped to another command by | or directed to a file by use of
+    ; or >>.
+
+    With no specified input, either sqrts1 or sqrts2 will wait
+    without any prompt for input from the keyboard and as each line
+    is completed display the square-roots of the expressions
+    entered.  Exit can be achieved by entering exit or entering
+    ctrl-D (interpreted as EOF) rather than a line of input.
+
+    One advantage of an interpreter file like sqrts2 (which has only
+    options, but neither "-s" nor "--" in its first line) is that it
+    can be invoked with further options as in
+
+	    echo 2 3 4 | ./sqrts2 -i -D 32
+
+    An advantage of non-interpreter files is that they can use shell
+    features.  For example, for unquoted arguments or arguments in
+    double quotes parameter expansion (indicated by unquoted '$') and
+    command substitution (using backquotes) occur before lines are
+    compiled by calc.  For example, if doit is an executable
+    script with contents
+
+	    calc -q -- "$1($2)"
+
+    it may be used as in:
+
+	    ./doit sqrt 7
+    and:
+	    ./doit exp 7
+
+    to display the values of sqrt(7) and exp(7).  The "--" prevents a
+    leading '-' in the $1 argument as indicating one or more additional
+    options. E.g., without the "--" in doit,
+
+	    ./doit -sqrt 7
+
+    would be interpreted as:
+
+	    calc -q "-sqrt(7)"
+
+    in which the dash in the quoted part would be taken as indicating a
+    list of options -s, -q, -r, etc.; this would give an "illegal option"
+    error as calc has no -r option.
+
+    In invoking the doit script it is not necessary that $1 expand to a
+    calc function name and $2 to an expression; all that is required is
+    that:
+
+	    $1($2)
+
+    expands to a string that calc will recognize as a command.  E.g.:
+
+	    ./doit "define f(x) = x^2; 2 + mod" "f(7), 6"
+
+    does the same as:
+
+	    calc -q -- "define f(x) = x^2; 2 + mod(f(7), 6)"
+
+    Essentially the same is achieved by the contents of doit is changed to:
+
+	    calc -q -p -- << +
+	    $1($2)
+	    +
+
+    The "-p" stops calc going interactive; without it the effect would be
+    be the same as that of a script with the one line:
+
+	    calc -q -i -- "$1($2)"
+
+For more information use the following calc commands:
+
+    help usage
+    help argv
+    help config
+    help cscript
+
+## Copyright (C) 2000  Landon Curt Noll and Ernest Bowen
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: script,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/script,v $
+##
+## Under source code control:	1999/11/30 05:29:48
+## File existed as early as:	1999
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+
+*************
+* usage
+*************
+
+
+*************
+* cscript
+*************
+
+calc shell script examples
+--------------------------
+
+These calc shell scripts are provided because they serve as examples of
+how use the calc language, and/or because the authors thought them to
+be useful!
+
+Please note that calc shell scripts must start with the line:
+
+    #!/usr/bin/calc -q -f
+
+The above line MUST start in column 1 of the first line.   The first line
+must also end in -f.  The -q is optional, but is recommended to disable
+the processing of calc startup scripts.
+
+Also please note that single # shell line comments are not supported in calc.
+Comments must be /* c-like comment */ or start with a double ## symbol.
+
+This is the correct way to form a calc shell script:
+
+    #!/usr/bin/calc -q -f
+
+    /* a correct comment */
+    ## another correct comment
+    ### two or more together is also a comment
+    /*
+     * another correct comment
+     */
+    print "2+2 =", 2+2;	## yet another comment
+
+The first argument after the path to calc executable must be an -S.
+The next arguments are optional.  The -q is often recommended because
+it will disable the processing of the startup scripts.
+
+For more informaton about calc command lines, see "help usage".
+
+This next example WRONG:
+
+    #!/usr/bin/calc -q
+
+    # This is not a calc calc comment because it has only a single #
+    # You must to start comments with ## or /*
+    # is is also wrong because the first line does not end in -f
+    print "This example has invalid comments"
+
+#####
+
+If you write something that you think is useful, please send it to:
+
+    calc-contrib at asthe dot com
+
+    [[ NOTE: Replace 'at' with @, 'dot' is with . and remove the spaces ]]
+    [[ NOTE: The EMail address uses 'asthe' and the web site URL uses 'isthe' ]]
+
+For more info, see:
+
+    help script
+    help cscript
+
+=-=
+
+4dsphere
+
+    Determine if 6 points lie on the surface of a 4-dimensional sphere in R^4.
+
+    4dsphere x0 y0 z0 w0   x1 y1 z1 w1   ...   x5 y5 z5 w5
+
+	x0 y0 z0 w0     point 0 in R^4
+	x1 y1 z1 w1     point 1 in R^4
+	...             ...
+	x5 y5 z5 w5     point 5 in R^4
+
+
+fproduct filename term ...
+
+    Write the big Endian product of terms to a file.  Use - for stdout.
+
+
+mersenne exp
+
+    Print the value of 2^exp-1.
+
+
+piforever
+
+    Print the value of pi forever, or as long as you cpu / memory allows.
+
+
+plus arg ...
+
+    Print the sum of 1 or more arguments.
+
+
+powerterm [base_limit] value
+
+    Print the value as a sum (or difference) of powers of integers up
+    to and including powers <= base_limit.  By default, base_limit is 10000.
+
+
+simple
+
+    A trivial example of a calc shell script.
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: README.src,v 30.1 2007/03/16 11:12:11 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/cscript/RCS/README.src,v $
+##
+## Under source code control:	1999/12/17 10:23:40
+## File existed as early as:	1999
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* unexpected
+*************
+
+Unexpected
+
+    While calc is C-like, users of C will find some unexpected
+    surprises in calc syntax and usage.	 Persons familiar with C should
+    review this file.
+
+    Persons familiar with shell scripting may want to review this file
+    as well, particularly notes dealing with command line evaluation
+    and execution.
+
+
+    The Comma
+    =========
+
+    The comma is also used for continuation of obj and mat creation
+    expressions and for separation of expressions to be used for
+    arguments or values in function calls or initialization lists.  The
+    precedence order of these different uses is:  continuation,
+    separator, comma operator.	For example, assuming the variables a,
+    b, c, d, e, and object type xx have been defined, the arguments
+    passed to f in:
+
+	    f(a, b, c, obj xx d, e)
+
+    are a, b, c, and e, with e having the value of a newly created xx
+    object.  In:
+
+	    f((a, b), c, (obj xx d), e)
+
+    the arguments of f are b, c, d, e, with only d being a newly
+    created xx object.
+
+    In combination with other operators, the continuation use of the
+    comma has the same precedence as [] and ., the separator use the
+    same as the comma operator.	 For example, assuming xx.mul() has
+    been defined:
+
+	    f(a = b, obj xx c, d = {1,2} * obj xx e = {3,4})
+
+    passes two arguments: a (with value b) and the product d * e of two
+    initialized xx objects.
+
+
+    ^ is not xor
+    ** is exponentiation
+    ====================
+
+    In C, ^ is the xor operator. The expression:
+
+	    a ^ b
+
+    yields "a to the b power", NOT "a xor b".
+
+    Unlike in C, calc evaluates the expression:
+
+	    a ** b
+
+    also yields "a to the b power".
+
+    Here "a" and "b" can be a real value or a complex value:
+
+	2^3			3i^4
+	2.5 ^ 3.5		0.5i ^ 0.25
+	2.5 ^ 2.718i		3.13145i ^ 0.30103i
+
+    In addition, "a" can be matrix.  In this case "b" must be an integer:
+
+	mat a[2,2] = {1,2,3,4};
+	a^3
+
+    Note that 'a' == 0 and 'b' is real, then is must be >= 0 as well.
+    Also 0^0 and 0**0 return the value 1.
+
+    Be careful about the precedence of operators.  Note that:
+
+    	-1 ^ 0.5 == -1
+
+    whereas:
+
+    	(-1) ^ 0.5 == 1i
+
+    because the above expression in parsed as:
+
+	-(1 ^ 0.5) == -1
+
+    whereas:
+
+    	(-1) ^ 0.5 == 1i
+
+
+    op= operators associate left to right
+    =====================================
+
+    Operator-with-assignments:
+
+	    +=	-=  *=	/=  %=	//=  &=	 |=  <<=  >>=  ^=  **=
+
+    associate from left to right instead of right to left as in C.
+    For example:
+
+	    a += b *= c
+
+    has the effect of:
+
+	    a = (a + b) * c
+
+    where only 'a' is required to be an lvalue.	 For the effect of:
+
+	    b *= c; a += b
+
+    when both 'a' and 'b' are lvalues, use:
+
+	    a += (b *= c)
+
+
+    || yields values other than 0 or 1
+    ==================================
+
+    In C:
+
+	    a || b
+
+    will produce 0 or 1 depending on the logical evaluation
+    of the expression.	In calc, this expression will produce
+    either 'a' or 'b' and is equivalent to the expression:
+
+	    a ? a : b
+
+    In other words, if 'a' is true, then 'a' is returned, otherwise
+    'b' is returned.
+
+
+    && yields values other than 0 or 1
+    ==================================
+
+    In C:
+
+	    a && b
+
+    will produce 0 or 1 depending on the logical evaluation
+    of the expression.	In calc, this expression will produce
+    either 'a' or 'b' and is equivalent to the expression:
+
+	    a ? b : a
+
+    In other words, if 'a' is true, then 'b' is returned, otherwise
+    'a' is returned.
+
+
+    / is fractional divide, // is integral divide
+    =============================================
+
+    In C:
+
+	    x/y
+
+    performs integer division when 'x' and 'y' are integer types.
+    In calc, this expression yields a rational number.
+
+    Calc uses:
+
+	    x//y
+
+    to perform division with integer truncation and is the equivalent to:
+
+	    int(x/y)
+
+
+    | and & have higher precedence than ==, +, -, *, / and %
+    ========================================================
+
+    Is C:
+
+	    a == b | c * d
+
+    is interpreted as:
+
+	    (a == b) | (c * d)
+
+    and calc it is interpreted as:
+
+	    a == ((b | c) * d)
+
+
+    calc always evaluates terms from left to right
+    ==============================================
+
+    Calc has a definite order for evaluation of terms (addends in a
+    sum, factors in a product, arguments for a function or a matrix,
+    etc.).  This order is always from left to right. but skipping of
+    terms may occur for ||, && and ? : .
+
+    Consider, for example:
+
+	    A * B + C * D
+
+    In calc above expression is evaluated in the following order:
+
+	    A
+	    B
+	    A * B
+	    C
+	    D
+	    C * D
+	    A * B + C * D
+
+    This order of evaluation is significant if evaluation of a
+    term changes a variable on which a later term depends.  For example:
+
+	    x++ * x++ + x++ * x++
+
+    in calc returns the value:
+
+	    x * (x + 1) + (x + 2) * (x + 3)
+
+    and increments x as if by x += 4.  Similarly, for functions f, g,
+    the expression:
+
+	    f(x++, x++) + g(x++)
+
+    evaluates to:
+
+	    f(x, x + 1) + g(x + 2)
+
+    and increments x three times.
+
+    In an other example, this expression:
+
+	1<<8/2
+
+    evalues to 128, not 16, because <<8 is performed before the /2.
+
+
+    &A[0] and A are different things in calc
+    ========================================
+
+    In calc, value of &A[0] is the address of the first element, whereas
+    A is the entire array.
+
+
+    *X may be used to to return the value of X
+    ==========================================
+
+    If the current value of a variable X is an octet, number or string,
+    *X may be used to to return the value of X; in effect X is an
+    address and *X is the value at X.
+
+
+    freeing a variable has the effect of assigning the null value to it
+    ===================================================================
+
+    The freeglobals(), freestatics(), freeredc() and free() free
+    builtins to not "undefine" the variables, but have the effect of
+    assigning the null value to them, and so frees the memory used for
+    elements of a list, matrix or object.
+
+    Along the same lines:
+
+	    undefine *
+
+    undefines all current user-defined functions.  After executing
+    all the above freeing functions (and if necessary free(.) to free
+    the current "old value"), the only remaining numbers as displayed by
+
+	    show numbers
+
+    should be those associated with epsilon(), and if it has been
+    called, qpi().
+
+
+    #! is also a comment
+    ====================
+
+    In addition to the C style /* comment lines */, lines that begin with
+    #! are treated as comments.
+
+    A single # is an calc operator, not a comment.  However two or more
+    ##'s in a row is a comment.  See "help pound" for more information.
+
+    	#!/usr/local/src/cmd/calc/calc -q -f
+
+	/* a correct comment */
+	## another correct comment
+	### two or more together is also a comment
+	/*
+	 * another correct comment
+	 */
+	print "2+2 =", 2+2;	## yet another comment
+
+    This next example is WRONG:
+
+    	#!/usr/local/src/cmd/calc/calc -q -f
+
+	# This is not a calc calc comment because it has only a single #
+	# You must to start comments with ## or /*
+	print "This example has invalid comments"
+
+    See "help cscript" and "help usage" for more information.
+
+
+    The { must be on the same line as an if, for, while or do
+    =========================================================
+
+    When statement is of the form { ... }, the leading { MUST BE ON
+    THE SAME LINE as the if, for, while or do keyword.
+
+    This works as expected:
+
+	if (expr) {
+	    ...
+	}
+
+    However this WILL NOT WORK AS EXPECTED:
+
+	if (expr)
+	{
+	    ...
+	}
+
+    because calc will parse the if being terminated by
+    an empty statement followed by a
+
+	if (expr) ;
+	{
+	    ...
+	}
+
+    In the same way, use these forms:
+
+	for (optionalexpr ; optionalexpr ; optionalexpr) {
+		...
+	}
+
+	while (expr) {
+		...
+	}
+
+	do {
+		...
+	while (expr);
+
+    where the initial { is on the SAME LINE as the if, while,
+    for or do keyword.
+
+    NOTE: See "help statement", "help todo", and "help bugs".
+
+
+    Shell evaluation of command line arguments
+    ==========================================
+
+    In most interactive shells:
+
+    	calc 2 * 3
+
+    will frequently produce a "Missing operator" error because the '*' is
+    evaluated as a "shell glob".  To avoid this you must quote or escape
+    argument with characters that your interactive shell interprets.
+
+    For example, bash / ksh / sh shell users should use:
+
+    	calc '2 * 3'
+
+    or:
+
+    	calc 2 \* 3
+
+    or some other form of shell meta-character escaping.
+
+
+    Calc reads standard input after processing command line args
+    ============================================================
+
+    The shell command:
+
+	seq 5 | while read i; do calc "($i+3)^2"; done
+
+	FYI: The command "seq 5" will write 1 through 5 on separate
+	     lines on standard output, while read i sets $i to
+	     the value of each line that is read from stdin.
+
+    will produce:
+
+        16
+	2
+	3
+	4
+	5
+
+    The reason why the last 4 lines of output are 2 through 5 is
+    that after calc evaluates the first line and prints (1+3)^2
+    (i.e., 16), calc continues to read stdin and slurps up all
+    of the remaining data on the pipe.
+
+    To avoid this problem, use:
+
+    	seq 5 | while read i; do calc "($i+3)^2" </dev/null; done
+
+    which produces the expected results:
+
+	16
+	25
+	36
+	49
+	64
+
+
+## Copyright (C) 1999-2007  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.4 $
+## @(#) $Id: unexpected,v 30.4 2008/05/10 13:18:09 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/unexpected,v $
+##
+## Under source code control:	1997/03/21 13:15:18
+## File existed as early as:	1997
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* variable
+*************
+
+Variable declarations
+
+    Variables can be declared as either being global, local, or static.
+    Global variables are visible to all functions and on the command
+    line, and are permanent.  Local variables are visible only within
+    a single function or command sequence.  When the function or command
+    sequence returns, the local variables are deleted.	Static variables
+    are permanent like global variables, but are only visible within the
+    same input file or function where they are defined.
+
+    To declare one or more variables, the 'local', 'global', or 'static'
+    keywords are used, followed by the desired list of variable names,
+    separated by commas.  The definition is terminated with a semicolon.
+    Examples of declarations are:
+
+	    local	x, y, z;
+	    global	fred;
+	    local	foo, bar;
+	    static	var1, var2, var3;
+
+    Variables may have initializations applied to them.	 This is done
+    by following the variable name by an equals sign and an expression.
+    Global and local variables are initialized each time that control
+    reaches them (e.g., at the entry to a function which contains them).
+    Static variables are initialized once only, at the time that control
+    first reaches them (but in future releases the time of initialization
+    may change).  Unlike in C, expressions for static variables may
+    contain function calls and refer to variables.  Examples of such
+    initializations are:
+
+	    local	a1 = 7, a2 = 3;
+	    static	b = a1 + sin(a2);
+
+    Within function declarations, all variables must be defined.
+    But on the top level command line, assignments automatically define
+    global variables as needed.	 For example, on the top level command
+    line, the following defines the global variable x if it had not
+    already been defined:
+
+	    x = 7
+
+    The static keyword may be used at the top level command level to
+    define a variable which is only accessible interactively, or within
+    functions defined interactively.
+
+    Variables have no fixed type, thus there is no need or way to
+    specify the types of variables as they are defined.	 Instead, the
+    types of variables change as they are assigned to or are specified
+    in special statements such as 'mat' and 'obj'.  When a variable is
+    first defined using 'local', 'global', or 'static', it has the
+    value of zero.
+
+    If a procedure defines a local or static variable name which matches
+    a global variable name, or has a parameter name which matches a
+    global variable name, then the local variable or parameter takes
+    precedence within that procedure, and the global variable is not
+    directly accessible.
+
+    The MAT and OBJ keywords may be used within a declaration statement
+    in order to initially define variables as that type.  Initialization
+    of these variables are also allowed.  Examples of such declarations
+    are:
+
+	    static mat table[3] = {5, 6, 7};
+	    local obj point p1, p2;
+
+    When working with user-defined functions, the syntax for passing an
+    lvalue by reference rather than by value is to precede an expression
+    for the lvalue by a backquote. For example, if the function invert is
+    defined by:
+
+	    define invert(x) {x = inverse(x)}
+
+    then invert(`A) achieves the effect of A = inverse(A).  In other
+    words, passing and argument of `variable (with a back-quote)
+    will cause and changes to the function argument to be applied to
+    the calling variable.  Calling invert(A) (without the ` backquote)
+    assigns inverse(A) to the temporary function parameter x and leaves
+    A unchanged.
+
+    In an argument, a backquote before other than an lvalue is ignored.
+    Consider, for example:
+
+	    ; define logplus(x,y,z) {return log(++x + ++y + ++z);}
+
+	    ; eh = 55;
+	    ; mi = 25;
+	    ; answer = logplus(eh, `mi, `17);
+
+	    ; print eh, mi, answer;
+	    55 26 2
+
+    The value of eh is was not changed because eh was used as
+    an argument without a back-quote (`).  However, mi was incremented
+    because it was passed as `mi (with a back-quote).  Passing 17
+    (not an lvalue) as `17 has not effect on the value 17.
+
+    The back-quote should only be used before arguments to a function.
+    In all other contexts, a backquote causes a compile error.
+
+    Another method is to pass the address of the lvalue explicitly and
+    use the indirection operator * (star) to refer to the lvalue in the
+    function body.  Consider the following function:
+
+	    ; define ten(a) { *a = 10; }
+
+	    ; n = 17;
+	    ; ten(n);
+	    ; print n;
+	    17
+
+	    ; ten(`n);
+	    ; print n;
+	    17
+
+	    ; ten(&n);
+	    ; print n;
+	    10
+
+    Passing an argument with a & (ampersand) allows the tenmore()
+    function to modify the calling variable:
+
+	    ; wa = tenmore(&vx);
+	    ; print vx, wa;
+	    65 65
+
+    Great care should be taken when using a pointer to a local variable
+    or element of a matrix, list or object, since the lvalue pointed to
+    is deleted when evaluation of the function is completed or the lvalue
+    whose value is the matrix, list or object is assigned another value.
+
+    As both of the above methods (using & arguments (ampersand) *value
+    (star) function values or by using ` arguments (back quote) alone)
+    copy the address rather than the value of the argument to the function
+    parameter, they allow for faster calls of functions when the memory
+    required for the value is huge (such as for a large matrix).
+
+    As the built-in functions and object functions always accept their
+    arguments as addresses, there is no gain in using the backquote when
+    calling these functions.
+
+## Copyright (C) 1999-2006  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: variable,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/variable,v $
+##
+## Under source code control:	1991/07/21 04:37:25
+## File existed as early as:	1991
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* bindings
+*************
+
+# bindings - default key bindings for calc line editing functions
+#
+# Copyright (C) 1999  David I. Bell
+#
+# Calc is open software; you can redistribute it and/or modify it under
+# the terms of the version 2.1 of the GNU Lesser General Public License
+# as published by the Free Software Foundation.
+#
+# Calc is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.	See the GNU Lesser General
+# Public License for more details.
+#
+# A copy of version 2.1 of the GNU Lesser General Public License is
+# distributed with calc under the filename COPYING-LGPL.  You should have
+# received a copy with calc; if not, write to Free Software Foundation, Inc.
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# @(#) $Revision: 30.1 $
+# @(#) $Id: bindings,v 30.1 2007/03/16 11:09:54 chongo Exp $
+# @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/bindings,v $
+#
+# Under source code control:	1993/05/02 20:09:19
+# File existed as early as:	1993
+#
+# Share and enjoy!  :-) http://www.isthe.com/chongo/tech/comp/calc/
+
+# NOTE: This facility is ignored if calc was compiled with GNU-readline.
+#	In that case, the standard readline mechanisms (see readline(3))
+#	are used in place of those found below.
+
+
+map	base-map
+default insert-char
+^@	set-mark
+^A	start-of-line
+^B	backward-char
+^D	delete-char
+^E	end-of-line
+^F	forward-char
+^H	backward-kill-char
+^J	new-line
+^K	kill-line
+^L	refresh-line
+^M	new-line
+^N	forward-history
+^O	save-line
+^P	backward-history
+^R	reverse-search
+^T	swap-chars
+^U	flush-input
+^V	quote-char
+^W	kill-region
+^Y	yank
+^?	backward-kill-char
+^[	ignore-char	esc-map
+
+map	esc-map
+default ignore-char	base-map
+G	start-of-line
+H	backward-history
+P	forward-history
+K	backward-char
+M	forward-char
+O	end-of-line
+S	delete-char
+g	goto-line
+s	backward-word
+t	forward-word
+d	forward-kill-word
+u	uppercase-word
+l	lowercase-word
+h	list-history
+^[	flush-input
+[	arrow-key
+
+*************
+* custom_cal
+*************
+
+Custom calc resource files
+--------------------------
+
+The following custom calc resource files are provided because they serve
+as examples of how use the custom interface.  The custom interface
+allows for machine dependent and/or non-portable code to be added as
+builtins to the calc program.  A few example custom functions and
+resource files are shipped with calc to provide you with examples.
+
+By default, the custom builtin returns an error.  Calc have been
+built with:
+
+	ALLOW_CUSTOM= -DCUSTOM
+
+in the top level Makefile (this is the shipped default) and calc
+must be invoked with a -C argument:
+
+	calc -C
+
+when it is run.
+
+See the ../cal/README or "help resource" for information about
+calc resource standards and guidelines.
+
+=-=
+
+argv.cal
+
+    argv(var, ...)
+
+    print information about various args
+
+halflen.cal
+
+    halflen(num)
+
+    Calculate the length of a numeric value in HALF's.
+
+pzasusb8.cal
+
+    Run custom("pzasusb8") on a standard set of data, print Endian
+    related information and print value size information.
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: CUSTOM_CAL,v 30.1 2007/03/16 11:10:04 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/custom/RCS/CUSTOM_CAL,v $
+##
+## Under source code control:	1997/03/08 20:51:32
+## File existed as early as:	1997
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* libcalc
+*************
+
+	USING THE ARBITRARY PRECISION ROUTINES IN A C PROGRAM
+
+Part of the calc release consists of an arbitrary precision math link library.
+This link library is used by the calc program to perform its own calculations.
+If you wish, you can ignore the calc program entirely and call the arbitrary
+precision math routines from your own C programs.
+
+The link library is called libcalc.a, and provides routines to handle arbitrary
+precision arithmetic with integers, rational numbers, or complex numbers.
+There are also many numeric functions such as factorial and gcd, along
+with some transcendental functions such as sin and exp.
+
+Take a look at the sample sub-directory.  It contains a few simple
+examples of how to use libcalc.a that might be helpful to look at
+after you have read this file.
+
+------------------
+FIRST THINGS FIRST
+------------------
+
+...............................................................................
+.									      .
+. You MUST call libcalc_call_me_first() prior to using libcalc lib functions! .
+.									      .
+...............................................................................
+
+The function libcalc_call_me_first() takes no args and returns void.  You
+need call libcalc_call_me_first() only once.
+
+-------------
+INCLUDE FILES
+-------------
+
+To use any of these routines in your own programs, you need to include the
+appropriate include file.  These include files are:
+
+	zmath.h		(for integer arithmetic)
+	qmath.h		(for rational arithmetic)
+	cmath.h		(for complex number arithmetic)
+
+You never need to include more than one of the above files, even if you wish
+to use more than one type of arithmetic, since qmath.h automatically includes
+zmath.h, and cmath.h automatically includes qmath.h.
+
+The prototypes for the available routines are listed in the above include
+files.	Some of these routines are meant for internal use, and so aren't
+convenient for outside use.  So you should read the source for a routine
+to see if it really does what you think it does.  I won't guarantee that
+obscure internal routines won't change or disappear in future releases!
+
+When calc is installed, all of libraries are installed into /usr/lib.
+All of the calc header files are installed under ${INCDIRCALC}.
+
+If CALC_SRC is defined, then the calc header files will assume that
+they are in or under the current directory.  However, most external
+programs most likely will not be located under calc'c source tree.
+External programs most likely want to use the installed calc header
+files under ${INCDIRCALC}.  External programs most likely NOT want
+to define CALC_SRC.
+
+You need to include the following file to get the symbols and variables
+related to error handling:
+
+	lib_calc.h
+
+External programs may want to compile with:
+
+	-I${INCDIR} -L/usr/lib -lcalc
+
+If custom functions are also used, they may want to compile with:
+
+	-I${INCDIR} -L/usr/lib -lcalc -lcustcalc
+
+The CALC_SRC symbol should NOT be defined by default.  However if you are
+feeling pedantic you may want to force CALC_SRC to be undefined:
+
+	-UCALC_SRC
+
+as well.
+
+-------------------
+MATH ERROR HANDLING
+-------------------
+
+The math_error() function is called by the math routines on an error
+condition, such as malloc failures, division by zero, or some form of
+an internal computation error.  The routine is called in the manner of
+printf, with a format string and optional arguments:
+
+	    void math_error(char *fmt, ...);
+
+Your program must handle math errors in one of three ways:
+
+    1) Print the error message and then exit
+
+	There is a math_error() function supplied with the calc library.
+	By default, this routine simply prints a message to stderr and
+	then exits.  By simply linking in this link library„Ã  ‰Õ                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ‰Ã  ÂÃ  ÊÃ  ÁÃ  ËÃ  ÈÃ  ÍÃ  ÎÃ  ÏÃ  ÌÃ  ÓÃ  ÔÃ  Ã  ÒÃ  ÚÃ  ÛÃ  ÙÃ  ıÃ  ˆÃ  ˜Ã  ¯Ã  ˘Ã  ˙Ã  ˚Ã  ¸Ã  ˝Ã  ˛Ã  ˇÃ   Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  	Õ  
+Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ  Õ   Õ  !Õ  "Õ  #Õ  $Õ  %Õ  &Õ  'Õ  (Õ  )Õ  *Õ  +Õ  ,Õ  -Õ  .Õ  /Õ  0Õ  1Õ  2Õ  3Õ  4Õ  5Õ  6Õ  7Õ  8Õ  9Õ  :Õ  ;Õ  <Õ  =Õ  >Õ  ?Õ  @Õ  AÕ  BÕ  CÕ  DÕ  EÕ  FÕ  GÕ  HÕ  IÕ  JÕ  KÕ  LÕ  MÕ  NÕ  OÕ  PÕ  QÕ  RÕ  SÕ  TÕ  UÕ  VÕ  WÕ  XÕ  YÕ  ZÕ  [Õ  \Õ  ]Õ  ^Õ  _Õ  `Õ  aÕ  bÕ  cÕ  dÕ  eÕ  fÕ  gÕ  hÕ  iÕ  jÕ  kÕ  lÕ  mÕ  nÕ  oÕ  pÕ  qÕ  rÕ  sÕ  tÕ  uÕ  vÕ  wÕ  xÕ  yÕ  zÕ  {Õ  |Õ  }Õ  ~Õ  Õ  ÄÕ  ÅÕ  ÇÕ  ÉÕ  ÑÕ  ÖÕ  ÜÕ  áÕ  àÕ  âÕ  äÕ  ãÕ  åÕ  çÕ  éÕ  èÕ  êÕ  ëÕ  íÕ  ìÕ  îÕ  ïÕ  ñÕ  óÕ  òÕ  ôÕ  öÕ  õÕ  úÕ  ùÕ  ûÕ  üÕ  †Õ  °Õ  ¢Õ  £Õ  §Õ  •Õ  ¶Õ  ßÕ  ®Õ  ©Õ  ™Õ  ´Õ  ¨Õ  ≠Õ  ÆÕ  ØÕ  ∞Õ  ±Õ  ≤Õ  ≥Õ  ¥Õ  µÕ  ∂Õ  ∑Õ  ∏Õ  πÕ  ∫Õ  ªÕ  ºÕ  ΩÕ  æÕ  øÕ  ¿Õ  ¡Õ  ¬Õ  √Õ  ƒÕ  ≈Õ  ∆Õ  «Õ  »Õ  …Õ   Õ  ÀÕ  ÃÕ  ÕÕ  ŒÕ  œÕ  –Õ  —Õ  “Õ  ”Õ  ‘Õ  ’Õ  ÷Õ  ◊Õ  ÿÕ  ŸÕ  ⁄Õ  €Õ  ‹Õ  ›Õ  ﬁÕ  ﬂÕ  ‡Õ  ·Õ  ‚Õ  „Õ  , any calc
+	errors will result in a error message on stderr followed by
+	an exit.
+
+    2) Use setjmp and longjmp in your program
+
+	Use setjmp at some appropriate level in your program, and let
+	the longjmp in math_error() return to that level and to allow you
+	to recover from the error.  This is what the calc program does.
+
+	If one sets up calc_matherr_jmpbuf, and then sets
+	calc_use_matherr_jmpbuf to non-zero then math_error() will
+	longjmp back with the return value of calc_use_matherr_jmpbuf.
+	In addition, the last calc error message will be found in
+	calc_err_msg; this error is not printed to stderr.  The calc
+	error message will not have a trailing newline.
+
+	For example:
+
+	    #include <setjmp.h>
+	    #include "lib_calc.h"
+
+	    int error;
+
+	    ...
+
+	    if ((error = setjmp(calc_matherr_jmpbuf)) != 0) {
+
+		    /* report the error */
+		    printf("Ouch: %s\n", calc_err_msg);
+
+		    /* reinitialize calc after the longjmp */
+		    reinitialize();
+	    }
+	    calc_use_matherr_jmpbuf = 1;
+
+	If calc_use_matherr_jmpbuf is non-zero, then the jmp_buf value
+	calc_matherr_jmpbuf must be initialized by the setjmp() function
+	or your program will crash.
+
+    3) Supply your own math_error function:
+
+	    void math_error(char *fmt, ...);
+
+	Your math_error() function may exit or transfer control to outside
+	of the calc library, but it must never return or calc will crash.
+
+External programs can obtain the appropriate calc symbols by compiling with:
+
+	-I${INCDIR} -L/usr/lib -lcalc
+
+-------------------------
+PARSE/SCAN ERROR HANDLING
+-------------------------
+
+The scanerror() function is called when calc encounters a parse/scan
+error.  For example, scanerror() is called when calc is given code
+with a syntax error.
+
+The variable, calc_print_scanerr_msg, controls if calc prints to stderr,
+any parse/scan errors.  By default, this variable it set to 1 and so
+parse/scan errors are printed to stderr.  By setting this value to zero,
+parse/scan errors are not printed:
+
+	#include "lib_calc.h"
+
+	/* do not print parse/scan errors to stderr */
+	calc_print_scanerr_msg = 0;
+
+The last calc math error or calc parse/scan error message is kept
+in the NUL terminated buffer:
+
+	char calc_err_msg[MAXERROR+1];
+
+The value of calc_print_scanerr_msg does not change the use
+of the calc_err_msg[] buffer.  Messages are stored in that
+buffer regardless of the calc_print_scanerr_msg value.
+
+The calc_print_scanerr_msg and the calc_err_msg[] buffer are declared
+lib_calc.h include file.  The initialized storage for these variables
+comes from the calc library.  The MAXERROR symbol is also declared in
+the lib_calc.h include file.
+
+Your program must handle parse/scan errors in one of two ways:
+
+    1) exit on error
+
+	If you do not setup the calc_scanerr_jmpbuf, then when calc
+	encounters a parse/scan error, a message will be printed to
+	stderr and calc will exit.
+
+    2) Use setjmp and longjmp in your program
+
+	Use setjmp at some appropriate level in your program, and let
+	the longjmp in scanerror() return to that level and to allow you
+	to recover from the error.  This is what the calc program does.
+
+	If one sets up calc_scanerr_jmpbuf, and then sets
+	calc_use_scanerr_jmpbuf to non-zero then scanerror() will longjmp
+	back with the return with a non-zero code.  In addition, the last
+	calc error message will be found in calc_err_msg[]; this error is
+	not printed to stderr.	The calc error message will not have a
+	trailing newline.
+
+	For example:
+
+	    #include <setjmp.h>
+	    #include "lib_calc.h"
+
+	    int scan_error;
+
+	    ...
+
+	    /* delay the printing of the parse/scan error */
+	    calc_use_scanerr_jmpbuf = 0;	/* this is optional */
+
+	    if ((scan_error = setjmp(calc_scanerr_jmpbuf)) != 0) {
+
+		    /* report the parse/scan */
+		    if (calc_use_scanerr_jmpbuf == 0) {
+			    printf("parse error: %s\n", calc_err_msg);
+	    	    }
+
+		    /* initialize calc after the longjmp */
+		    initialize();
+	    }
+	    calc_use_scanerr_jmpbuf = 1;
+
+	If calc_use_scanerr_jmpbuf is non-zero, then the jmp_buf value
+	calc_scanerr_jmpbuf must be initialized by the setjmp() function
+	or your program will crash.
+
+External programs can obtain the appropriate calc symbols by compiling with:
+
+	-I${INCDIR} -L/usr/lib -lcalc
+
+---------------------------
+PARSE/SCAN WARNING HANDLING
+---------------------------
+
+Calc parse/scan warning message are printed to stderr by the warning()
+function.  The routine is called in the manner of printf, with a format
+string and optional arguments:
+
+	void warning(char *fmt, ...);
+
+The variable, calc_print_scanwarn_msg, controls if calc prints to stderr,
+any parse/scan warnings.  By default, this variable it set to 1 and so
+parse/scan warnings are printed to stderr.  By setting this value to zero,
+parse/scan warnings are not printed:
+
+	#include "lib_calc.h"
+
+	/* do not print parse/scan warnings to stderr */
+	calc_print_scanwarn_msg = 0;
+
+The last calc calc parse/scan warning message is kept in the NUL
+terminated buffer:
+
+	char calc_warn_msg[MAXERROR+1];
+
+The value of calc_print_scanwarn_msg does not change the use
+of the calc_warn_msg[] buffer.  Messages are stored in that
+buffer regardless of the calc_print_scanwarn_msg value.
+
+Your program must handle parse/scan warnings in one of two ways:
+
+    1) print the warning to stderr and continue
+
+	The warning() from libcalc prints warning messages to
+	stderr and returns.  The flow of execution is not changed.
+	This is what calc does by default.
+
+    2) Supply your own warning function:
+
+	    void warning(char *fmt, ...);
+
+	Your warning function should simply return when it is finished.
+
+External programs can obtain the appropriate calc symbols by compiling with:
+
+	-I${INCDIR} -L/usr/lib -lcalc
+
+
+---------------
+OUTPUT ROUTINES
+---------------
+
+The output from the routines in the link library normally goes to stdout.
+You can divert that output to either another FILE handle, or else
+to a string.  Read the routines in zio.c to see what is available.
+Diversions can be nested.
+
+You use math_setfp to divert output to another FILE handle.  Calling
+math_setfp with stdout restores output to stdout.
+
+Use math_divertio to begin diverting output into a string.  Calling
+math_getdivertedio will then return a string containing the output, and
+clears the diversion.  The string is reallocated as necessary, but since
+it is in memory, there are obviously limits on the amount of data that can
+be diverted into it.  The string needs freeing when you are done with it.
+
+Calling math_cleardiversions will clear all the diversions to strings, and
+is useful on an error condition to restore output to a known state.  You
+should also call math_setfp on errors if you had changed that.
+
+If you wish to mix your own output with numeric output from the math routines,
+then you can call math_chr, math_str, math_fill, math_fmt, or math_flush.
+These routines output single characters, output null-terminated strings,
+output strings with space filling, output formatted strings like printf, and
+flush the output.  Output from these routines is diverted as described above.
+
+You can change the default output mode by calling math_setmode, and you can
+change the default number of digits printed by calling math_setdigits.	These
+routines return the previous values.  The possible modes are described in
+zmath.h.
+
+--------------
+USING INTEGERS
+--------------
+
+The arbitrary precision integer routines define a structure called a ZVALUE.
+This is defined in zmath.h.  A ZVALUE contains a pointer to an array of
+integers, the length of the array, and a sign flag.  The array is allocated
+using malloc, so you need to free this array when you are done with a
+ZVALUE.	 To do this, you should call zfree with the ZVALUE as an argument
+(or call freeh with the pointer as an argument) and never try to free the
+array yourself using free.  The reason for this is that sometimes the pointer
+points to one of two statically allocated arrays which should NOT be freed.
+
+The ZVALUE structures are passed to routines by value, and are returned
+through pointers.  For example, to multiply two small integers together,
+you could do the following:
+
+	ZVALUE	z1, z2, z3;
+
+	itoz(3L, &z1);
+	itoz(4L, &z2);
+	zmul(z1, z2, &z3);
+
+Use zcopy to copy one ZVALUE to another.  There is no sharing of arrays
+between different ZVALUEs even if they have the same value, so you MUST
+use this routine.  Simply assigning one value into another will cause
+problems when one of the copies is freed.  However, the special ZVALUE
+values _zero_ and _one_ CAN be assigned to variables directly, since their
+values of 0 and 1 are so common that special checks are made for them.
+
+For initial values besides 0 or 1, you need to call itoz to convert a long
+value into a ZVALUE, as shown in the above example.  Or alternatively,
+for larger numbers you can use the atoz routine to convert a string which
+represents a number into a ZVALUE.  The string can be in decimal, octal,
+hex, or binary according to the leading digits.
+
+Always make sure you free a ZVALUE when you are done with it or when you
+are about to overwrite an old ZVALUE with another value by passing its
+address to a routine as a destination value, otherwise memory will be
+lost.  The following shows an example of the correct way to free memory
+over a long sequence of operations.
+
+	ZVALUE z1, z2, z3;
+
+	z1 = _one_;
+	atoz("12345678987654321", &z2);
+	zadd(z1, z2, &z3);
+	zfree(z1);
+	zfree(z2);
+	zsquare(z3, &z1);
+	zfree(z3);
+	itoz(17L, &z2);
+	zsub(z1, z2, &z3);
+	zfree(z1);
+	zfree(z2);
+	zfree(z3);
+
+There are some quick checks you can make on integers.  For example, whether
+or not they are zero, negative, even, and so on.  These are all macros
+defined in zmath.h, and should be used instead of checking the parts of the
+ZVALUE yourself.  Examples of such checks are:
+
+	ziseven(z)	(number is even)
+	zisodd(z)	(number is odd)
+	ziszero(z)	(number is zero)
+	zisneg(z)	(number is negative)
+	zispos(z)	(number is positive)
+	zisunit(z)	(number is 1 or -1)
+	zisone(z)	(number is 1)
+	zisnegone(z)	(number is -1)
+	zistwo(z)	(number is 2)
+	zisabstwo(z)	(number is 2 or -2)
+	zisabsleone(z)	(number is -1, 0 or 1)
+	zislezero(z)	(number is <= 0)
+	zisleone(z)	(number is <= 1)
+	zge16b(z)	(number is >= 2^16)
+	zge24b(z)	(number is >= 2^24)
+	zge31b(z)	(number is >= 2^31)
+	zge32b(z)	(number is >= 2^32)
+	zge64b(z)	(number is >= 2^64)
+
+Typically the largest unsigned long is typedefed to FULL.  The following
+macros are useful in dealing with this data type:
+
+	MAXFULL		(largest positive FULL value)
+	MAXUFULL	(largest unsigned FULL value)
+	zgtmaxfull(z)	(number is > MAXFULL)
+	zgtmaxufull(z)	(number is > MAXUFULL)
+	zgtmaxlong(z)	(number is > MAXLONG, largest long value)
+	zgtmaxulong(z)	(number is > MAXULONG, largest unsigned long value)
+
+If zgtmaxufull(z) is false, then one may quickly convert the absolute
+value of number into a full with the macro:
+
+	ztofull(z)	(convert abs(number) to FULL)
+	ztoulong(z)	(convert abs(number) to an unsigned long)
+	ztolong(z)	(convert abs(number) to a long)
+
+If the value is too large for ztofull(), ztoulong() or ztolong(), only
+the low order bits converted.
+
+There are two types of comparisons you can make on ZVALUEs.  This is whether
+or not they are equal, or the ordering on size of the numbers.	The zcmp
+function tests whether two ZVALUEs are equal, returning TRUE if they differ.
+The zrel function tests the relative sizes of two ZVALUEs, returning -1 if
+the first one is smaller, 0 if they are the same, and 1 if the first one
+is larger.
+
+---------------
+USING FRACTIONS
+---------------
+
+The arbitrary precision fractional routines define a structure called NUMBER.
+This is defined in qmath.h.  A NUMBER contains two ZVALUEs for the numerator
+and denominator of a fraction, and a count of the number of uses there are
+for this NUMBER.  The numerator and denominator are always in lowest terms,
+and the sign of the number is contained in the numerator.  The denominator
+is always positive.  If the NUMBER is an integer, the denominator has the
+value 1.
+
+Unlike ZVALUEs, NUMBERs are passed using pointers, and pointers to them are
+returned by functions.	So the basic type for using fractions is not really
+(NUMBER), but is (NUMBER *).  NUMBERs are allocated using the qalloc routine.
+This returns a pointer to a number which has the value 1.  Because of the
+special property of a ZVALUE of 1, the numerator and denominator of this
+returned value can simply be overwritten with new ZVALUEs without needing
+to free them first.  The following illustrates this:
+
+	NUMBER *q;
+
+	q = qalloc();
+	itoz(55L, &q->num);
+
+A better way to create NUMBERs with particular values is to use the itoq,
+iitoq, or atoq functions.  Using itoq makes a long value into a NUMBER,
+using iitoq makes a pair of longs into the numerator and denominator of a
+NUMBER (reducing them first if needed), and atoq converts a string representing
+a number into the corresponding NUMBER.	 The atoq function accepts input in
+integral, fractional, real, or exponential formats.  Examples of allocating
+numbers are:
+
+	NUMBER *q1, *q2, *q3;
+
+	q1 = itoq(66L);
+	q2 = iitoq(2L, 3L);
+	q3 = atoq("456.78");
+
+Also unlike ZVALUEs, NUMBERs are quickly copied.  This is because they contain
+a link count, which is the number of pointers there are to the NUMBER.	The
+qlink macro is used to copy a pointer to a NUMBER, and simply increments
+the link count and returns the same pointer.  Since it is a macro, the
+argument should not be a function call, but a real pointer variable.  The
+qcopy routine will actually make a new copy of a NUMBER, with a new link
+count of 1.  This is not usually needed.
+
+NUMBERs are deleted using the qfree routine.  This decrements the link count
+in the NUMBER, and if it reaches zero, then it will deallocate both of
+the ZVALUEs contained within the NUMBER, and then puts the NUMBER structure
+onto a free list for quick reuse.  The following is an example of allocating
+NUMBERs, copying them, adding them, and finally deleting them again.
+
+	NUMBER *q1, *q2, *q3;
+
+	q1 = itoq(111L);
+	q2 = qlink(q1);
+	q3 = qqadd(q1, q2);
+	qfree(q1);
+	qfree(q2);
+	qfree(q3);
+
+Because of the passing of pointers and the ability to copy numbers easily,
+you might wish to use the rational number routines even for integral
+calculations.  They might be slightly slower than the raw integral routines,
+but are more convenient to program with.
+
+The prototypes for the fractional routines are defined in qmath.h.
+Many of the definitions for integer functions parallel the ones defined
+in zmath.h.  But there are also functions used only for fractions.
+Examples of these are qnum to return the numerator, qden to return the
+denominator, qint to return the integer part of, qfrac to return the
+fractional part of, and qinv to invert a fraction.
+
+There are some transcendental functions in the link library, such as sin
+and cos.  These cannot be evaluated exactly as fractions.  Therefore,
+they accept another argument which tells how accurate you want the result.
+This is an "epsilon" value, and the returned value will be within that
+quantity of the correct value.	This is usually an absolute difference,
+but for some functions (such as exp), this is a relative difference.
+For example, to calculate sin(0.5) to 100 decimal places, you could do:
+
+	NUMBER *q, *ans, *epsilon;
+
+	q = atoq("0.5");
+	epsilon = atoq("1e-100");
+	ans = qsin(q, epsilon);
+
+There are many convenience macros similar to the ones for ZVALUEs which can
+give quick information about NUMBERs.  In addition, there are some new ones
+applicable to fractions.  These are all defined in qmath.h.  Some of these
+macros are:
+
+	qiszero(q)	(number is zero)
+	qisneg(q)	(number is negative)
+	qispos(q)	(number is positive)
+	qisint(q)	(number is an integer)
+	qisfrac(q)	(number is fractional)
+	qisunit(q)	(number is 1 or -1)
+	qisone(q)	(number is 1)
+	qisnegone(q)	(number is -1)
+	qistwo(q)	(number is 2)
+	qiseven(q)	(number is an even integer)
+	qisodd(q)	(number is an odd integer)
+	qistwopower(q)	(number is a power of 2 >= 1)
+
+The comparisons for NUMBERs are similar to the ones for ZVALUEs.  You use the
+qcmp and qrel functions.
+
+There are four predefined values for fractions.	 You should qlink them when
+you want to use them.  These are _qzero_, _qone_, _qnegone_, and _qonehalf_.
+These have the values 0, 1, -1, and 1/2.  An example of using them is:
+
+	NUMBER *q1, *q2;
+
+	q1 = qlink(&_qonehalf_);
+	q2 = qlink(&_qone_);
+
+---------------------
+USING COMPLEX NUMBERS
+---------------------
+
+The arbitrary precision complex arithmetic routines define a structure
+called COMPLEX.	 This is defined in cmath.h.  This contains two NUMBERs
+for the real and imaginary parts of a complex number, and a count of the
+number of links there are to this COMPLEX number.
+
+The complex number routines work similarly to the fractional routines.
+You can allocate a COMPLEX structure using comalloc (NOT calloc!).
+You can construct a COMPLEX number with desired real and imaginary
+fractional parts using qqtoc.  You can copy COMPLEX values using clink
+which increments the link count.  And you free a COMPLEX value using cfree.
+The following example illustrates this:
+
+	NUMBER *q1, *q2;
+	COMPLEX *c1, *c2, *c3;
+
+	q1 = itoq(3L);
+	q2 = itoq(4L);
+	c1 = qqtoc(q1, q2);
+	qfree(q1);
+	qfree(q2);
+	c2 = clink(c1);
+	c3 = cmul(c1, c2);
+	cfree(c1);
+	cfree(c2);
+	cfree(c3);
+
+As a shortcut, when you want to manipulate a COMPLEX value by a real value,
+you can use the caddq, csubq, cmulq, and cdivq routines.  These accept one
+COMPLEX value and one NUMBER value, and produce a COMPLEX value.
+
+There is no direct routine to convert a string value into a COMPLEX value.
+But you can do this yourself by converting two strings into two NUMBERS,
+and then using the qqtoc routine.
+
+COMPLEX values are always returned from these routines.	 To split out the
+real and imaginary parts into normal NUMBERs, you can simply qlink the
+two components, as shown in the following example:
+
+	COMPLEX *c;
+	NUMBER *rp, *ip;
+
+	c = calloc();
+	rp = qlink(c->real);
+	ip = qlink(c->imag);
+
+There are many macros for checking quick things about complex numbers,
+similar to the ZVALUE and NUMBER macros.  In addition, there are some
+only used for complex numbers.	Examples of macros are:
+
+	cisreal(c)	(number is real)
+	cisimag(c)	(number is pure imaginary)
+	ciszero(c)	(number is zero)
+	cisnegone(c)	(number is -1)
+	cisone(c)	(number is 1)
+	cisrunit(c)	(number is 1 or -1)
+	cisiunit(c)	(number is i or -i)
+	cisunit(c)	(number is 1, -1, i, or -i)
+	cistwo(c)	(number is 2)
+	cisint(c)	(number is has integer real and imaginary parts)
+	ciseven(c)	(number is has even real and imaginary parts)
+	cisodd(c)	(number is has odd real and imaginary parts)
+
+There is only one comparison you can make for COMPLEX values, and that is
+for equality.  The ccmp function returns TRUE if two complex numbers differ.
+
+There are three predefined values for complex numbers.	You should clink
+them when you want to use them.	 They are _czero_, _cone_, and _conei_.
+These have the values 0, 1, and i.
+
+----------------
+LAST THINGS LAST
+----------------
+
+If you wish, when you are all doen you can call libcalc_call_me_last()
+to free a small amount of storage associated with the libcalc_call_me_first()
+call.  This is not required, but is does bring things to a closure.
+
+The function libcalc_call_me_last() takes no args and returns void.  You
+need call libcalc_call_me_last() only once.
+
+## Copyright (C) 1999  David I. Bell and Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: LIBRARY,v 30.1 2007/03/16 11:09:46 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/RCS/LIBRARY,v $
+##
+## Under source code control:	1993/07/30 19:44:49
+## File existed as early as:	1993
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* new_custom
+*************
+
+Guidelines for adding custom functions
+--------------------------------------
+
+Step 0: Determine if is should it be done?
+
+    The main focus for calc is to provide a portable platform for
+    multi-precision calculations in a C-like environment.  You should
+    consider implementing algorithms in the calc language as a first
+    choice.  Sometimes an algorithm requires use of special hardware, a
+    non-portable OS or pre-compiled C library.	In these cases a custom
+    interface may be needed.
+
+    The custom function interface is intended to make is easy for
+    programmers to add functionality that would be otherwise
+    un-suitable for general distribution.  Functions that are
+    non-portable (machine, hardware or OS dependent) or highly
+    specialized are possible candidates for custom functions.
+
+    So before you go to step 1, ask yourself:
+
+	+ Can I implement this as a calc resource file or calc shell script?
+
+	    If Yes, write the shell script or resource file and be done with it.
+	    If No, continue to the next question ...
+
+	+ Does it require the use of non-portable features,
+	  OS specific support or special hardware?
+
+	    If No, write it as a regular builtin function.
+	    If Yes, continue to step 1 ...
+
+
+Step 1: Do some background work
+
+    First ... read this file ALL THE WAY THROUGH before implementing
+    anything in Steps 2 and beyond!
+
+    If you are not familiar with calc internals, we recommend that
+    you look at some examples of custom functions.  Look at the
+    the following source files:
+
+	custom.c
+	custom.h
+	custom/custtbl.c
+	custom/c_*.[ch]
+	custom/*.cal
+	help/custom		(or run:  calc help custom)
+
+    You would be well advised to look at a more recent calc source
+    such as one available in from the calc version archive.
+    See the following for more details:
+
+	help/archive		(or run:  calc help archive)
+
+
+Step 2: Name your custom function
+
+    We suggest that you pick a name that does not conflict with
+    one of the builtin names.  It makes it easier to get help
+    via the help interface and avoid confusion down the road.
+
+    You should avoid picking a name that matches a file or
+    directory name under ${HELPDIR} as well.  Not all help
+    files are associated with builtin function names.
+
+    For purposes of this file, we will use the name 'curds'
+    as our example custom function name.
+
+
+Step 3: Document your custom function
+
+    No this step is NOT out of order.  We recommend that you write the
+    help file associated with your new custom function EARLY.  By
+    experience we have found that the small amount of effort made to
+    write "how the custom function will be used" into a help file pays
+    off in a big way when it comes to coding.  Often the effort of
+    writing a help file will clarify fuzzy aspects of your design.
+    Besides, unless you write the help file first, it will likely never
+    be written later on.  :-(
+
+    OK ... we will stop preaching now ...
+
+    [[ From now on we will give filenames relative to the custom directory ]]
+
+    Take a look at one of the example custom help files:
+
+	custom/devnull
+	custom/argv
+	custom/help
+	custom/sysinfo
+
+    You can save time by using one of the custom help files
+    as a template.  Copy one of these files to your own help file:
+
+	cd custom
+	cp sysinfo curds
+
+    and edit it accordingly.
+
+
+Step 4: Write your test code
+
+    No this step is NOT out of order either.  We recommend that you
+    write a simple calc script that will call your custom function and
+    check the results.
+
+    This script will be useful while you are debugging your code.  In
+    addition, if you wish to submit your code for distribution, this
+    test code will be an import part of your submission.  Your test
+    code will also service as additional for your custom function.
+
+    Oops ... we said we would stop preaching, sorry about that ...
+
+    You can use one of the following as a template:
+
+	custom/argv.cal
+	custom/halflen.cal
+
+    Copy one of these to your own file:
+
+	cd custom
+	cp halflen.cal curds.cal
+
+    and exit it accordingly.  In particular you will want to:
+
+	remove our header disclaimer (or put your own on)
+
+	change the name from halflen() to curds()
+
+	change the comment from 'halflen - determine the length ...' to
+	'curds - brief description about ...'
+
+	change other code as needed.
+
+
+Step 5: Write your custom function
+
+    By convention, the files we ship that contain custom function
+    interface code in filenames of the form:
+
+	c_*.c
+
+    We suggest that you use filenames of the form:
+
+	u_*.c
+
+    to avoid filename conflicts.
+
+    We recommend that you use one of the c_*.c files as a template.
+    Copy an appropriate file to your file:
+
+	cd custom
+	cp c_argv.c u_curds.c
+
+    Before you edit it, you should note that there are several important
+    features of this file.
+
+	a) All of the code in the file is found between #if ... #endif:
+
+		/*
+		 * only comments and blank lines at the top
+		 */
+
+		#if defined(CUSTOM)
+
+		... all code, #includes, #defines etc.
+
+		#endif /* CUSTOM */
+
+	   This allows this code to 'go away' when the upper Makefile
+	   disables the custom code (because ALLOW_CUSTOM no longer
+	   has the -DCUSTOM define).
+
+	b) The function type must be:
+
+		/*ARGSUSED*/
+		VALUE
+		u_curds(char *name, int count, VALUE **vals)
+
+	   The 3 args are passed in by the custom interface
+	   and have the following meaning:
+
+		name	The name of the custom function that
+			was called.  In particular, this is the first
+			string arg that was given to the custom()
+			builtin.  This is the equivalent of argv[0] for
+			main() in C programming.
+
+			The same code can be used for multiple custom
+			functions by processing off of this value.
+
+		count	This is the number of additional args that
+			was given to the custom() builtin.  Note
+			that count does NOT include the name arg.
+			This is similar to argc except that count
+			is one less than the main() argc interface.
+
+			For example, a call of:
+
+			    custom("curds", a, b, c)
+
+			would cause count to be passed as 3.
+
+		vals	This is a pointer to an array of VALUEs.
+			This is the equivalent of argv+1 for
+			main() in C programming.  The difference
+			here is that vals[0] refers to the 1st
+			parameter AFTER the same.
+
+			For example, a call of:
+
+			    custom("curds", a, b, c)
+
+			would cause vals to point to the following array:
+
+			    vals[0]  points to	a
+			    vals[1]  points to	b
+			    vals[2]  points to	c
+
+	   NOTE: If you do not use any of the 3 function parameters,
+	   then you should declare that function parameter to be UNUSED.
+	   For example, if the count and vals parameters were not used
+	   in your custom function, then your declaraction should be:
+
+		/*ARGSUSED*/
+		VALUE
+		u_curds(char *name, int UNUSED count, VALUE UNUSED **vals)
+
+	c) The return value is the function must be a VALUE.
+
+	   The typical way to form a VALUE to return is by declaring
+	   the following local variable:
+
+		VALUE result;	/* what we will return */
+
+	d) You will need to include:
+
+		#if defined(CUSTOM)
+
+		/* any #include <foobar.h> here */
+
+		#include "../have_const.h"
+		#include "../value.h"
+		#include "custom.h"
+
+		#include "../have_unused.h"
+
+	    Typically these will be included just below any system
+	    includes and just below the #if defined(CUSTOM) line.
+
+    To better understand the VALUE type, read:
+
+	../value.h
+
+    The VALUE is a union of major value types found inside calc.
+    The v_type VALUE element determines which union element is
+    being used.	  Assume that we have:
+
+	VALUE *vp;
+
+    Then the value is determined according to v_type:
+
+	vp->v_type	the value is	which is a	type defined in
+	----------	------------	----------	---------------
+	V_NULL		(none)		n/a		n/a
+	V_INT		vp->v_int	long		n/a
+	V_NUM		vp->v_num	NUMBER *	../qmath.h
+	V_COM		vp->v_com	COMPLEX *	../cmath.h
+	V_ADDR		vp->v_addr	VALUE *		../value.h
+	V_STR		vp->v_str	char *		n/a
+	V_MAT		vp->v_mat	MATRIX *	../value.h
+	V_LIST		vp->v_list	LIST *		../value.h
+	V_ASSOC		vp->v_assoc	ASSOC *		../value.h
+	V_OBJ		vp->v_obj	OBJECT *	../value.h
+	V_FILE		vp->v_file	FILEID		../

@@ -1,0 +1,2007 @@
+xabiv1::__forced_unwind&)
+	    {
+	      this->_M_setstate(ios_base::badbit);
+	      __throw_exception_again;
+	    }
+	  catch(...)
+	    { this->_M_setstate(ios_base::badbit); }
+	  if (__err)
+	    this->setstate(__err);
+	}
+      return _M_gcount;
+    }
+
+  template<typename _CharT, typename _Traits>
+    basic_istream<_CharT, _Traits>&
+    basic_istream<_CharT, _Traits>::
+    putback(char_type __c)
+    {
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 60. What is a formatted input function?
+      _M_gcount = 0;
+      sentry __cerb(*this, true);
+      if (__cerb)
+	{
+	  ios_base::iostate __err = ios_base::iostate(ios_base::goodbit);
+	  try
+	    {
+	      const int_type __eof = traits_type::eof();
+	      __streambuf_type* __sb = this->rdbuf();
+	      if (!__sb
+		  || traits_type::eq_int_type(__sb->sputbackc(__c), __eof))
+		__err |= ios_base::badbit;
+	    }
+	  catch(__cxxabiv1::__forced_unwind&)
+	    {
+	      this->_M_setstate(ios_base::badbit);
+	      __throw_exception_again;
+	    }
+	  catch(...)
+	    { this->_M_setstate(ios_base::badbit); }
+	  if (__err)
+	    this->setstate(__err);
+	}
+      return *this;
+    }
+
+  template<typename _CharT, typename _Traits>
+    basic_istream<_CharT, _Traits>&
+    basic_istream<_CharT, _Traits>::
+    unget(void)
+    {
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 60. What is a formatted input function?
+      _M_gcount = 0;
+      sentry __cerb(*this, true);
+      if (__cerb)
+	{
+	  ios_base::iostate __err = ios_base::iostate(ios_base::goodbit);
+	  try
+	    {
+	      const int_type __eof = traits_type::eof();
+	      __streambuf_type* __sb = this->rdbuf();
+	      if (!__sb
+		  || traits_type::eq_int_type(__sb->sungetc(), __eof))
+		__err |= ios_base::badbit;
+	    }
+	  catch(__cxxabiv1::__forced_unwind&)
+	    {
+	      this->_M_setstate(ios_base::badbit);
+	      __throw_exception_again;
+	    }
+	  catch(...)
+	    { this->_M_setstate(ios_base::badbit); }
+	  if (__err)
+	    this->setstate(__err);
+	}
+      return *this;
+    }
+
+  template<typename _CharT, typename _Traits>
+    int
+    basic_istream<_CharT, _Traits>::
+    sync(void)
+    {
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // DR60.  Do not change _M_gcount.
+      int __ret = -1;
+      sentry __cerb(*this, true);
+      if (__cerb)
+	{
+	  ios_base::iostate __err = ios_base::iostate(ios_base::goodbit);
+	  try
+	    {
+	      __streambuf_type* __sb = this->rdbuf();
+	      if (__sb)
+		{
+		  if (__sb->pubsync() == -1)
+		    __err |= ios_base::badbit;
+		  else
+		    __ret = 0;
+		}
+	    }
+	  catch(__cxxabiv1::__forced_unwind&)
+	    {
+	      this->_M_setstate(ios_base::badbit);
+	      __throw_exception_again;
+	    }
+	  catch(...)
+	    { this->_M_setstate(ios_base::badbit); }
+	  if (__err)
+	    this->setstate(__err);
+	}
+      return __ret;
+    }
+
+  template<typename _CharT, typename _Traits>
+    typename basic_istream<_CharT, _Traits>::pos_type
+    basic_istream<_CharT, _Traits>::
+    tellg(void)
+    {
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // DR60.  Do not change _M_gcount.
+      pos_type __ret = pos_type(-1);
+      try
+	{
+	  if (!this->fail())
+	    __ret = this->rdbuf()->pubseekoff(0, ios_base::cur,
+					      ios_base::in);
+	}
+      catch(__cxxabiv1::__forced_unwind&)
+	{
+	  this->_M_setstate(ios_base::badbit);
+	  __throw_exception_again;
+	}
+      catch(...)
+	{ this->_M_setstate(ios_base::badbit); }
+      return __ret;
+    }
+
+  template<typename _CharT, typename _Traits>
+    basic_istream<_CharT, _Traits>&
+    basic_istream<_CharT, _Traits>::
+    seekg(pos_type __pos)
+    {
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // DR60.  Do not change _M_gcount.
+      ios_base::iostate __err = ios_base::iostate(ios_base::goodbit);
+      try
+	{
+	  if (!this->fail())
+	    {
+	      // 136.  seekp, seekg setting wrong streams?
+	      const pos_type __p = this->rdbuf()->pubseekpos(__pos,
+							     ios_base::in);
+	      
+	      // 129.  Need error indication from seekp() and seekg()
+	      if (__p == pos_type(off_type(-1)))
+		__err |= ios_base::failbit;
+	    }
+	}
+      catch(__cxxabiv1::__forced_unwind&)
+	{
+	  this->_M_setstate(ios_base::badbit);
+	  __throw_exception_again;
+	}
+      catch(...)
+	{ this->_M_setstate(ios_base::badbit); }
+      if (__err)
+	this->setstate(__err);
+      return *this;
+    }
+
+  template<typename _CharT, typename _Traits>
+    basic_istream<_CharT, _Traits>&
+    basic_istream<_CharT, _Traits>::
+    seekg(off_type __off, ios_base::seekdir __dir)
+    {
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // DR60.  Do not change _M_gcount.
+      ios_base::iostate __err = ios_base::iostate(ios_base::goodbit);
+      try
+	{
+	  if (!this->fail())
+	    {
+	      // 136.  seekp, seekg setting wrong streams?
+	      const pos_type __p = this->rdbuf()->pubseekoff(__off, __dir,
+							     ios_base::in);
+	      
+	      // 129.  Need error indication from seekp() and seekg()
+	      if (__p == pos_type(off_type(-1)))
+		__err |= ios_base::failbit;
+	    }
+	}
+      catch(__cxxabiv1::__forced_unwind&)
+	{
+	  this->_M_setstate(ios_base::badbit);
+	  __throw_exception_again;
+	}
+      catch(...)
+	{ this->_M_setstate(ios_base::badbit); }
+      if (__err)
+	this->setstate(__err);
+      return *this;
+    }
+
+  // 27.6.1.2.3 Character extraction templates
+  template<typename _CharT, typename _Traits>
+    basic_istream<_CharT, _Traits>&
+    operator>>(basic_istream<_CharT, _Traits>& __in, _CharT& __c)
+    {
+      typedef basic_istream<_CharT, _Traits>		__istream_type;
+      typedef typename __istream_type::int_type         __int_type;
+
+      typename __istream_type::sentry __cerb(__in, false);
+      if (__cerb)
+	{
+	  ios_base::iostate __err = ios_base::iostate(ios_base::goodbit);
+	  try
+	    {
+	      const __int_type __cb = __in.rdbuf()->sbumpc();
+	      if (!_Traits::eq_int_type(__cb, _Traits::eof()))
+		__c = _Traits::to_char_type(__cb);
+	      else
+		__err |= (ios_base::eofbit | ios_base::failbit);
+	    }
+	  catch(__cxxabiv1::__forced_unwind&)
+	    {
+	      __in._M_setstate(ios_base::badbit);
+	      __throw_exception_again;
+	    }
+	  catch(...)
+	    { __in._M_setstate(ios_base::badbit); }
+	  if (__err)
+	    __in.setstate(__err);
+	}
+      return __in;
+    }
+
+  template<typename _CharT, typename _Traits>
+    basic_istream<_CharT, _Traits>&
+    operator>>(basic_istream<_CharT, _Traits>& __in, _CharT* __s)
+    {
+      typedef basic_istream<_CharT, _Traits>		__istream_type;
+      typedef basic_streambuf<_CharT, _Traits>          __streambuf_type;
+      typedef typename _Traits::int_type		int_type;
+      typedef _CharT					char_type;
+      typedef ctype<_CharT>				__ctype_type;
+
+      streamsize __extracted = 0;
+      ios_base::iostate __err = ios_base::iostate(ios_base::goodbit);
+      typename __istream_type::sentry __cerb(__in, false);
+      if (__cerb)
+	{
+	  try
+	    {
+	      // Figure out how many characters to extract.
+	      streamsize __num = __in.width();
+	      if (__num <= 0)
+		__num = __gnu_cxx::__numeric_traits<streamsize>::__max;
+
+	      const __ctype_type& __ct = use_facet<__ctype_type>(__in.getloc());
+
+	      const int_type __eof = _Traits::eof();
+	      __streambuf_type* __sb = __in.rdbuf();
+	      int_type __c = __sb->sgetc();
+
+	      while (__extracted < __num - 1
+		     && !_Traits::eq_int_type(__c, __eof)
+		     && !__ct.is(ctype_base::space,
+				 _Traits::to_char_type(__c)))
+		{
+		  *__s++ = _Traits::to_char_type(__c);
+		  ++__extracted;
+		  __c = __sb->snextc();
+		}
+	      if (_Traits::eq_int_type(__c, __eof))
+		__err |= ios_base::eofbit;
+
+	      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+	      // 68.  Extractors for char* should store null at end
+	      *__s = char_type();
+	      __in.width(0);
+	    }
+	  catch(__cxxabiv1::__forced_unwind&)
+	    {
+	      __in._M_setstate(ios_base::badbit);
+	      __throw_exception_again;
+	    }
+	  catch(...)
+	    { __in._M_setstate(ios_base::badbit); }
+	}
+      if (!__extracted)
+	__err |= ios_base::failbit;
+      if (__err)
+	__in.setstate(__err);
+      return __in;
+    }
+
+  // 27.6.1.4 Standard basic_istream manipulators
+  template<typename _CharT, typename _Traits>
+    basic_istream<_CharT, _Traits>&
+    ws(basic_istream<_CharT, _Traits>& __in)
+    {
+      typedef basic_istream<_CharT, _Traits>		__istream_type;
+      typedef basic_streambuf<_CharT, _Traits>          __streambuf_type;
+      typedef typename __istream_type::int_type		__int_type;
+      typedef ctype<_CharT>				__ctype_type;
+
+      const __ctype_type& __ct = use_facet<__ctype_type>(__in.getloc());
+      const __int_type __eof = _Traits::eof();
+      __streambuf_type* __sb = __in.rdbuf();
+      __int_type __c = __sb->sgetc();
+
+      while (!_Traits::eq_int_type(__c, __eof)
+	     && __ct.is(ctype_base::space, _Traits::to_char_type(__c)))
+	__c = __sb->snextc();
+
+       if (_Traits::eq_int_type(__c, __eof))
+	 __in.setstate(ios_base::eofbit);
+      return __in;
+    }
+
+  // Inhibit implicit instantiations for required instantiations,
+  // which are defined via explicit instantiations elsewhere.
+  // NB:  This syntax is a GNU extension.
+#if _GLIBCXX_EXTERN_TEMPLATE
+  extern template class basic_istream<char>;
+  extern template istream& ws(istream&);
+  extern template istream& operator>>(istream&, char&);
+  extern template istream& operator>>(istream&, char*);
+  extern template istream& operator>>(istream&, unsigned char&);
+  extern template istream& operator>>(istream&, signed char&);
+  extern template istream& operator>>(istream&, unsigned char*);
+  extern template istream& operator>>(istream&, signed char*);
+
+  extern template istream& istream::_M_extract(unsigned short&);
+  extern template istream& istream::_M_extract(unsigned int&);  
+  extern template istream& istream::_M_extract(long&);
+  extern template istream& istream::_M_extract(unsigned long&);
+  extern template istream& istream::_M_extract(bool&);
+#ifdef _GLIBCXX_USE_LONG_LONG
+  extern template istream& istream::_M_extract(long long&);
+  extern template istream& istream::_M_extract(unsigned long long&);
+#endif
+  extern template istream& istream::_M_extract(float&);
+  extern template istream& istream::_M_extract(double&);
+  extern template istream& istream::_M_extract(long double&);
+  extern template istream& istream::_M_extract(void*&);
+
+  extern template class basic_iostream<char>;
+
+#ifdef _GLIBCXX_USE_WCHAR_T
+  extern template class basic_istream<wchar_t>;
+  extern template wistream& ws(wistream&);
+  extern template wistream& operator>>(wistream&, wchar_t&);
+  extern template wistream& operator>>(wistream&, wchar_t*);
+
+  extern template wistream& wistream::_M_extract(unsigned short&);
+  extern template wistream& wistream::_M_extract(unsigned int&);  
+  extern template wistream& wistream::_M_extract(long&);
+  extern template wistream& wistream::_M_extract(unsigned long&);
+  extern template wistream& wistream::_M_extract(bool&);
+#ifdef _GLIBCXX_USE_LONG_LONG
+  extern template wistream& wistream::_M_extract(long long&);
+  extern template wistream& wistream::_M_extract(unsigned long long&);
+#endif
+  extern template wistream& wistream::_M_extract(float&);
+  extern template wistream& wistream::_M_extract(double&);
+  extern template wistream& wistream::_M_extract(long double&);
+  extern template wistream& wistream::_M_extract(void*&);
+
+  extern template class basic_iostream<wchar_t>;
+#endif
+#endif
+
+_GLIBCXX_END_NAMESPACE
+
+#endif
+                               // String support -*- C++ -*-
+
+// Copyright (C) 2001, 2002, 2005 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file stringfwd.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+//
+// ISO C++ 14882: 21 Strings library
+//
+
+#ifndef _STRINGFWD_H
+#define _STRINGFWD_H 1
+
+#pragma GCC system_header
+
+#include <bits/c++config.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  template<typename _Alloc>
+    class allocator;
+
+  template<class _CharT>
+    struct char_traits;
+
+  template<typename _CharT, typename _Traits = char_traits<_CharT>,
+           typename _Alloc = allocator<_CharT> >
+    class basic_string;
+
+  template<> struct char_traits<char>;
+
+  typedef basic_string<char>    string;
+
+#ifdef _GLIBCXX_USE_WCHAR_T
+  template<> struct char_traits<wchar_t>;
+
+  typedef basic_string<wchar_t> wstring;
+#endif
+
+_GLIBCXX_END_NAMESPACE
+
+#endif	// _STRINGFWD_H
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   // Streambuf iterators
+
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file streambuf_iterator.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+#ifndef _STREAMBUF_ITERATOR_H
+#define _STREAMBUF_ITERATOR_H 1
+
+#pragma GCC system_header
+
+#include <streambuf>
+#include <debug/debug.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+     
+  // 24.5.3 Template class istreambuf_iterator
+  /// Provides input iterator semantics for streambufs.
+  template<typename _CharT, typename _Traits>
+    class istreambuf_iterator
+    : public iterator<input_iterator_tag, _CharT, typename _Traits::off_type,
+		      _CharT*, _CharT&>
+    {
+    public:
+      // Types:
+      //@{
+      /// Public typedefs
+      typedef _CharT					char_type;
+      typedef _Traits					traits_type;
+      typedef typename _Traits::int_type		int_type;
+      typedef basic_streambuf<_CharT, _Traits>		streambuf_type;
+      typedef basic_istream<_CharT, _Traits>		istream_type;
+      //@}
+
+      template<typename _CharT2>
+	friend typename __gnu_cxx::__enable_if<__is_char<_CharT2>::__value,
+		                    ostreambuf_iterator<_CharT2> >::__type
+	copy(istreambuf_iterator<_CharT2>, istreambuf_iterator<_CharT2>,
+	     ostreambuf_iterator<_CharT2>);
+
+      template<bool _IsMove, typename _CharT2>
+	friend typename __gnu_cxx::__enable_if<__is_char<_CharT2>::__value, 
+					       _CharT2*>::__type
+	__copy_move_a2(istreambuf_iterator<_CharT2>,
+		       istreambuf_iterator<_CharT2>, _CharT2*);
+
+      template<typename _CharT2>
+	friend typename __gnu_cxx::__enable_if<__is_char<_CharT2>::__value,
+			            istreambuf_iterator<_CharT2> >::__type
+	find(istreambuf_iterator<_CharT2>, istreambuf_iterator<_CharT2>,
+	     const _CharT2&);
+
+    private:
+      // 24.5.3 istreambuf_iterator
+      // p 1
+      // If the end of stream is reached (streambuf_type::sgetc()
+      // returns traits_type::eof()), the iterator becomes equal to
+      // the "end of stream" iterator value.
+      // NB: This implementation assumes the "end of stream" value
+      // is EOF, or -1.
+      mutable streambuf_type*	_M_sbuf;
+      mutable int_type		_M_c;
+
+    public:
+      ///  Construct end of input stream iterator.
+      istreambuf_iterator() throw()
+      : _M_sbuf(0), _M_c(traits_type::eof()) { }
+
+      ///  Construct start of input stream iterator.
+      istreambuf_iterator(istream_type& __s) throw()
+      : _M_sbuf(__s.rdbuf()), _M_c(traits_type::eof()) { }
+
+      ///  Construct start of streambuf iterator.
+      istreambuf_iterator(streambuf_type* __s) throw()
+      : _M_sbuf(__s), _M_c(traits_type::eof()) { }
+
+      ///  Return the current character pointed to by iterator.  This returns
+      ///  streambuf.sgetc().  It cannot be assigned.  NB: The result of
+      ///  operator*() on an end of stream is undefined.
+      char_type
+      operator*() const
+      {
+#ifdef _GLIBCXX_DEBUG_PEDANTIC
+	// Dereferencing a past-the-end istreambuf_iterator is a
+	// libstdc++ extension
+	__glibcxx_requires_cond(!_M_at_eof(),
+				_M_message(__gnu_debug::__msg_deref_istreambuf)
+				._M_iterator(*this));
+#endif
+	return traits_type::to_char_type(_M_get());
+      }
+
+      /// Advance the iterator.  Calls streambuf.sbumpc().
+      istreambuf_iterator&
+      operator++()
+      {
+	__glibcxx_requires_cond(!_M_at_eof(),
+				_M_message(__gnu_debug::__msg_inc_istreambuf)
+				._M_iterator(*this));
+	if (_M_sbuf)
+	  {
+	    _M_sbuf->sbumpc();
+	    _M_c = traits_type::eof();
+	  }
+	return *this;
+      }
+
+      /// Advance the iterator.  Calls streambuf.sbumpc().
+      istreambuf_iterator
+      operator++(int)
+      {
+	__glibcxx_requires_cond(!_M_at_eof(),
+				_M_message(__gnu_debug::__msg_inc_istreambuf)
+				._M_iterator(*this));
+
+	istreambuf_iterator __old = *this;
+	if (_M_sbuf)
+	  {
+	    __old._M_c = _M_sbuf->sbumpc();
+	    _M_c = traits_type::eof();
+	  }
+	return __old;
+      }
+
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 110 istreambuf_iterator::equal not const
+      // NB: there is also number 111 (NAD, Future) pending on this function.
+      /// Return true both iterators are end or both are not end.
+      bool
+      equal(const istreambuf_iterator& __b) const
+      { return _M_at_eof() == __b._M_at_eof(); }
+
+    private:
+      int_type
+      _M_get() const
+      {
+	const int_type __eof = traits_type::eof();
+	int_type __ret = __eof;
+	if (_M_sbuf)
+	  {
+	    if (!traits_type::eq_int_type(_M_c, __eof))
+	      __ret = _M_c;
+	    else if (!traits_type::eq_int_type((__ret = _M_sbuf->sgetc()),
+					       __eof))
+	      _M_c = __ret;
+	    else
+	      _M_sbuf = 0;
+	  }
+	return __ret;
+      }
+
+      bool
+      _M_at_eof() const
+      {
+	const int_type __eof = traits_type::eof();
+	return traits_type::eq_int_type(_M_get(), __eof);
+      }
+    };
+
+  template<typename _CharT, typename _Traits>
+    inline bool
+    operator==(const istreambuf_iterator<_CharT, _Traits>& __a,
+	       const istreambuf_iterator<_CharT, _Traits>& __b)
+    { return __a.equal(__b); }
+
+  template<typename _CharT, typename _Traits>
+    inline bool
+    operator!=(const istreambuf_iterator<_CharT, _Traits>& __a,
+	       const istreambuf_iterator<_CharT, _Traits>& __b)
+    { return !__a.equal(__b); }
+
+  /// Provides output iterator semantics for streambufs.
+  template<typename _CharT, typename _Traits>
+    class ostreambuf_iterator
+    : public iterator<output_iterator_tag, void, void, void, void>
+    {
+    public:
+      // Types:
+      //@{
+      /// Public typedefs
+      typedef _CharT                           char_type;
+      typedef _Traits                          traits_type;
+      typedef basic_streambuf<_CharT, _Traits> streambuf_type;
+      typedef basic_ostream<_CharT, _Traits>   ostream_type;
+      //@}
+
+      template<typename _CharT2>
+	friend typename __gnu_cxx::__enable_if<__is_char<_CharT2>::__value,
+		                    ostreambuf_iterator<_CharT2> >::__type
+	copy(istreambuf_iterator<_CharT2>, istreambuf_iterator<_CharT2>,
+	     ostreambuf_iterator<_CharT2>);
+
+    private:
+      streambuf_type*	_M_sbuf;
+      bool		_M_failed;
+
+    public:
+      ///  Construct output iterator from ostream.
+      ostreambuf_iterator(ostream_type& __s) throw ()
+      : _M_sbuf(__s.rdbuf()), _M_failed(!_M_sbuf) { }
+
+      ///  Construct output iterator from streambuf.
+      ostreambuf_iterator(streambuf_type* __s) throw ()
+      : _M_sbuf(__s), _M_failed(!_M_sbuf) { }
+
+      ///  Write character to streambuf.  Calls streambuf.sputc().
+      ostreambuf_iterator&
+      operator=(_CharT __c)
+      {
+	if (!_M_failed &&
+	    _Traits::eq_int_type(_M_sbuf->sputc(__c), _Traits::eof()))
+	  _M_failed = true;
+	return *this;
+      }
+
+      /// Return *this.
+      ostreambuf_iterator&
+      operator*()
+      { return *this; }
+
+      /// Return *this.
+      ostreambuf_iterator&
+      operator++(int)
+      { return *this; }
+
+      /// Return *this.
+      ostreambuf_iterator&
+      operator++()
+      { return *this; }
+
+      /// Return true if previous operator=() failed.
+      bool
+      failed() const throw()
+      { return _M_failed; }
+
+      ostreambuf_iterator&
+      _M_put(const _CharT* __ws, streamsize __len)
+      {
+	if (__builtin_expect(!_M_failed, true)
+	    && __builtin_expect(this->_M_sbuf->sputn(__ws, __len) != __len,
+				false))
+	  _M_failed = true;
+	return *this;
+      }
+    };
+
+  // Overloads for streambuf iterators.
+  template<typename _CharT>
+    typename __gnu_cxx::__enable_if<__is_char<_CharT>::__value,
+    	                 	    ostreambuf_iterator<_CharT> >::__type
+    copy(istreambuf_iterator<_CharT> __first,
+	 istreambuf_iterator<_CharT> __last,
+	 ostreambuf_iterator<_CharT> __result)
+    {
+      if (__first._M_sbuf && !__last._M_sbuf && !__result._M_failed)
+	{
+	  bool __ineof;
+	  __copy_streambufs_eof(__first._M_sbuf, __result._M_sbuf, __ineof);
+	  if (!__ineof)
+	    __result._M_failed = true;
+	}
+      return __result;
+    }
+
+  template<bool _IsMove, typename _CharT>
+    typename __gnu_cxx::__enable_if<__is_char<_CharT>::__value, 
+    				    ostreambuf_iterator<_CharT> >::__type
+    __copy_move_a2(_CharT* __first, _CharT* __last,
+		   ostreambuf_iterator<_CharT> __result)
+    {
+      const streamsize __num = __last - __first;
+      if (__num > 0)
+	__result._M_put(__first, __num);
+      return __result;
+    }
+
+  template<bool _IsMove, typename _CharT>
+    typename __gnu_cxx::__enable_if<__is_char<_CharT>::__value,
+				    ostreambuf_iterator<_CharT> >::__type
+    __copy_move_a2(const _CharT* __first, const _CharT* __last,
+		   ostreambuf_iterator<_CharT> __result)
+    {
+      const streamsize __num = __last - __first;
+      if (__num > 0)
+	__result._M_put(__first, __num);
+      return __result;
+    }
+
+  template<bool _IsMove, typename _CharT>
+    typename __gnu_cxx::__enable_if<__is_char<_CharT>::__value, 
+    				    _CharT*>::__type
+    __copy_move_a2(istreambuf_iterator<_CharT> __first,
+		   istreambuf_iterator<_CharT> __last, _CharT* __result)
+    {
+      typedef istreambuf_iterator<_CharT>                  __is_iterator_type;
+      typedef typename __is_iterator_type::traits_type     traits_type;
+      typedef typename __is_iterator_type::streambuf_type  streambuf_type;
+      typedef typename traits_type::int_type               int_type;
+
+      if (__first._M_sbuf && !__last._M_sbuf)
+	{
+	  streambuf_type* __sb = __first._M_sbuf;
+	  int_type __c = __sb->sgetc();
+	  while (!traits_type::eq_int_type(__c, traits_type::eof()))
+	    {
+	      const streamsize __n = __sb->egptr() - __sb->gptr();
+	      if (__n > 1)
+		{
+		  traits_type::copy(__result, __sb->gptr(), __n);
+		  __sb->gbump(__n);
+		  __result += __n;
+		  __c = __sb->underflow();
+		}
+	      else
+		{
+		  *__result++ = traits_type::to_char_type(__c);
+		  __c = __sb->snextc();
+		}
+	    }
+	}
+      return __result;
+    }
+
+  template<typename _CharT>
+    typename __gnu_cxx::__enable_if<__is_char<_CharT>::__value,
+		  		    istreambuf_iterator<_CharT> >::__type
+    find(istreambuf_iterator<_CharT> __first,
+	 istreambuf_iterator<_CharT> __last, const _CharT& __val)
+    {
+      typedef istreambuf_iterator<_CharT>                  __is_iterator_type;
+      typedef typename __is_iterator_type::traits_type     traits_type;
+      typedef typename __is_iterator_type::streambuf_type  streambuf_type;
+      typedef typename traits_type::int_type               int_type;
+
+      if (__first._M_sbuf && !__last._M_sbuf)
+	{
+	  const int_type __ival = traits_type::to_int_type(__val);
+	  streambuf_type* __sb = __first._M_sbuf;
+	  int_type __c = __sb->sgetc();
+	  while (!traits_type::eq_int_type(__c, traits_type::eof())
+		 && !traits_type::eq_int_type(__c, __ival))
+	    {
+	      streamsize __n = __sb->egptr() - __sb->gptr();
+	      if (__n > 1)
+		{
+		  const _CharT* __p = traits_type::find(__sb->gptr(),
+							__n, __val);
+		  if (__p)
+		    __n = __p - __sb->gptr();
+		  __sb->gbump(__n);
+		  __c = __sb->sgetc();
+		}
+	[*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    else
+		__c = __sb->snextc();
+	    }
+
+	  if (!traits_type::eq_int_type(__c, traits_type::eof()))
+	    __first._M_c = __c;
+	  else
+	    __first._M_sbuf = 0;
+	}
+      return __first;
+    }
+
+_GLIBCXX_END_NAMESPACE
+
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                // Position types -*- C++ -*-
+
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007, 2008
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file postypes.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+//
+// ISO C++ 14882: 27.4.1 - Types
+// ISO C++ 14882: 27.4.3 - Template class fpos
+//
+
+#ifndef _GLIBCXX_POSTYPES_H
+#define _GLIBCXX_POSTYPES_H 1
+
+#pragma GCC system_header
+
+#include <cwchar> // For mbstate_t
+
+#ifdef _GLIBCXX_HAVE_STDINT_H
+#include <stdint.h> // For int64_t
+#endif
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  // The types streamoff, streampos and wstreampos and the class
+  // template fpos<> are described in clauses 21.1.2, 21.1.3, 27.1.2,
+  // 27.2, 27.4.1, 27.4.3 and D.6. Despite all this verbiage, the
+  // behaviour of these types is mostly implementation defined or
+  // unspecified. The behaviour in this implementation is as noted
+  // below.
+
+  /**
+   *  @brief  Type used by fpos, char_traits<char>, and char_traits<wchar_t>.
+   *
+   *  In clauses 21.1.3.1 and 27.4.1 streamoff is described as an
+   *  implementation defined type.
+   *  Note: In versions of GCC up to and including GCC 3.3, streamoff
+   *  was typedef long.
+  */  
+#ifdef _GLIBCXX_HAVE_INT64_T
+  typedef int64_t       streamoff;
+#else
+  typedef long long     streamoff;
+#endif
+
+  /// Integral type for I/O operation counts and buffer sizes.
+  typedef ptrdiff_t	streamsize; // Signed integral type
+
+  /**
+   *  @brief  Class representing stream positions.
+   *
+   *  The standard places no requirements upon the template parameter StateT.
+   *  In this implementation StateT must be DefaultConstructible,
+   *  CopyConstructible and Assignable.  The standard only requires that fpos
+   *  should contain a member of type StateT. In this implementation it also
+   *  contains an offset stored as a signed integer.
+   *
+   *  @param  StateT  Type passed to and returned from state().
+   */
+  template<typename _StateT>
+    class fpos
+    {
+    private:
+      streamoff	                _M_off;
+      _StateT			_M_state;
+
+    public:
+      // The standard doesn't require that fpos objects can be default
+      // constructed. This implementation provides a default
+      // constructor that initializes the offset to 0 and default
+      // constructs the state.
+      fpos()
+      : _M_off(0), _M_state() { }
+
+      // The standard requires that fpos objects can be constructed
+      // from streamoff objects using the constructor syntax, and
+      // fails to give any meaningful semantics. In this
+      // implementation implicit conversion is also allowed, and this
+      // constructor stores the streamoff as the offset and default
+      // constructs the state.
+      /// Construct position from offset.
+      fpos(streamoff __off)
+      : _M_off(__off), _M_state() { }
+
+      /// Convert to streamoff.
+      operator streamoff() const { return _M_off; }
+
+      /// Remember the value of @a st.
+      void
+      state(_StateT __st)
+      { _M_state = __st; }
+
+      /// Return the last set value of @a st.
+      _StateT
+      state() const
+      { return _M_state; }
+
+      // The standard requires that this operator must be defined, but
+      // gives no semantics. In this implementation it just adds its
+      // argument to the stored offset and returns *this.
+      /// Add offset to this position.
+      fpos&
+      operator+=(streamoff __off)
+      {
+	_M_off += __off;
+	return *this;
+      }
+
+      // The standard requires that this operator must be defined, but
+      // gives no semantics. In this implementation it just subtracts
+      // its argument from the stored offset and returns *this.
+      /// Subtract offset from this position.
+      fpos&
+      operator-=(streamoff __off)
+      {
+	_M_off -= __off;
+	return *this;
+      }
+
+      // The standard requires that this operator must be defined, but
+      // defines its semantics only in terms of operator-. In this
+      // implementation it constructs a copy of *this, adds the
+      // argument to that copy using operator+= and then returns the
+      // copy.
+      /// Add position and offset.
+      fpos
+      operator+(streamoff __off) const
+      {
+	fpos __pos(*this);
+	__pos += __off;
+	return __pos;
+      }
+
+      // The standard requires that this operator must be defined, but
+      // defines its semantics only in terms of operator+. In this
+      // implementation it constructs a copy of *this, subtracts the
+      // argument from that copy using operator-= and then returns the
+      // copy.
+      /// Subtract offset from position.
+      fpos
+      operator-(streamoff __off) const
+      {
+	fpos __pos(*this);
+	__pos -= __off;
+	return __pos;
+      }
+
+      // The standard requires that this operator must be defined, but
+      // defines its semantics only in terms of operator+. In this
+      // implementation it returns the difference between the offset
+      // stored in *this and in the argument.
+      /// Subtract position to return offset.
+      streamoff
+      operator-(const fpos& __other) const
+      { return _M_off - __other._M_off; }
+    };
+
+  // The standard only requires that operator== must be an
+  // equivalence relation. In this implementation two fpos<StateT>
+  // objects belong to the same equivalence class if the contained
+  // offsets compare equal.
+  /// Test if equivalent to another position.
+  template<typename _StateT>
+    inline bool
+    operator==(const fpos<_StateT>& __lhs, const fpos<_StateT>& __rhs)
+    { return streamoff(__lhs) == streamoff(__rhs); }
+
+  template<typename _StateT>
+    inline bool
+    operator!=(const fpos<_StateT>& __lhs, const fpos<_StateT>& __rhs)
+    { return streamoff(__lhs) != streamoff(__rhs); }
+
+  // Clauses 21.1.3.1 and 21.1.3.2 describe streampos and wstreampos
+  // as implementation defined types, but clause 27.2 requires that
+  // they must both be typedefs for fpos<mbstate_t>
+  /// File position for char streams.
+  typedef fpos<mbstate_t> streampos;
+  /// File position for wchar_t streams.
+  typedef fpos<mbstate_t> wstreampos;
+
+_GLIBCXX_END_NAMESPACE
+
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     // Locale support -*- C++ -*-
+
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file locale_facets.tcc
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+#ifndef _LOCALE_FACETS_TCC
+#define _LOCALE_FACETS_TCC 1
+
+#pragma GCC system_header
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  // Routine to access a cache for the facet.  If the cache didn't
+  // exist before, it gets constructed on the fly.
+  template<typename _Facet>
+    struct __use_cache
+    {
+      const _Facet*
+      operator() (const locale& __loc) const;
+    };
+
+  // Specializations.
+  template<typename _CharT>
+    struct __use_cache<__numpunct_cache<_CharT> >
+    {
+      const __numpunct_cache<_CharT>*
+      operator() (const locale& __loc) const
+      {
+	const size_t __i = numpunct<_CharT>::id._M_id();
+	const locale::facet** __caches = __loc._M_impl->_M_caches;
+	if (!__caches[__i])
+	  {
+	    __numpunct_cache<_CharT>* __tmp = NULL;
+	    try
+	      {
+		__tmp = new __numpunct_cache<_CharT>;
+		__tmp->_M_cache(__loc);
+	      }
+	    catch(...)
+	      {
+		delete __tmp;
+		__throw_exception_again;
+	      }
+	    __loc._M_impl->_M_install_cache(__tmp, __i);
+	  }
+	return static_cast<const __numpunct_cache<_CharT>*>(__caches[__i]);
+      }
+    };
+
+  template<typename _CharT>
+    void
+    __numpunct_cache<_CharT>::_M_cache(const locale& __loc)
+    {
+      _M_allocated = true;
+
+      const numpunct<_CharT>& __np = use_facet<numpunct<_CharT> >(__loc);
+
+      _M_grouping_size = __np.grouping().size();
+      char* __grouping = new char[_M_grouping_size];
+      __np.grouping().copy(__grouping, _M_grouping_size);
+      _M_grouping = __grouping;
+      _M_use_grouping = (_M_grouping_size
+			 && static_cast<signed char>(__np.grouping()[0]) > 0);
+
+      _M_truename_size = __np.truename().size();
+      _CharT* __truename = new _CharT[_M_truename_size];
+      __np.truename().copy(__truename, _M_truename_size);
+      _M_truename = __truename;
+
+      _M_falsename_size = __np.falsename().size();
+      _CharT* __falsename = new _CharT[_M_falsename_size];
+      __np.falsename().copy(__falsename, _M_falsename_size);
+      _M_falsename = __falsename;
+
+      _M_decimal_point = __np.decimal_point();
+      _M_thousands_sep = __np.thousands_sep();
+
+      const ctype<_CharT>& __ct = use_facet<ctype<_CharT> >(__loc);
+      __ct.widen(__num_base::_S_atoms_out,
+		 __num_base::_S_atoms_out + __num_base::_S_oend, _M_atoms_out);
+      __ct.widen(__num_base::_S_atoms_in,
+		 __num_base::_S_atoms_in + __num_base::_S_iend, _M_atoms_in);
+    }
+
+  // Used by both numeric and monetary facets.
+  // Check to make sure that the __grouping_tmp string constructed in
+  // money_get or num_get matches the canonical grouping for a given
+  // locale.
+  // __grouping_tmp is parsed L to R
+  // 1,222,444 == __grouping_tmp of "\1\3\3"
+  // __grouping is parsed R to L
+  // 1,222,444 == __grouping of "\3" == "\3\3\3"
+  bool
+  __verify_grouping(const char* __grouping, size_t __grouping_size,
+		    const string& __grouping_tmp);
+
+_GLIBCXX_BEGIN_LDBL_NAMESPACE
+
+  template<typename _CharT, typename _InIter>
+    _InIter
+    num_get<_CharT, _InIter>::
+    _M_extract_float(_InIter __beg, _InIter __end, ios_base& __io,
+		     ios_base::iostate& __err, string& __xtrc) const
+    {
+      typedef char_traits<_CharT>			__traits_type;
+      typedef __numpunct_cache<_CharT>                  __cache_type;
+      __use_cache<__cache_type> __uc;
+      const locale& __loc = __io._M_getloc();
+      const __cache_type* __lc = __uc(__loc);
+      const _CharT* __lit = __lc->_M_atoms_in;
+      char_type __c = char_type();
+
+      // True if __beg becomes equal to __end.
+      bool __testeof = __beg == __end;
+
+      // First check for sign.
+      if (!__testeof)
+	{
+	  __c = *__beg;
+	  const bool __plus = __c == __lit[__num_base::_S_iplus];
+	  if ((__plus || __c == __lit[__num_base::_S_iminus])
+	      && !(__lc->_M_use_grouping && __c == __lc->_M_thousands_sep)
+	      && !(__c == __lc->_M_decimal_point))
+	    {
+	      __xtrc += __plus ? '+' : '-';
+	      if (++__beg != __end)
+		__c = *__beg;
+	      else
+		__testeof = true;
+	    }
+	}
+
+      // Next, look for leading zeros.
+      bool __found_mantissa = false;
+      int __sep_pos = 0;
+      while (!__testeof)
+	{
+	  if ((__lc->_M_use_grouping && __c == __lc->_M_thousands_sep)
+	      || __c == __lc->_M_decimal_point)
+	    break;
+	  else if (__c == __lit[__num_base::_S_izero])
+	    {
+	      if (!__found_mantissa)
+		{
+		  __xtrc += '0';
+		  __found_mantissa = true;
+		}
+	      ++__sep_pos;
+
+	      if (++__beg != __end)
+		__c = *__beg;
+	      else
+		__testeof = true;
+	    }
+	  else
+	    break;
+	}
+
+      // Only need acceptable digits for floating point numbers.
+      bool __found_dec = false;
+      bool __found_sci = false;
+      string __found_grouping;
+      if (__lc->_M_use_grouping)
+	__found_grouping.reserve(32);
+      const char_type* __lit_zero = __lit + __num_base::_S_izero;
+
+      if (!__lc->_M_allocated)
+	// "C" locale
+	while (!__testeof)
+	  {
+	    const int __digit = _M_find(__lit_zero, 10, __c);
+	    if (__digit != -1)
+	      {
+		__xtrc += '0' + __digit;
+		__found_mantissa = true;
+	      }
+	    else if (__c == __lc->_M_decimal_point
+		     && !__found_dec && !__found_sci)
+	      {
+		__xtrc += '.';
+		__found_dec = true;
+	      }
+	    else if ((__c == __lit[__num_base::_S_ie] 
+		      || __c == __lit[__num_base::_S_iE])
+		     && !__found_sci && __found_mantissa)
+	      {
+		// Scientific notation.
+		__xtrc += 'e';
+		__found_sci = true;
+		
+		// Remove optional plus or minus sign, if they exist.
+		if (++__beg != __end)
+		  {
+		    __c = *__beg;
+		    const bool __plus = __c == __lit[__num_base::_S_iplus];
+		    if (__plus || __c == __lit[__num_base::_S_iminus])
+		      __xtrc += __plus ? '+' : '-';
+		    else
+		      continue;
+		  }
+		else
+		  {
+		    __testeof = true;
+		    break;
+		  }
+	      }
+	    else
+	      break;
+
+	    if (++__beg != __end)
+	      __c = *__beg;
+	    else
+	      __testeof = true;
+	  }
+      else
+	while (!__testeof)
+	  {
+	    // According to 22.2.2.1.2, p8-9, first look for thousands_sep
+	    // and decimal_point.
+	    if (__lc->_M_use_grouping && __c == __lc->_M_thousands_sep)
+	      {
+		if (!__found_dec && !__found_sci)
+		  {
+		    // NB: Thousands separator at the beginning of a string
+		    // is a no-no, as is two consecutive thousands separators.
+		    if (__sep_pos)
+		      {
+			__found_grouping += static_cast<char>(__sep_pos);
+			__sep_pos = 0;
+		      }
+		    else
+		      {
+			// NB: __convert_to_v will not assign __v and will
+			// set the failbit.
+			__xtrc.clear();
+			break;
+		      }
+		  }
+		else
+		  break;
+	      }
+	    else if (__c == __lc->_M_decimal_point)
+	      {
+		if (!__found_dec && !__found_sci)
+		  {
+		    // If no grouping chars are seen, no grouping check
+		    // is applied. Therefore __found_grouping is adjusted
+		    // only if decimal_point comes after some thousands_sep.
+		    if (__found_grouping.size())
+		      __found_grouping += static_cast<char>(__sep_pos);
+		    __xtrc += '.';
+		    __found_dec = true;
+		  }
+		else
+		  break;
+	      }
+	    else
+	      {
+		const char_type* __q =
+		  __traits_type::find(__lit_zero, 10, __c);
+		if (__q)
+		  {
+		    __xtrc += '0' + (__q - __lit_zero);
+		    __found_mantissa = true;
+		    ++__sep_pos;
+		  }
+		else if ((__c == __lit[__num_base::_S_ie] 
+			  || __c == __lit[__num_base::_S_iE])
+			 && !__found_sci && __found_mantissa)
+		  {
+		    // Scientific notation.
+		    if (__found_grouping.size() && !__found_dec)
+		      __found_grouping += static_cast<char>(__sep_pos);
+		    __xtrc += 'e';
+		    __found_sci = true;
+		    
+		    // Remove optional plus or minus sign, if they exist.
+		    if (++__beg != __end)
+		      {
+			__c = *__beg;
+			const bool __plus = __c == __lit[__num_base::_S_iplus];
+			if ((__plus || __c == __lit[__num_base::_S_iminus])
+			    && !(__lc->_M_use_grouping
+				 && __c == __lc->_M_thousands_sep)
+			    && !(__c == __lc->_M_decimal_point))
+		      __xtrc += __plus ? '+' : '-';
+			else
+			  continue;
+		      }
+		    else
+		      {
+			__testeof = true;
+			break;
+		      }
+		  }
+		else
+		  break;
+	      }
+	    
+	    if (++__beg != __end)
+	      __c = *__beg;
+	    else
+	      __testeof = true;
+	  }
+
+      // Digit grouping is checked. If grouping and found_grouping don't
+      // match, then get very very upset, and set failbit.
+      if (__found_grouping.size())
+        {
+          // Add the ending grouping if a decimal or 'e'/'E' wasn't found.
+	  if (!__found_dec && !__found_sci)
+	    __found_grouping += static_cast<char>(__sep_pos);
+
+          if (!std::__verify_grouping(__lc->_M_grouping, 
+				      __lc->_M_grouping_size,
+				      __found_grouping))
+	    __err |= ios_base::failbit;
+        }
+
+      // Finish up.
+      if (__testeof)
+        __err |= ios_base::eofbit;
+      return __beg;
+    }
+
+  template<typename _CharT, typename _InIter>
+    template<typename _ValueT>
+      _InIter
+      num_get<_CharT, _InIter>::
+      _M_extract_int(_InIter __beg, _InIter __end, ios_base& __io,
+		     ios_base::iostate& __err, _ValueT& __v) const
+      {
+        typedef char_traits<_CharT>			     __traits_type;
+	using __gnu_cxx::__add_unsigned;
+	typedef typename __add_unsigned<_ValueT>::__type __unsigned_type;
+	typedef __numpunct_cache<_CharT>                     __cache_type;
+	__use_cache<__cache_type> __uc;
+	const locale& __loc = __io._M_getloc();
+	const __cache_type* __lc = __uc(__loc);
+	const _CharT* __lit = __lc->_M_atoms_in;
+	char_type __c = char_type();
+
+	// NB: Iff __basefield == 0, __base can change based on contents.
+	const ios_base::fmtflags __basefield = __io.flags()
+	                                       & ios_base::basefield;
+	const bool __oct = __basefield == ios_base::oct;
+	int __base = __oct ? 8 : (__basefield == ios_base::hex ? 16 : 10);
+
+	// True if __beg becomes equal to __end.
+	bool __testeof = __beg == __end;
+
+	// First check for sign.
+	bool __negative = false;
+	if (!__testeof)
+	  {
+	    __c = *__beg;
+	    if (__gnu_cxx::__numeric_traits<_ValueT>::__is_signed)
+	      __negative = __c == __lit[__num_base::_S_iminus];
+	    if ((__negative || __c == __lit[__num_base::_S_iplus])
+		&& !(__lc->_M_use_grouping && __c == __lc->_M_thousands_sep)
+		&& !(__c == __lc->_M_decimal_point))
+	      {
+		if (++__beg != __end)
+		  __c = *__beg;
+		else
+		  __testeof = true;
+	      }
+	  }
+
+	// Next, look for leading zeros and check required digits
+	// for base formats.
+	bool __found_zero = false;
+	int __sep_pos = 0;
+	while (!__testeof)
+	  {
+	    if ((__lc->_M_use_grouping && __c == __lc->_M_thousands_sep)
+		|| __c == __lc->_M_decimal_point)
+	      break;
+	    else if (__c == __lit[__num_base::_S_izero] 
+		     && (!__found_zero || __base == 10))
+	      {
+		__found_zero = true;
+		++__sep_pos;
+		if (__basefield == 0)
+		  __base = 8;
+		if (__base == 8)
+		  __sep_pos = 0;
+	      }
+	    else if (__q*  r*  s*  t*  u*  v*  w*  x*  y*  z*  {*  |*  }*  ~*  *  €*  *  ‚*  ƒ*  „*  …*  †*  ‡*  ˆ*  ‰*  Š*  ‹*  Œ*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  found_zero
+		     && (__c == __lit[__num_base::_S_ix]
+			 || __c == __lit[__num_base::_S_iX]))
+	      {
+		if (__basefield == 0)
+		  __base = 16;
+		if (__base == 16)
+		  {
+		    __found_zero = false;
+		    __sep_pos = 0;
+		  }
+		else
+		  break;
+	      }
+	    else
+	      break;
+
+	    if (++__beg != __end)
+	      {
+		__c = *__beg;
+		if (!__found_zero)
+		  break;
+	      }
+	    else
+	      __testeof = true;
+	  }
+	
+	// At this point, base is determined. If not hex, only allow
+	// base digits as valid input.
+	const size_t __len = (__base == 16 ? __num_base::_S_iend
+			      - __num_base::_S_izero : __base);
+
+	// Extract.
+	string __found_grouping;
+	if (__lc->_M_use_grouping)
+	  __found_grouping.reserve(32);
+	bool __testfail = false;
+	const __unsigned_type __max = __negative
+	  ? -__gnu_cxx::__numeric_traits<_ValueT>::__min
+	  : __gnu_cxx::__numeric_traits<_ValueT>::__max;
+	const __unsigned_type __smax = __max / __base;
+	__unsigned_type __result = 0;
+	int __digit = 0;
+	const char_type* __lit_zero = __lit + __num_base::_S_izero;
+
+	if (!__lc->_M_allocated)
+	  // "C" locale
+	  while (!__testeof)
+	    {
+	      __digit = _M_find(__lit_zero, __len, __c);
+	      if (__digit == -1)
+		break;
+	      
+	      if (__result > __smax)
+		__testfail = true;
+	      else
+		{
+		  __result *= __base;
+		  __testfail |= __result > __max - __digit;
+		  __result += __digit;
+		  ++__sep_pos;
+		}
+	      
+	      if (++__beg != __end)
+		__c = *__beg;
+	      else
+		__testeof = true;
+	    }
+	else
+	  while (!__testeof)
+	    {
+	      // According to 22.2.2.1.2, p8-9, first look for thousands_sep
+	      // and decimal_point.
+	      if (__lc->_M_use_grouping && __c == __lc->_M_thousands_sep)
+		{
+		  // NB: Thousands separator at the beginning of a string
+		  // is a no-no, as is two consecutive thousands separators.
+		  if (__sep_pos)
+		    {
+		      __found_grouping += static_cast<char>(__sep_pos);
+		      __sep_pos = 0;
+		    }
+		  else
+		    {
+		      __testfail = true;
+		      break;
+		    }
+		}
+	      else if (__c == __lc->_M_decimal_point)
+		break;
+	      else
+		{
+		  const char_type* __q =
+		    __traits_type::find(__lit_zero, __len, __c);
+		  if (!__q)
+		    break;
+		  
+		  __digit = __q - __lit_zero;
+		  if (__digit > 15)
+		    __digit -= 6;
+		  if (__result > __smax)
+		    __testfail = true;
+		  else
+		    {
+		      __result *= __base;
+		      __testfail |= __result > __max - __digit;
+		      __result += __digit;
+		      ++__sep_pos;
+		    }
+		}
+	      
+	      if (++__beg != __end)
+		__c = *__beg;
+	      else
+		__testeof = true;
+	    }
+	
+	// Digit grouping is checked. If grouping and found_grouping don't
+	// match, then get very very upset, and set failbit.
+	if (__found_grouping.size())
+	  {
+	    // Add the ending grouping.
+	    __found_grouping += static_cast<char>(__sep_pos);
+
+	    if (!std::__verify_grouping(__lc->_M_grouping,
+					__lc->_M_grouping_size,
+					__found_grouping))
+	      __err |= ios_base::failbit;
+	  }
+
+	if (!__testfail && (__sep_pos || __found_zero 
+			    || __found_grouping.size()))
+	  __v = __negative ? -__result : __result;
+	else
+	  __err |= ios_base::failbit;
+
+	if (__testeof)
+	  __err |= ios_base::eofbit;
+	return __beg;
+      }
+
+  // _GLIBCXX_RESOLVE_LIB_DEFECTS
+  // 17.  Bad bool parsing
+  template<typename _CharT, typename _InIter>
+    _InIter
+    num_get<_CharT, _InIter>::
+    do_get(iter_type __beg, iter_type __end, ios_base& __io,
+           ios_base::iostate& __err, bool& __v) const
+    {
+      if (!(__io.flags() & ios_base::boolalpha))
+        {
+	  // Parse bool values as long.
+          // NB: We can't just call do_get(long) here, as it might
+          // refer to a derived class.
+	  long __l = -1;
+          __beg = _M_extract_int(__beg, __end, __io, __err, __l);
+	  if (__l == 0 || __l == 1)
+	    __v = bool(__l);
+	  else
+            __err |= ios_base::failbit;
+        }
+      else
+        {
+	  // Parse bool values as alphanumeric.
+	  typedef __numpunct_cache<_CharT>              __cache_type;
+	  __use_cache<__cache_type> __uc;
+	  const locale& __loc = __io._M_getloc();
+	  const __cache_type* __lc = __uc(__loc);
+
+	  bool __testf = true;
+	  bool __testt = true;
+	  size_t __n;
+	  bool __testeof = __beg == __end;
+          for (__n = 0; !__testeof; ++__n)
+            {
+	      const char_type __c = *__beg;
+
+	      if (__testf)
+	        {
+		  if (__n < __lc->_M_falsename_size)
+		    __testf = __c == __lc->_M_falsename[__n];
+		  else
+		    break;
+		}
+
+	      if (__testt)
+	        {
+		  if (__n < __lc->_M_truename_size)
+		    __testt = __c == __lc->_M_truename[__n];
+		  else
+		    break;
+		}
+
+	      if (!__testf && !__testt)
+		break;
+	      
+	      if (++__beg == __end)
+		__testeof = true;
+            }
+	  if (__testf && __n == __lc->_M_falsename_size)
+	    __v = false;
+	  else if (__testt && __n == __lc->_M_truename_size)
+	    __v = true;
+	  else
+	    __err |= ios_base::failbit;
+
+          if (__testeof)
+            __err |= ios_base::eofbit;
+        }
+      return __beg;
+    }
+
+  template<typename _CharT, typename _InIter>
+    _InIter
+    num_get<_CharT, _InIter>::
+    do_get(iter_type __beg, iter_type __end, ios_base& __io,
+           ios_base::iostate& __err, long& __v) const
+    { return _M_extract_int(__beg, __end, __io, __err, __v); }
+
+  template<typename _CharT, typename _InIter>
+    _InIter
+    num_get<_CharT, _InIter>::
+    do_get(iter_type __beg, iter_type __end, ios_base& __io,
+           ios_base::iostate& __err, unsigned short& __v) const
+    { return _M_extract_int(__beg, __end, __io, __err, __v); }
+
+  template<typename _CharT, typename _InIter>
+    _InIter
+    num_get<_CharT, _InIter>::
+    do_get(iter_type __beg, iter_type __end, ios_base& __io,
+           ios_base::iostate& __err, unsigned int& __v) const
+    { return _M_extract_int(__beg, __end, __io, __err, __v); }
+
+  template<typename _CharT, typename _InIter>
+    _InIter
+    num_get<_CharT, _InIter>::
+    do_get(iter_type __beg, iter_type __end, ios_base& __io,
+           ios_base::iostate& __err, unsigned long& __v) const
+    { return _M_extract_int(__beg, __end, __io, __err, __v); }
+
+#ifdef _GLIBCXX_USE_LONG_LONG
+  template<typename _CharT, typename _InIter>
+    _InIter
+    num_get<_CharT, _InIter>::
+    do_get(iter_type __beg, iter_type __end, ios_base& __io,
+           ios_base::iostate& __err, long long& __v) const
+    { return _M_extract_int(__beg, __end, __io, __err, __v); }
+
+  template<typename _CharT, typename _InIter>
+    _InIter
+    num_get<_CharT, _InIter>::
+    do_get(iter_type __beg, iter_type __end, ios_base& __io,
+           ios_base::iostate& __err, unsigned long long& __v) const
+    { return _M_extract_int(__beg, __end, __io, __err, __v); }
+#endif
+
+  template<typename _CharT, typename _InIter>
+    _InIter
+    num_get<_CharT, _InIter>::
+    do_get(iter_type __beg, iter_type __end, ios_base& __io,
+	   ios_base::iostate& __err, float& __v) const
+    {
+      string __xtrc;
+      __xtrc.reserve(32);
+      __beg = _M_extract_float(__beg, __end, __io, __err, __xtrc);
+      std::__convert_to_v(__xtrc.c_str(), __v, __err, _S_get_c_locale());
+      return __beg;
+    }
+
+  template<typename _CharT, typename _InIter>
+    _InIter
+    num_get<_CharT, _InIter>::
+    do_get(iter_type __beg, iter_type __end, ios_base& __io,
+           ios_base::iostate& __err, double& __v) const
+    {
+      string __xtrc;
+      __xtrc.reserve(32);
+      __beg = _M_extract_float(__beg, __end, __io, __err, __xtrc);
+      std::__convert_to_v(__xtrc.c_str(), __v, __err, _S_get_c_locale());
+      return __beg;
+    }
+
+#if defined _GLIBCXX_LONG_DOUBLE_COMPAT && defined __LONG_DOUBLE_128__
+  template<typename _CharT, typename _InIter>
+    _InIter
+    num_get<_CharT, _InIter>::
+    __do_get(iter_type __beg, iter_type __end, ios_base& __io,
+	     ios_base::iostate& __err, double& __v) const
+    {
+      string __xtrc;
+      __xtrc.reserve(32);
+      __beg = _M_extract_float(__beg, __end, __io, __err, __xtrc);
+      std::__convert_to_v(__xtrc.c_str(), __v, __err, _S_get_c_locale());
+      return __beg;
+    }
+#endif
+
+  template<typename _CharT, typename _InIter>
+    _InIter
+    num_get<_CharT, _InIter>::
+    do_get(iter_type __beg, iter_type __end, ios_base& __io,
+           ios_base::iostate& __err, long double& __v) const
+    {
+      string __xtrc;
+      __xtrc.reserve(32);
+      __beg = _M_extract_float(__beg, __end, __io, __err, __xtrc);
+      std::__convert_to_v(__xtrc.c_str(), __v, __err, _S_get_c_locale());
+      return __beg;
+    }
+
+  template<typename _CharT, typename _InIter>
+    _InIter
+    num_get<_CharT, _InIter>::
+    do_get(iter_type __beg, iter_type __end, ios_base& __io,
+           ios_base::iostate& __err, void*& __v) const
+    {
+      // Prepare for hex formatted input.
+      typedef ios_base::fmtflags        fmtflags;
+      const fmtflags __fmt = __io.flags();
+      __io.flags((__fmt & ~ios_base::basefield) | ios_base::hex);
+
+      typedef __gnu_cxx::__conditional_type<(sizeof(void*)
+					     <= sizeof(unsigned long)),
+	unsigned long, unsigned long long>::__type _UIntPtrType;       
+
+      _UIntPtrType __ul;
+      __beg = _M_extract_int(__beg, __end, __io, __err, __ul);
+
+      // Reset from hex formatted input.
+      __io.flags(__fmt);
+
+      if (!(__err & ios_base::failbit))
+	__v = reinterpret_cast<void*>(__ul);
+      return __beg;
+    }
+
+  // For use by integer and floating-point types after they have been
+  // converted into a char_type string.
+  template<typename _CharT, typename _OutIter>
+    void
+    num_put<_CharT, _OutIter>::
+    _M_pad(_CharT __fill, streamsize __w, ios_base& __io,
+	   _CharT* __new, const _CharT* __cs, int& __len) const
+    {
+      // [22.2.2.2.2] Stage 3.
+      // If necessary, pad.
+      __pad<_CharT, char_traits<_CharT> >::_S_pad(__io, __fill, __new,
+						  __cs, __w, __len);
+      __len = static_cast<int>(__w);
+    }
+
+_GLIBCXX_END_LDBL_NAMESPACE
+
+  template<typename _CharT, typename _ValueT>
+    int
+    __int_to_char(_CharT* __bufend, _ValueT __v, const _CharT* __lit,
+		  ios_base::fmtflags __flags, bool __dec)
+    {
+      _CharT* __buf = __bufend;
+      if (__builtin_expect(__dec, true))
+	{
+	  // Decimal.
+	  do
+	    {
+	      *--__buf = __lit[(__v % 10) + __num_base::_S_odigits];
+	      __v /= 10;
+	    }
+	  while (__v != 0);
+	}
+      else if ((__flags & ios_base::basefield) == ios_base::oct)
+	{
+	  // Octal.
+	  do
+	    {
+	      *--__buf = __lit[(__v & 0x7) + __num_base::_S_odigits];
+	      __v >>= 3;
+	    }
+	  while (__v != 0);
+	}
+      else
+	{
+	  // Hex.
+	  const bool __uppercase = __flags & ios_base::uppercase;
+	  const int __case_offset = __uppercase ? __num_base::_S_oudigits
+	                                        : __num_base::_S_odigits;
+	  do
+	    {
+	      *--__buf = __lit[(__v & 0xf) + __case_offset];
+	      __v >>= 4;
+	    }
+	  while (__v != 0);
+	}
+      return __bufend - __buf;
+    }
+
+_GLIBCXX_BEGIN_LDBL_NAMESPACE
+
+  template<typename _CharT, typename _OutIter>
+    void
+    num_put<_CharT, _OutIter>::
+    _M_group_int(const char* __grouping, size_t __grouping_size, _CharT __sep,
+		 ios_base&, _CharT* __new, _CharT* __cs, int& __len) const
+    {
+      _CharT* __p = std::__add_grouping(__new, __sep, __grouping,
+					__grouping_size, __cs, __cs + __len);
+      __len = __p - __new;
+    }
+  
+  template<typename _CharT, typename _OutIter>
+    template<typename _ValueT>
+      _OutIter
+      num_put<_CharT, _OutIter>::
+      _M_insert_int(_OutIter __s, ios_base& __io, _CharT __fill,
+		    _ValueT __v) const
+      {
+	using __gnu_cxx::__add_unsigned;
+	typedef typename __add_unsigned<_ValueT>::__type __unsigned_type;
+	typedef __numpunct_cache<_CharT>	             __cache_type;
+	__use_cache<__cache_type> __uc;
+	const locale& __loc = __io._M_getloc();
+	const __cache_type* __lc = __uc(__loc);
+	const _CharT* __lit = __lc->_M_atoms_out;
+	const ios_base::fmtflags __flags = __io.flags();
+
+	// Long enough to hold hex, dec, and octal representations.
+	const int __ilen = 5 * sizeof(_ValueT);
+	_CharT* __cs = static_cast<_CharT*>(__builtin_alloca(sizeof(_CharT)
+							     * __ilen));
+
+	// [22.2.2.2.2] Stage 1, numeric conversion to character.
+	// Result is returned right-justified in the buffer.
+	const ios_base::fmtflags __basefield = __flags & ios_base::basefield;
+	const bool __dec = (__basefield != ios_base::oct
+			    && __basefield != ios_base::hex);
+	const __unsigned_type __u = ((__v > 0 || !__dec)
+				     ? __unsigned_type(__v)
+				     : -__unsigned_type(__v));
+ 	int __len = __int_to_char(__cs + __ilen, __u, __lit, __flags, __dec);
+	__cs += __ilen - __len;
+
+	// Add grouping, if necessary.
+	if (__lc->_M_use_grouping)
+	  {
+	    // Grouping can add (almost) as many separators as the number
+	    // of digits + space is reserved for numeric base or sign.
+	    _CharT* __cs2 = static_cast<_CharT*>(__builtin_alloca(sizeof(_CharT)
+								  * (__len + 1)
+								  * 2));
+	    _M_group_int(__lc->_M_grouping, __lc->_M_grouping_size,
+			 __lc->_M_thousands_sep, __io, __cs2 + 2, __cs, __len);
+	    __cs = __cs2 + 2;
+	  }
+
+	// Complete Stage 1, prepend numeric base or sign.
+	if (__builtin_expect(__dec, true))
+	  {
+	    // Decimal.
+	    if (__v >= 0)
+	      {
+		if (bool(__flags & ios_base::showpos)
+		    && __gnu_cxx::__numeric_traits<_ValueT>::__is_signed)
+		  *--__cs = __lit[__num_base::_S_oplus], ++__len;
+	      }
+	    else
+	      *--__cs = __lit[__num_base::_S_ominus], ++__len;
+	  }
+	else if (bool(__flags & ios_base::showbase) && __v)
+	  {
+	    if (__basefield == ios_base::oct)
+	      *--__cs = __lit[__num_base::_S_odigits], ++__len;
+	    else
+	      {
+		// 'x' or 'X'
+		const bool __uppercase = __flags & ios_base::uppercase;
+		*--__cs = __lit[__num_base::_S_ox + __uppercase];
+		// '0'
+		*--__cs = __lit[__num_base::_S_odigits];
+		__len += 2;
+	      }
+	  }
+
+	// Pad.
+	const streamsize __w = __io.width();
+	if (__w > static_cast<streamsize>(__len))
+	  {
+	    _CharT* __cs3 = static_cast<_CharT*>(__builtin_alloca(sizeof(_CharT)
+								  * __w));
+	    _M_pad(__fill, __w, __io, __cs3, __cs, __len);
+	    __cs = __cs3;
+	  }
+	__io.width(0);
+
+	// [22.2.2.2.2] Stage 4.
+	// Write resulting, fully-formatted string to output iterator.
+	return std::__write(__s, __cs, __len);
+      }
+
+  template<typename _CharT, typename _OutIter>
+    void
+    num_put<_CharT, _OutIter>::
+    _M_group_float(const char* __grouping, size_t __grouping_size,
+		   _CharT __sep, const _CharT* __p, _CharT* __new,
+		   _CharT* __cs, int& __len) const
+    {
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 282. What types does numpunct grouping refer to?
+      // Add grouping, if necessary.
+      const int __declen = __p ? __p - __cs : __len;
+      _CharT* __p2 = std::__add_grouping(__new, __sep, __grouping,
+					 __grouping_size,
+					 __cs, __cs + __declen);
+
+      // Tack on decimal part.
+      int __newlen = __p2 - __new;
+      if (__p)
+	{
+	  char_traits<_CharT>::copy(__p2, __p, __len - __declen);
+	  __newlen += __len - __declen;
+	}
+      __len = __newlen;
+    }
+
+  // The following code uses vsnprintf (or vsprintf(), when
+  // _GLIBCXX_USE_C99 is not defined) to convert floating point values
+  // for insertion into a stream.  An optimization would be to replace
+  // them with code that works directly on a wide buffer and then use
+  // __pad to do the padding.  It would be good to replace them anyway
+  // to gain back the efficiency that C++ provides by knowing up front
+  // the type of the values to insert.  Also, sprintf is dangerous
+  

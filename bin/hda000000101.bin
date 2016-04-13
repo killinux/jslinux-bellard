@@ -1,0 +1,1699 @@
+iles.  */
+       ufile_ptr origin;
+
+       /* The origin in the archive of the proxy entry.  This will
+          normally be the same as origin, except for thin archives,
+          when it will contain the current offset of the proxy in the
+          thin archive rather than the offset of the bfd in its actual
+          container.  */
+       ufile_ptr proxy_origin;
+
+       /* A hash table for section names.  */
+       struct bfd_hash_table section_htab;
+
+       /* Pointer to linked list of sections.  */
+       struct bfd_section *sections;
+
+       /* The last section on the section list.  */
+       struct bfd_section *section_last;
+
+       /* The number of sections.  */
+       unsigned int section_count;
+
+       /* Stuff only useful for object files:
+          The start address.  */
+       bfd_vma start_address;
+
+       /* Used for input and output.  */
+       unsigned int symcount;
+
+       /* Symbol table for output BFD (with symcount entries).
+          Also used by the linker to cache input BFD symbols.  */
+       struct bfd_symbol  **outsymbols;
+
+       /* Used for slurped dynamic symbol tables.  */
+       unsigned int dynsymcount;
+
+       /* Pointer to structure which contains architecture information.  */
+       const struct bfd_arch_info *arch_info;
+
+       /* Stuff only useful for archives.  */
+       void *arelt_data;
+       struct bfd *my_archive;      /* The containing archive BFD.  */
+       struct bfd *archive_next;    /* The next BFD in the archive.  */
+       struct bfd *archive_head;    /* The first BFD in the archive.  */
+       struct bfd *nested_archives; /* List of nested archive in a flattened
+                                       thin archive.  */
+
+       /* A chain of BFD structures involved in a link.  */
+       struct bfd *link_next;
+
+       /* A field used by _bfd_generic_link_add_archive_symbols.  This will
+          be used only for archive elements.  */
+       int archive_pass;
+
+       /* Used by the back end to hold private data.  */
+       union
+         {
+           struct aout_data_struct *aout_data;
+           struct artdata *aout_ar_data;
+           struct _oasys_data *oasys_obj_data;
+           struct _oasys_ar_data *oasys_ar_data;
+           struct coff_tdata *coff_obj_data;
+           struct pe_tdata *pe_obj_data;
+           struct xcoff_tdata *xcoff_obj_data;
+           struct ecoff_tdata *ecoff_obj_data;
+           struct ieee_data_struct *ieee_data;
+           struct ieee_ar_data_struct *ieee_ar_data;
+           struct srec_data_struct *srec_data;
+           struct verilog_data_struct *verilog_data;
+           struct ihex_data_struct *ihex_data;
+           struct tekhex_data_struct *tekhex_data;
+           struct elf_obj_tdata *elf_obj_data;
+           struct nlm_obj_tdata *nlm_obj_data;
+           struct bout_data_struct *bout_data;
+           struct mmo_data_struct *mmo_data;
+           struct sun_core_struct *sun_core_data;
+           struct sco5_core_struct *sco5_core_data;
+           struct trad_core_struct *trad_core_data;
+           struct som_data_struct *som_data;
+           struct hpux_core_struct *hpux_core_data;
+           struct hppabsd_core_struct *hppabsd_core_data;
+           struct sgi_core_struct *sgi_core_data;
+           struct lynx_core_struct *lynx_core_data;
+           struct osf_core_struct *osf_core_data;
+           struct cisco_core_struct *cisco_core_data;
+           struct versados_data_struct *versados_data;
+           struct netbsd_core_struct *netbsd_core_data;
+           struct mach_o_data_struct *mach_o_data;
+           struct mach_o_fat_data_struct *mach_o_fat_data;
+           struct plugin_data_struct *plugin_data;
+           struct bfd_pef_data_struct *pef_data;
+           struct bfd_pef_xlib_data_struct *pef_xlib_data;
+           struct bfd_sym_data_struct *sym_data;
+           void *any;
+         }
+       tdata;
+
+       /* Used by the application to hold private data.  */
+       void *usrdata;
+
+       /* Where all the allocated stuff under this BFD goes.  This is a
+          struct objalloc *, but we use void * to avoid requiring the inclusion
+          of objalloc.h.  */
+       void *memory;
+
+       /* Is the file descriptor being cached?  That is, can it be closed as
+          needed, and re-opened when accessed later?  */
+       unsigned int cacheable : 1;
+
+       /* Marks whether there was a default target specified when the
+          BFD was opened. This is used to select which matching algorithm
+          to use to choose the back end.  */
+       unsigned int target_defaulted : 1;
+
+       /* ... and here: (``once'' means at least once).  */
+       unsigned int opened_once : 1;
+
+       /* Set if we have a locally maintained mtime value, rather than
+          getting it from the file each time.  */
+       unsigned int mtime_set : 1;
+
+       /* Flag set if symbols from this BFD should not be exported.  */
+       unsigned int no_export : 1;
+
+       /* Remember when output has begun, to stop strange things
+          from happening.  */
+       unsigned int output_has_begun : 1;
+
+       /* Have archive map.  */
+       unsigned int has_armap : 1;
+
+       /* Set if this is a thin archive.  */
+       unsigned int is_thin_archive : 1;
+
+       /* Set if only required symbols should be added in the link hash table for
+          this object.  Used by VMS linkers.  */
+       unsigned int selective_search : 1;
+     };
+
+2.2 Error reporting
+===================
+
+Most BFD functions return nonzero on success (check their individual
+documentation for precise semantics).  On an error, they call
+`bfd_set_error' to set an error condition that callers can check by
+calling `bfd_get_error'.  If that returns `bfd_error_system_call', then
+check `errno'.
+
+   The easiest way to report a BFD error to the user is to use
+`bfd_perror'.
+
+2.2.1 Type `bfd_error_type'
+---------------------------
+
+The values returned by `bfd_get_error' are defined by the enumerated
+type `bfd_error_type'.
+
+
+     typedef enum bfd_error
+     {
+       bfd_error_no_error = 0,
+       bfd_error_system_call,
+       bfd_error_invalid_target,
+       bfd_error_wrong_format,
+       bfd_error_wrong_object_format,
+       bfd_error_invalid_operation,
+       bfd_error_no_memory,
+       bfd_error_no_symbols,
+       bfd_error_no_armap,
+       bfd_error_no_more_archived_files,
+       bfd_error_malformed_archive,
+       bfd_error_file_not_recognized,
+       bfd_error_file_ambiguously_recognized,
+       bfd_error_no_contents,
+       bfd_error_nonrepresentable_section,
+       bfd_error_no_debug_section,
+       bfd_error_bad_value,
+       bfd_error_file_truncated,
+       bfd_error_file_too_big,
+       bfd_error_on_input,
+       bfd_error_invalid_error_code
+     }
+     bfd_error_type;
+   
+2.2.1.1 `bfd_get_error'
+.......................
+
+*Synopsis*
+     bfd_error_type bfd_get_error (void);
+   *Description*
+Return the current BFD error condition.
+
+2.2.1.2 `bfd_set_error'
+.......................
+
+*Synopsis*
+     void bfd_set_error (bfd_error_type error_tag, ...);
+   *Description*
+Set the BFD error condition to be ERROR_TAG.  If ERROR_TAG is
+bfd_error_on_input, then this function takes two more parameters, the
+input bfd where the error occurred, and the bfd_error_type error.
+
+2.2.1.3 `bfd_errmsg'
+....................
+
+*Synopsis*
+     const char *bfd_errmsg (bfd_error_type error_tag);
+   *Description*
+Return a string describing the error ERROR_TAG, or the system error if
+ERROR_TAG is `bfd_error_system_call'.
+
+2.2.1.4 `bfd_perror'
+....................
+
+*Synopsis*
+     void bfd_perror (const char *message);
+   *Description*
+Print to the standard error stream a string describing the last BFD
+error that occurred, or the last system error if the last BFD error was
+a system call failure.  If MESSAGE is non-NULL and non-empty, the error
+string printed is preceded by MESSAGE, a colon, and a space.  It is
+followed by a newline.
+
+2.2.2 BFD error handler
+-----------------------
+
+Some BFD functions want to print messages describing the problem.  They
+call a BFD error handler function.  This function may be overridden by
+the program.
+
+   The BFD error handler acts like printf.
+
+
+     typedef void (*bfd_error_handler_type) (const char *, ...);
+   
+2.2.2.1 `bfd_set_error_handler'
+...............................
+
+*Synopsis*
+     bfd_error_handler_type bfd_set_error_handler (bfd_error_handler_type);
+   *Description*
+Set the BFD error handler function.  Returns the previous function.
+
+2.2.2.2 `bfd_set_error_program_name'
+....................................
+
+*Synopsis*
+     void bfd_set_error_program_name (const char *);
+   *Description*
+Set the program name to use when printing a BFD error.  This is printed
+before the error message followed by a colon and space.  The string
+must not be changed after it is passed to this function.
+
+2.2.2.3 `bfd_get_error_handler'
+...............................
+
+*Synopsis*
+     bfd_error_handler_type bfd_get_error_handler (void);
+   *Description*
+Return the BFD error handler function.
+
+2.3 Miscellaneous
+=================
+
+2.3.1 Miscellaneous functions
+-----------------------------
+
+2.3.1.1 `bfd_get_reloc_upper_bound'
+...................................
+
+*Synopsis*
+     long bfd_get_reloc_upper_bound (bfd *abfd, asection *sect);
+   *Description*
+Return the number of bytes required to store the relocation information
+associated with section SECT attached to bfd ABFD.  If an error occurs,
+return -1.
+
+2.3.1.2 `bfd_canonicalize_reloc'
+................................
+
+*Synopsis*
+     long bfd_canonicalize_reloc
+        (bfd *abfd, asection *sec, arelent **loc, asymbol **syms);
+   *Description*
+Call the back end associated with the open BFD ABFD and translate the
+external form of the relocation information attached to SEC into the
+internal canonical form.  Place the table into memory at LOC, which has
+been preallocated, usually by a call to `bfd_get_reloc_upper_bound'.
+Returns the number of relocs, or -1 on error.
+
+   The SYMS table is also needed for horrible internal magic reasons.
+
+2.3.1.3 `bfd_set_reloc'
+.......................
+
+*Synopsis*
+     void bfd_set_reloc
+        (bfd *abfd, asection *sec, arelent **rel, unsigned int count);
+   *Description*
+Set the relocation pointer and count within section SEC to the values
+REL and COUNT.  The argument ABFD is ignored.
+
+2.3.1.4 `bfd_set_file_flags'
+............................
+
+*Synopsis*
+     bfd_boolean bfd_set_file_flags (bfd *abfd, flagword flags);
+   *Description*
+Set the flag word in the BFD ABFD to the value FLAGS.
+
+   Possible errors are:
+   * `bfd_error_wrong_format' - The target bfd was not of object format.
+
+   * `bfd_error_invalid_operation' - The target bfd was open for
+     reading.
+
+   * `bfd_error_invalid_operation' - The flag word contained a bit
+     which was not applicable to the type of file.  E.g., an attempt
+     was made to set the `D_PAGED' bit on a BFD format which does not
+     support demand paging.
+
+2.3.1.5 `bfd_get_arch_size'
+...........................
+
+*Synopsis*
+     int bfd_get_arch_size (bfd *abfd);
+   *Description*
+Returns the architecture address size, in bits, as determined by the
+object file's format.  For ELF, this information is included in the
+header.
+
+   *Returns*
+Returns the arch size in bits if known, `-1' otherwise.
+
+2.3.1.6 `bfd_get_sign_extend_vma'
+.................................
+
+*Synopsis*
+     int bfd_get_sign_extend_vma (bfd *abfd);
+   *Description*
+Indicates if the target architecture "naturally" sign extends an
+address.  Some architectures implicitly sign extend address values when
+they are converted to types larger than the size of an address.  For
+instance, bfd_get_start_address() will return an address sign extended
+to fill a bfd_vma when this is the case.
+
+   *Returns*
+Returns `1' if the target architecture is known to sign extend
+addresses, `0' if the target architecture is known to not sign extend
+addresses, and `-1' otherwise.
+
+2.3.1.7 `bfd_set_start_address'
+...............................
+
+*Synopsis*
+     bfd_boolean bfd_set_start_address (bfd *abfd, bfd_vma vma);
+   *Description*
+Make VMA the entry point of output BFD ABFD.
+
+   *Returns*
+Returns `TRUE' on success, `FALSE' otherwise.
+
+2.3.1.8 `bfd_get_gp_size'
+.........................
+
+*Synopsis*
+     unsigned int bfd_get_gp_size (bfd *abfd);
+   *Description*
+Return the maximum size of objects to be optimized using the GP
+register under MIPS ECOFF.  This is typically set by the `-G' argument
+to the compiler, assembler or linker.
+
+2.3.1.9 `bfd_set_gp_size'
+.........................
+
+*Synopsis*
+     void bfd_set_gp_size (bfd *abfd, unsigned int i);
+   *Description*
+Set the maximum size of objects to be optimized using the GP register
+under ECOFF or MIPS ELF.  This is typically set by the `-G' argument to
+the compiler, assembler or linker.
+
+2.3.1.10 `bfd_scan_vma'
+.......................
+
+*Synopsis*
+     bfd_vma bfd_scan_vma (const char *string, const char **end, int base);
+   *Description*
+Convert, like `strtoul', a numerical expression STRING into a `bfd_vma'
+integer, and return that integer.  (Though without as many bells and
+whistles as `strtoul'.)  The expression is assumed to be unsigned
+(i.e., positive).  If given a BASE, it is used as the base for
+conversion.  A base of 0 causes the function to interpret the string in
+hex if a leading "0x" or "0X" is found, otherwise in octal if a leading
+zero is found, otherwise in decimal.
+
+   If the value would overflow, the maximum `bfd_vma' value is returned.
+
+2.3.1.11 `bfd_copy_private_header_data'
+.......................................
+
+*Synopsis*
+     bfd_boolean bfd_copy_private_header_data (bfd *ibfd, bfd *obfd);
+   *Description*
+Copy private BFD header information from the BFD IBFD to the the BFD
+OBFD.  This copies information that may require sections to exist, but
+does not require symbol tables.  Return `true' on success, `false' on
+error.  Possible error returns are:
+
+   * `bfd_error_no_memory' - Not enough memory exists to create private
+     data for OBFD.
+
+     #define bfd_copy_private_header_data(ibfd, obfd) \
+          BFD_SEND (obfd, _bfd_copy_private_header_data, \
+                    (ibfd, obfd))
+
+2.3.1.12 `bfd_copy_private_bfd_data'
+....................................
+
+*Synopsis*
+     bfd_boolean bfd_copy_private_bfd_data (bfd *ibfd, bfd *obfd);
+   *Description*
+Copy private BFD information from the BFD IBFD to the the BFD OBFD.
+Return `TRUE' on success, `FALSE' on error.  Possible error returns are:
+
+   * `bfd_error_no_memory' - Not enough memory exists to create private
+     data for OBFD.
+
+     #define bfd_copy_private_bfd_data(ibfd, obfd) \
+          BFD_SEND (obfd, _bfd_copy_private_bfd_data, \
+                    (ibfd, obfd))
+
+2.3.1.13 `bfd_merge_private_bfd_data'
+.....................................
+
+*Synopsis*
+     bfd_boolean bfd_merge_private_bfd_data (bfd *ibfd, bfd *obfd);
+   *Description*
+Merge private BFD information from the BFD IBFD to the the output file
+BFD OBFD when linking.  Return `TRUE' on success, `FALSE' on error.
+Possible error returns are:
+
+   * `bfd_error_no_memory' - Not enough memory exists to create private
+     data for OBFD.
+
+     #define bfd_merge_private_bfd_data(ibfd, obfd) \
+          BFD_SEND (obfd, _bfd_merge_private_bfd_data, \
+                    (ibfd, obfd))
+
+2.3.1.14 `bfd_set_private_flags'
+................................
+
+*Synopsis*
+     bfd_boolean bfd_set_private_flags (bfd *abfd, flagword flags);
+   *Description*
+Set private BFD flag information in the BFD ABFD.  Return `TRUE' on
+success, `FALSE' on error.  Possible error returns are:
+
+   * `bfd_error_no_memory' - Not enough memory exists to create private
+     data for OBFD.
+
+     #define bfd_set_private_flags(abfd, flags) \
+          BFD_SEND (abfd, _bfd_set_private_flags, (abfd, flags))
+
+2.3.1.15 `Other functions'
+..........................
+
+*Description*
+The following functions exist but have not yet been documented.
+     #define bfd_sizeof_headers(abfd, info) \
+            BFD_SEND (abfd, _bfd_sizeof_headers, (abfd, info))
+
+     #define bfd_find_nearest_line(abfd, sec, syms, off, file, func, line) \
+            BFD_SEND (abfd, _bfd_find_nearest_line, \
+                      (abfd, sec, syms, off, file, func, line))
+
+     #define bfd_find_line(abfd, syms, sym, file, line) \
+            BFD_SEND (abfd, _bfd_find_line, \
+                      (abfd, syms, sym, file, line))
+
+     #define bfd_find_inliner_info(abfd, file, func, line) \
+            BFD_SEND (abfd, _bfd_find_inliner_info, \
+                      (abfd, file, func, line))
+
+     #define bfd_debug_info_start(abfd) \
+            BFD_SEND (abfd, _bfd_debug_info_start, (abfd))
+
+     #define bfd_debug_info_end(abfd) \
+            BFD_SEND (abfd, _bfd_debug_info_end, (abfd))
+
+     #define bfd_debug_info_accumulate(abfd, section) \
+            BFD_SEND (abfd, _bfd_debug_info_accumulate, (abfd, section))
+
+     #define bfd_stat_arch_elt(abfd, stat) \
+            BFD_SEND (abfd, _bfd_stat_arch_elt,(abfd, stat))
+
+     #define bfd_update_armap_timestamp(abfd) \
+            BFD_SEND (abfd, _bfd_update_armap_timestamp, (abfd))
+
+     #define bfd_set_arch_mach(abfd, arch, mach)\
+            BFD_SEND ( abfd, _bfd_set_arch_mach, (abfd, arch, mach))
+
+     #define bfd_relax_section(abfd, section, link_info, again) \
+            BFD_SEND (abfd, _bfd_relax_section, (abfd, section, link_info, again))
+
+     #define bfd_gc_sections(abfd, link_info) \
+            BFD_SEND (abfd, _bfd_gc_sections, (abfd, link_info))
+
+     #define bfd_merge_sections(abfd, link_info) \
+            BFD_SEND (abfd, _bfd_merge_sections, (abfd, link_info))
+
+     #define bfd_is_group_section(abfd, sec) \
+            BFD_SEND (abfd, _bfd_is_group_section, (abfd, sec))
+
+     #define bfd_discard_group(abfd, sec) \
+            BFD_SEND (abfd, _bfd_discard_group, (abfd, sec))
+
+     #define bfd_link_hash_table_create(abfd) \
+            BFD_SEND (abfd, _bfd_link_hash_table_create, (abfd))
+
+     #define bfd_link_hash_table_free(abfd, hash) \
+            BFD_SEND (abfd, _bfd_link_hash_table_free, (hash))
+
+     #define bfd_link_add_symbols(abfd, info) \
+            BFD_SEND (abfd, _bfd_link_add_symbols, (abfd, info))
+
+     #define bfd_link_just_syms(abfd, sec, info) \
+            BFD_SEND (abfd, _bfd_link_just_syms, (sec, info))
+
+     #define bfd_final_link(abfd, info) \
+            BFD_SEND (abfd, _bfd_final_link, (abfd, info))
+
+     #define bfd_free_cached_info(abfd) \
+            BFD_SEND (abfd, _bfd_free_cached_info, (abfd))
+
+     #define bfd_get_dynamic_symtab_upper_bound(abfd) \
+            BFD_SEND (abfd, _bfd_get_dynamic_symtab_upper_bound, (abfd))
+
+     #define bfd_print_private_bfd_data(abfd, file)\
+            BFD_SEND (abfd, _bfd_print_private_bfd_data, (abfd, file))
+
+     #define bfd_canonicalize_dynamic_symtab(abfd, asymbols) \
+            BFD_SEND (abfd, _bfd_canonicalize_dynamic_symtab, (abfd, asymbols))
+
+     #define bfd_get_synthetic_symtab(abfd, count, syms, dyncount, dynsyms, ret) \
+            BFD_SEND (abfd, _bfd_get_synthetic_symtab, (abfd, count, syms, \
+                                                        dyncount, dynsyms, ret))
+
+     #define bfd_get_dynamic_reloc_upper_bound(abfd) \
+            BFD_SEND (abfd, _bfd_get_dynamic_reloc_upper_bound, (abfd))
+
+     #define bfd_canonicalize_dynamic_reloc(abfd, arels, asyms) \
+            BFD_SEND (abfd, _bfd_canonicalize_dynamic_reloc, (abfd, arels, asyms))
+
+     extern bfd_byte *bfd_get_relocated_section_contents
+       (bfd *, struct bfd_link_info *, struct bfd_link_order *, bfd_byte *,
+        bfd_boolean, asymbol **);
+
+2.3.1.16 `bfd_alt_mach_code'
+............................
+
+*Synopsis*
+     bfd_boolean bfd_alt_mach_code (bfd *abfd, int alternative);
+   *Description*
+When more than one machine code number is available for the same
+machine type, this function can be used to switch between the preferred
+one (alternative == 0) and any others.  Currently, only ELF supports
+this feature, with up to two alternate machine codes.
+
+     struct bfd_preserve
+     {
+       void *marker;
+       void *tdata;
+       flagword flags;
+       const struct bfd_arch_info *arch_info;
+       struct bfd_section *sections;
+       struct bfd_section *section_last;
+       unsigned int section_count;
+       struct bfd_hash_table section_htab;
+     };
+   
+2.3.1.17 `bfd_preserve_save'
+............................
+
+*Synopsis*
+     bfd_boolean bfd_preserve_save (bfd *, struct bfd_preserve *);
+   *Description*
+When testing an object for compatibility with a particular target
+back-end, the back-end object_p function needs to set up certain fields
+in the bfd on successfully recognizing the object.  This typically
+happens in a piecemeal fashion, with failures possible at many points.
+On failure, the bfd is supposed to be restored to its initial state,
+which is virtually impossible.  However, restoring a subset of the bfd
+state works in practice.  This function stores the subset and
+reinitializes the bfd.
+
+2.3.1.18 `bfd_preserve_restore'
+...............................
+
+*Synopsis*
+     void bfd_preserve_restore (bfd *, struct bfd_preserve *);
+   *Description*
+This function restores bfd state saved by bfd_preserve_save.  If MARKER
+is non-NULL in struct bfd_preserve then that block and all subsequently
+bfd_alloc'd memory is freed.
+
+2.3.1.19 `bfd_preserve_finish'
+..............................
+
+*Synopsis*
+     void bfd_preserve_finish (bfd *, struct bfd_preserve *);
+   *Description*
+This function should be called when the bfd state saved by
+bfd_preserve_save is no longer needed.  ie. when the back-end object_p
+function returns with success.
+
+2.3.1.20 `bfd_emul_get_maxpagesize'
+...................................
+
+*Synopsis*
+     bfd_vma bfd_emul_get_maxpagesize (const char *);
+   *Description*
+Returns the maximum page size, in bytes, as determined by emulation.
+
+   *Returns*
+Returns the maximum page size in bytes for ELF, 0 otherwise.
+
+2.3.1.21 `bfd_emul_set_maxpagesize'
+...................................
+
+*Synopsis*
+     void bfd_emul_set_maxpagesize (const char *, bfd_vma);
+   *Description*
+For ELF, set the maximum page size for the emulation.  It is a no-op
+for other formats.
+
+2.3.1.22 `bfd_emul_get_commonpagesize'
+......................................
+
+*Synopsis*
+     bfd_vma bfd_emul_get_commonpagesize (const char *);
+   *Description*
+Returns the common page size, in bytes, as determined by emulation.
+
+   *Returns*
+Returns the common page size in bytes for ELF, 0 otherwise.
+
+2.3.1.23 `bfd_emul_set_commonpagesize'
+......................................
+
+*Synopsis*
+     void bfd_emul_set_commonpagesize (const char *, bfd_vma);
+   *Description*
+For ELF, set the common page size for the emulation.  It is a no-op for
+other formats.
+
+2.3.1.24 `bfd_demangle'
+.......................
+
+*Synopsis*
+     char *bfd_demangle (bfd *, const char *, int);
+   *Description*
+Wrapper around cplus_demangle.  Strips leading underscores and other
+such chars that would otherwise confuse the demangler.  If passed a g++
+v3 ABI mangled name, returns a buffer allocated with malloc holding the
+demangled name.  Returns NULL otherwise and on memory alloc failure.
+
+2.3.1.25 `struct bfd_iovec'
+...........................
+
+*Description*
+The `struct bfd_iovec' contains the internal file I/O class.  Each
+`BFD' has an instance of this class and all file I/O is routed through
+it (it is assumed that the instance implements all methods listed
+below).
+     struct bfd_iovec
+     {
+       /* To avoid problems with macros, a "b" rather than "f"
+          prefix is prepended to each method name.  */
+       /* Attempt to read/write NBYTES on ABFD's IOSTREAM storing/fetching
+          bytes starting at PTR.  Return the number of bytes actually
+          transfered (a read past end-of-file returns less than NBYTES),
+          or -1 (setting `bfd_error') if an error occurs.  */
+       file_ptr (*bread) (struct bfd *abfd, void *ptr, file_ptr nbytes);
+       file_ptr (*bwrite) (struct bfd *abfd, const void *ptr,
+                           file_ptr nbytes);
+       /* Return the current IOSTREAM file offset, or -1 (setting `bfd_error'
+          if an error occurs.  */
+       file_ptr (*btell) (struct bfd *abfd);
+       /* For the following, on successful completion a value of 0 is returned.
+          Otherwise, a value of -1 is returned (and  `bfd_error' is set).  */
+       int (*bseek) (struct bfd *abfd, file_ptr offset, int whence);
+       int (*bclose) (struct bfd *abfd);
+       int (*bflush) (struct bfd *abfd);
+       int (*bstat) (struct bfd *abfd, struct stat *sb);
+       /* Just like mmap: (void*)-1 on failure, mmapped address on success.  */
+       void *(*bmmap) (struct bfd *abfd, void *addr, bfd_size_type len,
+                       int prot, int flags, file_ptr offset);
+     };
+     extern const struct bfd_iovec _bfd_memory_iovec;
+
+2.3.1.26 `bfd_get_mtime'
+........................
+
+*Synopsis*
+     long bfd_get_mtime (bfd *abfd);
+   *Description*
+Return the file modification time (as read from the file system, or
+from the archive header for archive members).
+
+2.3.1.27 `bfd_get_size'
+.......................
+
+*Synopsis*
+     file_ptr bfd_get_size (bfd *abfd);
+   *Description*
+Return the file size (as read from file system) for the file associated
+with BFD ABFD.
+
+   The initial motivation for, and use of, this routine is not so we
+can get the exact size of the object the BFD applies to, since that
+might not be generally possible (archive members for example).  It
+would be ideal if someone could eventually modify it so that such
+results were guaranteed.
+
+   Instead, we want to ask questions like "is this NNN byte sized
+object I'm about to try read from file offset YYY reasonable?"  As as
+example of where we might do this, some object formats use string
+tables for which the first `sizeof (long)' bytes of the table contain
+the size of the table itself, including the size bytes.  If an
+application tries to read what it thinks is one of these string tables,
+without some way to validate the size, and for some reason the size is
+wrong (byte swapping error, wrong location for the string table, etc.),
+the only clue is likely to be a read error when it tries to read the
+table, or a "virtual memory exhausted" error when it tries to allocate
+15 bazillon bytes of space for the 15 bazillon byte table it is about
+to read.  This function at least allows us to answer the question, "is
+the size reasonable?".
+
+2.3.1.28 `bfd_mmap'
+...................
+
+*Synopsis*
+     void *bfd_mmap (bfd *abfd, void *addr, bfd_size_type len,
+         int prot, int flags, file_ptr offset);
+   *Description*
+Return mmap()ed region of the file, if possible and implemented.
+
+* Menu:
+
+* Memory Usage::
+* Initialization::
+* Sections::
+* Symbols::
+* Archives::
+* Formats::
+* Relocations::
+* Core Files::
+* Targets::
+* Architectures::
+* Opening and Closing::
+* Internal::
+* File Caching::
+* Linker Functions::
+* Hash Tables::
+
+
+File: bfd.info,  Node: Memory Usage,  Next: Initialization,  Prev: BFD front end,  Up: BFD front end
+
+2.4 Memory Usage
+================
+
+BFD keeps all of its internal structures in obstacks. There is one
+obstack per open BFD file, into which the current state is stored. When
+a BFD is closed, the obstack is deleted, and so everything which has
+been allocated by BFD for the closing file is thrown away.
+
+   BFD does not free anything created by an application, but pointers
+into `bfd' structures become invalid on a `bfd_close'; for example,
+after a `bfd_close' the vector passed to `bfd_canonicalize_symtab' is
+still around, since it has been allocated by the application, but the
+data that it pointed to are lost.
+
+   The general rule is to not close a BFD until all operations dependent
+upon data from the BFD have been completed, or all the data from within
+the file has been copied. To help with the management of memory, there
+is a function (`bfd_alloc_size') which returns the number of bytes in
+obstacks associated with the supplied BFD. This could be used to select
+the greediest open BFD, close it to reclaim the memory, perform some
+operation and reopen the BFD again, to get a fresh copy of the data
+structures.
+
+
+File: bfd.info,  Node: Initialization,  Next: Sections,  Prev: Memory Usage,  Up: BFD front end
+
+2.5 Initialization
+==================
+
+2.5.1 Initialization functions
+------------------------------
+
+These are the functions that handle initializing a BFD.
+
+2.5.1.1 `bfd_init'
+..................
+
+*Synopsis*
+     void bfd_init (void);
+   *Description*
+This routine must be called before any other BFD function to initialize
+magical internal data structures.
+
+
+File: bfd.info,  Node: Sections,  Next: Symbols,  Prev: Initialization,  Up: BFD front end
+
+2.6 Sections
+============
+
+The raw data contained within a BFD is maintained through the section
+abstraction.  A single BFD may have any number of sections.  It keeps
+hold of them by pointing to the first; each one points to the next in
+the list.
+
+   Sections are supported in BFD in `section.c'.
+
+* Menu:
+
+* Section Input::
+* Section Output::
+* typedef asection::
+* section prototypes::
+
+
+File: bfd.info,  Node: Section Input,  Next: Section Output,  Prev: Sections,  Up: Sections
+
+2.6.1 Section input
+-------------------
+
+When a BFD is opened for reading, the section structures are created
+and attached to the BFD.
+
+   Each section has a name which describes the section in the outside
+world--for example, `a.out' would contain at least three sections,
+called `.text', `.data' and `.bss'.
+
+   Names need not be unique; for example a COFF file may have several
+sections named `.data'.
+
+   Sometimes a BFD will contain more than the "natural" number of
+sections. A back end may attach other sections containing constructor
+data, or an application may add a section (using `bfd_make_section') to
+the sections attached to an already open BFD. For example, the linker
+creates an extra section `COMMON' for each input file's BFD to hold
+information about common storage.
+
+   The raw data is not necessarily read in when the section descriptor
+is created. Some targets may leave the data in place until a
+`bfd_get_section_contents' call is made. Other back ends may read in
+all the data at once.  For example, an S-record file has to be read
+once to determine the size of the data. An IEEE-695 file doesn't
+contain raw data in sections, but data and relocation expressions
+intermixed, so the data area has to be parsed to get out the data and
+relocations.
+
+
+File: bfd.info,  Node: Section Output,  Next: typedef asection,  Prev: Section Input,  Up: Sections
+
+2.6.2 Section output
+--------------------
+
+To write a new object style BFD, the various sections to be written
+have to be created. They are attached to the BFD in the same way as
+input sections; data is written to the sections using
+`bfd_set_section_contents'.
+
+   Any program that creates or combines sections (e.g., the assembler
+and linker) must use the `asection' fields `output_section' and
+`output_offset' to indicate the file sections to which each section
+must be written.  (If the section is being created from scratch,
+`output_section' should probably point to the section itself and
+`output_offset' should probably be zero.)
+
+   The data to be written comes from input sections attached (via
+`output_section' pointers) to the output sections.  The output section
+structure can be considered a filter for the input section: the output
+section determines the vma of the output data and the name, but the
+input section determines the offset into the output section of the data
+to be written.
+
+   E.g., to create a section "O", starting at 0x100, 0x123 long,
+containing two subsections, "A" at offset 0x0 (i.e., at vma 0x100) and
+"B" at offset 0x20 (i.e., at vma 0x120) the `asection' structures would
+look like:
+
+        section name          "A"
+          output_offset   0x00
+          size            0x20
+          output_section ----------->  section name    "O"
+                                  |    vma             0x100
+        section name          "B" |    size            0x123
+          output_offset   0x20    |
+          size            0x103   |
+          output_section  --------|
+
+2.6.3 Link orders
+-----------------
+
+The data within a section is stored in a "link_order".  These are much
+like the fixups in `gas'.  The link_order abstraction allows a section
+to grow and shrink within itself.
+
+   A link_order knows how big it is, and which is the next link_order
+and where the raw data for it is; it also points to a list of
+relocations which apply to it.
+
+   The link_order is used by the linker to perform relaxing on final
+code.  The compiler creates code which is as big as necessary to make
+it work without relaxing, and the user can select whether to relax.
+Sometimes relaxing takes a lot of time.  The linker runs around the
+relocations to see if any are attached to data which can be shrunk, if
+so it does it on a link_order by link_order basis.
+
+
+File: bfd.info,  Node: typedef asection,  Next: section prototypes,  Prev: Section Output,  Up: Sections
+
+2.6.4 typedef asection
+----------------------
+
+Here is the section structure:
+
+
+     typedef struct bfd_section
+     {
+       /* The name of the section; the name isn't a copy, the pointer is
+          the same as that passed to bfd_make_section.  */
+       const char *name;
+
+       /* A unique sequence number.  */
+       int id;
+
+       /* Which section in the bfd; 0..n-1 as sections are created in a bfd.  */
+       int index;
+
+       /* The next section in the list belonging to the BFD, or NULL.  */
+       struct bfd_section *next;
+
+       /* The previous section in the list belonging to the BFD, or NULL.  */
+       struct bfd_section *prev;
+
+       /* The field flags contains attributes of the section. Some
+          flags are read in from the object file, and some are
+          synthesized from other information.  */
+       flagword flags;
+
+     #define SEC_NO_FLAGS   0x000
+
+       /* Tells the OS to allocate space for this section when loading.
+          This is clear for a section containing debug information only.  */
+     #define SEC_ALLOC      0x001
+
+       /* Tells the OS to load the section from the file when loading.
+          This is clear for a .bss section.  */
+     #define SEC_LOAD       0x002
+
+       /* The section contains data still to be relocated, so there is
+          some relocation information too.  */
+     #define SEC_RELOC      0x004
+
+       /* A signal to the OS that the section contains read only data.  */
+     #define SEC_READONLY   0x008
+
+       /* The section contains code only.  */
+     #define SEC_CODE       0x010
+
+       /* The section contains data only.  */
+     #define SEC_DATA       0x020
+
+       /* The section will reside in ROM.  */
+     #define SEC_ROM        0x040
+
+       /* The section contains constructor information. This section
+          type is used by the linker to create lists of constructors and
+          destructors used by `g++'. When a back end sees a symbol
+          which should be used in a constructor list, it creates a new
+          section for the type of name (e.g., `__CTOR_LIST__'), attaches
+          the symbol to it, and builds a relocation. To build the lists
+          of constructors, all the linker has to do is catenate all the
+          sections called `__CTOR_LIST__' and relocate the data
+          contained within - exactly the operations it would peform on
+          standard data.  */
+     #define SEC_CONSTRUCTOR 0x080
+
+       /* The section has contents - a data section could be
+          `SEC_ALLOC' | `SEC_HAS_CONTENTS'; a debug section could be
+          `SEC_HAS_CONTENTS'  */
+     #define SEC_HAS_CONTENTS 0x100
+
+       /* An instruction to the linker to not output the section
+          even if it has information which would normally be written.  */
+     #define SEC_NEVER_LOAD 0x200
+
+       /* The section contains thread local data.  */
+     #define SEC_THREAD_LOCAL 0x400
+
+       /* The section has GOT references.  This flag is only for the
+          linker, and is currently only used by the elf32-hppa back end.
+          It will be set if global offset table references were detected
+          in this section, which indicate to the linker that the section
+          contains PIC code, and must be handled specially when doing a
+          static link.  */
+     #define SEC_HAS_GOT_REF 0x800
+
+       /* The section contains common symbols (symbols may be defined
+          multiple times, the value of a symbol is the amount of
+          space it requires, and the largest symbol value is the one
+          used).  Most targets have exactly one of these (which we
+          translate to bfd_com_section_ptr), but ECOFF has two.  */
+     #define SEC_IS_COMMON 0x1000
+
+       /* The section contains only debugging information.  For
+          example, this is set for ELF .debug and .stab sections.
+          strip tests this flag to see if a section can be
+          discarded.  */
+     #define SEC_DEBUGGING 0x2000
+
+       /* The contents of this section are held in memory pointed to
+          by the contents field.  This is checked by bfd_get_section_contents,
+          and the data is retrieved from memory if appropriate.  */
+     #define SEC_IN_MEMORY 0x4000
+
+       /* The contents of this section are to be excluded by the
+          linker for executable and shared objects unless those
+          objects are to be further relocated.  */
+     #define SEC_EXCLUDE 0x8000
+
+       /* The contents of this section are to be sorted based on the sum of
+          the symbol and addend values specified by the associated relocation
+          entries.  Entries without associated relocation entries will be
+          appended to the end of the section in an unspecified order.  */
+     #define SEC_SORT_ENTRIES 0x10000
+
+       /* When linking, duplicate sections of the same name should be
+          discarded, rather than being combined into a single section as
+          is usually done.  This is similar to how common symbols are
+          handled.  See SEC_LINK_DUPLICATES below.  */
+     #define SEC_LINK_ONCE 0x20000
+
+       /* If SEC_LINK_ONCE is set, this bitfield describes how the linker
+          should handle duplicate sections.  */
+     #define SEC_LINK_DUPLICATES 0xc0000
+
+       /* This value for SEC_LINK_DUPLICATES means that duplicate
+          sections with the same name should simply be discarded.  */
+     #define SEC_LINK_DUPLICATES_DISCARD 0x0
+
+       /* This value for SEC_LINK_DUPLICATES means that the linker
+          should warn if there are any duplicate sections, although
+          it should still only link one copy.  */
+     #define SEC_LINK_DUPLICATES_ONE_ONLY 0x40000
+
+       /* This value for SEC_LINK_DUPLICATES means that the linker
+          should warn if any duplicate sections are a different size.  */
+     #define SEC_LINK_DUPLICATES_SAME_SIZE 0x80000
+
+       /* This value for SEC_LINK_DUPLICATES means that the linker
+          should warn if any duplicate sections contain different
+          contents.  */
+     #define SEC_LINK_DUPLICATES_SAME_CONTENTS \
+       (SEC_LINK_DUPLICATES_ONE_ONLY | SEC_LINK_DUPLICATES_SAME_SIZE)
+
+       /* This section was created by the linker as part of dynamic
+          relocation or other arcane processing.  It is skipped when
+          going through the first-pass output, trusting that someone
+          else up the line will take care of it later.  */
+     #define SEC_LINKER_CREATED 0x100000
+
+       /* This section should not be subject to garbage collection.
+          Also set to inform the linker that this section should not be
+          listed in the link map as discarded.  */
+     #define SEC_KEEP 0x200000
+
+       /* This section contains "short" data, and should be placed
+          "near" the GP.  */
+     #define SEC_SMALL_DATA 0x400000
+
+       /* Attempt to merge identical entities in the section.
+          Entity size is given in the entsize field.  */
+     #define SEC_MERGE 0x800000
+
+       /* If given with SEC_MERGE, entities to merge are zero terminated
+          strings where entsize specifies character size instead of fixed
+          size entries.  */
+     #define SEC_STRINGS 0x1000000
+
+       /* This section contains data about section groups.  */
+     #define SEC_GROUP 0x2000000
+
+       /* The section is a COFF shared library section.  This flag is
+          only for the linker.  If this type of section appears in
+          the input file, the linker must copy it to the output file
+          without changing the vma or size.  FIXME: Although this
+          was originally intended to be general, it really is COFF
+          specific (and the flag was renamed to indicate this).  It
+          might be cleaner to have some more general mechanism to
+          allow the back end to control what the linker does with
+          sections.  */
+     #define SEC_COFF_SHARED_LIBRARY 0x4000000
+
+       /* This section contains data which may be shared with other
+          executables or shared objects. This is for COFF only.  */
+     #define SEC_COFF_SHARED 0x8000000
+
+       /* When a section with this flag is being linked, then if the size of
+          the input section is less than a page, it should not cross a page
+          boundary.  If the size of the input section is one page or more,
+          it should be aligned on a page boundary.  This is for TI
+          TMS320C54X only.  */
+     #define SEC_TIC54X_BLOCK 0x10000000
+
+       /* Conditionally link this section; do not link if there are no
+          references found to any symbol in the section.  This is for TI
+          TMS320C54X only.  */
+     #define SEC_TIC54X_CLINK 0x20000000
+
+       /* Indicate that section has the no read flag set. This happens
+          when memory read flag isn't set. */
+     #define SEC_COFF_NOREAD 0x40000000
+
+       /*  End of section flags.  */
+
+       /* Some internal packed boolean fields.  */
+
+       /* See the vma field.  */
+       unsigned int user_set_vma : 1;
+
+       /* A mark flag used by some of the linker backends.  */
+       unsigned int linker_mark : 1;
+
+       /* Another mark flag used by some of the linker backends.  Set for
+          output sections that have an input section.  */
+       unsigned int linker_has_input : 1;
+
+       /* Mark flag used by some linker backends for garbage collection.  */
+       unsigned int gc_mark : 1;
+
+       /* Section compression status.  */
+       unsigned int compress_status : 2;
+     #define COMPRESS_SECTION_NONE    0
+     #define COMPRESS_SECTION_DONE    1
+     #define DECOMPRESS_SECTION_SIZED 2
+
+       /* The following flags are used by the ELF linker. */
+
+       /* Mark sections which have been allocated to segments.  */
+       unsigned int segment_mark : 1;
+
+       /* Type of sec_info information.  */
+       unsigned int sec_info_type:3;
+     #define ELF_INFO_TYPE_NONE      0
+     #define ELF_INFO_TYPE_STABS     1
+     #define ELF_INFO_TYPE_MERGE     2
+     #define ELF_INFO_TYPE_EH_FRAME  3
+     #define ELF_INFO_TYPE_JUST_SYMS 4
+
+       /* Nonzero if this section uses RELA relocations, rather than REL.  */
+       unsigned int use_rela_p:1;
+
+       /* Bits used by various backends.  The generic code doesn't touch
+          these fields.  */
+
+       unsigned int sec_flg0:1;
+       unsigned int sec_flg1:1;
+       unsigned int sec_flg2:1;
+       unsigned int sec_flg3:1;
+       unsigned int sec_flg4:1;
+       unsigned int sec_flg5:1;
+
+       /* End of internal packed boolean fields.  */
+
+       /*  The virtual memory address of the section - where it will be
+           at run time.  The symbols are relocated against this.  The
+           user_set_vma flag is maintained by bfd; if it's not set, the
+           backend can assign addresses (for example, in `a.out', where
+           the default address for `.data' is dependent on the specific
+           target and various flags).  */
+       bfd_vma vma;
+
+       /*  The load address of the section - where it would be in a
+           rom image; really only used for writing section header
+           information.  */
+       bfd_vma lma;
+
+       /* The size of the section in octets, as it will be output.
+          Contains a value even if the section has no contents (e.g., the
+          size of `.bss').  */
+       bfd_size_type size;
+
+       /* For input sections, the original size on disk of the section, in
+          octets.  This field should be set for any section whose size is
+          changed by linker relaxation.  It is required for sections where
+          the linker relaxation scheme doesn't cache altered section and
+          reloc contents (stabs, eh_frame, SEC_MERGE, some coff relaxing
+          targets), and thus the original size needs to be kept to read the
+          section multiple times.  For output sections, rawsize holds the
+          section size calculated on a previous linker relaxation pass.  */
+       bfd_size_type rawsize;
+
+       /* The compressed size of the section in octets.  */
+       bfd_size_type compressed_size;
+
+       /* Relaxation table. */
+       struct relax_table *relax;
+
+       /* Count of used relaxation table entries. */
+       int relax_count;
+
+
+       /* If this section is going to be output, then this value is the
+          offset in *bytes* into the output section of the first byte in the
+          input section (byte ==> smallest addressable unit on the
+          target).  In most cases, if this was going to start at the
+          100th octet (8-bit quantity) in the output section, this value
+          would be 100.  However, if the target byte size is 16 bits
+          (bfd_octets_per_byte is "2"), this value would be 50.  */
+       bfd_vma output_offset;
+
+       /* The output section through which to map on output.  */
+       struct bfd_section *output_section;
+
+       /* The alignment requirement of the section, as an exponent of 2 -
+          e.g., 3 aligns to 2^3 (or 8).  */
+       unsigned int alignment_power;
+
+       /* If an input section, a pointer to a vector of relocation
+          records for the data in this section.  */
+       struct reloc_cache_entry *relocation;
+
+       /* If an output section, a pointer to a vector of pointers to
+          relocation records for the data in this section.  */
+       struct reloc_cache_entry **orelocation;
+
+       /* The number of relocation records in one of the above.  */
+       unsigned reloc_count;
+
+       /* Information below is back end specific - and not always used
+          or updated.  */
+
+       /* File position of section data.  */
+       file_ptr filepos;
+
+       /* File position of relocation info.  */
+       file_ptr rel_filepos;
+
+       /* File position of line data.  */
+       file_ptr line_filepos;
+
+       /* Pointer to data for applications.  */
+       void *userdata;
+
+       /* If the SEC_IN_MEMORY flag is set, this points to the actual
+          contents.  */
+       unsigned char *contents;
+
+       /* Attached line number information.  */
+       alent *lineno;
+
+       /* Number of line number records.  */
+       unsigned int lineno_count;
+
+       /* Entity size for merging purposes.  */
+       unsigned int entsize;
+
+       /* Points to the kept section if this section is a link-once section,
+          and is discarded.  */
+       struct bfd_section *kept_section;
+
+       /* When a section is being output, this value changes as more
+          linenumbers are written out.  */
+       file_ptr moving_line_filepos;
+
+       /* What the section number is in the target world.  */
+       int target_index;
+
+       void *used_by_bfd;
+
+       /* If this is a constructor section then here is a list of the
+          relocations created to relocate items within it.  */
+       struct relent_chain *constructor_chain;
+
+       /* The BFD which owns the section.  */
+       bfd *owner;
+
+       /* A symbol which points at this section only.  */
+       struct bfd_symbol *symbol;
+       struct bfd_symbol **symbol_ptr_ptr;
+
+       /* Early in the link process, map_head and map_tail are used to build
+          a list of input sections attached to an output section.  Later,
+          output sections use these fields for a list of bfd_link_order
+          structs.  */
+       union {
+         struct bfd_link_order *link_order;
+         struct bfd_section *s;
+       } map_head, map_tail;
+     } asection;
+
+     /* Relax table contains information about instructions which can
+        be removed by relaxation -- replacing a long address with a
+        short address.  */
+     struct relax_table {
+       /* Address where bytes may be deleted. */
+       bfd_vma addr;
+
+       /* Number of bytes to be deleted.  */
+       int size;
+     };
+
+     /* These sections are global, and are managed by BFD.  The application
+        and target back end are not permitted to change the values in
+        these sections.  New code should use the section_ptr macros rather
+        than referring directly to the const sections.  The const sections
+        may eventually vanish.  */
+     #define BFD_ABS_SECTION_NAME "*ABS*"
+     #define BFD_UND_SECTION_NAME "*UND*"
+     #define BFD_COM_SECTION_NAME "*COM*"
+     #define BFD_IND_SECTION_NAME "*IND*"
+
+     /* The absolute section.  */
+     extern asection bfd_abs_section;
+     #define bfd_abs_section_ptr ((asection *) &bfd_abs_section)
+     #define bfd_is_abs_section(sec) ((sec) == bfd_abs_section_ptr)
+     /* Pointer to the undefined section.  */
+     extern asection bfd_und_section;
+     #define bfd_und_section_ptr ((asection *) &bfd_und_section)
+     #define bfd_is_und_section(sec) ((sec) == bfd_und_section_ptr)
+     /* Pointer to the common section.  */
+     extern asection bfd_com_section;
+     #define bfd_com_section_ptr ((asection *) &bfd_com_section)
+     /* Pointer to the indirect section.  */
+     extern asection bfd_ind_section;
+     #define bfd_ind_section_ptr ((asection *) &bfd_ind_section)
+     #define bfd_is_ind_section(sec) ((sec) == bfd_ind_section_ptr)
+
+     #define bfd_is_const_section(SEC)              \
+      (   ((SEC) == bfd_abs_section_ptr)            \
+       || ((SEC) == bfd_und_section_ptr)            \
+       || ((SEC) == bfd_com_section_ptr)            \
+       || ((SEC) == bfd_ind_section_ptr))
+
+     /* Macros to handle insertion and deletion of a bfd's sections.  These
+        only handle the list pointers, ie. do not adjust section_count,
+        target_index etc.  */
+     #define bfd_section_list_remove(ABFD, S) \
+       do                                                   \
+         {                                                  \
+           asection *_s = S;                                \
+           asection *_next = _s->next;                      \
+           asection *_prev = _s->prev;                      \
+           if (_prev)                                       \
+             _prev->next = _next;                           \
+           else                                             \
+             (ABFD)->sections = _next;                      \
+           if (_next)                                       \
+             _next->prev = _prev;                           \
+           else                                             \
+             (ABFD)->section_last = _prev;                  \
+         }                                                  \
+       while (0)
+     #define bfd_section_list_append(ABFD, S) \
+       do                                                   \
+         {                                                  \
+           asection *_s = S;                                \
+           bfd *_abfd = ABFD;                               \
+           _s->next = NULL;                                 \
+           if (_abfd->section_last)                         \
+             {                                              \
+               _s->prev = _abfd->section_last;              \
+               _abfd->section_last->next = _s;              \
+             }                                              \
+           else                                             \
+             {                                              \
+               _s->prev = NULL;                             \
+               _abfd->sections = _s;                        \
+             }                                              \
+           _abfd->section_last = _s;                        \
+         }                                                  \
+       while (0)
+     #define bfd_section_list_prepend(ABFD, S) \
+       do                                                   \
+         {                                                  \
+           asection *_s = S;                                \
+           bfd *_abfd = ABFD;                               \
+           _s->prev = NULL;                                 \
+           if (_abfd->sections)                             \
+             {                                              \
+               _s->next = _abfd->sections;                  \
+               _abfd->sections->prev = _s;                  \
+             }                                              \
+           else                                             \
+             {                                              \
+               _s->next = NULL;                             \
+               _abfd->section_last = _s;                    \
+             }                                              \
+           _abfd->sections = _s;                            \
+         }                                                  \
+       while (0)
+     #define bfd_section_list_insert_after(ABFD, A, S) \
+       do                                                   \
+         {                                                  \
+           asection *_a = A;                                \
+           asection *_s = S;                                \
+           asection *_next = _a->next;                      \
+           _s->next = _next;                                \
+           _s->prev = _a;                                   \
+           _a->next = _s;                                   \
+           if (_next)                                       \
+             _next->prev = _s;                              \
+           else                                             \
+             (ABFD)->section_last = _s;                     \
+         }                                                  \
+       while (0)
+     #define bfd_section_list_insert_before(ABFD, B, S) \
+       do                                                   \
+         {                                                  \
+           asection *_b = B;                                \
+           asection *_s = S;                                \
+           asection *_prev = _b->prev;                      \
+           _s->prev = _prev;                                \
+           _s->next = _b;                                   \
+           _b->prev = _s;                                   \
+           if (_prev)                                       \
+             _prev->next = _s;                              \
+           else                                             \
+             (ABFD)->sections = _s;                         \
+         }                                                  \
+       while (0)
+     #define bfd_section_removed_from_list(ABFD, S) \
+       ((S)->next == NULL ? (ABFD)->section_last != (S) : (S)->next->prev != (S))
+
+     #define BFD_FAKE_SECTION(SEC, FLAGS, SYM, NAME, IDX)                   \
+       /* name, id,  index, next, prev, flags, user_set_vma,            */  \
+       { NAME,  IDX, 0,     NULL, NULL, FLAGS, 0,                           \
+                                                                            \
+       /* linker_mark, linker_has_input, gc_mark, decompress_status,    */  \
+          0,           0,                1,       0,                        \
+                                                                            \
+       /* segment_mark, sec_info_type, use_rela_p,                      */  \
+          0,            0,             0,                                   \
+                                                                            \
+       /* sec_flg0, sec_flg1, sec_flg2, sec_flg3, sec_flg4, sec_flg5,   */  \
+          0,        0,        0,        0,        0,        0,              \
+                                                                            \
+       /* vma, lma, size, rawsize, compressed_size, relax, relax_count, */  \
+          0,   0,   0,    0,       0,               0,     0,               \
+                                                                            \
+       /* output_offset, output_section,              alignment_power,  */  \
+          0,             (struct bfd_section *) &SEC, 0,                    \
+                                                                            \
+       /* relocation, orelocation, reloc_count, filepos, rel_filepos,   */  \
+          NULL,       NULL,        0,           0,       0,                 \
+                                                                            \
+       /* line_filepos, userdata, contents, lineno, lineno_count,       */  \
+          0,            NULL,     NULL,     NULL,   0,                      \
+                                                                            \
+       /* entsize, kept_section, moving_line_filepos,                    */ \
+          0,       NULL,          0,                                        \
+                                                                            \
+       /* target_index, used_by_bfd, constructor_chain, owner,          */  \
+          0,            NULL,        NULL,              NULL,               \
+                                                                            \
+       /* symbol,                    symbol_ptr_ptr,                    */  \
+          (struct bfd_symbol *) SYM, &SEC.symbol,                           \
+                                                                            \
+       /* map_head, map_tail                                            */  \
+          { NULL }, { NULL }                                                \
+         }
+
+
+File: bfd.info,  Node: section prototypes,  Prev: typedef asection,  Up: Sections
+
+2.6.5 Section prototypes
+------------------------
+
+These are the functions exported by the section handling part of BFD.
+
+2.6.5.1 `bfd_section_list_clear'
+................................
+
+*Synopsis*
+     void bfd_section_list_clear (bfd *);
+   *Description*
+Clears the section list, and also resets the section count and hash
+table entries.
+
+2.6.5.2 `bfd_get_section_by_name'
+.................................
+
+*Synopsis*
+     asection *bfd_get_section_by_name (bfd *abfd, const char *name);
+   *Description*
+Run through ABFD and return the one of the `asection's whose name
+matches NAME, otherwise `NULL'.  *Note Sections::, for more information.
+
+   This should only be used in special cases; the normal way to process
+all sections of a given name is to use `bfd_map_over_sections' and
+`strcmp' on the name (or better yet, base it on the section flags or
+something else) for each section.
+
+2.6.5.3 `bfd_get_section_by_name_if'
+....................................
+
+*Synopsis*
+     asection *bfd_get_section_by_name_if
+        (bfd *abfd,
+         const char *name,
+         bfd_boolean (*func) (bfd *abfd, asection *sect, void *obj),
+         void *obj);
+   *Description*
+Call the provided function FUNC for each section attached to the BFD
+ABFD whose name matches NAME, passing OBJ as an argument. The function
+will be called as if by
+
+            func (abfd, the_section, obj);
+
+   It returns the first section for which FUNC returns true, otherwise
+`NULL'.
+
+2.6.5.4 `bfd_get_unique_section_name'
+.....................................
+
+*Synopsis*
+     char *bfd_get_unique_section_name
+        (bfd *abfd, const char *templat, int *count);
+   *Description*
+Invent a section name that is unique in ABFD by tacking a dot and a
+digit suffix onto the original TEMPLAT.  If COUNT is non-NULL, then it
+specifies the first number tried as a suffix to generate a unique name.
+The value pointed to by COUNT will be incremented in this case.
+
+2.6.5.5 `bfd_make_section_old_way'
+..................................
+
+*Synopsis*
+     asection *bfd_make_section_old_way (bfd *abfd, const char *name);
+   *Description*
+Create a new empty section called NAME and attach it to the end of the
+chain of sections for the BFD ABFD. An attempt to create a section with
+a name which is already in use returns its pointer without changing the
+section chain.
+
+   It has the funny name since this is the way it used to be before it
+was rewritten....
+
+   Possible errors are:
+   * `bfd_error_invalid_operation' - If output has already started for
+     this BFD.
+
+   * `bfd_error_no_memory' - If memory allocation fails.
+
+2.6.5.6 `bfd_make_section_anyway_with_flags'
+............................................
+
+*Synopsis*
+     asection *bfd_make_section_anyway_with_flags
+        (bfd *abfd, const char *name, flagword flags);
+   *Description*
+Create a new empty section called NAME and attach it to the end of the
+chain of sections for ABFD.  Create a new section even if there is
+already a section with that name.  Also set the attributes of the new
+section to the value FLAGS.
+
+   Return `NULL' and set `bfd_error' on error; possible errors are:
+   * `bfd_error_invalid_operation' - If output has already started for
+     ABFD.
+
+   * `bfd_error_no_memory' - If memory allocation fails.
+
+2.6.5.7 `bfd_make_section_anyway'
+.................................
+
+*Synopsis*
+     asection *bfd_make_section_anyway (bfd *abfd, const char *name);
+   *Description*
+Create a new empty section called NAME and attach it to the end of the
+chain of sections for ABFD.  Create a new section even if there is
+already a section with that name.
+
+   Return `NULL' and set `bfd_error' on error; possible errors are:
+   * `bfd_error_invalid_operation' - If output has already started for
+     ABFD.
+
+   * `bfd_error_no_memory' - If memory allocation fails.
+
+2.6.5.8 `bfd_make_section_with_flags'
+.....................................
+
+*Synopsis*
+     asection *bfd_make_section_with_flags
+        (bfd *, const char *name, flagword flags);
+   *Description*
+Like `bfd_make_section_anyway', but return `NULL' (without calling
+bfd_set_error ()) without changing the section chain if there is
+already a section named NAME.  Also set the attributes of the new
+section to the value FLAGS.  If there is an error, return `NULL' and set
+`bfd_error'.
+
+2.6.5.9 `bfd_make_section'
+..........................
+
+*Synopsis*
+     asection *bfd_make_section (bfd *, const char *name);
+   *Description*
+Like `bfd_make_section_anyway', but return `NULL' (without calling
+bfd_set_error ()) without changing the section chain if there is
+already a section named NAME.  If there is an error, return `NULL' and
+set `bfd_error'.
+
+2.6.5.10 `bfd_set_section_flags'
+................................
+
+*Synopsis*
+     bfd_boolean bfd_set_section_flags
+        (bfd *abfd, asection *sec, flagword flags);
+   *Description*
+Set the attributes of the section SEC in the BFD ABFD to the value
+FLAGS. Return `TRUE' on success, `FALSE' on error. Possible error
+returns are:
+
+   * `bfd_error_invalid_operation' - The section cannot have one or
+     more of the attributes requested. For example, a .bss section in
+     `a.out' may not have the `SEC_HAS_CONTENTS' field set.
+
+2.6.5.11 `bfd_map_over_sections'
+................................
+
+*Synopsis*
+     void bfd_map_over_sections
+        (bfd *abfd,
+         void (*func) (bfd *abfd, asection *sect, void *obj),
+         void *obj);
+   *Description*
+Call the provided function FUNC for each section attached to the BFD
+ABFD, passing OBJ as an argument. The function will be called as if by
+
+            func (abfd, the_section, obj);
+
+   This is the preferred method for iterating over sections; an
+alternative would be to use a loop:
+
+               section *p;
+               for (p = abfd->sections; p != NULL; p = p->next)
+                  func (abfd, p, ...)
+
+2.6.5.12 `bfd_sections_find_if'
+...............................
+
+*Synopsis*
+     asection *bfd_sections_find_if
+        (bfd *abfd,
+         bfd_boolean (*operation) (bfd *abfd, asection *sect, void *obj),
+         void *obj);
+   *Description*
+Call the provided function OPERATION for each section attached to the
+BFD ABFD, passing OBJ as an argument. The function will be called as if
+by
+
+            operation (abfd, the_section, obj);
+
+   It returns the first section for which OPERATION returns true.
+
+2.6.5.13 `bfd_set_section_size'
+...............................
+
+*Synopsis*
+     bfd_boolean bfd_set_section_size
+        (bfd *abfd, asection *sec, bfd_size_type val);
+   *Description*
+Set SEC to the size VAL. If the operation is ok, then `TRUE' is
+returned, else `FALSE'.
+
+   Possible error returns:
+   * `bfd_error_invalid_operation' - Writing has started to the BFD, so
+     setting the size is invalid.
+
+2.6.5.14 `bfd_set_section_contents'
+...................................
+
+*Synopsis*
+     bfd_boolean bfd_set_section_contents
+        (bfd *abfd, asection *section, const void *data,
+         file_ptr offset, bfd_size_type count);
+   *Description*
+Sets the contents of the section SECTION in BFD ABFD to the data
+starting in memory at DATA. The data is written to the output section
+starting at offset OFFSET for COUNT octets.
+
+   Normally `TRUE' is returned, else `FALSE'. Possible error returns
+are:
+   * `bfd_error_no_conten

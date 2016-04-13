@@ -1,0 +1,1895 @@
+eturns 13.  When combined with
+	the prompt function, this allows the calculator to read values from
+	the user.  For example, x=eval(prompt("Number: ")) sets x to the
+	value input by the user.
+
+	The digit and bit functions return individual digits of a number,
+	either in base 10 or in base 2, where the lowest digit of a number
+	is at digit position 0.	 For example, digit(5678, 3) is 5, and
+	bit(0b1000100, 2) is 1.	 Negative digit positions indicate places
+	to the right of the decimal or binary point, so that for example,
+	digit(3.456, -1) is 4.
+
+	The ptest builtin is a primality testing function.  The
+	1st argument is the suspected prime to be tested.  The
+	absolute value of the 2nd argument is an iteration count.
+
+	If ptest is called with only 2 args, the 3rd argument is
+	assumed to be 0.  If ptest is called with only 1 arg, the
+	2nd argument is assumed to be 1.  Thus, the following
+	calls are equivalent:
+
+		ptest(a)
+		ptest(a,1)
+		ptest(a,1,0)
+
+	Normally ptest performs a some checks to determine if the
+	value is divisable by some trivial prime.  If the 2nd
+	argument is < 0, then the trivial check is omitted.
+
+	For example, ptest(a,10) performs the same work as:
+
+		ptest(a,-3)	(7 tests without trivial check)
+		ptest(a,-7,3)	(3 more tests without the trivial check)
+
+	The ptest function returns 0 if the number is definitely not
+	prime, and 1 is the number is probably prime.  The chance
+	of a number which is probably prime being actually composite
+	is less than 1/4 raised to the power of the iteration count.
+	For example, for a random number p, ptest(p, 10) incorrectly
+	returns 1 less than once in every million numbers, and you
+	will probably never find a number where ptest(p, 20) gives
+	the wrong answer.
+
+	The first 3 args of nextcand and prevcand functions are the same
+	arguments as ptest.  But unlike ptest, nextcand and prevcand return
+	the next and previous values for which ptest is true.
+
+	For example, nextcand(2^1000) returns 2^1000+297 because
+	2^1000+297 is the smallest value x > 2^1000 for which
+	ptest(x,1) is true.  And for example, prevcand(2^31-1,10,5)
+	returns 2147483629 (2^31-19) because 2^31-19 is the largest
+	value y < 2^31-1 for which ptest(y,10,5) is true.
+
+	The nextcand and prevcand functions also have a 5 argument form:
+
+		nextcand(num, count, skip, modval, modulus)
+		prevcand(num, count, skip, modval, modulus)
+
+	return the smallest (or largest) value ans > num (or < num) that
+	is also == modval % modulus for which ptest(ans,count,skip) is true.
+
+	The builtins nextprime(x) and prevprime(x) return the
+	next and previous primes with respect to x respectively.
+	As of this release, x must be < 2^32.  With one argument, they
+	will return an error if x is out of range.  With two arguments,
+	they will not generate an error but instead will return y.
+
+	The builtin function pix(x) returns the number of primes <= x.
+	As of this release, x must be < 2^32.  With one argument, pix(x)
+	will return an error if x is out of range.  With two arguments,
+	pix(x,y) will not generate an error but instead will return y.
+
+	The builtin function factor may be used to search for the
+	smallest factor of a given number.  The call factor(x,y)
+	will attempt to find the smallest factor of x < min(x,y).
+	As of this release, y must be < 2^32.  If y is omitted, y
+	is assumed to be 2^32-1.
+
+	If x < 0, factor(x,y) will return -1.  If no factor <
+	min(x,y) is found, factor(x,y) will return 1.  In all other
+	cases, factor(x,y) will return the smallest prime factor
+	of x.  Note except for the case when abs(x) == 1, factor(x,y)
+	will not return x.
+
+	If factor is called with y that is too large, or if x or y
+	is not an integer, calc will report an error.  If a 3rd argument
+	is given, factor will return that value instead.  For example,
+	factor(1/2,b,c) will return c instead of issuing an error.
+
+	The builtin lfactor(x,y) searches a number of primes instead
+	of below a limit.  As of this release, y must be <= 203280221
+	(y <= pix(2^32-1)).  In all other cases, lfactor is operates
+	in the same way as factor.
+
+	If lfactor is called with y that is too large, or if x or y
+	is not an integer, calc will report an error.  If a 3rd argument
+	is given, lfactor will return that value instead.  For example,
+	lfactor(1/2,b,c) will return c instead of issuing an error.
+
+	The lfactor function is slower than factor.  If possible factor
+	should be used instead of lfactor.
+
+	The builtin isprime(x) will attempt to determine if x is prime.
+	As of this release, x must be < 2^32.  With one argument, isprime(x)
+	will return an error if x is out of range.  With two arguments,
+	isprime(x,y) will not generate an error but instead will return y.
+
+	The functions rcin, rcmul, rcout, rcpow, and rcsq are used to
+	perform modular arithmetic calculations for large odd numbers
+	faster than the usual methods.	To do this, you first use the
+	rcin function to convert all input values into numbers which are
+	in a format called REDC format.	 Then you use rcmul, rcsq, and
+	rcpow to multiply such numbers together to produce results also
+	in REDC format.	 Finally, you use rcout to convert a number in
+	REDC format back to a normal number.  The addition, subtraction,
+	negation, and equality comparison between REDC numbers are done
+	using the normal modular methods.  For example, to calculate the
+	value 13 * 17 + 1 (mod 11), you could use:
+
+		p = 11;
+		t1 = rcin(13, p);
+		t2 = rcin(17, p);
+		t3 = rcin(1, p);
+		t4 = rcmul(t1, t2, p);
+		t5 = (t4 + t3) % p;
+		answer = rcout(t5, p);
+
+	The swap function exchanges the values of two variables without
+	performing copies.  For example, after:
+
+		x = 17;
+		y = 19;
+		swap(x, y);
+
+	then x is 19 and y is 17.  This function should not be used to
+	swap a value which is contained within another one.  If this is
+	done, then some memory will be lost.  For example, the following
+	should not be done:
+
+		mat x[5];
+		swap(x, x[0]);
+
+	The hash function returns a relatively small non-negative integer
+	for one or more input values.  The hash values should not be used
+	across runs of the calculator, since the algorithms used to generate
+	the hash value may change with different versions of the calculator.
+
+	The base function allows one to specify how numbers should be
+	printed.  The base function provides a numeric shorthand to the
+	config("mode") interface.  With no args, base() will return the
+	current mode.  With 1 arg, base(val) will set the mode according to
+	the arg and return the previous mode.
+
+	The following convention is used to declare modes:
+
+		 base	 config
+		value	 string
+
+		   2	"binary"	binary fractions
+		   8	"octal"		octal fractions
+		  10	"real"		decimal floating point
+		  16	"hex"		hexadecimal fractions
+		 -10	"int"		decimal integer
+		 1/3	"frac"		decimal fractions
+		1e20	"exp"		decimal exponential
+
+	For convenience, any non-integer value is assumed to mean "frac",
+	and any integer >= 2^64 is assumed to mean "exp".
+
+## Copyright (C) 1999-2007  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: builtin.end,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/builtin.end,v $
+##
+## Under source code control:	1995/07/10 01:17:53
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* command
+*************
+
+Command sequence
+
+    This is a sequence of any the following command formats, where
+    each command is terminated by a semicolon or newline.  Long command
+    lines can be extended by using a back-slash followed by a newline
+    character.	When this is done, the prompt shows a double angle
+    bracket to indicate that the line is still in progress.  Certain
+    cases will automatically prompt for more input in a similar manner,
+    even without the back-slash.  The most common case for this is when
+    a function is being defined, but is not yet completed.
+
+    Each command sequence terminates only on an end of file.  In
+    addition, commands can consist of expression sequences, which are
+    described in the next section.
+
+
+    define a function
+    -----------------
+    define function(params) { body }
+    define function(params) = expression
+
+	This first form defines a full function which can consist
+	of declarations followed by many statements which implement
+	the function.
+
+	The second form defines a simple function which calculates
+	the specified expression value from the specified parameters.
+	The expression cannot be a statement.  However, the comma
+	and question mark operators can be useful.	Examples of
+	simple functions are:
+
+		define sumcubes(a, b) = a^3 + b^3
+		define pimod(a) = a % pi()
+		define printnum(a, n, p)
+		{
+		    if (p == 0) {
+			print a: "^": n, "=", a^n;
+		    } else {
+			print a: "^": n, "mod", p, "=", pmod(a,n,p);
+		    }
+		}
+
+
+    read calc commands
+    ------------------
+    read $var
+    read -once $var
+    read filename
+    read -once filename
+
+	This reads definitions from the specified calc resource filename.
+
+	In the 1st and 2nd forms, if var is a global variable string
+	value, then the value of that variable is used as a filename.
+
+	The following is equivalent to read lucas.cal or read "lucas.cal":
+
+	    global var = "lucas.cal";
+	    read $var;
+
+	In the 3rd or 4th forms, the filename argument is treated
+	as a literal string, not a variable.  In these forms, the
+	name can be quoted if desired.
+
+	The calculator uses the CALCPATH environment variable to
+	search through the specified directories for the filename,
+	similarly to the use of the PATH environment variable.
+	If CALCPATH is not defined, then a default path which is
+	usually ":/usr/local/lib/calc" is used.
+
+	The ".cal" extension is defaulted for input files, so that
+	if "filename" is not found, then "filename.cal" is then
+	searched for.  The contents of the filename are command
+	sequences which can consist of expressions to evaluate or
+	functions to define, just like at the top level command level.
+
+	When -once is given, the read command acts like the regular
+	read expect that it will ignore filename if is has been
+	previously read.
+
+	The read -once form is particularly useful in a resource
+	file that needs to read a 2nd resource file.  By using the
+	READ -once command, one will not reread that 2nd resource
+	file, nor will once risk entering into a infinite READ loop
+	(where that 2nd resource file directly or indirectly does
+	a READ of the first resource file).
+
+	If the -m mode disallows opening of files for reading,
+	this command will be disabled.
+
+
+    write calc commands
+    -------------------
+    write $var
+    write filename
+
+	This writes the values of all global variables to the
+	specified filename, in such a way that the file can be
+	later read in order to recreate the variable values.
+	For speed reasons, values are written as hex fractions.
+	This command currently only saves simple types, so that
+	matrices, lists, and objects are not saved.	 Function
+	definitions are also not saved.
+
+	In the 1st form, if var is a global variable string
+	value, then the value of that variable is used as a filename.
+
+	The following is equivalent to write dump.out or
+	write "dump.out":
+
+	    global var = "dump.out";
+	    write $var;
+
+	In the 2nd form, the filename argument is treated as a literal
+	string, not a variable.  In this form, the name can be quoted
+	if desired.
+
+	If the -m mode disallows opening of files for writing,
+	this command will be disabled.
+
+
+    quit or exit
+    ------------
+    quit
+    quit string
+    exit
+    exit string
+
+	The action of these commands depends on where they are used.
+	At the interactive level, they will cause calc it edit.
+	This is the normal way to leave the calculator.  In any
+	other use, they will stop the current calculation as if
+	an error had occurred.
+
+	If a string is given, then the string is printed as the reason
+	for quitting, otherwise a general quit message is printed.
+	The routine name and line number which executed the quit is
+	also printed in either case.
+
+	Exit is an alias for quit.
+
+	Quit is useful when a routine detects invalid arguments,
+	in order to stop a calculation cleanly.  For example,
+	for a square root routine, an error can be given if the
+	supplied parameter was a negative number, as in:
+
+		define mysqrt(n)
+		{
+		    if (! isnum(n))
+			quit "non-numeric argument";
+		    if (n < 0)
+			quit "Negative argument";
+		    return sqrt(n);
+		}
+
+	See 'more information about abort and quit' below for
+	more information.
+
+
+    abort
+    -----
+    abort
+    abort string
+
+	This command behaves like QUIT except that it will attempt
+	to return to the interactive level if permitted, otherwise
+	calc exit.
+
+	See 'more information about abort and quit' below for
+	more information.
+
+
+    change current directory
+    ------------------------
+    cd
+    cd dir
+
+	Change the current directory to 'dir'.  If 'dir' is ommitted,
+	change the current directory to the home directory, if $HOME
+	is set in the environment.
+
+
+    show information
+    ----------------
+    show item
+
+	This command displays some information where 'item' is
+	one of the following:
+
+		blocks		unfreed named blocks
+		builtin		built in functions
+		config		config parameters and values
+		constants		cache of numeric constants
+		custom		custom functions if calc -C was used
+		errors		new error-values created
+		files		open files, file position and sizes
+		function		user-defined functions
+		globaltypes		global variables
+		objfunctions	possible object functions
+		objtypes		defined objects
+		opcodes func	internal opcodes for function `func'
+		sizes		size in octets of calc value types
+		realglobals		numeric global variables
+		statics		unscoped static variables
+		numbers		calc number cache
+		redcdata		REDC data defined
+		strings		calc string cache
+		literals		calc literal cache
+
+	Only the first 4 characters of item are examined, so:
+
+		show globals
+		show global
+		show glob
+
+	do the same thing.
+
+
+    calc help
+    ---------
+    help $var
+    help name
+
+	This displays a help related to 'name' or general
+	help of none is given.
+
+	In the 1st form, if var is a global variable string
+	value, then the value of that variable is used as a name.
+
+	The following is equivalent to help command or help "command":
+
+	    global var = "command";
+	    help $var;
+
+	In the 2nd form, the filename argument is treated as a literal
+	string, not a variable.  In this form, the name can be quoted
+	if desired.
+
+
+    =-=
+
+    more information about abort and quit
+    =====================================
+
+    Consider the following calc file called myfile.cal:
+
+	print "start of myfile.cal";
+	define q() {quit "quit from q()"; print "end of q()"}
+	define a() {abort "abort from a()"}
+	x = 3;
+	{print "start #1"; if (x > 1) q()} print "after #1";
+	{print "start #2"; if (x > 1) a()} print "after #2";
+	{print "start #3"; if (x > 1) quit "quit from 3rd statement"}
+	print "end of myfile.cal";
+
+    The command:
+
+	calc read myfile
+
+    will produce:
+
+	q() defined
+	a() defined
+	start statment #1
+	quit from q()
+	after statment #1
+	start statment #2
+	abort from a()
+
+    The QUIT within the q() function prevented the ``end of q()''
+    statement from being evaluated.  This QUIT command caused
+    control to be returned to just after the place where q()
+    was called.
+
+    Notice that unlike QUIT, the ABORT inside function a() halts
+    the processing of statements from the input source (myfile.cal).
+    Because calc was not interactive, ABORT causes calc to exit.
+
+    The command:
+
+	calc -i read myfile
+
+    will produce:
+
+	q() defined
+	a() defined
+	start statment #1
+	quit from q()
+	after statment #1
+	start statment #2
+	abort from a()
+	;		<==== calc interactive prompt
+
+    because the '-i' calc causes ABORT to drop into an
+    interactive prompt.	 However typing a QUIT or ABORT
+    at the interactive prompt level will always calc to exit,
+    even when calc is invoked with '-i'.
+
+    Also observe that both of these commands:
+
+	cat myfile.cal | calc
+	cat myfile.cal | calc -i
+
+    will produce:
+
+	q() defined
+	a() defined
+	start statment #1
+	quit from q()
+	after statment #1
+	start statment #2
+	abort from a()
+
+    The ABORT inside function a() halts the processing of statements
+    from the input source (standard input).  Because standard input
+    is not a terminal, using '-i' does not force it to drop into
+    an interactive prompt.
+
+    If one were to type in the contents of myfile.cal interactively,
+    calc will produce:
+
+	; print "start of myfile.cal";
+	start of myfile.cal
+	; define q() {quit "quit from q()"; print "end of q()"}
+	q() defined
+	; define a() {abort "abort from a()"}
+	a() defined
+	; x = 3;
+	; {print "start #1"; if (x > 1) q()} print "after #1";
+	start statment #1
+	quit from q()
+	after statment #1
+	; {print "start #2"; if (x > 1) a()} print "after #2";
+	start statment #2
+	abort from a()
+	; {print "start #3"; if (x > 1) quit "quit from 3rd statement"}
+	start #3
+	quit from 3rd statement
+
+    The ABORT from within the a() function returned control to
+    the interactive level.
+
+    The QUIT (after the if (x > 1) ...) will cause calc to exit
+    because it was given at the interactive prompt level.
+
+    =-=
+
+    Also see the help topic:
+
+	statement   flow control and declaration statements
+	usage	    how to invoke the calc command and calc -options
+
+## Copyright (C) 1999-2006  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: command,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/command,v $
+##
+## Under source code control:	1991/07/21 04:37:17
+## File existed as early as:	1991
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* config
+*************
+
+NAME
+    config - configuration parameters
+
+SYNOPSIS
+    config(parameter [,value])
+
+TYPES
+    parameter	string
+    value	int, string, config state
+
+    return	config state
+
+DESCRIPTION
+    The config() builtin affects how the calculator performs certain
+    operations.	 Among features that are controlled by these parameters
+    are the accuracy of some calculations, the displayed format of results,
+    the choice from possible alternative algorithms, and whether or not
+    debugging information is displayed.	 The parameters are
+    read or set using the "config" built-in function; they remain in effect
+    until their values are changed by a config or equivalent instruction.
+
+    The following parameters can be specified:
+
+	    "all"		all configuration values listed below
+
+	    "trace"		turns tracing features on or off
+	    "display"		sets number of digits in prints.
+	    "epsilon"		sets error value for transcendentals.
+	    "maxprint"		sets maximum number of elements printed.
+	    "mode"		sets printout mode.
+	    "mode2"		sets 2nd base printout mode.
+	    "mul2"		sets size for alternative multiply.
+	    "sq2"		sets size for alternative squaring.
+	    "pow2"		sets size for alternate powering.
+	    "redc2"		sets size for alternate REDC.
+	    "tilde"		enable/disable printing of the roundoff '~'
+	    "tab"		enable/disable printing of leading tabs
+	    "quomod"		sets rounding mode for quomod
+	    "quo"		sets rounding mode for //, default for quo
+	    "mod"		sets "rounding" mode for %, default for mod
+	    "sqrt"		sets rounding mode for sqrt
+	    "appr"		sets rounding mode for appr
+	    "cfappr"		sets rounding mode for cfappr
+	    "cfsim"		sets rounding mode for cfsim
+	    "round"		sets rounding mode for round and bround
+	    "outround"		sets rounding mode for printing of numbers
+	    "leadzero"		enables/disables printing of 0 as in 0.5
+	    "fullzero"		enables/disables padding zeros as in .5000
+	    "maxscan"		maximum number of scan errors before abort
+	    "prompt"		default interactive prompt
+	    "more"		default interactive multi-line input prompt
+	    "blkmaxprint"	number of block octets to print, 0 means all
+	    "blkverbose"	TRUE => print all lines, FALSE=>skip duplicates
+	    "blkbase"		block output base
+	    "blkfmt"		block output format
+	    "calc_debug"	controls internal calc debug information
+	    "resource_debug"	controls resource file debug information
+	    "user_debug"	for user defined debug information
+	    "verbose_quit"	TRUE => print message on empty quit or abort
+	    "ctrl_d"		The interactive meaning of ^D (Control D)
+	    "program"		Read-only calc program or shell script path
+	    "basename"		Read-only basename of the program value
+	    "windows"		Read-only indicator of MS windows
+	    "cygwin"		TRUE=>calc compiled with cygwin, Read-only
+	    "compile_custom"	TRUE=>calc was compiled with custom functions
+	    "allow_custom"	TRUE=>custom functions are enabled
+	    "version"		Read-only calc version
+	    "baseb"		bits in calculation base, a read-only value
+	    "redecl_warn"	TRUE => warn when redeclaring
+	    "dupvar_warn"	TRUE => warn when variable names collide
+	    "hz"		Read-only operating system tick rate or 0
+
+    The "all" config value allows one to save/restore the configuration
+    set of values.  The return of:
+
+	    config("all")
+
+    is a CONFIG type which may be used as the 2rd arg in a later call.
+    One may save, modify and restore the configuration state as follows:
+
+	    oldstate = config("all")
+	    ...
+	    config("tab", 0)
+	    config("mod", 10)
+	    ...
+	    config("all", oldstate)
+
+    This save/restore method is useful within functions.
+    It allows functions to control their configuration without impacting
+    the calling function.
+
+    There are two configuration state aliases that may be set.	To
+    set the backward compatible standard configuration:
+
+	    config("all", "oldstd")
+
+    The "oldstd" will restore the configuration to the default at startup.
+
+    A new configuration that some people prefer may be set by:
+
+	    config("all", "newstd")
+
+    The "newstd" is not backward compatible with the historic
+    configuration.  Even so, some people prefer this configuration
+    and place the config("all", "newstd") command in their CALCRC
+    startup files; newstd may also be established by invoking calc
+    with the flag -n.
+
+    The following are synonyms for true:
+
+	    "on"
+	    "true"
+	    "t"
+	    "yes"
+	    "y"
+	    "set"
+	    "1"
+	    any non-zero number
+
+    The following are synonyms for false:
+
+	    "off"
+	    "false"
+	    "f"
+	    "no"
+	    "n"
+	    "unset"
+	    "0"
+	    the number zero (0)
+
+    Examples of setting some parameters are:
+
+	    config("mode", "exp");	    exponential output
+	    config("display", 50);	    50 digits of output
+	    epsilon(epsilon() / 8);	    3 bits more accuracy
+	    config("tilde", 0)		    disable roundoff tilde printing
+	    config("tab", "off")	    disable leading tab printing
+
+    =-=
+
+    config("trace", bitflag)
+
+    When nonzero, the "trace" parameter activates one or more features
+    that may be useful for debugging.  These features correspond to
+    powers of 2 which contribute additively to config("trace"):
+
+	1: opcodes are displayed as functions are evaluated
+
+	2: disables the inclusion of debug lines in opcodes for functions
+	   whose definitions are introduced with a left-brace.
+
+	4: the number of links for real and complex numbers are displayed
+	   when the numbers are printed; for real numbers "#" or for
+	   complex numbers "##", followed by the number of links, are
+	   printed immediately after the number.
+
+	8: the opcodes for a new functions are displayed when the function
+	   is successfully defined.
+
+    See also resource_debug, calc_debug and user_debug below for more
+    debug levels.
+
+    =-=
+
+    config("display", int)
+
+    The "display" parameter specifies the maximum number of digits after
+    the decimal point to be printed in real or exponential mode in
+    normal unformatted printing (print, strprint, fprint) or in
+    formatted printing (printf, strprintf, fprintf) when precision is not
+    specified.	The initial value for oldstd is 20, for newstd 10.
+    The parameter may be changed to the value d by either
+    config("display", d) or by display (d).  This parameter does not change
+    the stored value of a number.  Where rounding is necessary to
+    display up to d decimal places, the type of rounding to be used is
+    controlled by config("outround").
+
+    =-=
+
+    config("epsilon", real)
+    epsilon(real)
+
+    The "epsilon" parameter specifies the default accuracy for the
+    calculation of functions for which exact values are not possible or
+    not desired.  For most functions, the
+
+		remainder = exact value - calculated value
+
+    has absolute value less than epsilon, but, except when the sign of
+    the remainder is controlled by an appropriate parameter, the
+    absolute value of the remainder usually does not exceed epsilon/2.
+    Functions which require an epsilon value accept an
+    optional argument which overrides this default epsilon value for
+    that single call.  The value v can be assigned to the "epsilon"
+    parameter by either config("epsilon", v) or epsilon(v); each of
+    these functions return the current epsilon value; config("epsilon")
+    or epsilon() returns but does not change the epsilon value.
+    For the transcendental functions and the functions sqrt() and
+    appr(), the calculated value is always a multiple of epsilon.
+
+    =-=
+
+    config("mode", "mode_string")
+    config("mode2", "mode_string")
+
+    The "mode" parameter is a string specifying the mode for printing of
+    numbers by the unformatted print functions, and the default
+    ("%d" specifier) for formatted print functions.  The initial mode
+    is "real".	The available modes are:
+
+	  config("mode")	meaning				equivalent
+	      string						base() call
+
+	    "binary"		base 2 fractions		base(2)
+	    "bin"
+
+	    "octal"		base 8 fractions		base(8)
+	    "oct"
+
+	    "real"		base 10 floating point		base(10)
+	    "float"
+	    "default"
+
+	    "integer"		base 10 integer			base(-10)
+	    "int"
+
+	    "hexadecimal"	base 16 fractions		base(16)
+	    "hex"
+
+	    "fraction"		base 10 fractions		base(1/3)
+	    "frac"
+
+	    "scientific"	base 10 scientific notation	base(1e20)
+	    "sci"
+	    "exp"
+
+    Where multiple strings are given, the first string listed is what
+    config("mode") will return.
+
+    The "mode2" controls the double base output.  When set to a value
+    other than "off", calc outputs files in both the "base" mode as
+    well as the "base2" mode.  The "mode2" value may be any of the
+    "mode" values with the addition of:
+
+	    "off"		disable 2nd base output mode	base2(0)
+
+    The base() builtin function sets and returns the "mode" value.
+    The base2() builtin function sets and returns the "mode2" value.
+
+    The default "mode" is "real".  The default "mode2" is "off".
+
+    =-=
+
+    config("maxprint", int)
+
+    The "maxprint" parameter specifies the maximum number of elements to
+    be displayed when a matrix or list is printed.  The initial value is 16.
+
+    =-=
+
+    config("mul2", int)
+    config("sq2", int)
+
+    Mul2 and sq2 specify the sizes of numbers at which calc switches
+    from its first to its second algorithm for multiplying and squaring.
+    The first algorithm is the usual method of cross multiplying, which
+    runs in a time of O(N^2).  The second method is a recursive and
+    complicated method which runs in a time of O(N^1.585).  The argument
+    for these parameters is the number of binary words at which the
+    second algorithm begins to be used.  The minimum value is 2, and
+    the maximum value is very large.  If 2 is used, then the recursive
+    algorithm is used all the way down to single digits, which becomes
+    slow since the recursion overhead is high.	If a number such as
+    1000000 is used, then the recursive algorithm is almost never used,
+    causing calculations for large numbers to slow down.
+
+    Units refer to internal calculation digits where each digit
+    is BASEB bits in length.  The value of BASEB is returned by
+    config("baseb").
+
+    The default value for config("sq2") is 3388.  This default was
+    established on a 1.8GHz AMD 32-bit CPU of ~3406 BogoMIPS when
+    the two algorithms are about equal in speed.  For that CPU test,
+    config("baseb") was 32.  This means that by default numbers up to
+    (3388*32)+31 = 108447 bits in length (< 32645 decimal digits) use
+    the 1st algorithm, for squaring.
+
+    The default value for config("mul2") is 1780.  This default was
+    established on a 1.8GHz AMD 32-bit CPU of ~3406 BogoMIPS when
+    the two algorithms are about equal in speed.  For that CPU test,
+    config("baseb") was 32.  This means that by default numbers up to
+    (1779*32)+31 = 56927 bits in length (< 17137 decimal digits) use
+    the 1st algorithm, for multiplication.
+
+    A value of zero resets the parameter back to their default values.
+
+    The value of 1 and values < 0 are reserved for future use.
+
+    Usually there is no need to change these parameters.
+
+    =-=
+
+    config("pow2", int)
+
+    Pow2 specifies the sizes of numbers at which calc switches from
+    its first to its second algorithm for calculating powers modulo
+    another number.  The first algorithm for calculating modular powers
+    is by repeated squaring and multiplying and dividing by the modulus.
+    The second method uses the REDC algorithm given by Peter Montgomery
+    which avoids divisions.  The argument for pow2 is the size of the
+    modulus at which the second algorithm begins to be used.
+
+    Units refer to internal calculation digits where each digit
+    is BASEB bits in length.  The value of BASEB is returned by
+    config("baseb").
+
+    The default value for config("pow2") is 176.  This default was
+    established on a 1.8GHz AMD 32-bit CPU of ~3406 BogoMIPS when
+    the two algorithms are about equal in speed.  For that CPU test,
+    config("baseb") was 32.  This means that by default numbers up to
+    (176*32)+31 = 5663 bits in length (< 1704 decimal digits) use the
+    1st algorithm, for calculating powers modulo another number.
+
+    A value of zero resets the parameter back to their default values.
+
+    The value of 1 and values < 0 are reserved for future use.
+
+    Usually there is no need to change these parameters.
+
+    =-=
+
+    config("redc2", int)
+
+    Redc2 specifies the sizes of numbers at which calc switches from
+    its first to its second algorithm when using the REDC algorithm.
+    The first algorithm performs a multiply and a modular reduction
+    together in one loop which runs in O(N^2).	The second algorithm
+    does the REDC calculation using three multiplies, and runs in
+    O(N^1.585).	 The argument for redc2 is the size of the modulus at
+    which the second algorithm begins to be used.
+
+    Units refer to internal calculation digits where each digit
+    is BASEB bits in length.  The value of BASEB is returned by
+    config("baseb").
+
+    The default value for config("redc2") is 220.  This default was
+    established as 5/4 (the historical ratio of config("pow2") to
+    config("pow2")) of the config("pow2") value.  This means that if
+    config("baseb") is 32, then by default numbers up to (220*32)+31 =
+    7071 bits in length (< 2128 decimal digits) use the REDC algorithm,
+    for calculating powers modulo another number.
+
+    A value of zero resets the parameter back to their default values.
+
+    The value of 1 and values < 0 are reserved for future use.
+
+    Usually there is no need to change these parameters.
+
+    =-=
+
+    config("tilde", boolean)
+
+    Config("tilde") controls whether or not a leading tilde ('~') is
+    printed to indicate that a number has not been printed exactly
+    because the number of decimal digits required would exceed the
+    specified maximum number.  The initial "tilde" value is 1.
+
+    =-=
+
+    config("tab", boolean)
+
+    Config ("tab") controls the printing of a tab before results
+    automatically displayed when working interactively.	 It does not
+    affect the printing by the functions print, printf, etc.  The initial
+    "tab" value is 1.
+
+    =-=
+
+    config("quomod", bitflag)
+    config("quo", bitflag)
+    config("mod", bitflag)
+    config("sqrt", bitflag)
+    config("appr", bitflag)
+    config("cfappr", bitflag)
+    config("cfsim", bitflag)
+    config("outround", bitflag)
+    config("round", bitflag)
+
+    The "quomod", "quo", "mod", "sqrt", "appr", "cfappr", "cfsim", and
+    "round" control the way in which any necessary rounding occurs.
+    Rounding occurs when for some reason, a calculated or displayed
+    value (the "approximation") has to differ from the "true value",
+    e.g. for quomod and quo, the quotient is to be an integer, for sqrt
+    and appr, the approximation is to be a multiple of an explicit or
+    implicit "epsilon", for round and bround (both controlled by
+    config("round")) the number of decimal places or fractional bits
+    in the approximation is limited.  Zero value for any of these
+    parameters indicates that the true value is greater than the approximation,
+    i.e. the rounding is "down", or in the case of mod, that the
+    residue has the same sign as the divisor.  If bit 4 of the
+    parameter is set, the rounding of to the nearest acceptable candidate
+    when this is uniquely determined; in the remaining ambiguous cases,
+    the type of rounding is determined by the lower bits of the parameter
+    value.  If bit 3 is set, the rounding for quo, appr and sqrt,
+    is to the nearest even integer or the nearest even multiple of epsilon,
+    and for round to the nearest even "last decimal place".  The effects
+    of the 3 lowest bits of the parameter value are as follows:
+
+	Bit 0: Unconditional reversal (down to up, even to odd, etc.)
+	Bit 1: Reversal if the exact value is negative
+	Bit 2: Reversal if the divisor or epsilon is negative
+
+    (Bit 2 is irrelevant for the functions round and bround since the
+    equivalent epsilon (a power of 1/10 or 1/2) is always positive.)
+
+    For quomod, the quotient is rounded to an integer value as if
+    evaluating quo with config("quo") == config("quomod").  Similarly,
+    quomod and mod give the same residues if config("mod") == config("quomod").
+
+    For the sqrt function, if bit 5 of config("sqrt") is set, the exact
+    square-root is returned when this is possible; otherwise the
+    result is rounded to a multiple of epsilon as determined by the
+    five lower order bits.  Bit 6 of config("sqrt") controls whether the
+    principal or non-principal square-root is returned.
+
+    For the functions cfappr and cfsim, whether the "rounding" is down
+    or up, etc. is controlled by the appropriate bits of config("cfappr")
+    and config("cfsim") as for quomod, quo, etc.
+
+    The "outround" parameter determines the type of rounding to be used
+    by the various kinds of printing to the output: bits 0, 1, 3 and 4
+    are used in the same way as for the functions round and bround.
+
+    The C language method of modulus and integer division is:
+
+	    config("quomod", 2)
+	    config("quo", 2)
+	    config("mod", 2)
+
+    =-=
+
+    config("leadzero", boolean)
+
+    The "leadzero" parameter controls whether or not a 0 is printed
+    before the decimal point in non-zero fractions with absolute value
+    less than 1, e.g. whether 1/2 is printed as 0.5 or .5.   The
+    initial value is 0, corresponding to the printing .5.
+
+    =-=
+
+    config("fullzero", boolean)
+
+    The "fullzero" parameter controls whether or not in decimal floating-
+    point printing, the digits are padded with zeros to reach the
+    number of digits specified by config("display") or by a precision
+    specification in formatted printing.  The initial value for this
+    parameter is 0, so that, for example, if config("display") >= 2,
+    5/4 will print in "real" mode as 1.25.
+
+    =-=
+
+    config("maxscan", int)
+
+    The maxscan value controls how many scan errors are allowed
+    before the compiling phase of a computation is aborted.  The initial
+    value of "maxscan" is 20.  Setting maxscan to 0 disables this feature.
+
+    =-=
+
+    config("prompt", str)
+
+    The default prompt when in interactive mode is "> ".  One may change
+    this prompt to a more cut-and-paste friendly prompt by:
+
+	    config("prompt", "; ")
+
+    On windowing systems that support cut/paste of a line, one may
+    cut/copy an input line and paste it directly into input.  The
+    leading ';' will be ignored.
+
+    =-=
+
+    config("more", str)
+
+    When inside multi-line input, the more prompt is used.  One may
+    change it by:
+
+	    config("more", ";; ")
+
+    =-=
+
+    config("blkmaxprint", int)
+
+    The "blkmaxprint" config value limits the number of octets to print
+    for a block.  A "blkmaxprint" of 0 means to print all octets of a
+    block, regardless of size.
+
+    The default is to print only the first 256 octets.
+
+    =-=
+
+    config("blkverbose", boolean)
+
+    The "blkverbose" determines if all lines, including duplicates
+    should be printed.	If TRUE, then all lines are printed.  If false,
+    duplicate lines are skipped and only a "*" is printed in a style
+    similar to od.  This config value has not meaning if "blkfmt" is "str".
+
+    The default value for "blkverbose" is FALSE: duplicate lines are
+    not printed.
+
+    =-=
+
+    config("blkbase", "blkbase_string")
+
+    The "blkbase" determines the base in which octets of a block
+    are printed.  Possible values are:
+
+	"hexadecimal"		Octets printed in 2 digit hex
+	"hex"
+	"default"
+
+	"octal"			Octets printed in 3 digit octal
+	"oct"
+
+	"character"		Octets printed as chars with non-printing
+	"char"			    chars as \123 or \n, \t, \r
+
+	"binary"		Octets printed as 0 or 1 chars
+	"bin"
+
+	"raw"			Octets printed as is, i.e. raw binary
+	"none"
+
+    Where multiple strings are given, the first string listed is what
+    config("blkbase") will return.
+
+    The default "blkbase" is "hexadecimal".
+
+    =-=
+
+    config("blkfmt", "blkfmt_string")
+
+    The "blkfmt" determines for format of how block are printed:
+
+	"lines"		print in lines of up to 79 chars + newline
+	"line"
+
+	"strings"	print as one long string
+	"string"
+	"str"
+
+	"od_style"	print in od-like format, with leading offset,
+	"odstyle"	   followed by octets in the given base
+	"od"
+
+	"hd_style"	print in hex dump format, with leading offset,
+	"hdstyle"	   followed by octets in the given base, followed
+	"hd"		   by chars or '.' if no-printable or blank
+	"default"
+
+    Where multiple strings are given, the first string listed is what
+    config("blkfmt") will return.
+
+    The default "blkfmt" is "hd_style".
+
+    =-=
+
+    config("calc_debug", bitflag)
+
+    The "calc_debug" is intended for controlling internal calc routines
+    that test its operation, or collect or display information that
+    might be useful for debug purposes.	 Much of the output from these
+    will make sense only to calc wizards.   Zero value (the default for
+    both oldstd and newstd) of config("resource_debug") corresponds to
+    switching off all these routines.  For nonzero value, particular
+    bits currently have the following meanings:
+
+	n		Meaning of bit n of config("calc_debug")
+
+	0	outputs shell commands prior to execution
+
+	1	outputs currently active functions when a quit instruction
+		is executed
+
+	2	some details of hash states are included in the output
+		when these are printed
+
+	3	when a function constructs a block value, tests are
+		made that the result has the properties required for use of
+		that block, e.g. that the pointer to the start of the
+		block is not NULL, and that its "length" is not negative.
+		A failure will result in a runtime error.
+
+	4	Report on changes to the state of stdin as well as changes
+		to internal variables that control the setting and restoring
+		of stdin.
+
+	5	Report on changes to the run state of calc.
+
+	6	Report on rand() subtractive 100 shuffle generator issues.
+
+	7	Report on custom function issues.
+
+    Bits >= 8 are reserved for future use and should not be used at this time.
+
+    By default, "calc_debug" is 0.  The initial value may be overridden
+    by the -D command line option.
+
+    =-=
+
+    config("resource_debug", bitflag)
+    config("lib_debug", bitflag)
+
+    The "resource_debug" parameter is intended for controlling the possible
+    display of special information relating to functions, objects, and
+    other structures created by instructions in calc scripts.
+    Zero value of config("resource_debug") means that no such information
+    is displayed.  For other values, the non-zero bits which currently
+    have meanings are as follows:
+
+	n		Meaning of bit n of config("resource_debug")
+
+	0	When a function is defined, redefined or undefined at
+		interactive level, a message saying what has been done
+		is displayed.
+
+	1	When a function is defined, redefined or undefined during
+		the reading of a file, a message saying what has been done
+		is displayed.
+
+	2	Show func will display more information about a functions
+		arguments and argument summary information.
+
+	3	During execution, allow calc standard resource files
+		to output additional debugging information.
+
+    The value for config("resource_debug") in both oldstd and newstd
+    is 3, but if calc is invoked with the -d flag, its initial value
+    is zero.  Thus, if calc is started without the -d flag, until
+    config("resource_debug") is changed, a message will be output when
+    a function is defined either interactively or during the reading of
+    a file.
+
+    The name config("lib_debug") is equivalent to config("resource_debug")
+    and is included for backward compatibility.
+
+    By default, "resource_debug" is 3.	The -d flag changes this default to 0.
+    The initial value may be overridden by the -D command line option.
+
+    =-=
+
+    config("user_debug", int)
+
+    The "user_debug" is provided for use by users.  Calc ignores this value
+    other than to set it to 0 by default (for both "oldstd" and "newstd").
+    No calc code or standard resource should change this value.	 Users
+    should feel free to use it in any way.   In particular they may
+    use particular bits for special purposes as with "calc_debug", or
+    they may use it to indicate a debug level with larger values
+    indicating more stringent and more informative tests with presumably
+    slower operation or more memory usage, and a particular value (like
+    -1 or 0) corresponding to "no tests".
+
+    By default, "user_debug" is 0.  The initial value may be overridden
+    by the -D command line option.
+
+    =-=
+
+    config("verbose_quit", boolean)
+
+    The "verbose_quit" controls the print of the message:
+
+	quit or abort executed
+
+    when a non-interactive quit or abort without an argument is encountered.
+    A quit of abort without an argument does not display a message when
+    invoked at the interactive level.
+
+    By default, "verbose_quit" is false.
+
+    =-=
+
+    config("ctrl_d", "ctrl_d_string")
+
+    For calc that is using the calc binding (not GNU-readline) facility:
+
+	The "ctrl_d" controls the interactive meaning of ^D (Control D):
+
+	    "virgin_eof"  If ^D is the only character that has been typed
+	    "virgineof"	  on a line, then calc will exit.  Otherwise ^D
+	    "virgin"	  will act according to the calc binding, which
+	    "default"	  by default is a Emacs-style delete-char.
+
+	    "never_eof"	  The ^D never exits calc and only acts according
+	    "nevereof"	  calc binding, which by default is a Emacs-style
+	    "never"	  delete-char.
+
+	    "empty_eof"	  The ^D always exits calc if typed on an empty line.
+	    "emptyeof"	  This condition occurs when ^D either the first
+	    "empty"	  character typed, or when all other characters on
+			  the line have been removed (say by deleting them).
+
+	Where multiple strings are given, the first string listed is what
+	config("ctrl_d") will return.
+
+	Note that config("ctrl_d") actually controls each and every character
+	that is bound to ``delete_char''.  By default, ``delete_char'' is
+	Control D.  Any character(s) bound to ``delete_char'' will cause calc
+	to exit (or not exit) as directed by config("ctrl_d").
+
+	See the ``binding'' help for information on the default calc bindings.
+
+	The default "ctrl_d", without GNU-readline is "virgin_eof".
+
+    For calc that was compiled with the GNU-readline facility:
+
+	The "ctrl_d" controls the interactive meaning of ^D (Control D):
+
+	    "virgin_eof"  Same as "empty_eof"
+	    "virgineof"
+	    "virgin"
+	    "default"
+
+	    "never_eof"	  The ^D never exits calc and only acts according
+	    "nevereof"	  calc binding, which by default is a Emacs-style
+	    "never"	  delete-char.
+
+	    "empty_eof"	  The ^D always exits calc if typed on an empty line.
+	    "emptyeof"	  This condition occurs when ^D either the first
+	    "empty"	  character typed, or when all other characters on
+
+	Where multiple strings are given, the first string listed is what
+	config("ctrl_d") will return.
+
+	The default "ctrl_d", with GNU-readline is effectively "empty_eof".
+
+	Literally it is "virgin_eof", but since "virgin_eof" is the
+	same as "empty_eof", the default is effectively "empty_eof".
+
+    Emacs users may find the default behavior objectionable, particularly
+    when using the GNU-readline facility.  Such users may want to add the line:
+
+	config("ctrl_d", "never_eof"),;
+
+    to their ~/.calcrc startup file to prevent ^D from causing calc to exit.
+
+    =-=
+
+    config("program")		<== NOTE: This is a read-only config value
+
+    The full path to the calc program, or the calc shell script can be
+    obtained by:
+
+	config("program")
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("basename")		<== NOTE: This is a read-only config value
+
+    The calc program, or the calc shell script basename can be obtained by:
+
+	config("basename")
+
+    The config("basename") is the config("program") without any leading
+    path.  If config("program") has a / in it, config("basename") is
+    everything after the last /, otherwise config("basename") is the
+    same as config("program").
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("windows")		<== NOTE: This is a read-only config value
+
+    Returns TRUE if you are running on a MS windows system, false if you
+    are running on an operating system that does not hate you.
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("cygwin")		<== NOTE: This is a read-only config value
+
+    Returns TRUE if you calc was compiled with cygwin, false otherwise.
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("compile_custom")	<== NOTE: This is a read-only config value
+
+    Returns TRUE if you calc was compiled with -DCUSTOM.  By default,
+    the calc Makefile uses ALLOW_CUSTOM= -DCUSTOM so by default
+    config("compile_custom") is TRUE.  If, however, calc is compiled
+    without -DCUSTOM, then config("compile_custom") will be FALSE.
+
+    The config("compile_custom") value is only affected by compile
+    flags.   The calc -D runtime command line option does not change
+    the config("compile_custom") value.
+
+    See also config("allow_custom").
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("allow_custom")	<== NOTE: This is a read-only config value
+
+    Returns TRUE if you custom functions are enabled.  To allow the use
+    of custom functions, calc must be compiled with -DCUSTOM (which it
+    is by default) AND calc run be run with the -D runtime command line
+    option (which it is not by default).
+
+    If config("allow_custom") is TRUE, then custom functions are allowed.
+    If config("allow_custom") is FALSE, then custom functions are not
+    allowed.
+
+    See also config("compile_custom").
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("version")		<== NOTE: This is a read-only config value
+
+    The version string of the calc program can be obtained by:
+
+	config("version")
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("baseb")		<== NOTE: This is a read-only config value
+
+    Returns the number of bits in the fundamental base in which
+    internal calculations are performed.  For example, a value of
+    32 means that calc will perform many internal calculations in
+    base 2^32 with digits that are 32 bits in length.
+
+    For libcalc programmers, this is the value of BASEB as defined
+    in the zmath.h header file.
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("redecl_warn", boolean)
+
+    Config("redecl_warn") controls whether or not a warning is issued
+    when redeclaring variables.
+
+    The initial "redecl_warn" value is 1.
+
+    =-=
+
+    config("dupvar_warn", boolean)
+
+    Config("dupvar_warn") controls whether or not a warning is issued
+    when a variable name collides with an exist name of a higher scope.
+    Examples of collisions are when:
+
+    	* both local and static variables have the same name
+    	* both local and global variables have the same name
+    	* both function parameter and local variables have the same name
+    	* both function parameter and global variables have the same name
+
+    The initial "redecl_warn" value is 1.
+
+    =-=
+
+    config("hz")		<== NOTE: This is a read-only config value
+
+    Returns the rate at which the operating system advances the clock
+    on POSIX based systems.  Returns 0 on non-POSIX based systems.
+    The non-zero value returned is in Hetrz.
+
+    This config parameter is read-only and cannot be set.
+
+
+EXAMPLE
+    ; current_cfg = config("all");
+    ; config("tilde", off),;
+    ; config("calc_debug", 15),;
+    ; config("all") == current_cfg
+	0
+    ; config("all", current_cfg),;
+    ; config("all") == current_cfg
+	1
+
+    ; config("version")
+    		"2.12.0"
+
+    ; config("all")
+	mode            "real"
+	mode2           "off"
+	display         20
+	epsilon         0.00000000000000000001
+	trace           0
+	maxprint        16
+	mul2            20
+	sq2             20
+	pow2            40
+	redc2           50
+	tilde           1
+	tab             1
+	quomod          0
+	quo             2
+	mod             0
+	sqrt            24
+	appr            24
+	cfappr          0
+	cfsim           8
+	outround        24
+	round           24
+	leadzero        1
+	fullzero        0
+	maxscan         20
+	prompt          "; "
+	more            ";; "
+	blkmaxprint     256
+	blkverbose      0
+	blkbase         "hexadecimal"
+	blkfmt          "hd_style"
+	resource_debug  3
+	lib_debug       3
+	calc_debug      0
+	user_debug      0
+	verbose_quit    0
+	ctrl_d          "virgin_eof"
+	program         "calc"
+	basename        "calc"
+	windows         0
+	cygwin          0
+	compile_custom  1
+	allow_custom    0
+	version         "2.12.0"
+	baseb		32
+	redecl_warn	1
+	dupvar_warn	1
+	hz		100
+
+    ; display()
+	20
+    ; config("display", 50),;
+    ; display()
+	50
+
+LIMITS
+    none
+
+LINK LIBRARY
+     n/a
+
+SEE ALSO
+     usage, custom, custom_cal, usage, epsilon, display
+
+## Copyright (C) 1999-2007  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.3 $
+## @(#) $Id: config,v 30.3 2007/09/21 01:27:27 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/config,v $
+##
+## Under source code control:	1991/07/21 04:37:17
+## File existed as early as:	1991
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* custom
+*************
+
+NAME
+    custom - custom builtin interface
+
+SYNOPSIS
+    custom([custname [, arg ...]])
+
+TYPES
+    custname	string
+    arg		any
+
+    return	any
+
+DESCRIPTION
+    This function will invoke the custom function interface.  Custom
+    functions are accessed by the custname argument.  The remainder
+    of the args, if any, are passed to the custom function.  The
+    custom function may return any value, including null.  Calling
+    custom with no args is equivalent to the command 'show custom'.
+
+    In order to use the custom interface, two things must happen:
+
+	1) Calc must be built to allow custom functions.  By default,
+	   the master Makefile is shipped with ALLOW_CUSTOM= -DCUSTOM
+	   which causes custom functions to be compiled in.
+
+	2) Calc must be invoked with an argument of -C as in:
+
+		calc -C
+
+    In other words, explicit action must be taken in order to
+    enable the use of custom functions.	 By default (no -C arg)
+    custom functions are compiled in but disabled so that only
+    portable calc scripts may be used.
+
+    The main focus for calc is to provide a portable platform for
+    multi-precision calculations in a C-like environment.  You should
+    consider implementing algorithms in the calc language as a first
+    choice.  Sometimes an algorithm requires use of special hardware, a
+    non-portable OS or pre-compiled C library.	In these cases a custom
+    interface may be needed.
+
+    The custom function interface is intended to make is easy for
+    programmers to add functionality that would be otherwise
+    un-suitable for general distribution.  Functions that are
+    non-portable (machine, hardware or OS dependent) or highly
+    specialized are possible candidates for custom functions.
+
+    To add a new custom function requires access to calc source.
+    For information on how to add a new custom function, try:
+
+	    help new_custom
+
+    To serve as examples, calc is shipped with a few custom functions.
+    If calc if invoked with -C, then either of the following will
+    display information about the custom functions that are available:
+
+	    show custom
+    or:
+
+	    custom()
+
+    A few resource files that uses these function are also provided
+    to serve as usage examples.
+
+    We welcome submissions for new custom functions.  For information
+    on how to submit new custom functions for general distribution, see:
+
+	    help contrib
+
+EXAMPLE
+    If calc compiled with ALLOW_CUSTOM= (custom disabled):
+
+    ; print custom("sysinfo", "baseb")
+	    Calc was built with custom functions disabled
+    Error 10195
+
+    If calc compiled with ALLOW_CUSTOM= -DCUSTOM and is invoked without -C:
+
+    ; print custom("sysinfo", "baseb")
+	    Calc must be run with a -C argument to use custom function
+    Error 10194
+
+    If calc compiled with ALLOW_CUSTOM= -DCUSTOM and is invoked with -C:
+
+    ; print custom("sysinfo", "baseb")
+    32
+
+LIMITS
+    By default, custom is limited to 100 args.
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    custom_cal, new_custom, contrib
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: custom,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/custom,v $
+##
+## Under source code control:	1997/03/09 16:33:22
+## File existed as early as:	1997
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* define
+*************
+
+NAME
+    define - command keyword to start a function definition
+
+SYNTAX
+    define fname([param_1 [= default_1], ...]) = [expr]
+    define fname([param_1 [= default_1], ...]) { [statement_1 ... ] }
+
+TYPES
+    fname		identifier, not a builtin function name
+    param_1, ...	identifiers, no two the same
+    default_1, ...	expressions
+    expr		expression
+    statement_1, ...	statements
+
+DESCRIPTION
+    The intention of a function definition is that the identifier fname
+    becomes the name of a function which may be called by an expression
+    of the form  fname(arg_1, arg_2, ...), where arg_1, arg_2, ... are
+    expressions (including possibly blanks, which are treated as
+    null values).  Evaluation of the function begins with evaluation
+    of arg_1, arg_2, ...; then, in increasing order of i, if arg_i is
+    null-valued and  "= default_i" has been included in the definition,
+    default_i is evaluated and its value becomes the value of arg_i.
+    The instructions in expr or the listed statements are then executed
+    with each occurrence of param_i replaced by the value obtained
+    for arg_i.
+
+    In a call, arg_i may be preceded by a backquote (`)  to indicate that
+    evaluation of arg_i is not to include a final evaluation of an lvalue.
+    For example, suppose a function f and a global variable A have been
+    defined by:
+
+	; define f(x) = (x = 3);
+	; global mat A[3];
+
+    If g() is  a function that evaluates to 2:
+
+	; f(A[g()]);
+
+    assigns the value of A[2] to the parameter x and then assigns the
+    value 3 to x:
+
+	; f(`A[g()]);
+
+    has essentially the effect of assigning A[2] as an lvalue to x and
+    then assigning the value 3 to A[2].  (Very old versions of calc
+    achieved the same result by using '&' as in  f(&A[g()]).)
+
+    The number of arguments arg_1, arg_2, ... in a call need not equal the
+    number of parameters.  If there are fewer arguments than parameters,
+    the "missing" values are assigned the null value.
+
+    In the definition of a function, the builtin function param(n)
+    provides a way of referring to the parameters.  If n (which may
+    result from evaluating an expreession) is zero, it returns the number
+    of arguments in a call to the function, and if 1 <= n <= param(0),
+    param(n) refers to the parameter with index n.
+
+    If no error occurs and no quit statement or abort statement is
+    encountered during evaluation of the expression or the statements,
+    the function call returns a value.  In the expression form, this is
+    simply the value of the expression.
+
+    In the statement form, if a return statement is encountered,
+    the "return" keyword is to be either immediately followed by an
+    expression or by a statement terminator (semicolon or rightbrace);
+    in the former case, the expression is evaluated, evaluation of
+    the function ceases, and the value obtained for the expression is
+    returned as the "value of the function";  in the no-expression case,
+    evaluation ceases immediately and the null-value is returned.
+
+    In the expression form of definition, the end of the expression expr
+    is to be indicated by either a semicolon or a newline not within
+    a part enclosed by parentheses; the definition may extend over
+    several physical lines by ending each line with a '\' character or by
+    enclosing the expression in parentheses.  In interactive mode, that
+    a definition has not been completed is indicated by the continuation
+    prompt.   A ctrl-C interrupt at this stage will abort the definition.
+
+    If the expr is omitted from an expression definition, as in:
+
+	; define h() = ;
+
+    any call to the function will evaluate the arguments and return the
+    null value.
+
+    In the statement form, the definition ends when a matching right
+    brace completes the "block" started by the initial left brace.
+    Newlines within the block are treated as white space; statements
+    within the block end with a ';' or a '}' matching an earlier '{'.
+
+    If a function with name fname had been defined earlier, the old
+    definition has no effect on the new definition, but if the definition
+    is completed successfully, the new definition replaces the old one;
+    otherwise the old definition is retained.  The number of parameters
+    and their names in the new definiton may be quite different from
+    those in the old definition.
+
+    An attempt at a definition may fail because of scanerrors as the
+    definition is compiled.  Common causes of these are: bad syntax,
+    using identifiers as names of variables not yet defined.  It is
+    not a fault to have in the definition a call to a function that has
+    not yet been defined; it is sufficient that the function has been
+    defined when a call is made to the function.
+
+    After fname has been defined, the definition may be removed by the command:
+
+	; undefine fname
+
+    The definitions of all user-defined functions may be removed by:
+
+	; undefine *
+
+    If bit 0 of config("resource_debug") is set and the define command is
+    at interactive level, a message saying that fname has been defined
+    or redefined is displayed.  The same message is displayed if bit 1
+    of config("resource_debug") is set and the define command is read
+    from a file.
+
+    The identifiers used for the parameters in a function definition do
+    not form part of the completed definition.  For example,
+
+	; define f(a,b) = a + b;
+	; define g(alpha, beta) = alpha + beta;
+
+    result in identical code for the functions f, g.
+
+    If config("trace") & 8 is nonzero, the opcodes of a newly defined
+    function are displayed on completion of its definition, parameters
+    being specified by names used in the definition.  For example:
+
+	; config("trace", 8),
+	; define f(a,b) = a + b
+	0: PARAMADDR a
+	2: PARAMADDR b
+	4: ADD
+	5: RETURN
+	f(a,b) defined
+
+    The opcodes may also be displayed later using the show opcodes command;
+    parameters will be specified by indices instead of by names.  For example:
+
+	; show opco f
+	0: PARAMADDR 0
+	2: PARAMADDR 1
+	4: ADD
+	5: RETURN
+
+    When a function is defined by the statement mode, the opcodes normally
+    include DEBUG opcodes which specify statement boundaries at which
+    SIGINT interruptions are likely to be least risky.  Inclusion of
+    the DEBUG opcodes is disabled if config("trace") & 2 is nonzero.
+    For details, see help interrupt.
+
+    While config("trace") & 1 is nonzero, the opcodes are displayed as
+    they are being evaluated.  The current function is identified by its
+    name, or "*" in the case of a command-line and "**" in the case of
+    an eval(str) evaluation.
+
+    When a function is called, argument values may be of any type for
+    which the operations and any functions used within the body of the
+    definition can be executed.  For example, whatever the intention at
+    the time they were defined, the functions f1(), f2() defined above
+    may be called with integer, fractional, or complex-number values, or
+    with both arguments strings, or under some compatibility conditions,
+    matrices or objects.
+
+EXAMPLE
+    ; define f(a,b) = 2*a + b;
+    ; define g(alpha, beta)
+    ;; {
+    ;;	   local a, pi2;
+    ;;
+    ;;	   pi2 = 2 * pi();
+    ;;	   a = sin(alpha % pi2);
+    ;;	   if (a > 0.0) {
+    ;;	       return a*beta;
+    ;;	   }
+    ;;	   if (beta > 0.0) {
+    ;;	       a *= cos(-beta % pi2);
+    ;;	   }
+    ;;	   return a;
+    ;; }
+
+LIMITS
+    The number of arguments in a function-call cannot exceed 1024.
+
+LIBRARY
+    none
+
+SEE ALSO
+    param, variable, undefine, show
+
+## Copyright (C) 2000-2006  David I. Bell, Landon Curt Noll and Ernest Bowen
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as publishe

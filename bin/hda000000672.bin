@@ -1,0 +1,1369 @@
+  `USER_LABEL_PREFIX' and `IMMEDIATE_PREFIX' if you can express the
+     variations in assembler language syntax with that mechanism.
+     Define `ASSEMBLER_DIALECT' and use the `{option0|option1}' syntax
+     if the syntax variant are larger and involve such things as
+     different opcodes or operand order.
+
+ -- Macro: ASM_OUTPUT_REG_PUSH (STREAM, REGNO)
+     A C expression to output to STREAM some assembler code which will
+     push hard register number REGNO onto the stack.  The code need not
+     be optimal, since this macro is used only when profiling.
+
+ -- Macro: ASM_OUTPUT_REG_POP (STREAM, REGNO)
+     A C expression to output to STREAM some assembler code which will
+     pop hard register number REGNO off of the stack.  The code need
+     not be optimal, since this macro is used only when profiling.
+
+
+File: gccint.info,  Node: Dispatch Tables,  Next: Exception Region Output,  Prev: Instruction Output,  Up: Assembler Format
+
+15.21.8 Output of Dispatch Tables
+---------------------------------
+
+This concerns dispatch tables.
+
+ -- Macro: ASM_OUTPUT_ADDR_DIFF_ELT (STREAM, BODY, VALUE, REL)
+     A C statement to output to the stdio stream STREAM an assembler
+     pseudo-instruction to generate a difference between two labels.
+     VALUE and REL are the numbers of two internal labels.  The
+     definitions of these labels are output using
+     `(*targetm.asm_out.internal_label)', and they must be printed in
+     the same way here.  For example,
+
+          fprintf (STREAM, "\t.word L%d-L%d\n",
+                   VALUE, REL)
+
+     You must provide this macro on machines where the addresses in a
+     dispatch table are relative to the table's own address.  If
+     defined, GCC will also use this macro on all machines when
+     producing PIC.  BODY is the body of the `ADDR_DIFF_VEC'; it is
+     provided so that the mode and flags can be read.
+
+ -- Macro: ASM_OUTPUT_ADDR_VEC_ELT (STREAM, VALUE)
+     This macro should be provided on machines where the addresses in a
+     dispatch table are absolute.
+
+     The definition should be a C statement to output to the stdio
+     stream STREAM an assembler pseudo-instruction to generate a
+     reference to a label.  VALUE is the number of an internal label
+     whose definition is output using
+     `(*targetm.asm_out.internal_label)'.  For example,
+
+          fprintf (STREAM, "\t.word L%d\n", VALUE)
+
+ -- Macro: ASM_OUTPUT_CASE_LABEL (STREAM, PREFIX, NUM, TABLE)
+     Define this if the label before a jump-table needs to be output
+     specially.  The first three arguments are the same as for
+     `(*targetm.asm_out.internal_label)'; the fourth argument is the
+     jump-table which follows (a `jump_insn' containing an `addr_vec'
+     or `addr_diff_vec').
+
+     This feature is used on system V to output a `swbeg' statement for
+     the table.
+
+     If this macro is not defined, these labels are output with
+     `(*targetm.asm_out.internal_label)'.
+
+ -- Macro: ASM_OUTPUT_CASE_END (STREAM, NUM, TABLE)
+     Define this if something special must be output at the end of a
+     jump-table.  The definition should be a C statement to be executed
+     after the assembler code for the table is written.  It should write
+     the appropriate code to stdio stream STREAM.  The argument TABLE
+     is the jump-table insn, and NUM is the label-number of the
+     preceding label.
+
+     If this macro is not defined, nothing special is output at the end
+     of the jump-table.
+
+ -- Target Hook: void TARGET_ASM_EMIT_UNWIND_LABEL (STREAM, DECL,
+          FOR_EH, EMPTY)
+     This target hook emits a label at the beginning of each FDE.  It
+     should be defined on targets where FDEs need special labels, and it
+     should write the appropriate label, for the FDE associated with the
+     function declaration DECL, to the stdio stream STREAM.  The third
+     argument, FOR_EH, is a boolean: true if this is for an exception
+     table.  The fourth argument, EMPTY, is a boolean: true if this is
+     a placeholder label for an omitted FDE.
+
+     The default is that FDEs are not given nonlocal labels.
+
+ -- Target Hook: void TARGET_ASM_EMIT_EXCEPT_TABLE_LABEL (STREAM)
+     This target hook emits a label at the beginning of the exception
+     table.  It should be defined on targets where it is desirable for
+     the table to be broken up according to function.
+
+     The default is that no label is emitted.
+
+ -- Target Hook: void TARGET_UNWIND_EMIT (FILE * STREAM, rtx INSN)
+     This target hook emits and assembly directives required to unwind
+     the given instruction.  This is only used when TARGET_UNWIND_INFO
+     is set.
+
+
+File: gccint.info,  Node: Exception Region Output,  Next: Alignment Output,  Prev: Dispatch Tables,  Up: Assembler Format
+
+15.21.9 Assembler Commands for Exception Regions
+------------------------------------------------
+
+This describes commands marking the start and the end of an exception
+region.
+
+ -- Macro: EH_FRAME_SECTION_NAME
+     If defined, a C string constant for the name of the section
+     containing exception handling frame unwind information.  If not
+     defined, GCC will provide a default definition if the target
+     supports named sections.  `crtstuff.c' uses this macro to switch
+     to the appropriate section.
+
+     You should define this symbol if your target supports DWARF 2 frame
+     unwind information and the default definition does not work.
+
+ -- Macro: EH_FRAME_IN_DATA_SECTION
+     If defined, DWARF 2 frame unwind information will be placed in the
+     data section even though the target supports named sections.  This
+     might be necessary, for instance, if the system linker does garbage
+     collection and sections cannot be marked as not to be collected.
+
+     Do not define this macro unless `TARGET_ASM_NAMED_SECTION' is also
+     defined.
+
+ -- Macro: EH_TABLES_CAN_BE_READ_ONLY
+     Define this macro to 1 if your target is such that no frame unwind
+     information encoding used with non-PIC code will ever require a
+     runtime relocation, but the linker may not support merging
+     read-only and read-write sections into a single read-write section.
+
+ -- Macro: MASK_RETURN_ADDR
+     An rtx used to mask the return address found via
+     `RETURN_ADDR_RTX', so that it does not contain any extraneous set
+     bits in it.
+
+ -- Macro: DWARF2_UNWIND_INFO
+     Define this macro to 0 if your target supports DWARF 2 frame unwind
+     information, but it does not yet work with exception handling.
+     Otherwise, if your target supports this information (if it defines
+     `INCOMING_RETURN_ADDR_RTX' and either `UNALIGNED_INT_ASM_OP' or
+     `OBJECT_FORMAT_ELF'), GCC will provide a default definition of 1.
+
+     If `TARGET_UNWIND_INFO' is defined, the target specific unwinder
+     will be used in all cases.  Defining this macro will enable the
+     generation of DWARF 2 frame debugging information.
+
+     If `TARGET_UNWIND_INFO' is not defined, and this macro is defined
+     to 1, the DWARF 2 unwinder will be the default exception handling
+     mechanism; otherwise, the `setjmp'/`longjmp'-based scheme will be
+     used by default.
+
+ -- Macro: TARGET_UNWIND_INFO
+     Define this macro if your target has ABI specified unwind tables.
+     Usually these will be output by `TARGET_UNWIND_EMIT'.
+
+ -- Variable: Target Hook bool TARGET_UNWIND_TABLES_DEFAULT
+     This variable should be set to `true' if the target ABI requires
+     unwinding tables even when exceptions are not used.
+
+ -- Macro: MUST_USE_SJLJ_EXCEPTIONS
+     This macro need only be defined if `DWARF2_UNWIND_INFO' is
+     runtime-variable.  In that case, `except.h' cannot correctly
+     determine the corresponding definition of
+     `MUST_USE_SJLJ_EXCEPTIONS', so the target must provide it directly.
+
+ -- Macro: DONT_USE_BUILTIN_SETJMP
+     Define this macro to 1 if the `setjmp'/`longjmp'-based scheme
+     should use the `setjmp'/`longjmp' functions from the C library
+     instead of the `__builtin_setjmp'/`__builtin_longjmp' machinery.
+
+ -- Macro: DWARF_CIE_DATA_ALIGNMENT
+     This macro need only be defined if the target might save registers
+     in the function prologue at an offset to the stack pointer that is
+     not aligned to `UNITS_PER_WORD'.  The definition should be the
+     negative minimum alignment if `STACK_GROWS_DOWNWARD' is defined,
+     and the positive minimum alignment otherwise.  *Note SDB and
+     DWARF::.  Only applicable if the target supports DWARF 2 frame
+     unwind information.
+
+ -- Variable: Target Hook bool TARGET_TERMINATE_DW2_EH_FRAME_INFO
+     Contains the value true if the target should add a zero word onto
+     the end of a Dwarf-2 frame info section when used for exception
+     handling.  Default value is false if `EH_FRAME_SECTION_NAME' is
+     defined, and true otherwise.
+
+ -- Target Hook: rtx TARGET_DWARF_REGISTER_SPAN (rtx REG)
+     Given a register, this hook should return a parallel of registers
+     to represent where to find the register pieces.  Define this hook
+     if the register and its mode are represented in Dwarf in
+     non-contiguous locations, or if the register should be represented
+     in more than one register in Dwarf.  Otherwise, this hook should
+     return `NULL_RTX'.  If not defined, the default is to return
+     `NULL_RTX'.
+
+ -- Target Hook: void TARGET_INIT_DWARF_REG_SIZES_EXTRA (tree ADDRESS)
+     If some registers are represented in Dwarf-2 unwind information in
+     multiple pieces, define this hook to fill in information about the
+     sizes of those pieces in the table used by the unwinder at runtime.
+     It will be called by `expand_builtin_init_dwarf_reg_sizes' after
+     filling in a single size corresponding to each hard register;
+     ADDRESS is the address of the table.
+
+ -- Target Hook: bool TARGET_ASM_TTYPE (rtx SYM)
+     This hook is used to output a reference from a frame unwinding
+     table to the type_info object identified by SYM.  It should return
+     `true' if the reference was output.  Returning `false' will cause
+     the reference to be output using the normal Dwarf2 routines.
+
+ -- Target Hook: bool TARGET_ARM_EABI_UNWINDER
+     This hook should be set to `true' on targets that use an ARM EABI
+     based unwinding library, and `false' on other targets.  This
+     effects the format of unwinding tables, and how the unwinder in
+     entered after running a cleanup.  The default is `false'.
+
+
+File: gccint.info,  Node: Alignment Output,  Prev: Exception Region Output,  Up: Assembler Format
+
+15.21.10 Assembler Commands for Alignment
+-----------------------------------------
+
+This describes commands for alignment.
+
+ -- Macro: JUMP_ALIGN (LABEL)
+     The alignment (log base 2) to put in front of LABEL, which is a
+     common destination of jumps and has no fallthru incoming edge.
+
+     This macro need not be defined if you don't want any special
+     alignment to be done at such a time.  Most machine descriptions do
+     not currently define the macro.
+
+     Unless it's necessary to inspect the LABEL parameter, it is better
+     to set the variable ALIGN_JUMPS in the target's
+     `OVERRIDE_OPTIONS'.  Otherwise, you should try to honor the user's
+     selection in ALIGN_JUMPS in a `JUMP_ALIGN' implementation.
+
+ -- Macro: LABEL_ALIGN_AFTER_BARRIER (LABEL)
+     The alignment (log base 2) to put in front of LABEL, which follows
+     a `BARRIER'.
+
+     This macro need not be defined if you don't want any special
+     alignment to be done at such a time.  Most machine descriptions do
+     not currently define the macro.
+
+ -- Macro: LABEL_ALIGN_AFTER_BARRIER_MAX_SKIP
+     The maximum number of bytes to skip when applying
+     `LABEL_ALIGN_AFTER_BARRIER'.  This works only if
+     `ASM_OUTPUT_MAX_SKIP_ALIGN' is defined.
+
+ -- Macro: LOOP_ALIGN (LABEL)
+     The alignment (log base 2) to put in front of LABEL, which follows
+     a `NOTE_INSN_LOOP_BEG' note.
+
+     This macro need not be defined if you don't want any special
+     alignment to be done at such a time.  Most machine descriptions do
+     not currently define the macro.
+
+     Unless it's necessary to inspect the LABEL parameter, it is better
+     to set the variable `align_loops' in the target's
+     `OVERRIDE_OPTIONS'.  Otherwise, you should try to honor the user's
+     selection in `align_loops' in a `LOOP_ALIGN' implementation.
+
+ -- Macro: LOOP_ALIGN_MAX_SKIP
+     The maximum number of bytes to skip when applying `LOOP_ALIGN'.
+     This works only if `ASM_OUTPUT_MAX_SKIP_ALIGN' is defined.
+
+ -- Macro: LABEL_ALIGN (LABEL)
+     The alignment (log base 2) to put in front of LABEL.  If
+     `LABEL_ALIGN_AFTER_BARRIER' / `LOOP_ALIGN' specify a different
+     alignment, the maximum of the specified values is used.
+
+     Unless it's necessary to inspect the LABEL parameter, it is better
+     to set the variable `align_labels' in the target's
+     `OVERRIDE_OPTIONS'.  Otherwise, you should try to honor the user's
+     selection in `align_labels' in a `LABEL_ALIGN' implementation.
+
+ -- Macro: LABEL_ALIGN_MAX_SKIP
+     The maximum number of bytes to skip when applying `LABEL_ALIGN'.
+     This works only if `ASM_OUTPUT_MAX_SKIP_ALIGN' is defined.
+
+ -- Macro: ASM_OUTPUT_SKIP (STREAM, NBYTES)
+     A C statement to output to the stdio stream STREAM an assembler
+     instruction to advance the location counter by NBYTES bytes.
+     Those bytes should be zero when loaded.  NBYTES will be a C
+     expression of type `unsigned HOST_WIDE_INT'.
+
+ -- Macro: ASM_NO_SKIP_IN_TEXT
+     Define this macro if `ASM_OUTPUT_SKIP' should not be used in the
+     text section because it fails to put zeros in the bytes that are
+     skipped.  This is true on many Unix systems, where the pseudo-op
+     to skip bytes produces no-op instructions rather than zeros when
+     used in the text section.
+
+ -- Macro: ASM_OUTPUT_ALIGN (STREAM, POWER)
+     A C statement to output to the stdio stream STREAM an assembler
+     command to advance the location counter to a multiple of 2 to the
+     POWER bytes.  POWER will be a C expression of type `int'.
+
+ -- Macro: ASM_OUTPUT_ALIGN_WITH_NOP (STREAM, POWER)
+     Like `ASM_OUTPUT_ALIGN', except that the "nop" instruction is used
+     for padding, if necessary.
+
+ -- Macro: ASM_OUTPUT_MAX_SKIP_ALIGN (STREAM, POWER, MAX_SKIP)
+     A C statement to output to the stdio stream STREAM an assembler
+     command to advance the location counter to a multiple of 2 to the
+     POWER bytes, but only if MAX_SKIP or fewer bytes are needed to
+     satisfy the alignment request.  POWER and MAX_SKIP will be a C
+     expression of type `int'.
+
+
+File: gccint.info,  Node: Debugging Info,  Next: Floating Point,  Prev: Assembler Format,  Up: Target Macros
+
+15.22 Controlling Debugging Information Format
+==============================================
+
+This describes how to specify debugging information.
+
+* Menu:
+
+* All Debuggers::      Macros that affect all debugging formats uniformly.
+* DBX Options::        Macros enabling specific options in DBX format.
+* DBX Hooks::          Hook macros for varying DBX format.
+* File Names and DBX:: Macros controlling output of file names in DBX format.
+* SDB and DWARF::      Macros for SDB (COFF) and DWARF formats.
+* VMS Debug::          Macros for VMS debug format.
+
+
+File: gccint.info,  Node: All Debuggers,  Next: DBX Options,  Up: Debugging Info
+
+15.22.1 Macros Affecting All Debugging Formats
+----------------------------------------------
+
+These macros affect all debugging formats.
+
+ -- Macro: DBX_REGISTER_NUMBER (REGNO)
+     A C expression that returns the DBX register number for the
+     compiler register number REGNO.  In the default macro provided,
+     the value of this expression will be REGNO itself.  But sometimes
+     there are some registers that the compiler knows about and DBX
+     does not, or vice versa.  In such cases, some register may need to
+     have one number in the compiler and another for DBX.
+
+     If two registers have consecutive numbers inside GCC, and they can
+     be used as a pair to hold a multiword value, then they _must_ have
+     consecutive numbers after renumbering with `DBX_REGISTER_NUMBER'.
+     Otherwise, debuggers will be unable to access such a pair, because
+     they expect register pairs to be consecutive in their own
+     numbering scheme.
+
+     If you find yourself defining `DBX_REGISTER_NUMBER' in way that
+     does not preserve register pairs, then what you must do instead is
+     redefine the actual register numbering scheme.
+
+ -- Macro: DEBUGGER_AUTO_OFFSET (X)
+     A C expression that returns the integer offset value for an
+     automatic variable having address X (an RTL expression).  The
+     default computation assumes that X is based on the frame-pointer
+     and gives the offset from the frame-pointer.  This is required for
+     targets that produce debugging output for DBX or COFF-style
+     debugging output for SDB and allow the frame-pointer to be
+     eliminated when the `-g' options is used.
+
+ -- Macro: DEBUGGER_ARG_OFFSET (OFFSET, X)
+     A C expression that returns the integer offset value for an
+     argument having address X (an RTL expression).  The nominal offset
+     is OFFSET.
+
+ -- Macro: PREFERRED_DEBUGGING_TYPE
+     A C expression that returns the type of debugging output GCC should
+     produce when the user specifies just `-g'.  Define this if you
+     have arranged for GCC to support more than one format of debugging
+     output.  Currently, the allowable values are `DBX_DEBUG',
+     `SDB_DEBUG', `DWARF_DEBUG', `DWARF2_DEBUG', `XCOFF_DEBUG',
+     `VMS_DEBUG', and `VMS_AND_DWARF2_DEBUG'.
+
+     When the user specifies `-ggdb', GCC normally also uses the value
+     of this macro to select the debugging output format, but with two
+     exceptions.  If `DWARF2_DEBUGGING_INFO' is defined, GCC uses the
+     value `DWARF2_DEBUG'.  Otherwise, if `DBX_DEBUGGING_INFO' is
+     defined, GCC uses `DBX_DEBUG'.
+
+     The value of this macro only affects the default debugging output;
+     the user can always get a specific type of output by using
+     `-gstabs', `-gcoff', `-gdwarf-2', `-gxcoff', or `-gvms'.
+
+
+File: gccint.info,  Node: DBX Options,  Next: DBX Hooks,  Prev: All Debuggers,  Up: Debugging Info
+
+15.22.2 Specific Options for DBX Output
+---------------------------------------
+
+These are specific options for DBX output.
+
+ -- Macro: DBX_DEBUGGING_INFO
+     Define this macro if GCC should produce debugging output for DBX
+     in response to the `-g' option.
+
+ -- Macro: XCOFF_DEBUGGING_INFO
+     Define this macro if GCC should produce XCOFF format debugging
+     output in response to the `-g' option.  This is a variant of DBX
+     format.
+
+ -- Macro: DEFAULT_GDB_EXTENSIONS
+     Define this macro to control whether GCC should by default generate
+     GDB's extended version of DBX debugging information (assuming
+     DBX-format debugging information is enabled at all).  If you don't
+     define the macro, the default is 1: always generate the extended
+     information if there is any occasion to.
+
+ -- Macro: DEBUG_SYMS_TEXT
+     Define this macro if all `.stabs' commands should be output while
+     in the text section.
+
+ -- Macro: ASM_STABS_OP
+     A C string constant, including spacing, naming the assembler
+     pseudo op to use instead of `"\t.stabs\t"' to define an ordinary
+     debugging symbol.  If you don't define this macro, `"\t.stabs\t"'
+     is used.  This macro applies only to DBX debugging information
+     format.
+
+ -- Macro: ASM_STABD_OP
+     A C string constant, including spacing, naming the assembler
+     pseudo op to use instead of `"\t.stabd\t"' to define a debugging
+     symbol whose value is the current location.  If you don't define
+     this macro, `"\t.stabd\t"' is used.  This macro applies only to
+     DBX debugging information format.
+
+ -- Macro: ASM_STABN_OP
+     A C string constant, including spacing, naming the assembler
+     pseudo op to use instead of `"\t.stabn\t"' to define a debugging
+     symbol with no name.  If you don't define this macro,
+     `"\t.stabn\t"' is used.  This macro applies only to DBX debugging
+     information format.
+
+ -- Macro: DBX_NO_XREFS
+     Define this macro if DBX on your system does not support the
+     construct `xsTAGNAME'.  On some systems, this construct is used to
+     describe a forward reference to a structure named TAGNAME.  On
+     other systems, this construct is not supported at all.
+
+ -- Macro: DBX_CONTIN_LENGTH
+     A symbol name in DBX-format debugging information is normally
+     continued (split into two separate `.stabs' directives) when it
+     exceeds a certain length (by default, 80 characters).  On some
+     operating systems, DBX requires this splitting; on others,
+     splitting must not be done.  You can inhibit splitting by defining
+     this macro with the value zero.  You can override the default
+     splitting-length by defining this macro as an expression for the
+     length you desire.
+
+ -- Macro: DBX_CONTIN_CHAR
+     Normally continuation is indicated by adding a `\' character to
+     the end of a `.stabs' string when a continuation follows.  To use
+     a different character instead, define this macro as a character
+     constant for the character you want to use.  Do not define this
+     macro if backslash is correct for your system.
+
+ -- Macro: DBX_STATIC_STAB_DATA_SECTION
+     Define this macro if it is necessary to go to the data section
+     before outputting the `.stabs' pseudo-op for a non-global static
+     variable.
+
+ -- Macro: DBX_TYPE_DECL_STABS_CODE
+     The value to use in the "code" field of the `.stabs' directive for
+     a typedef.  The default is `N_LSYM'.
+
+ -- Macro: DBX_STATIC_CONST_VAR_CODE
+     The value to use in the "code" field of the `.stabs' directive for
+     a static variable located in the text section.  DBX format does not
+     provide any "right" way to do this.  The default is `N_FUN'.
+
+ -- Macro: DBX_REGPARM_STABS_CODE
+     The value to use in the "code" field of the `.stabs' directive for
+     a parameter passed in registers.  DBX format does not provide any
+     "right" way to do this.  The default is `N_RSYM'.
+
+ -- Macro: DBX_REGPARM_STABS_LETTER
+     The letter to use in DBX symbol data to identify a symbol as a
+     parameter passed in registers.  DBX format does not customarily
+     provide any way to do this.  The default is `'P''.
+
+ -- Macro: DBX_FUNCTION_FIRST
+     Define this macro if the DBX information for a function and its
+     arguments should precede the assembler code for the function.
+     Normally, in DBX format, the debugging information entirely
+     follows the assembler code.
+
+ -- Macro: DBX_BLOCKS_FUNCTION_RELATIVE
+     Define this macro, with value 1, if the value of a symbol
+     describing the scope of a block (`N_LBRAC' or `N_RBRAC') should be
+     relative to the start of the enclosing function.  Normally, GCC
+     uses an absolute address.
+
+ -- Macro: DBX_LINES_FUNCTION_RELATIVE
+     Define this macro, with value 1, if the value of a symbol
+     indicating the current line number (`N_SLINE') should be relative
+     to the start of the enclosing function.  Normally, GCC uses an
+     absolute address.
+
+ -- Macro: DBX_USE_BINCL
+     Define this macro if GCC should generate `N_BINCL' and `N_EINCL'
+     stabs for included header files, as on Sun systems.  This macro
+     also directs GCC to output a type number as a pair of a file
+     number and a type number within the file.  Normally, GCC does not
+     generate `N_BINCL' or `N_EINCL' stabs, and it outputs a single
+     number for a type number.
+
+
+File: gccint.info,  Node: DBX Hooks,  ®  ®  ®  ®  ®  ®  ®  ®   ®  !®  "®  #®  $®  %®  &®  '®  (®  )®  *®  +®  ,®  -®  .®  /®  0®  1®  2®  3®  4®  5®  6®  7®  8®  9®  :®  ;®  <®  =®  >®  ?®  @®  A®  B®  C®  D®  E®  F®  G®  H®  I®  J®  K®  L®  M®  N®  O®  P®  Q®  R®  S®  T®  U®  V®  W®  X®  Y®  Z®  [®  \®  ]®  ^®  _®  `®  a®  b®  c®  d®  e®  f®  g®  h®  i®  j®  k®  l®  m®  n®  o®  p®  q®  r®  s®  t®  u®  v®  w®  x®  y®  z®  {®  |®  }®  ~®  ®  Ä®  Å®  Ç®  É®  Ñ®  Ö®  Ü®  á®  à®  â®  ä®  ã®  å®  ç®  é®  è®  ê®  ë®  í®  ì®  î®  ï®  ñ®  ó®  ò®  ô®  ö®  õ®  ú®  ù®  û®  ü®  †®  °®  ¢®  £®  §®  •®  ¶®  ß®  ®®  ©®  ™®  ´®  ¨®  ≠®  Æ®  Ø®  ∞®  ±®  ≤®  ≥®  ¥®  µ®  ∂®  ∑®  ∏®  π®  ∫®  ª®  º®  Ω®  æ®  ø®  ¿®  ¡®  ¬®  √®  ƒ®  ≈®  ∆®  «®  »®  …®   ®  À®  Ã®  Õ®  Œ®  œ®  –®  —®  “®  ”®  ‘®  ’®  ÷®  ◊®  ÿ®  Ÿ®  ⁄®  €®  ‹®  ›®  ﬁ®  ﬂ®  ‡®  ·®  ‚®  „®  ‰®  Â®  Ê®  Á®  Ë®  È®  Í®  Î®  Ï®  Ì®  Ó®  Ô®  ®  Ò®  Ú®  Û®  Ù®  ı®  ˆ®  ˜®  ¯®  ˘®  ˙®  ˚®  ¸®  ˝®  ˛®  ˇ®   ©  ©  ©  ©  ©  ©  ©  ©  ©  	©  
+©  ©  ©  ©  ©  ©  ©  ©  ©  ©  ©  ©  ©  ©  Next: File Names and DBX,  Prev: DBX Options,  Up: Debugging Info
+
+15.22.3 Open-Ended Hooks for DBX Format
+---------------------------------------
+
+These are hooks for DBX format.
+
+ -- Macro: DBX_OUTPUT_LBRAC (STREAM, NAME)
+     Define this macro to say how to output to STREAM the debugging
+     information for the start of a scope level for variable names.  The
+     argument NAME is the name of an assembler symbol (for use with
+     `assemble_name') whose value is the address where the scope begins.
+
+ -- Macro: DBX_OUTPUT_RBRAC (STREAM, NAME)
+     Like `DBX_OUTPUT_LBRAC', but for the end of a scope level.
+
+ -- Macro: DBX_OUTPUT_NFUN (STREAM, LSCOPE_LABEL, DECL)
+     Define this macro if the target machine requires special handling
+     to output an `N_FUN' entry for the function DECL.
+
+ -- Macro: DBX_OUTPUT_SOURCE_LINE (STREAM, LINE, COUNTER)
+     A C statement to output DBX debugging information before code for
+     line number LINE of the current source file to the stdio stream
+     STREAM.  COUNTER is the number of time the macro was invoked,
+     including the current invocation; it is intended to generate
+     unique labels in the assembly output.
+
+     This macro should not be defined if the default output is correct,
+     or if it can be made correct by defining
+     `DBX_LINES_FUNCTION_RELATIVE'.
+
+ -- Macro: NO_DBX_FUNCTION_END
+     Some stabs encapsulation formats (in particular ECOFF), cannot
+     handle the `.stabs "",N_FUN,,0,0,Lscope-function-1' gdb dbx
+     extension construct.  On those machines, define this macro to turn
+     this feature off without disturbing the rest of the gdb extensions.
+
+ -- Macro: NO_DBX_BNSYM_ENSYM
+     Some assemblers cannot handle the `.stabd BNSYM/ENSYM,0,0' gdb dbx
+     extension construct.  On those machines, define this macro to turn
+     this feature off without disturbing the rest of the gdb extensions.
+
+
+File: gccint.info,  Node: File Names and DBX,  Next: SDB and DWARF,  Prev: DBX Hooks,  Up: Debugging Info
+
+15.22.4 File Names in DBX Format
+--------------------------------
+
+This describes file names in DBX format.
+
+ -- Macro: DBX_OUTPUT_MAIN_SOURCE_FILENAME (STREAM, NAME)
+     A C statement to output DBX debugging information to the stdio
+     stream STREAM, which indicates that file NAME is the main source
+     file--the file specified as the input file for compilation.  This
+     macro is called only once, at the beginning of compilation.
+
+     This macro need not be defined if the standard form of output for
+     DBX debugging information is appropriate.
+
+     It may be necessary to refer to a label equal to the beginning of
+     the text section.  You can use `assemble_name (stream,
+     ltext_label_name)' to do so.  If you do this, you must also set
+     the variable USED_LTEXT_LABEL_NAME to `true'.
+
+ -- Macro: NO_DBX_MAIN_SOURCE_DIRECTORY
+     Define this macro, with value 1, if GCC should not emit an
+     indication of the current directory for compilation and current
+     source language at the beginning of the file.
+
+ -- Macro: NO_DBX_GCC_MARKER
+     Define this macro, with value 1, if GCC should not emit an
+     indication that this object file was compiled by GCC.  The default
+     is to emit an `N_OPT' stab at the beginning of every source file,
+     with `gcc2_compiled.' for the string and value 0.
+
+ -- Macro: DBX_OUTPUT_MAIN_SOURCE_FILE_END (STREAM, NAME)
+     A C statement to output DBX debugging information at the end of
+     compilation of the main source file NAME.  Output should be
+     written to the stdio stream STREAM.
+
+     If you don't define this macro, nothing special is output at the
+     end of compilation, which is correct for most machines.
+
+ -- Macro: DBX_OUTPUT_NULL_N_SO_AT_MAIN_SOURCE_FILE_END
+     Define this macro _instead of_ defining
+     `DBX_OUTPUT_MAIN_SOURCE_FILE_END', if what needs to be output at
+     the end of compilation is a `N_SO' stab with an empty string,
+     whose value is the highest absolute text address in the file.
+
+
+File: gccint.info,  Node: SDB and DWARF,  Next: VMS Debug,  Prev: File Names and DBX,  Up: Debugging Info
+
+15.22.5 Macros for SDB and DWARF Output
+---------------------------------------
+
+Here are macros for SDB and DWARF output.
+
+ -- Macro: SDB_DEBUGGING_INFO
+     Define this macro if GCC should produce COFF-style debugging output
+     for SDB in response to the `-g' option.
+
+ -- Macro: DWARF2_DEBUGGING_INFO
+     Define this macro if GCC should produce dwarf version 2 format
+     debugging output in response to the `-g' option.
+
+      -- Target Hook: int TARGET_DWARF_CALLING_CONVENTION (tree
+               FUNCTION)
+          Define this to enable the dwarf attribute
+          `DW_AT_calling_convention' to be emitted for each function.
+          Instead of an integer return the enum value for the `DW_CC_'
+          tag.
+
+     To support optional call frame debugging information, you must also
+     define `INCOMING_RETURN_ADDR_RTX' and either set
+     `RTX_FRAME_RELATED_P' on the prologue insns if you use RTL for the
+     prologue, or call `dwarf2out_def_cfa' and `dwarf2out_reg_save' as
+     appropriate from `TARGET_ASM_FUNCTION_PROLOGUE' if you don't.
+
+ -- Macro: DWARF2_FRAME_INFO
+     Define this macro to a nonzero value if GCC should always output
+     Dwarf 2 frame information.  If `DWARF2_UNWIND_INFO' (*note
+     Exception Region Output:: is nonzero, GCC will output this
+     information not matter how you define `DWARF2_FRAME_INFO'.
+
+ -- Macro: DWARF2_ASM_LINE_DEBUG_INFO
+     Define this macro to be a nonzero value if the assembler can
+     generate Dwarf 2 line debug info sections.  This will result in
+     much more compact line number tables, and hence is desirable if it
+     works.
+
+ -- Macro: ASM_OUTPUT_DWARF_DELTA (STREAM, SIZE, LABEL1, LABEL2)
+     A C statement to issue assembly directives that create a difference
+     LAB1 minus LAB2, using an integer of the given SIZE.
+
+ -- Macro: ASM_OUTPUT_DWARF_OFFSET (STREAM, SIZE, LABEL, SECTION)
+     A C statement to issue assembly directives that create a
+     section-relative reference to the given LABEL, using an integer of
+     the given SIZE.  The label is known to be defined in the given
+     SECTION.
+
+ -- Macro: ASM_OUTPUT_DWARF_PCREL (STREAM, SIZE, LABEL)
+     A C statement to issue assembly directives that create a
+     self-relative reference to the given LABEL, using an integer of
+     the given SIZE.
+
+ -- Target Hook: void TARGET_ASM_OUTPUT_DWARF_DTPREL (FILE *FILE, int
+          SIZE, rtx X)
+     If defined, this target hook is a function which outputs a
+     DTP-relative reference to the given TLS symbol of the specified
+     size.
+
+ -- Macro: PUT_SDB_...
+     Define these macros to override the assembler syntax for the
+     special SDB assembler directives.  See `sdbout.c' for a list of
+     these macros and their arguments.  If the standard syntax is used,
+     you need not define them yourself.
+
+ -- Macro: SDB_DELIM
+     Some assemblers do not support a semicolon as a delimiter, even
+     between SDB assembler directives.  In that case, define this macro
+     to be the delimiter to use (usually `\n').  It is not necessary to
+     define a new set of `PUT_SDB_OP' macros if this is the only change
+     required.
+
+ -- Macro: SDB_ALLOW_UNKNOWN_REFERENCES
+     Define this macro to allow references to unknown structure, union,
+     or enumeration tags to be emitted.  Standard COFF does not allow
+     handling of unknown references, MIPS ECOFF has support for it.
+
+ -- Macro: SDB_ALLOW_FORWARD_REFERENCES
+     Define this macro to allow references to structure, union, or
+     enumeration tags that have not yet been seen to be handled.  Some
+     assemblers choke if forward tags are used, while some require it.
+
+ -- Macro: SDB_OUTPUT_SOURCE_LINE (STREAM, LINE)
+     A C statement to output SDB debugging information before code for
+     line number LINE of the current source file to the stdio stream
+     STREAM.  The default is to emit an `.ln' directive.
+
+
+File: gccint.info,  Node: VMS Debug,  Prev: SDB and DWARF,  Up: Debugging Info
+
+15.22.6 Macros for VMS Debug Format
+-----------------------------------
+
+Here are macros for VMS debug format.
+
+ -- Macro: VMS_DEBUGGING_INFO
+     Define this macro if GCC should produce debugging output for VMS
+     in response to the `-g' option.  The default behavior for VMS is
+     to generate minimal debug info for a traceback in the absence of
+     `-g' unless explicitly overridden with `-g0'.  This behavior is
+     controlled by `OPTIMIZATION_OPTIONS' and `OVERRIDE_OPTIONS'.
+
+
+File: gccint.info,  Node: Floating Point,  Next: Mode Switching,  Prev: Debugging Info,  Up: Target Macros
+
+15.23 Cross Compilation and Floating Point
+==========================================
+
+While all modern machines use twos-complement representation for
+integers, there are a variety of representations for floating point
+numbers.  This means that in a cross-compiler the representation of
+floating point numbers in the compiled program may be different from
+that used in the machine doing the compilation.
+
+ Because different representation systems may offer different amounts of
+range and precision, all floating point constants must be represented in
+the target machine's format.  Therefore, the cross compiler cannot
+safely use the host machine's floating point arithmetic; it must emulate
+the target's arithmetic.  To ensure consistency, GCC always uses
+emulation to work with floating point values, even when the host and
+target floating point formats are identical.
+
+ The following macros are provided by `real.h' for the compiler to use.
+All parts of the compiler which generate or optimize floating-point
+calculations must use these macros.  They may evaluate their operands
+more than once, so operands must not have side effects.
+
+ -- Macro: REAL_VALUE_TYPE
+     The C data type to be used to hold a floating point value in the
+     target machine's format.  Typically this is a `struct' containing
+     an array of `HOST_WIDE_INT', but all code should treat it as an
+     opaque quantity.
+
+ -- Macro: int REAL_VALUES_EQUAL (REAL_VALUE_TYPE X, REAL_VALUE_TYPE Y)
+     Compares for equality the two values, X and Y.  If the target
+     floating point format supports negative zeroes and/or NaNs,
+     `REAL_VALUES_EQUAL (-0.0, 0.0)' is true, and `REAL_VALUES_EQUAL
+     (NaN, NaN)' is false.
+
+ -- Macro: int REAL_VALUES_LESS (REAL_VALUE_TYPE X, REAL_VALUE_TYPE Y)
+     Tests whether X is less than Y.
+
+ -- Macro: HOST_WIDE_INT REAL_VALUE_FIX (REAL_VALUE_TYPE X)
+     Truncates X to a signed integer, rounding toward zero.
+
+ -- Macro: unsigned HOST_WIDE_INT REAL_VALUE_UNSIGNED_FIX
+          (REAL_VALUE_TYPE X)
+     Truncates X to an unsigned integer, rounding toward zero.  If X is
+     negative, returns zero.
+
+ -- Macro: REAL_VALUE_TYPE REAL_VALUE_ATOF (const char *STRING, enum
+          machine_mode MODE)
+     Converts STRING into a floating point number in the target
+     machine's representation for mode MODE.  This routine can handle
+     both decimal and hexadecimal floating point constants, using the
+     syntax defined by the C language for both.
+
+ -- Macro: int REAL_VALUE_NEGATIVE (REAL_VALUE_TYPE X)
+     Returns 1 if X is negative (including negative zero), 0 otherwise.
+
+ -- Macro: int REAL_VALUE_ISINF (REAL_VALUE_TYPE X)
+     Determines whether X represents infinity (positive or negative).
+
+ -- Macro: int REAL_VALUE_ISNAN (REAL_VALUE_TYPE X)
+     Determines whether X represents a "NaN" (not-a-number).
+
+ -- Macro: void REAL_ARITHMETIC (REAL_VALUE_TYPE OUTPUT, enum tree_code
+          CODE, REAL_VALUE_TYPE X, REAL_VALUE_TYPE Y)
+     Calculates an arithmetic operation on the two floating point values
+     X and Y, storing the result in OUTPUT (which must be a variable).
+
+     The operation to be performed is specified by CODE.  Only the
+     following codes are supported: `PLUS_EXPR', `MINUS_EXPR',
+     `MULT_EXPR', `RDIV_EXPR', `MAX_EXPR', `MIN_EXPR'.
+
+     If `REAL_ARITHMETIC' is asked to evaluate division by zero and the
+     target's floating point format cannot represent infinity, it will
+     call `abort'.  Callers should check for this situation first, using
+     `MODE_HAS_INFINITIES'.  *Note Storage Layout::.
+
+ -- Macro: REAL_VALUE_TYPE REAL_VALUE_NEGATE (REAL_VALUE_TYPE X)
+     Returns the negative of the floating point value X.
+
+ -- Macro: REAL_VALUE_TYPE REAL_VALUE_ABS (REAL_VALUE_TYPE X)
+     Returns the absolute value of X.
+
+ -- Macro: REAL_VALUE_TYPE REAL_VALUE_TRUNCATE (REAL_VALUE_TYPE MODE,
+          enum machine_mode X)
+     Truncates the floating point value X to fit in MODE.  The return
+     value is still a full-size `REAL_VALUE_TYPE', but it has an
+     appropriate bit pattern to be output as a floating constant whose
+     precision accords with mode MODE.
+
+ -- Macro: void REAL_VALUE_TO_INT (HOST_WIDE_INT LOW, HOST_WIDE_INT
+          HIGH, REAL_VALUE_TYPE X)
+     Converts a floating point value X into a double-precision integer
+     which is then stored into LOW and HIGH.  If the value is not
+     integral, it is truncated.
+
+ -- Macro: void REAL_VALUE_FROM_INT (REAL_VALUE_TYPE X, HOST_WIDE_INT
+          LOW, HOST_WIDE_INT HIGH, enum machine_mode MODE)
+     Converts a double-precision integer found in LOW and HIGH, into a
+     floating point value which is then stored into X.  The value is
+     truncated to fit in mode MODE.
+
+
+File: gccint.info,  Node: Mode Switching,  Next: Target Attributes,  Prev: Floating Point,  Up: Target Macros
+
+15.24 Mode Switching Instructions
+=================================
+
+The following macros control mode switching optimizations:
+
+ -- Macro: OPTIMIZE_MODE_SWITCHING (ENTITY)
+     Define this macro if the port needs extra instructions inserted
+     for mode switching in an optimizing compilation.
+
+     For an example, the SH4 can perform both single and double
+     precision floating point operations, but to perform a single
+     precision operation, the FPSCR PR bit has to be cleared, while for
+     a double precision operation, this bit has to be set.  Changing
+     the PR bit requires a general purpose register as a scratch
+     register, hence these FPSCR sets have to be inserted before
+     reload, i.e. you can't put this into instruction emitting or
+     `TARGET_MACHINE_DEPENDENT_REORG'.
+
+     You can have multiple entities that are mode-switched, and select
+     at run time which entities actually need it.
+     `OPTIMIZE_MODE_SWITCHING' should return nonzero for any ENTITY
+     that needs mode-switching.  If you define this macro, you also
+     have to define `NUM_MODES_FOR_MODE_SWITCHING', `MODE_NEEDED',
+     `MODE_PRIORITY_TO_MODE' and `EMIT_MODE_SET'.  `MODE_AFTER',
+     `MODE_ENTRY', and `MODE_EXIT' are optional.
+
+ -- Macro: NUM_MODES_FOR_MODE_SWITCHING
+     If you define `OPTIMIZE_MODE_SWITCHING', you have to define this as
+     initializer for an array of integers.  Each initializer element N
+     refers to an entity that needs mode switching, and specifies the
+     number of different modes that might need to be set for this
+     entity.  The position of the initializer in the
+     initializer--starting counting at zero--determines the integer
+     that is used to refer to the mode-switched entity in question.  In
+     macros that take mode arguments / yield a mode result, modes are
+     represented as numbers 0 ... N - 1.  N is used to specify that no
+     mode switch is needed / supplied.
+
+ -- Macro: MODE_NEEDED (ENTITY, INSN)
+     ENTITY is an integer specifying a mode-switched entity.  If
+     `OPTIMIZE_MODE_SWITCHING' is defined, you must define this macro to
+     return an integer value not larger than the corresponding element
+     in `NUM_MODES_FOR_MODE_SWITCHING', to denote the mode that ENTITY
+     must be switched into prior to the execution of INSN.
+
+ -- Macro: MODE_AFTER (MODE, INSN)
+     If this macro is defined, it is evaluated for every INSN during
+     mode switching.  It determines the mode that an insn results in (if
+     different from the incoming mode).
+
+ -- Macro: MODE_ENTRY (ENTITY)
+     If this macro is defined, it is evaluated for every ENTITY that
+     needs mode switching.  It should evaluate to an integer, which is
+     a mode that ENTITY is assumed to be switched to at function entry.
+     If `MODE_ENTRY' is defined then `MODE_EXIT' must be defined.
+
+ -- Macro: MODE_EXIT (ENTITY)
+     If this macro is defined, it is evaluated for every ENTITY that
+     needs mode switching.  It should evaluate to an integer, which is
+     a mode that ENTITY is assumed to be switched to at function exit.
+     If `MODE_EXIT' is defined then `MODE_ENTRY' must be defined.
+
+ -- Macro: MODE_PRIORITY_TO_MODE (ENTITY, N)
+     This macro specifies the order in which modes for ENTITY are
+     processed.  0 is the highest priority,
+     `NUM_MODES_FOR_MODE_SWITCHING[ENTITY] - 1' the lowest.  The value
+     of the macro should be an integer designating a mode for ENTITY.
+     For any fixed ENTITY, `mode_priority_to_mode' (ENTITY, N) shall be
+     a bijection in 0 ...  `num_modes_for_mode_switching[ENTITY] - 1'.
+
+ -- Macro: EMIT_MODE_SET (ENTITY, MODE, HARD_REGS_LIVE)
+     Generate one or more insns to set ENTITY to MODE.  HARD_REG_LIVE
+     is the set of hard registers live at the point where the insn(s)
+     are to be inserted.
+
+
+File: gccint.info,  Node: Target Attributes,  Next: MIPS Coprocessors,  Prev: Mode Switching,  Up: Target Macros
+
+15.25 Defining target-specific uses of `__attribute__'
+======================================================
+
+Target-specific attributes may be defined for functions, data and types.
+These are described using the following target hooks; they also need to
+be documented in `extend.texi'.
+
+ -- Target Hook: const struct attribute_spec * TARGET_ATTRIBUTE_TABLE
+     If defined, this target hook points to an array of `struct
+     attribute_spec' (defined in `tree.h') specifying the machine
+     specific attributes for this target and some of the restrictions
+     on the entities to which these attributes are applied and the
+     arguments they take.
+
+ -- Target Hook: int TARGET_COMP_TYPE_ATTRIBUTES (tree TYPE1, tree
+          TYPE2)
+     If defined, this target hook is a function which returns zero if
+     the attributes on TYPE1 and TYPE2 are incompatible, one if they
+     are compatible, and two if they are nearly compatible (which
+     causes a warning to be generated).  If this is not defined,
+     machine-specific attributes are supposed always to be compatible.
+
+ -- Target Hook: void TARGET_SET_DEFAULT_TYPE_ATTRIBUTES (tree TYPE)
+     If defined, this target hook is a function which assigns default
+     attributes to newly defined TYPE.
+
+ -- Target Hook: tree TARGET_MERGE_TYPE_ATTRIBUTES (tree TYPE1, tree
+          TYPE2)
+     Define this target hook if the merging of type attributes needs
+     special handling.  If defined, the result is a list of the combined
+     `TYPE_ATTRIBUTES' of TYPE1 and TYPE2.  It is assumed that
+     `comptypes' has already been called and returned 1.  This function
+     may call `merge_attributes' to handle machine-independent merging.
+
+ -- Target Hook: tree TARGET_MERGE_DECL_ATTRIBUTES (tree OLDDECL, tree
+          NEWDECL)
+     Define this target hook if the merging of decl attributes needs
+     special handling.  If defined, the result is a list of the combined
+     `DECL_ATTRIBUTES' of OLDDECL and NEWDECL.  NEWDECL is a duplicate
+     declaration of OLDDECL.  Examples of when this is needed are when
+     one attribute overrides another, or when an attribute is nullified
+     by a subsequent definition.  This function may call
+     `merge_attributes' to handle machine-independent merging.
+
+     If the only target-specific handling you require is `dllimport'
+     for Microsoft Windows targets, you should define the macro
+     `TARGET_DLLIMPORT_DECL_ATTRIBUTES' to `1'.  The compiler will then
+     define a function called `merge_dllimport_decl_attributes' which
+     can then be defined as the expansion of
+     `TARGET_MERGE_DECL_ATTRIBUTES'.  You can also add
+     `handle_dll_attribute' in the attribute table for your port to
+     perform initial processing of the `dllimport' and `dllexport'
+     attributes.  This is done in `i386/cygwin.h' and `i386/i386.c',
+     for example.
+
+ -- Target Hook: bool TARGET_VALID_DLLIMPORT_ATTRIBUTE_P (tree DECL)
+     DECL is a variable or function with `__attribute__((dllimport))'
+     specified. Use this hook if the target needs to add extra
+     validation checks to `handle_dll_attribute'.
+
+ -- Macro: TARGET_DECLSPEC
+     Define this macro to a nonzero value if you want to treat
+     `__declspec(X)' as equivalent to `__attribute((X))'.  By default,
+     this behavior is enabled only for targets that define
+     `TARGET_DLLIMPORT_DECL_ATTRIBUTES'.  The current implementation of
+     `__declspec' is via a built-in macro, but you should not rely on
+     this implementation detail.
+
+ -- Target Hook: void TARGET_INSERT_ATTRIBUTES (tree NODE, tree
+          *ATTR_PTR)
+     Define this target hook if you want to be able to add attributes
+     to a decl when it is being created.  This is normally useful for
+     back ends which wish to implement a pragma by using the attributes
+     which correspond to the pragma's effect.  The NODE argument is the
+     decl which is being created.  The ATTR_PTR argument is a pointer
+     to the attribute list for this decl.  The list itself should not
+     be modified, since it may be shared with other decls, but
+     attributes may be chained on the head of the list and `*ATTR_PTR'
+     modified to point to the new attributes, or a copy of the list may
+     be made if further changes are needed.
+
+ -- Target Hook: bool TARGET_FUNCTION_ATTRIBUTE_INLINABLE_P (tree
+          FNDECL)
+     This target hook returns `true' if it is ok to inline FNDECL into
+     the current function, despite its having target-specific
+     attributes, `false' otherwise.  By default, if a function has a
+     target specific attribute attached to it, it will not be inlined.
+
+
+File: gccint.info,  Node: MIPS Coprocessors,  Next: PCH Target,  Prev: Target Attributes,  Up: Target Macros
+
+15.26 Defining coprocessor specifics for MIPS targets.
+======================================================
+
+The MIPS specification allows MIPS implementations to have as many as 4
+coprocessors, each with as many as 32 private registers.  GCC supports
+accessing these registers and transferring values between the registers
+and memory using asm-ized variables.  For example:
+
+       register unsigned int cp0count asm ("c0r1");
+       unsigned int d;
+
+       d = cp0count + 3;
+
+ ("c0r1" is the default name of register 1 in coprocessor 0; alternate
+names may be added as described below, or the default names may be
+overridden entirely in `SUBTARGET_CONDITIONAL_REGISTER_USAGE'.)
+
+ Coprocessor registers are assumed to be epilogue-used; sets to them
+will be preserved even if it does not appear that the register is used
+again later in the function.
+
+ Another note: according to the MIPS spec, coprocessor 1 (if present) is
+the FPU.  One accesses COP1 registers through standard mips
+floating-point support; they are not included in this mechanism.
+
+ There is one macro used in defining the MIPS coprocessor interface
+which you may want to override in subtargets; it is described below.
+
+ -- Macro: ALL_COP_ADDITIONAL_REGISTER_NAMES
+     A comma-separated list (with leading comma) of pairs describing the
+     alternate names of coprocessor registers.  The format of each
+     entry should be
+          { ALTERNATENAME, REGISTER_NUMBER}
+     Default: empty.
+
+
+File: gccint.info,  Node: PCH Target,  Next: C++ ABI,  Prev: MIPS Coprocessors,  Up: Target Macros
+
+15.27 Parameters for Precompiled Header Validity Checking
+=========================================================
+
+ -- Target Hook: void *TARGET_GET_PCH_VALIDITY (size_t *SZ)
+     This hook returns the data needed by `TARGET_PCH_VALID_P' and sets
+     `*SZ' to the size of the data in bytes.
+
+ -- Target Hook: const char *TARGET_PCH_VALID_P (const void *DATA,
+          size_t SZ)
+     This hook checks whether the options used to create a PCH file are
+     compatible with the current settings.  It returns `NULL' if so and
+     a suitable error message if not.  Error messages will be presented
+     to the user and must be localized using `_(MSG)'.
+
+     DATA is the data that was returned by `TARGET_GET_PCH_VALIDITY'
+     when the PCH file was created and SZ is the size of that data in
+     bytes.  It's safe to assume that the data was created by the same
+     version of the compiler, so no format checking is needed.
+
+     The default definition of `default_pch_valid_p' should be suitable
+     for most targets.
+
+ -- Target Hook: const char *TARGET_CHECK_PCH_TARGET_FLAGS (int
+          PCH_FLAGS)
+     If this hook is nonnull, the default implementation of
+     `TARGET_PCH_VALID_P' will use it to check for compatible values of
+     `target_flags'.  PCH_FLAGS specifies the value that `target_flags'
+     had when the PCH file was created.  The return value is the same
+     as for `TARGET_PCH_VALID_P'.
+
+
+File: gccint.info,  Node: C++ ABI,  Next: Misc,  Prev: PCH Target,  Up: Target Macros
+
+15.28 C++ ABI parameters
+========================
+
+ -- Target Hook: tree TARGET_CXX_GUARD_TYPE (void)
+     Define this hook to override the integer type used for guard
+     variables.  These are used to implement one-time construction of
+     static objects.  The default is long_long_integer_type_node.
+
+ -- Target Hook: bool TARGET_CXX_GUARD_MASK_BIT (void)
+     This hook determines how guard variables are used.  It should
+     return `false' (the default) if first byte should be used.  A
+     return value of `true' indicates the least significant bit should
+     be used.
+
+ -- Target Hook: tree TARGET_CXX_GET_COOKIE_SIZE (tree TYPE)
+     This hook returns the size of the cookie to use when allocating an
+     array whose elements have the indicated TYPE.  Assumes that it is
+     already known that a cookie is needed.  The default is `max(sizeof
+     (size_t), alignof(type))', as defined in section 2.7 of the
+     IA64/Generic C++ ABI.
+
+ -- Target Hook: bool TARGET_CXX_COOKIE_HAS_SIZE (void)
+     This hook should return `true' if the element size should be
+     stored in array cookies.  The default is to return `false'.
+
+ -- Target Hook: int TARGET_CXX_IMPORT_EXPORT_CLASS (tree TYPE, int
+          IMPORT_EXPORT)
+     If defined by a backend this hook allows the decision made to
+     export class TYPE to be overruled.  Upon entry IMPORT_EXPORT will
+     contain 1 if the class is going to be exported, -1 if it is going
+     to be imported and 0 otherwise.  This function should return the
+     modified value and perform any other actions necessary to support
+     the backend's targeted operating system.
+
+ -- Target Hook: bool TARGET_CXX_CDTOR_RETURNS_THIS (void)
+     This hook should return `true' if constructors and destructors
+     return the address of the object created/destroyed.  The default
+     is to return `false'.
+
+ -- Target Hook: bool TARGET_CXX_KEY_METHOD_MAY_BE_INLINE (void)
+     This hook returns true if the key method for a class (i.e., the
+     method which, if defined in the current translation unit, causes
+     the virtual table to be emitted) may be an inline function.  Under
+     the standard Itanium C++ ABI the key method may be an inline
+     function so long as the function is not declared inline in the
+     class definition.  Under some variants of the ABI, an inline
+     function can never be the key method.  The default is to return
+     `true'.
+
+ -- Target Hook: void TARGET_CXX_DETERMINE_CLASS_DATA_VISIBILITY (tree
+          DECL)
+     DECL is a virtual table, virtual table table, typeinfo object, or
+     other similar implicit class data object that will be emitted with
+     external linkage in this translation unit.  No ELF visibility has
+     been explicitly specified.  If the target needs to specify a
+     visibility other than that of the containing class, use this hook
+     to set `DECL_VISIBILITY' and `DECL_VISIBILITY_SPECIFIED'.
+
+ -- Target Hook: bool TARGET_CXX_CLASS_DATA_ALWAYS_COMDAT (void)
+     This hook returns true (the default) if virtual tables and other
+     similar implicit class data objects are always COMDAT if they have
+     external linkage.  If this hook returns false, then class data for
+     classes whose virtual table will be emitted in only one translation
+     unit will not be COMDAT.
+
+ -- Target Hook: bool TARGET_CXX_LIBRARY_RTTI_COMDAT (void)
+     This hook returns true (the default) if the RTTI information for
+     the basic types which is defined in the C++ runtime should always
+     be COMDAT, false if it should not be COMDAT.
+
+ -- Target Hook: bool TARGET_CXX_USE_AEABI_ATEXIT (void)
+     This hook returns true if `__aeabi_atexit' (as defined by the ARM
+     EABI) should be used to register static destructors when
+     `-fuse-cxa-atexit' is in effect.  The default is to return false
+     to use `__cxa_atexit'.
+
+ -- Target Hook: bool TARGET_CXX_USE_ATEXIT_FOR_CXA_ATEXIT (void)
+     This hook returns true if the target `atexit' function can be used
+     in the same manner as `__cxa_atexit' to register C++ static
+     destructors. This requires that `atexit'-registered functions in
+     shared libraries are run in the correct order when the libraries
+     are unloaded. The default is to return false.
+
+ -- Target Hook: void TARGET_CXX_ADJUST_CLASS_AT_DEFINITION (tree TYPE)
+     TYPE is a C++ class (i.e., RECORD_TYPE or UNION_TYPE) that has
+     just been defined.  Use this hook to make adjustments to the class
+     (eg, tweak visibility or perform any other required target
+     modifications).
+
+
+File: gccint.info,  Node: Misc,  Prev: C++ ABI,  Up: Target Macros
+
+15.29 Miscellaneous Parameters
+==============================
+
+Here are several miscellaneous parameters.
+
+ -- Macro: HAS_LONG_COND_BRANCH
+     Define this boolean macro to indicate whether or not your
+     architecture has conditional branches that can span all of memory.
+     It is used in conjunction with an optimization that partitions hot
+     and cold basic blocks into separate sections of the executable.
+     If this macro is set to false, gcc will convert any conditional
+     branches that attempt to cross between sections into unconditional
+     branches or indirect jumps.
+
+ -- Macro: HAS_LONG_UNCOND_BRANCH
+     Define this boolean macro to indicate whether or not your
+     architecture has unconditional branches that can span all of
+     memory.  It is used in conjunction with an optimization that
+     partitions hot and cold basic blocks into separate sections of the
+     executable.  If this macro is set to false, gcc will convert any
+     unconditional branches that attempt to cross between sections into
+     indirect jumps.
+
+ -- Macro: CASE_VECTOR_MODE
+     An alias for a machine mode name.  This is the machine mode that
+     elements of a jump-table should have.
+
+ -- Macro: CASE_VECTOR_SHORTEN_MODE (MIN_OFFSET, MAX_OFFSET, BODY)
+     Optional: return the preferred mode for an `addr_diff_vec' when
+     the minimum and maximum offset are known.  If you define this, it
+     enables extra code in branch shortening to deal with
+     `addr_diff_vec'.  To make this work, you also have to define
+     `INSN_ALIGN' and make the alignment for `addr_diff_vec' explicit.
+     The BODY argument is provided so that the offset_unsigned and scale
+     flags can be updated.
+
+ -- Macro: CASE_VECTOR_PC_RELATIVE
+     Define this macro to be a C expression to indicate when jump-tables
+     should contain relative addresses.  You need not define this macro
+     if jump-tables never contain relative addresses, or jump-tables
+     should contain relative addresses only when `-fPIC' or `-fPIC' is
+     in effect.
+
+ -- Macro: CASE_VALUES_THRESHOLD
+     Define this to be the smallest number of different values for
+     which it is best to use a jump-table instead of a tree of
+     conditional branches.  The default is four for machines with a
+     `casesi' instruction and five otherwise.  This is best for most
+     machines.
+
+ -- Macro: CASE_USE_BIT_TESTS
+     Define this macro to be a C expression to indicate whether C switch
+     statements may be implemented by a sequence of bit tests.  This is
+     advantageous on processors that can efficiently implement left
+     shift of 1 by the number of bits held in a register, but
+     inappropriate on targets that would require a loop.  By default,
+     this macro returns `true' if the target defines an `ashlsi3'
+     pattern, and `false' otherwise.
+
+ -- Macro: WORD_REGISTER_OPERATIONS
+     Define this macro if operations between registers with integral
+     mode smaller than a word are always performed on the entire
+     register.  Most RISC machines have this property and most CISC
+     machines do not.
+
+ -- Macro: LOAD_EXTEND_OP (MEM_MODE)
+     Define this macro to be a C expression indicating when insns that
+     read memory in MEM_MODE, an integral mode narrower than a word,
+     set the bits outside of MEM_MODE to be either the sign-extension
+     or the zero-extension of the data read.  Return `SIGN_EXTEND' for
+     values of MEM_MODE for which the insn sign-extends, `ZERO_EXTEND'
+     for which it zero-extends, and `UNKNOWN' for other modes.
+
+     This macro is not called with MEM_MODE non-integral or with a width
+     greater than or equal to `BITS_PER_WORD', so you may return any
+     value in this case.  Do not define this macro if it would always
+     return `UNKNOWN'.  On machines where this macro is defined, you
+     will normally define it as the constant `SIGN_EXTEND' or
+     `ZERO_EXTEND'.
+
+     You may return a non-`UNKNOWN' value even if for some hard
+     registers the sign extension is not performed, if for the
+     `REGNO_REG_CLASS' of these hard registers
+     `CANNOT_CHANGE_MODE_CLASS' returns nonzero when the FROM mode is
+     MEM_MODE and the TO mode is any integral mode larger than this but
+     not larger than `word_mode'.
+
+     You must return `UNKNOWN' if for some hard registers that allow
+     this mode, `CANNOT_CHANGE_MODE_CLASS' says that they cannot change
+     to `word_mode', but that they can change to another integral mode
+     that is larger then MEM_MODE but still smaller than `word_mode'.
+
+ -- Macro: SHORT_IMMEDIATES_SIGN_EXTEND
+     Define this macro if loading short immediate values into registers
+     sign extends.
+
+ -- Macro: FIXUNS_TRUNC_LIKE_FIX_TRUNC
+     Define this macro if the same instructions that convert a floating
+     point number to a signed fixed point number also convert validly
+     to an unsigned one.
+
+ -- Target Hook: int TARGET_MIN_DIVISIONS_FOR_RECIP_MUL (enum
+          machine_mode MODE)
+     When `-ffast-math' is in effect, GCC tries to optimize divisions
+     by the same divisor, by turning them into multiplications by the
+     reciprocal.  This target hook specifies the minimum number of
+     divisions that should be there for GCC to perform the optimization
+     for a variable of mode MODE.  The default implementation returns 3
+     if the machine has an instruction for the division, and 2 if it
+     does not.
+
+ -- Macro: MOVE_MAX
+     The maximum number of bytes that a single instruction can move
+     quickly between memory and registers or between two memory
+     locations.
+
+ -- Macro: MAX_MOVE_MAX
+     The maximum number of bytes that a single instruction can move
+     quickly between memory and registers or between two memory
+     locations.  If this is undefined, the default is `MOVE_MAX'.
+     Otherwise, it is the constant value that is the largest value that
+     `MOVE_MAX' can have at run-time.
+
+ -- Macro: SHIFT_COUNT_TRUNCATED
+     A C expression that is nonzero if on this machine the number of
+     bits actually used for the count of a shift operation is equal to
+     the number of bits needed to represent the size of the object
+     being shifted.  When this macro is nonzero, the compiler will
+     assume that it is safe to omit a sign-extend, zero-extend, and
+     certain bitwise `and' instructions that truncates the count of a
+     shift operation.  On machines that have instructions that act on
+     bit-fields at variable positions, which may include `bit test'
+     instructions, a nonzero `SHIFT_COUNT_TRUNCATED' also enables
+     deletion of truncations of the values that serve as arguments to
+     bit-field instructions.
+
+     If both types of instructions truncate the count (for shifts) and
+     position (for bit-field operations), or if no variable-position
+     bit-field instructions exist, you should define this macro.
+
+     However, on some machines, such as the 80386 and the 680x0,
+     truncation only applies to shift operations and not the (real or
+     pretended) bit-field operations.  Define `SHIFT_COUNT_TRUNCATED'
+     to be zero on such machines.  Instead, add patterns to the `md'
+     file that include the implied truncation of the shift instructions.
+
+     You need not define this macro if it would always have the value
+     of zero.
+
+ -- Target Hook: int TARGET_SHIFT_TRUNCATION_MASK (enum machine_mode
+          MODE)
+     This function describes how the standard shift patterns for MODE
+     deal with shifts by negative amounts or by more than the width of
+     the mode.  *Note shift patterns::.
+
+     On many machines, the shift patterns will apply a mask M to the
+     shift count, meaning that a fixed-width shift of X by Y is
+     equivalent to an arbitrary-width shift of X by Y & M.  If this is
+     true for mode MODE, the function should return M, otherwise it
+     should return 0.  A return value of 0 indicates that no particular
+     behavior is guaranteed.
+
+     Note that, unlike `SHIFT_COUNT_TRUNCATED', this function does
+     _not_ apply to general shift rtxes; it applies only to instructions
+     that are generated by the named shift patterns.
+
+     The default implementation of this function returns
+     `GET_MODE_BITSIZE (MODE) - 1' if `SHIFT_COUNT_TRUNCATED' and 0
+     otherwise.  This definition is always safe, but if
+     `SHIFT_COUNT_TRUNCATED' is false, and some shift patterns
+     nevertheless truncate the shift count, you may get better code by
+     overriding it.
+
+ -- Macro: TRULY_NOOP_TRUNCATION (OUTPREC, INPREC)
+     A C expression which is nonzero if on this machine it is safe to
+     "convert" an integer of INPREC bits to one of OUTPREC bits (where
+     OUTPREC is smaller than INPREC) by merely operating on it as if it
+     had only OUTPREC bits.
+
+     On many machines, this expression can be 1.
+
+     When `TRULY_NOOP_TRUNCATION' returns 1 for a pair of sizes for
+     modes for which `MODES_TIEABLE_P' is 0, suboptimal code can result.
+     If this is the case, making `TRULY_NOOP_TRUNCATION' return 0 in
+     such cases may improve things.
+
+ -- Target Hook: int TARGET_MODE_REP_EXTENDED (enum machine_mode MODE,
+          enum machine_mode REP_MODE)
+     The representation of an integral mode can be such that the values
+     are always extended to a wider integral mode.  Return
+     `SIGN_EXTEND' if values of MODE are represented in sign-extended
+     form to REP_MODE.  Return `UNKNOWN' otherwise.  (Currently, none
+     of the targets use zero-extended representation this way so unlike
+     `LOAD_EXTEND_OP', `TARGET_MODE_REP_EXTENDED' is expected to return
+     either `SIGN_EXTEND' or `UNKNOWN'.  Also no target extends MODE to
+     MODE_REP so that MODE_REP is not the next widest integral mode and
+     currently we take advantage of this fact.)
+
+     Similarly to `LOAD_EXTEND_OP' you may return a non-`UNKNOWN' value
+     even if the extension is not performed on certain hard registers
+     as long as for the `REGNO_REG_CLASS' of these hard registers
+     `CANNOT_CHANGE_MODE_CLASS' returns nonzero.
+
+     Note that `TARGET_MODE_REP_EXTENDED' and `LOAD_EXTEND_OP' describe
+     two related properties.  If you define `TARGET_MODE_REP_EXTENDED
+     (mode, word_mode)' you probably also want to define
+     `LOAD_EXTEND_OP (mode)' to return the same type of extension.
+
+     In order to enforce the representation of `mode',
+     `TRULY_NOOP_TRUNCATION' should return false when truncating to
+     `mode'.
+
+ -- Macro: STORE_FLAG_VALUE
+     A C expression describing the value returned by a comparison
+     operator with an integral mode and stored by a store-flag
+     instruction (`sCOND') when the condition is true.  This
+     description must apply to _all_ the `sCOND' patterns and all the
+     comparison operators whose results have a `MODE_INT' mode.
+
+     A value of 1 or -1 means that the instruction implementing the
+     comparison operator returns exactly 1 or -1 when the comparison is
+     true and 0 when the comparison is false.  Otherwise, the value
+     indicates which bits of the result are guaranteed to be 1 when the
+     comparison is true.  This value is interpreted i

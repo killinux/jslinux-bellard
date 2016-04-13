@@ -1,0 +1,1907 @@
+e
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH Tcl_Obj 3 8.1 Tcl "Tcl Library Procedures"
+.BS
+.SH NAME
+Tcl_NewObj, Tcl_DuplicateObj, Tcl_IncrRefCount, Tcl_DecrRefCount, Tcl_IsShared, Tcl_InvalidateStringRep \- manipulate Tcl objects
+.SH SYNOPSIS
+.nf
+\fB#include <tcl.h>\fR
+.sp
+Tcl_Obj *
+\fBTcl_NewObj\fR()
+.sp
+Tcl_Obj *
+\fBTcl_DuplicateObj\fR(\fIobjPtr\fR)
+.sp
+\fBTcl_IncrRefCount\fR(\fIobjPtr\fR)
+.sp
+\fBTcl_DecrRefCount\fR(\fIobjPtr\fR)
+.sp
+int
+\fBTcl_IsShared\fR(\fIobjPtr\fR)
+.sp
+\fBTcl_InvalidateStringRep\fR(\fIobjPtr\fR)
+.SH ARGUMENTS
+.AS Tcl_Obj *objPtr in
+.AP Tcl_Obj *objPtr in
+Points to an object;
+must have been the result of a previous call to \fBTcl_NewObj\fR.
+.BE
+
+.SH INTRODUCTION
+.PP
+This man page presents an overview of Tcl objects and how they are used.
+It also describes generic procedures for managing Tcl objects.
+These procedures are used to create and copy objects,
+and increment and decrement the count of references (pointers) to objects.
+The procedures are used in conjunction with ones
+that operate on specific types of objects such as
+\fBTcl_GetIntFromObj\fR and \fBTcl_ListObjAppendElement\fR.
+The individual procedures are described along with the data structures
+they manipulate.
+.PP
+Tcl's \fIdual-ported\fR objects provide a general-purpose mechanism
+for storing and exchanging Tcl values.
+They largely replace the use of strings in Tcl.
+For example, they are used to store variable values,
+command arguments, command results, and scripts.
+Tcl objects behave like strings but also hold an internal representation
+that can be manipulated more efficiently.
+For example, a Tcl list is now represented as an object
+that holds the list's string representation
+as well as an array of pointers to the objects for each list element.
+Dual-ported objects avoid most runtime type conversions.
+They also improve the speed of many operations
+since an appropriate representation is immediately available.
+The compiler itself uses Tcl objects to
+cache the instruction bytecodes resulting from compiling scripts.
+.PP
+The two representations are a cache of each other and are computed lazily.
+That is, each representation is only computed when necessary,
+it is computed from the other representation,
+and, once computed, it is saved.
+In addition, a change in one representation invalidates the other one.
+As an example, a Tcl program doing integer calculations can
+operate directly on a variable's internal machine integer
+representation without having to constantly convert
+between integers and strings.
+Only when it needs a string representing the variable's value,
+say to print it,
+will the program regenerate the string representation from the integer.
+Although objects contain an internal representation,
+their semantics are defined in terms of strings:
+an up-to-date string can always be obtained,
+and any change to the object will be reflected in that string
+when the object's string representation is fetched.
+Because of this representation invalidation and regeneration,
+it is dangerous for extension writers to access
+\fBTcl_Obj\fR fields directly.
+It is better to access Tcl_Obj information using
+procedures like \fBTcl_GetStringFromObj\fR and \fBTcl_GetString\fR.
+.PP
+Objects are allocated on the heap
+and are referenced using a pointer to their \fBTcl_Obj\fR structure.
+Objects are shared as much as possible.
+This significantly reduces storage requirements
+because some objects such as long lists are very large.
+Also, most Tcl values are only read and never modified.
+This is especially true for procedure arguments,
+which can be shared between the caller and the called procedure.
+Assignment and argument binding is done by
+simply assigning a pointer to the value. 
+Reference counting is used to determine when it is safe to
+reclaim an object's storage.
+.PP
+Tcl objects are typed.
+An object's internal representation is controlled by its type.
+Seven types are predefined in the Tcl core
+including integer, double, list, and bytecode.
+Extension writers can extend the set of types
+by using the procedure \fBTcl_RegisterObjType\fR .
+
+.SH "THE TCL_OBJ STRUCTURE"
+.PP
+Each Tcl object is represented by a \fBTcl_Obj\fR structure
+which is defined as follows.
+.CS
+typedef struct Tcl_Obj {
+	int \fIrefCount\fR;
+	char *\fIbytes\fR;
+	int \fIlength\fR;
+	Tcl_ObjType *\fItypePtr\fR;
+	union {
+		long \fIlongValue\fR;
+		double \fIdoubleValue\fR;
+		VOID *\fIotherValuePtr\fR;
+		struct {
+			VOID *\fIptr1\fR;
+			VOID *\fIptr2\fR;
+		} \fItwoPtrValue\fR;
+	} \fIinternalRep\fR;
+} Tcl_Obj;
+.CE
+The \fIbytes\fR and the \fIlength\fR members together hold
+.VS 8.1
+an object's UTF-8 string representation,
+which is a \fIcounted string\fR not containing null bytes (UTF-8 null
+characters should be encoded as a two byte sequence: 192, 128.)
+\fIbytes\fR points to the first byte of the string representation.
+The \fIlength\fR member gives the number of bytes.
+The byte array must always have a null byte after the last data byte,
+at offset \fIlength\fR;
+this allows string representations
+to be treated as conventional null-terminated C strings.
+.VE 8.1
+C programs use \fBTcl_GetStringFromObj\fR and \fBTcl_GetString\fR to get
+an object's string representation.
+If \fIbytes\fR is NULL,
+the string representation is invalid.
+.PP
+An object's type manages its internal representation.
+The member \fItypePtr\fR points to the Tcl_ObjType structure
+that describes the type.
+If \fItypePtr\fR is NULL,
+the internal representation is invalid.
+.PP
+The \fIinternalRep\fR union member holds
+an object's internal representation.
+This is either a (long) integer, a double-precision floating point number,
+a pointer to a value containing additional information
+needed by the object's type to represent the object,
+or two arbitrary pointers.
+.PP
+The \fIrefCount\fR member is used to tell when it is safe to free
+an object's storage.
+It holds the count of active references to the object.
+Maintaining the correct reference count is a key responsibility
+of extension writers.
+Reference counting is discussed below
+in the section \fBSTORAGE MANAGEMENT OF OBJECTS\fR.
+.PP
+Although extension writers can directly access
+the members of a Tcl_Obj structure,
+it is much better to use the appropriate procedures and macros.
+For example, extension writers should never
+read or update \fIrefCount\fR directly;
+they should use macros such as
+\fBTcl_IncrRefCount\fR and \fBTcl_IsShared\fR instead.
+.PP
+A key property of Tcl objects is that they hold two representations.
+An object typically starts out containing only a string representation:
+it is untyped and has a NULL \fItypePtr\fR.
+An object containing an empty string or a copy of a specified string
+is created using \fBTcl_NewObj\fR or \fBTcl_NewStringObj\fR respectively.
+An object's string value is gotten with
+\fBTcl_GetStringFromObj\fR or \fBTcl_GetString\fR
+and changed with \fBTcl_SetStringObj\fR.
+If the object is later passed to a procedure like \fBTcl_GetIntFromObj\fR
+that requires a specific internal representation,
+the procedure will create one and set the object's \fItypePtr\fR.
+The internal representation is computed from the string representation.
+An object's e  e  e  e  e  e  e                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      two representations are duals of each other:
+changes made to one are reflected in the other.
+For example, \fBTcl_ListObjReplace\fR will modify an object's
+internal representation and the next call to \fBTcl_GetStringFromObj\fR
+or \fBTcl_GetString\fR will reflect that change.
+.PP
+Representations are recomputed lazily for efficiency.
+A change to one representation made by a procedure
+such as \fBTcl_ListObjReplace\fR is not reflected immediately
+in the other representation.
+Instead, the other representation is marked invalid
+so that it is only regenerated if it is needed later.
+Most C programmers never have to be concerned with how this is done
+and simply use procedures such as \fBTcl_GetBooleanFromObj\fR or
+\fBTcl_ListObjIndex\fR.
+Programmers that implement their own object types
+must check for invalid representations
+and mark representations invalid when necessary.
+The procedure \fBTcl_InvalidateStringRep\fR is used
+to mark an object's string representation invalid and to
+free any storage associated with the old string representation.
+.PP
+Objects usually remain one type over their life,
+but occasionally an object must be converted from one type to another.
+For example, a C program might build up a string in an object
+with repeated calls to \fBTcl_AppendToObj\fR,
+and then call \fBTcl_ListObjIndex\fR to extract a list element from
+the object.
+The same object holding the same string value
+can have several different internal representations
+at different times.
+Extension writers can also force an object to be converted from one type
+to another using the \fBTcl_ConvertToType\fR procedure.
+Only programmers that create new object types need to be concerned
+about how this is done.
+A procedure defined as part of the object type's implementation
+creates a new internal representation for an object
+and changes its \fItypePtr\fR.
+See the man page for \fBTcl_RegisterObjType\fR
+to see how to create a new object type.
+
+.SH "EXAMPLE OF THE LIFETIME OF AN OBJECT"
+.PP
+As an example of the lifetime of an object,
+consider the following sequence of commands:
+.CS
+\fBset x 123\fR
+.CE
+This assigns to \fIx\fR an untyped object whose
+\fIbytes\fR member points to \fB123\fR and \fIlength\fR member contains 3.
+The object's \fItypePtr\fR member is NULL.
+.CS
+\fBputs "x is $x"\fR
+.CE
+\fIx\fR's string representation is valid (since \fIbytes\fR is non-NULL)
+and is fetched for the command.
+.CS
+\fBincr x\fR
+.CE
+The \fBincr\fR command first gets an integer from \fIx\fR's object
+by calling \fBTcl_GetIntFromObj\fR.
+This procedure checks whether the object is already an integer object.
+Since it is not, it converts the object
+by setting the object's \fIinternalRep.longValue\fR member
+to the integer \fB123\fR
+and setting the object's \fItypePtr\fR
+to point to the integer Tcl_ObjType structure.
+Both representations are now valid.
+\fBincr\fR increments the object's integer internal representation
+then invalidates its string representation
+(by calling \fBTcl_InvalidateStringRep\fR)
+since the string representation
+no longer corresponds to the internal representation.
+.CS
+\fBputs "x is now $x"\fR
+.CE
+The string representation of \fIx\fR's object is needed
+and is recomputed.
+The string representation is now \fB124\fR.
+and both representations are again valid.
+
+.SH "STORAGE MANAGEMENT OF OBJECTS"
+.PP
+Tcl objects are allocated on the heap and are shared as much as possible
+to reduce storage requirements.
+Reference counting is used to determine when an object is
+no longer needed and can safely be freed.
+An object just created by \fBTcl_NewObj\fR or \fBTcl_NewStringObj\fR
+has \fIrefCount\fR 0.
+The macro \fBTcl_IncrRefCount\fR increments the reference count
+when a new reference to the object is created.
+The macro \fBTcl_DecrRefCount\fR decrements the count
+when a reference is no longer needed and,
+if the object's reference count drops to zero, frees its storage.
+An object shared by different code or data structures has
+\fIrefCount\fR greater than 1.
+Incrementing an object's reference count ensures that
+it won't be freed too early or have its value change accidently.
+.PP
+As an example, the bytecode interpreter shares argument objects
+between calling and called Tcl procedures to avoid having to copy objects.
+It assigns the call's argument objects to the procedure's
+formal parameter variables.
+In doing so, it calls \fBTcl_IncrRefCount\fR to increment
+the reference count of each argument since there is now a new
+reference to it from the formal parameter.
+When the called procedure returns,
+the interpreter calls \fBTcl_DecrRefCount\fR to decrement
+each argument's reference count.
+When an object's reference count drops less than or equal to zero,
+\fBTcl_DecrRefCount\fR reclaims its storage.
+Most command procedures do not have to be concerned about
+reference counting since they use an object's value immediately
+and don't retain a pointer to the object after they return.
+However, if they do retain a pointer to an object in a data structure,
+they must be careful to increment its reference count
+since the retained pointer is a new reference.
+.PP
+Command procedures that directly modify objects
+such as those for \fBlappend\fR and \fBlinsert\fR must be careful to
+copy a shared object before changing it.
+They must first check whether the object is shared
+by calling \fBTcl_IsShared\fR.
+If the object is shared they must copy the object
+by using \fBTcl_DuplicateObj\fR;
+this returns a new duplicate of the original object
+that has \fIrefCount\fR 0.
+If the object is not shared,
+the command procedure "owns" the object and can safely modify it directly.
+For example, the following code appears in the command procedure
+that implements \fBlinsert\fR.
+This procedure modifies the list object passed to it in \fIobjv[1]\fR
+by inserting \fIobjc-3\fR new elements before \fIindex\fR.
+.CS
+listPtr = objv[1];
+if (Tcl_IsShared(listPtr)) {
+	listPtr = Tcl_DuplicateObj(listPtr);
+}
+result = Tcl_ListObjReplace(interp, listPtr, index, 0, (objc-3), &(objv[3]));
+.CE
+As another example, \fBincr\fR's command procedure
+must check whether the variable's object is shared before
+incrementing the integer in its internal representation.
+If it is shared, it needs to duplicate the object
+in order to avoid accidently changing values in other data structures.
+
+.SH "SEE ALSO"
+Tcl_ConvertToType, Tcl_GetIntFromObj, Tcl_ListObjAppendElement, Tcl_ListObjIndex, Tcl_ListObjReplace, Tcl_RegisterObjType
+
+.SH KEYWORDS
+internal representation, object, object creation, object type, reference counting, string representation, type conversion
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   '\"
+'\" Copyright (c) 1989-1993 The Regents of the University of California.
+'\" Copyright (c) 1994-1996 Sun Microsystems, Inc.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: Hash.3,v 1.10.2.1 2003/07/18 16:56:24 dgp Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH Tcl_Hash 3 "" Tcl "Tcl Library Procedures"
+.BS
+.SH NAME
+Tcl_InitHashTable, Tcl_InitCustomHashTable, Tcl_InitObjHashTable, Tcl_DeleteHashTable, Tcl_CreateHashEntry, Tcl_DeleteHashEntry, Tcl_FindHashEntry, Tcl_GetHashValue, Tcl_SetHashValue, Tcl_GetHashKey, Tcl_FirstHashEntry, Tcl_NextHashEntry, Tcl_HashStats \- procedures to manage hash tables
+.SH SYNOPSIS
+.nf
+\fB#include <tcl.h>\fR
+.sp
+\fBTcl_InitHashTable\fR(\fItablePtr, keyType\fR)
+.sp
+\fBTcl_InitCustomHashTable\fR(\fItablePtr, keyType, typePtr\fR)
+.sp
+\fBTcl_InitObjHashTable\fR(\fItablePtr\fR)
+.sp
+\fBTcl_DeleteHashTable\fR(\fItablePtr\fR)
+.sp
+Tcl_HashEntry *
+\fBTcl_CreateHashEntry\fR(\fItablePtr, key, newPtr\fR)
+.sp
+\fBTcl_DeleteHashEntry\fR(\fIentryPtr\fR)
+.sp
+Tcl_HashEntry *
+\fBTcl_FindHashEntry\fR(\fItablePtr, key\fR)
+.sp
+ClientData
+\fBTcl_GetHashValue\fR(\fIentryPtr\fR)
+.sp
+\fBTcl_SetHashValue\fR(\fIentryPtr, value\fR)
+.sp
+char *
+\fBTcl_GetHashKey\fR(\fItablePtr, entryPtr\fR)
+.sp
+Tcl_HashEntry *
+\fBTcl_FirstHashEntry\fR(\fItablePtr, searchPtr\fR)
+.sp
+Tcl_HashEntry *
+\fBTcl_NextHashEntry\fR(\fIsearchPtr\fR)
+.sp
+CONST char *
+\fBTcl_HashStats\fR(\fItablePtr\fR)
+.SH ARGUMENTS
+.AS Tcl_HashSearch *searchPtr
+.AP Tcl_HashTable *tablePtr in
+Address of hash table structure (for all procedures but
+\fBTcl_InitHashTable\fR, this must have been initialized by
+previous call to \fBTcl_InitHashTable\fR).
+.AP int keyType in
+Kind of keys to use for new hash table.  Must be either
+TCL_STRING_KEYS, TCL_ONE_WORD_KEYS, TCL_CUSTOM_TYPE_KEYS,
+TCL_CUSTOM_PTR_KEYS, or an integer value greater than 1.
+.AP Tcl_HashKeyType *typePtr in
+Address of structure which defines the behaviour of the hash table.
+.AP "CONST char" *key in
+Key to use for probe into table.  Exact form depends on
+\fIkeyType\fR used to create table.
+.AP int *newPtr out
+The word at \fI*newPtr\fR is set to 1 if a new entry was created
+and 0 if there was already an entry for \fIkey\fR.
+.AP Tcl_HashEntry *entryPtr in
+Pointer to hash table entry.
+.AP ClientData value in
+New value to assign to hash table entry.  Need not have type
+ClientData, but must fit in same space as ClientData.
+.AP Tcl_HashSearch *searchPtr in
+Pointer to record to use to keep track of progress in enumerating
+all the entries in a hash table.
+.BE
+.SH DESCRIPTION
+.PP
+A hash table consists of zero or more entries, each consisting of a
+key and a value.  Given the key for an entry, the hashing routines can
+very quickly locate the entry, and hence its value. There may be at
+most one entry in a hash table with a particular key, but many entries
+may have the same value.  Keys can take one of four forms: strings,
+one-word values, integer arrays, or custom keys defined by a
+Tcl_HashKeyType structure (See section \fBTHE TCL_HASHKEYTYPE
+STRUCTURE\fR below). All of the keys in a given table have the same
+form, which is specified when the table is initialized.
+.PP
+The value of a hash table entry can be anything that fits in the same
+space as a ``char *'' pointer.  Values for hash table entries are
+managed entirely by clients, not by the hash module itself.  Typically
+each entry's value is a pointer to a data structure managed by client
+code.
+.PP
+Hash tables grow gracefully as the number of entries increases, so
+that there are always less than three entries per hash bucket, on
+average. This allows for fast lookups regardless of the number of
+entries in a table.
+.PP
+The core provides three functions for the initialization of hash
+tables, Tcl_InitHashTable, Tcl_InitObjHashTable and
+Tcl_InitCustomHashTable.
+.PP
+\fBTcl_InitHashTable\fR initializes a structure that describes a new
+hash table.  The space for the structure is provided by the caller,
+not by the hash module.  The value of \fIkeyType\fR indicates what
+kinds of keys will be used for all entries in the table. All of the
+key types described later are allowed, with the exception of
+\fBTCL_CUSTOM_TYPE_KEYS\fR and \fBTCL_CUSTOM_PTR_KEYS\fR.
+.PP
+\fBTcl_InitObjHashTable\fR is a wrapper around
+\fBTcl_InitCustomHashTable\fR and initializes a hash table whose keys
+are Tcl_Obj *.
+.PP
+\fBTcl_InitCustomHashTable\fR initializes a structure that describes a
+new hash table. The space for the structure is provided by the
+caller, not by the hash module.  The value of \fIkeyType\fR indicates
+what kinds of keys will be used for all entries in the table.
+\fIKeyType\fR must have one of the following values:
+.IP \fBTCL_STRING_KEYS\fR 25
+Keys are null-terminated strings.
+They are passed to hashing routines using the address of the
+first character of the string.
+.IP \fBTCL_ONE_WORD_KEYS\fR 25
+Keys are single-word values;  they are passed to hashing routines
+and stored in hash table entries as ``char *'' values.
+The pointer value is the key;  it need not (and usually doesn't)
+actually point to a string.
+.IP \fBTCL_CUSTOM_TYPE_KEYS\fR 25
+Keys are of arbitrary type, and are stored in the entry. Hashing
+and comparison is determined by \fItypePtr\fR. The Tcl_HashKeyType 
+structure is described in the section 
+\fBTHE TCL_HASHKEYTYPE STRUCTURE\fR below.
+.IP \fBTCL_CUSTOM_PTR_KEYS\fR 25
+Keys are pointers to an arbitrary type, and are stored in the entry. Hashing
+and comparison is determined by \fItypePtr\fR. The Tcl_HashKeyType 
+structure is described in the section 
+\fBTHE TCL_HASHKEYTYPE STRUCTURE\fR below.
+.IP \fIother\fR 25
+If \fIkeyType\fR is not one of the above,
+then it must be an integer value greater than 1.
+In this case the keys will be arrays of ``int'' values, where
+\fIkeyType\fR gives the number of ints in each key.
+This allows structures to be used as keys.
+All keys must have the same size.
+Array keys are passed into hashing functions using the address
+of the first int in the array.
+.PP
+\fBTcl_DeleteHashTable\fR deletes all of the entries in a hash
+table and frees up the memory associated with the table's
+bucket array and entries.
+It does not free the actual table structure (pointed to
+by \fItablePtr\fR), since that memory is assumed to be managed
+by the client.
+\fBTcl_DeleteHashTable\fR also does not free or otherwise
+manipulate the values of the hash table entries.
+If the entry values point to dynamically-allocated memory, then
+it is the client's responsibility to free these structures
+before deleting the table.
+.PP
+\fBTcl_CreateHashEntry\fR locates the entry corresponding to a
+particular key, creating a new entry in the table if there
+wasn't already one with the given key.
+If an entry already existed with the given key then \fI*newPtr\fR
+is set to zero.
+If a new entry was created, then \fI*newPtr\fR is set to a non-zero
+value and the value of the new entry will be set to zero.
+The return value from \fBTcl_CreateHashEntry\fR is a pointer to
+the entry, which may be used to retrieve and modify the entry's
+value or to delete the entry from the table.
+.PP
+\fBTcl_DeleteHashEntry\fR will remove an existing entry from a
+table.
+The memory associated with the entry itself will be freed, but
+the client is responsible for any cleanup associated with the
+entry's value, such as freeing  e  !e  "e  #e  $e  %e                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          a structure that it points to.
+.PP
+\fBTcl_FindHashEntry\fR is similar to \fBTcl_CreateHashEntry\fR
+except that it doesn't create a new entry if the key doesn't exist;
+instead, it returns NULL as result.
+.PP
+\fBTcl_GetHashValue\fR and \fBTcl_SetHashValue\fR are used to
+read and write an entry's value, respectively.
+Values are stored and retrieved as type ``ClientData'', which is
+large enough to hold a pointer value.  On almost all machines this is
+large enough to hold an integer value too.
+.PP
+\fBTcl_GetHashKey\fR returns the key for a given hash table entry,
+either as a pointer to a string, a one-word (``char *'') key, or
+as a pointer to the first word of an array of integers, depending
+on the \fIkeyType\fR used to create a hash table.
+In all cases \fBTcl_GetHashKey\fR returns a result with type
+``char *''.
+When the key is a string or array, the result of \fBTcl_GetHashKey\fR
+points to information in the table entry;  this information will
+remain valid until the entry is deleted or its table is deleted.
+.PP
+\fBTcl_FirstHashEntry\fR and \fBTcl_NextHashEntry\fR may be used
+to scan all of the entries in a hash table.
+A structure of type ``Tcl_HashSearch'', provided by the client,
+is used to keep track of progress through the table.
+\fBTcl_FirstHashEntry\fR initializes the search record and
+returns the first entry in the table (or NULL if the table is
+empty).
+Each subsequent call to \fBTcl_NextHashEntry\fR returns the
+next entry in the table or
+NULL if the end of the table has been reached.
+A call to \fBTcl_FirstHashEntry\fR followed by calls to
+\fBTcl_NextHashEntry\fR will return each of the entries in
+the table exactly once, in an arbitrary order.
+It is unadvisable to modify the structure of the table, e.g.
+by creating or deleting entries, while the search is in
+progress.
+.PP
+\fBTcl_HashStats\fR returns a dynamically-allocated string with
+overall information about a hash table, such as the number of
+entries it contains, the number of buckets in its hash array,
+and the utilization of the buckets.
+It is the caller's responsibility to free the result string
+by passing it to \fBckfree\fR.
+.PP
+The header file \fBtcl.h\fR defines the actual data structures
+used to implement hash tables.
+This is necessary so that clients can allocate Tcl_HashTable
+structures and so that macros can be used to read and write
+the values of entries.
+However, users of the hashing routines should never refer directly
+to any of the fields of any of the hash-related data structures;
+use the procedures and macros defined here.
+.SH "THE TCL_HASHKEYTYPE STRUCTURE"
+.PP
+Extension writers can define new hash key types by defining four
+procedures, initializing a Tcl_HashKeyType structure to describe
+the type, and calling \fBTcl_InitCustomHashTable\fR.
+The \fBTcl_HashKeyType\fR structure is defined as follows:
+.CS
+typedef struct Tcl_HashKeyType {
+    int \fIversion\fR;
+    int \fIflags\fR;
+    Tcl_HashKeyProc *\fIhashKeyProc\fR;
+    Tcl_CompareHashKeysProc *\fIcompareKeysProc\fR;
+    Tcl_AllocHashEntryProc *\fIallocEntryProc\fR;
+    Tcl_FreeHashEntryProc *\fIfreeEntryProc\fR;
+} Tcl_HashKeyType;
+.CE
+.PP
+The \fIversion\fR member is the version of the table. If this
+structure is extended in future then the version can be used
+to distinguish between different structures. It should be set
+to \fBTCL_HASH_KEY_TYPE_VERSION\fR.
+.PP
+The \fIflags\fR member is one or more of the following values OR'ed together:
+.IP \fBTCL_HASH_KEY_RANDOMIZE_HASH\fR 25
+There are some things, pointers for example which don't hash well 
+because they do not use the lower bits. If this flag is set then the
+hash table will attempt to rectify this by randomising the bits and 
+then using the upper N bits as the index into the table.
+.PP
+The \fIhashKeyProc\fR member contains the address of a function 
+called to calculate a hash value for the key.
+.CS
+typedef unsigned int (Tcl_HashKeyProc) (
+    Tcl_HashTable *\fItablePtr\fR,
+    VOID *\fIkeyPtr\fR);
+.CE
+If this is NULL then \fIkeyPtr\fR is used and 
+\fBTCL_HASH_KEY_RANDOMIZE_HASH\fR is assumed.
+.PP
+The \fIcompareKeysProc\fR member contains the address of a function 
+called to compare two keys.
+.CS
+typedef int (Tcl_CompareHashKeysProc) (VOID *\fIkeyPtr\fR,
+    Tcl_HashEntry *\fIhPtr\fR);
+.CE
+If this is NULL then the \fIkeyPtr\fR pointers are compared.
+If the keys don't match then the function returns 0, otherwise
+it returns 1.
+.PP
+The \fIallocEntryProc\fR member contains the address of a function 
+called to allocate space for an entry and initialise the key.
+.CS
+typedef Tcl_HashEntry *(Tcl_AllocHashEntryProc) (
+    Tcl_HashTable *\fItablePtr\fR, VOID *\fIkeyPtr\fR);
+.CE
+If this is NULL then Tcl_Alloc is used to allocate enough space for a
+Tcl_HashEntry and the key pointer is assigned to key.oneWordValue.
+String keys and array keys use this function to allocate enough 
+space for the entry and the key in one block, rather than doing
+it in two blocks. This saves space for a pointer to the key from
+the entry and another memory allocation. Tcl_Obj * keys use this 
+function to allocate enough space for an entry and increment the 
+reference count on the object.
+If 
+.PP
+The \fIfreeEntryProc\fR member contains the address of a function 
+called to free space for an entry.
+.CS
+typedef void (Tcl_FreeHashEntryProc) (Tcl_HashEntry *\fIhPtr\fR);
+.CE
+If this is NULL then Tcl_Free is used to free the space for the 
+entry. Tcl_Obj * keys use this function to decrement the
+reference count on the object.
+.SH KEYWORDS
+hash table, key, lookup, search, value
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          '\"
+'\" Copyright (c) 1994 The Regents of the University of California.
+'\" Copyright (c) 1994-1996 Sun Microsystems, Inc.
+'\" Copyright (c) 1998-1999 Scriptics Corporation
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: RegExp.3,v 1.13 2002/11/13 22:11:40 vincentdarley Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH Tcl_RegExpMatch 3 8.1 Tcl "Tcl Library Procedures"
+.BS
+.SH NAME
+Tcl_RegExpMatch, Tcl_RegExpCompile, Tcl_RegExpExec, Tcl_RegExpRange, Tcl_GetRegExpFromObj, Tcl_RegExpMatchObj, Tcl_RegExpExecObj, Tcl_RegExpGetInfo \- Pattern matching with regular expressions
+.SH SYNOPSIS
+.nf
+\fB#include <tcl.h>\fR
+.sp
+int
+\fBTcl_RegExpMatchObj\fR(\fIinterp\fR, \fIstrObj\fR, \fIpatObj\fR)
+.sp
+int
+\fBTcl_RegExpMatch\fR(\fIinterp\fR, \fIstring\fR, \fIpattern\fR)
+.sp
+Tcl_RegExp
+\fBTcl_RegExpCompile\fR(\fIinterp\fR, \fIpattern\fR)
+.sp
+int
+\fBTcl_RegExpExec\fR(\fIinterp\fR, \fIregexp\fR, \fIstring\fR, \fIstart\fR)
+.sp
+\fBTcl_RegExpRange\fR(\fIregexp\fR, \fIindex\fR, \fIstartPtr\fR, \fIendPtr\fR)
+.VS 8.1
+.sp
+Tcl_RegExp
+\fBTcl_GetRegExpFromObj\fR(\fIinterp\fR, \fIpatObj\fR, \fIcflags\fR)
+.sp
+int
+\fBTcl_RegExpExecObj\fR(\fIinterp\fR, \fIregexp\fR, \fIobjPtr\fR, \fIoffset\fR, \fInmatches\fR, \fIeflags\fR)
+.sp
+\fBTcl_RegExpGetInfo\fR(\fIregexp\fR, \fIinfoPtr\fR)
+.VE 8.1
+
+.SH ARGUMENTS
+.AS Tcl_Interp *interp
+.AP Tcl_Interp *interp in
+Tcl interpreter to use for error reporting.  The interpreter may be
+NULL if no error reporting is desired.
+.VS 8.1
+.AP Tcl_Obj *strObj in/out
+Refers to the object from which to get the string to search.  The
+internal representation of the object may be converted to a form that
+can be efficiently searched.
+.AP Tcl_Obj *patObj in/out
+Refers to the object from which to get a regular expression. The
+compiled regular expression is cached in the object.
+.VE 8.1
+.AP char *string in
+String to check for a match with a regular expression.
+.AP "CONST char" *pattern in
+String in the form of a regular expression pattern.
+.AP Tcl_RegExp regexp in
+Compiled regular expression.  Must have been returned previously
+by \fBTcl_GetRegExpFromObj\fR or \fBTcl_RegExpCompile\fR.
+.AP char *start in
+If \fIstring\fR is just a portion of some other string, this argument
+identifies the beginning of the larger string.
+If it isn't the same as \fIstring\fR, then no \fB^\fR matches
+will be allowed.
+.AP int index in
+Specifies which range is desired:  0 means the range of the entire
+match, 1 or greater means the range that matched a parenthesized
+sub-expression.
+.VS 8.4
+.AP "CONST char" **startPtr out
+The address of the first character in the range is stored here, or
+NULL if there is no such range.
+.AP "CONST char" **endPtr out
+The address of the character just after the last one in the range
+is stored here, or NULL if there is no such range.
+.VE 8.4
+.VS 8.1
+.AP int cflags in
+OR-ed combination of compilation flags. See below for more information.
+.AP Tcl_Obj *objPtr in/out
+An object which contains the string to check for a match with a
+regular expression.
+.AP int offset in
+The character offset into the string where matching should begin.
+The value of the offset has no impact on \fB^\fR matches.  This
+behavior is controlled by \fIeflags\fR.
+.AP int nmatches in
+The number of matching subexpressions that should be remembered for
+later use.  If this value is 0, then no subexpression match
+information will be computed.  If the value is -1, then
+all of the matching subexpressions will be remembered.  Any other
+value will be taken as the maximum number of subexpressions to
+remember.
+.AP int eflags in
+OR-ed combination of the values TCL_REG_NOTBOL and TCL_REG_NOTEOL.
+See below for more information.
+.AP Tcl_RegExpInfo *infoPtr out
+The address of the location where information about a previous match
+should be stored by \fBTcl_RegExpGetInfo\fR.
+.VE 8.1
+.BE
+
+.SH DESCRIPTION
+.PP
+\fBTcl_RegExpMatch\fR determines whether its \fIpattern\fR argument
+matches \fIregexp\fR, where \fIregexp\fR is interpreted
+as a regular expression using the rules in the \fBre_syntax\fR
+reference page. 
+If there is a match then \fBTcl_RegExpMatch\fR returns 1.
+If there is no match then \fBTcl_RegExpMatch\fR returns 0.
+If an error occurs in the matching process (e.g. \fIpattern\fR
+is not a valid regular expression) then \fBTcl_RegExpMatch\fR
+returns \-1 and leaves an error message in the interpreter result.
+.VS 8.1.2
+\fBTcl_RegExpMatchObj\fR is similar to \fBTcl_RegExpMatch\fR except it
+operates on the Tcl objects \fIstrObj\fR and \fIpatObj\fR instead of
+UTF strings. 
+\fBTcl_RegExpMatchObj\fR is generally more efficient than
+\fBTcl_RegExpMatch\fR, so it is the preferred interface.
+.VE 8.1.2
+.PP
+\fBTcl_RegExpCompile\fR, \fBTcl_RegExpExec\fR, and \fBTcl_RegExpRange\fR
+provide lower-level access to the regular expression pattern matcher.
+\fBTcl_RegExpCompile\fR compiles a regular expression string into
+the internal form used for efficient pattern matching.
+The return value is a token for this compiled form, which can be
+used in subsequent calls to \fBTcl_RegExpExec\fR or \fBTcl_RegExpRange\fR.
+If an error occurs while compiling the regular expression then
+\fBTcl_RegExpCompile\fR returns NULL and leaves an error message
+in the interpreter result.
+Note:  the return value from \fBTcl_RegExpCompile\fR is only valid
+up to the next call to \fBTcl_RegExpCompile\fR;  it is not safe to
+retain these values for long periods of time.
+.PP
+\fBTcl_RegExpExec\fR executes the regular expression pattern matcher.
+It returns 1 if \fIstring\fR contains a range of characters that
+match \fIregexp\fR, 0 if no match is found, and
+\-1 if an error occurs.
+In the case of an error, \fBTcl_RegExpExec\fR leaves an error
+message in the interpreter result.
+When searching a string for multiple matches of a pattern,
+it is important to distinguish between the start of the original
+string and the start of the current search.
+For example, when searching for the second occurrence of a
+match, the \fIstring\fR argument might point to the character
+just after the first match;  however, it is important for the
+pattern matcher to know that this is not the start of the entire string,
+so that it doesn't allow \fB^\fR atoms in the pattern to match.
+The \fIstart\fR argument provides this information by pointing
+to the start of the overall string containing \fIstring\fR.
+\fIStart\fR will be less than or equal to \fIstring\fR;  if it
+is less than \fIstring\fR then no \fB^\fR matches will be allowed.
+.PP
+\fBTcl_RegExpRange\fR may be invoked after \fBTcl_RegExpExec\fR
+returns;  it provides detailed information about what ranges of
+the string matched what parts of the pattern.
+\fBTcl_RegExpRange\fR returns a pair of pointers in \fI*startPtr\fR
+and \fI*endPtr\fR that identify a range of characters in
+the source string for the most recent call to \fBTcl_RegExpExec\fR.
+\fIIndex\fR indicates which of several ranges is desired:
+if \fIindex\fR is 0, information is returned about the overall range
+of characters that matched the entire pattern;  otherwise,
+information is returned about the range of characters that matched the
+\fIindex\fR'th parenthesized subexpression within the pattern.
+If there is no range corresponding to \fIindex\fR then NULL
+is stored in \fI*startPtr\fR and \fI*endPtr\fR.
+.PP
+.VS 8.1
+\fBTcl_GetRegExpFromObj\fR, \fBTcl_RegE3e  4e  5e  6e  7e  8e  9e  :e                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  xpExecObj\fR, and
+\fBTcl_RegExpGetInfo\fR are object interfaces that provide the most
+direct control of Henry Spencer's regular expression library.  For
+users that need to modify compilation and execution options directly,
+it is recommended that you use these interfaces instead of calling the
+internal regexp functions.  These interfaces handle the details of UTF
+to Unicode translations as well as providing improved performance
+through caching in the pattern and string objects.
+.PP
+\fBTcl_GetRegExpFromObj\fR attempts to return a compiled regular
+expression from the \fIpatObj\fR.  If the object does not already
+contain a compiled regular expression it will attempt to create one
+from the string in the object and assign it to the internal
+representation of the \fIpatObj\fR.  The return value of this function
+is of type \fBTcl_RegExp\fR.  The return value is a token for this
+compiled form, which can be used in subsequent calls to
+\fBTcl_RegExpExecObj\fR or \fBTcl_RegExpGetInfo\fR.  If an error
+occurs while compiling the regular expression then
+\fBTcl_GetRegExpFromObj\fR returns NULL and leaves an error message in
+the interpreter result.  The regular expression token can be used as
+long as the internal representation of \fIpatObj\fR refers to the
+compiled form.  The \fIeflags\fR argument is a bitwise OR of
+zero or more of the following flags that control the compilation of
+\fIpatObj\fR:
+.RS 2
+.TP
+\fBTCL_REG_ADVANCED\fR
+Compile advanced regular expressions (`AREs').  This mode corresponds to
+the normal regular expression syntax accepted by the Tcl regexp and
+regsub commands.
+.TP
+\fBTCL_REG_EXTENDED\fR
+Compile extended regular expressions (`EREs').  This mode corresponds
+to the regular expression syntax recognized by Tcl 8.0 and earlier
+versions. 
+.TP
+\fBTCL_REG_BASIC\fR
+Compile basic regular expressions (`BREs').  This mode corresponds
+to the regular expression syntax recognized by common Unix utilities
+like \fBsed\fR and \fBgrep\fR.  This is the default if no flags are
+specified.
+.TP
+\fBTCL_REG_EXPANDED\fR
+Compile the regular expression (basic, extended, or advanced) using an
+expanded syntax that allows comments and whitespace.  This mode causes
+non-backslashed non-bracket-expression white
+space and #-to-end-of-line comments to be ignored.
+.TP
+\fBTCL_REG_QUOTE\fR
+Compile a literal string, with all characters treated as ordinary characters.
+.TP
+\fBTCL_REG_NOCASE\fR
+Compile for matching that ignores upper/lower case distinctions.
+.TP
+\fBTCL_REG_NEWLINE\fR
+Compile for newline-sensitive matching.  By default, newline is a
+completely ordinary character with no special meaning in either
+regular expressions or strings.  With this flag, `[^' bracket
+expressions and `.' never match newline, `^' matches an empty string
+after any newline in addition to its normal function, and `$' matches
+an empty string before any newline in addition to its normal function.
+\fBREG_NEWLINE\fR is the bitwise OR of \fBREG_NLSTOP\fR and
+\fBREG_NLANCH\fR.
+.TP
+\fBTCL_REG_NLSTOP\fR
+Compile for partial newline-sensitive matching,
+with the behavior of
+`[^' bracket expressions and `.' affected,
+but not the behavior of `^' and `$'.  In this mode, `[^' bracket
+expressions and `.' never match newline.
+.TP
+\fBTCL_REG_NLANCH\fR
+Compile for inverse partial newline-sensitive matching,
+with the behavior of
+of `^' and `$' (the ``anchors'') affected, but not the behavior of
+`[^' bracket expressions and `.'.  In this mode `^' matches an empty string
+after any newline in addition to its normal function, and `$' matches
+an empty string before any newline in addition to its normal function.
+.TP
+\fBTCL_REG_NOSUB\fR
+Compile for matching that reports only success or failure,
+not what was matched.  This reduces compile overhead and may improve
+performance.  Subsequent calls to \fBTcl_RegExpGetInfo\fR or
+\fBTcl_RegExpRange\fR will not report any match information.
+.TP
+\fBTCL_REG_CANMATCH\fR
+Compile for matching that reports the potential to complete a partial
+match given more text (see below).
+.RE
+.PP
+Only one of
+\fBTCL_REG_EXTENDED\fR,
+\fBTCL_REG_ADVANCED\fR,
+\fBTCL_REG_BASIC\fR, and
+\fBTCL_REG_QUOTE\fR may be specified.
+.PP
+\fBTcl_RegExpExecObj\fR executes the regular expression pattern
+matcher.  It returns 1 if \fIobjPtr\fR contains a range of characters
+that match \fIregexp\fR, 0 if no match is found, and \-1 if an error
+occurs.  In the case of an error, \fBTcl_RegExpExecObj\fR leaves an
+error message in the interpreter result.  The \fInmatches\fR value
+indicates to the matcher how many subexpressions are of interest.  If
+\fInmatches\fR is 0, then no subexpression match information is
+recorded, which may allow the matcher to make various optimizations.
+If the value is -1, then all of the subexpressions in the pattern are
+remembered.  If the value is a positive integer, then only that number
+of subexpressions will be remembered.  Matching begins at the
+specified Unicode character index given by \fIoffset\fR.  Unlike
+\fBTcl_RegExpExec\fR, the behavior of anchors is not affected by the
+offset value.  Instead the behavior of the anchors is explicitly
+controlled by the \fIeflags\fR argument, which is a bitwise OR of
+zero or more of the following flags:
+.RS 2
+.TP
+\fBTCL_REG_NOTBOL\fR
+The starting character will not be treated as the beginning of a
+line or the beginning of the string, so `^' will not match there.
+Note that this flag has no effect on how `\fB\eA\fR' matches.
+.TP
+\fBTCL_REG_NOTEOL\fR
+The last character in the string will not be treated as the end of a
+line or the end of the string, so '$' will not match there.
+Note that this flag has no effect on how `\fB\eZ\fR' matches.
+.RE
+.PP
+\fBTcl_RegExpGetInfo\fR retrieves information about the last match
+performed with a given regular expression \fIregexp\fR.  The
+\fIinfoPtr\fR argument contains a pointer to a structure that is
+defined as follows:
+.PP
+.CS
+typedef struct Tcl_RegExpInfo {
+	int \fInsubs\fR;
+	Tcl_RegExpIndices *\fImatches\fR;
+	long \fIextendStart\fR;
+} Tcl_RegExpInfo;
+.CE
+.PP
+The \fInsubs\fR field contains a count of the number of parenthesized
+subexpressions within the regular expression.  If the \fBTCL_REG_NOSUB\fR
+was used, then this value will be zero.  The \fImatches\fR field
+points to an array of \fInsubs\fR values that indicate the bounds of each
+subexpression matched.  The first element in the array refers to the
+range matched by the entire regular expression, and subsequent elements
+refer to the parenthesized subexpressions in the order that they
+appear in the pattern.  Each element is a structure that is defined as
+follows:
+.PP
+.CS
+typedef struct Tcl_RegExpIndices {
+	long \fIstart\fR;
+	long \fIend\fR;
+} Tcl_RegExpIndices;
+.CE
+.PP
+The \fIstart\fR and \fIend\fR values are Unicode character indices
+relative to the offset location within \fIobjPtr\fR where matching began.
+The \fIstart\fR index identifies the first character of the matched
+subexpression.  The \fIend\fR index identifies the first character
+after the matched subexpression.  If the subexpression matched the
+empty string, then \fIstart\fR and \fIend\fR will be equal.  If the
+subexpression did not participate in the match, then \fIstart\fR and
+\fIend\fR will be set to -1.
+.PP
+The \fIextendStart\fR field in \fBTcl_RegExpInfo\fR is only set if the
+\fBTCL_REG_CANMATCH\fR flag was used.  It indicates the first
+character in the string where a match could occur.  If a match was
+found, this will be the same as the beginning of the current match.
+If no match was found, then it indicates the earliest point at which a
+match might occur if additional text is appended to the string.  If it
+is no match is possible even with further text, this field will be set 
+to -1.
+.VE 8.1
+.SH "SEE ALSO"
+re_syntax(n)
+.SH KEYWORDS
+match, pattern, regular expression, string, subexpression, Tcl_RegExpIndices, Tcl_RegExpInfo
+                                                                                                                                                                                                                                                                                                                                                                                          '\"
+'\" Copyright (c) 1996 Sun Microsystems, Inc.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: PkgRequire.3,v 1.6.2.1 2006/09/22 01:26:22 andreas_kupries Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.

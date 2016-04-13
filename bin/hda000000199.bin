@@ -1,0 +1,1844 @@
+inline functions from this
+// file, or you compile this file and link it with other files to
+// produce an executable, this file does not by itself cause the
+// resulting executable to be covered by the GNU General Public
+// License.  This exception does not however invalidate any other
+// reasons why the executable file might be covered by the GNU General
+// Public License.
+
+// Copyright (C) 2004 Ami Tavory and Vladimir Dreizin, IBM-HRL.
+
+// Permission to use, copy, modify, sell, and distribute this software
+// is hereby granted without fee, provided that the above copyright
+// notice appears in all copies, and that both that copyright notice
+// and this permission notice appear in supporting documentation. None
+// of the above authors, nor IBM Haifa Research Laboratories, make any
+// representation about the suitability of this software for any
+// purpose. It is provided "as is" without express or implied
+// warranty.
+
+/**
+ * @file assoc_container.hpp
+ * Contains associative containers.
+ */
+
+#ifndef PB_DS_ASSOC_CNTNR_HPP
+#define PB_DS_ASSOC_CNTNR_HPP
+
+#include <ext/typelist.h>
+#include <ext/pb_ds/tag_and_trait.hpp>
+#include <ext/pb_ds/detail/standard_policies.hpp>
+#include <ext/pb_ds/detail/container_base_dispatch.hpp>
+#include <ext/pb_ds/detail/basic_tree_policy/traits.hpp>
+
+namespace __gnu_pbds
+{
+#define PB_DS_BASE_C_DEC \
+  detail::container_base_dispatch<Key, Mapped, Tag, Policy_Tl, Allocator>::type
+
+  // An abstract basic associative container.
+  template<typename Key, 
+	   typename Mapped, 
+	   typename Tag, 
+	   typename Policy_Tl, 
+	   typename Allocator>
+  class container_base : public PB_DS_BASE_C_DEC
+  {
+  private:
+    typedef typename PB_DS_BASE_C_DEC 			base_type;
+
+  public:
+    typedef Tag 					container_category;
+    typedef Allocator 					allocator;
+    typedef typename allocator::size_type 		size_type;
+    typedef typename allocator::difference_type 	difference_type;
+
+    // key_type
+    typedef typename allocator::template rebind<Key>::other::value_type key_type;
+    typedef typename allocator::template rebind<key_type>::other key_rebind;
+    typedef typename key_rebind::reference 		key_reference;
+    typedef typename key_rebind::const_reference 	const_key_reference;
+    typedef typename key_rebind::pointer 		key_pointer;
+    typedef typename key_rebind::const_pointer 		const_key_pointer;
+
+    // mapped_type
+    typedef Mapped 					mapped_type;
+    typedef typename allocator::template rebind<mapped_type>::other mapped_rebind;
+    typedef typename mapped_rebind::reference 		mapped_reference;
+    typedef typename mapped_rebind::const_reference	const_mapped_reference;
+    typedef typename mapped_rebind::pointer 		mapped_pointer;
+    typedef typename mapped_rebind::const_pointer 	const_mapped_pointer;
+
+    // value_type
+    typedef typename base_type::value_type 		value_type;
+    typedef typename allocator::template rebind<value_type>::other value_rebind;
+    typedef typename value_rebind::reference		reference;
+    typedef typename value_rebind::const_reference 	const_reference;
+    typedef typename value_rebind::pointer 		pointer;
+    typedef typename value_rebind::const_pointer 	const_pointer;
+
+    // iterators
+    typedef typename base_type::iterator 		iterator;
+    typedef typename base_type::const_iterator 		const_iterator;
+    typedef typename base_type::point_iterator 		point_iterator;
+    typedef typename base_type::const_point_iterator 	const_point_iterator;
+
+    virtual
+    ~container_base() { }
+
+  protected:
+#define PB_DS_CLASS_NAME 		container_base
+#include <ext/pb_ds/detail/constructors_destructor_fn_imps.hpp>
+#undef PB_DS_CLASS_NAME
+  };
+
+#undef PB_DS_BASE_C_DEC
+
+
+#define PB_DS_BASE_C_DEC \
+  container_base<Key, Mapped, Tag, typename __gnu_cxx::typelist::append< \
+  typename __gnu_cxx::typelist::create4<Hash_Fn, Eq_Fn, Resize_Policy, detail::integral_constant<int, Store_Hash> >::type, Policy_TL>::type, Allocator>
+
+  // An abstract basic hash-based associative container.
+  template<typename Key,
+	   typename Mapped,
+	   typename Hash_Fn,
+	   typename Eq_Fn,
+	   typename Resize_Policy,
+	   bool Store_Hash,
+	   typename Tag,
+	   typename Policy_TL,
+	   typename Allocator>
+  class basic_hash_table : public PB_DS_BASE_C_DEC
+  {
+  private:
+    typedef PB_DS_BASE_C_DEC base_type;
+
+  public:
+    virtual
+    ~basic_hash_table() { }
+
+  protected:
+#define PB_DS_CLASS_NAME basic_hash_table
+#include <ext/pb_ds/detail/constructors_destructor_fn_imps.hpp>
+#undef PB_DS_CLASS_NAME
+
+  private:
+    basic_hash_table& 
+    operator=(const base_type&);
+  };
+
+#undef PB_DS_BASE_C_DEC
+
+
+#define PB_DS_BASE_C_DEC \
+  basic_hash_table<Key, Mapped,	Hash_Fn, Eq_Fn, Resize_Policy, Store_Hash, \
+		   cc_hash_tag,	\
+	  typename __gnu_cxx::typelist::create1<Comb_Hash_Fn>::type, Allocator>
+
+  // A concrete collision-chaining hash-based associative container.
+  template<typename Key,
+	   typename Mapped,
+	   typename Hash_Fn = typename detail::default_hash_fn<Key>::type,
+	   typename Eq_Fn = typename detail::default_eq_fn<Key>::type,
+	   typename Comb_Hash_Fn = detail::default_comb_hash_fn::type,
+	   typename Resize_Policy = typename detail::default_resize_policy<Comb_Hash_Fn>::type,
+	   bool Store_Hash = detail::default_store_hash,
+	   typename Allocator = std::allocator<char> >
+  class cc_hash_table :  public PB_DS_BASE_C_DEC
+  {
+  private:
+    typedef PB_DS_BASE_C_DEC 	base_type;
+
+  public:
+    typedef Hash_Fn 		hash_fn;
+    typedef Eq_Fn 		eq_fn;
+    typedef Resize_Policy 	resize_policy;
+    typedef Comb_Hash_Fn 	comb_hash_fn;
+
+    // Default constructor.
+    cc_hash_table() { }
+
+    // Constructor taking some policy objects. r_hash_fn will be
+    // copied by the Hash_Fn object of the container object.
+    cc_hash_table(const hash_fn& h) 
+    : base_type(h) { }
+
+    // Constructor taking some policy objects. r_hash_fn will be
+    // copied by the hash_fn object of the container object, and
+    // r_eq_fn will be copied by the eq_fn object of the container
+    // object.
+    cc_hash_table(const hash_fn& h, const eq_fn& e)
+    : base_type(h, e) { }
+
+    // Constructor taking some policy objects. r_hash_fn will be
+    // copied by the hash_fn object of the container object, r_eq_fn
+    // will be copied by the eq_fn object of the container object, and
+    // r_comb_hash_fn will be copied by the comb_hash_fn object of the
+    // container object.
+    cc_hash_table(const hash_fn& h, const eq_fn& e, const comb_hash_fn& ch)
+    : base_type(h, e, ch) { }
+
+    // Constructor taking some policy objects. r_hash_fn will be
+    // copied by the hash_fn object of the container object, r_eq_fn
+    // will be copied by the eq_fn object of the container object,
+    // r_comb_hash_fn will be copied by the comb_hash_fn object of the
+    // container object, and r_resize_policy will be copied by the
+    // resize_policy object of the container object.
+    cc_hash_table(const hash_fn& h, const eq_fn& e, const comb_hash_fn& ch, 
+		  const resize_policy& rp)    
+    : base_type(h, e, ch, rp) { }
+
+    // Constructor taking __iterators to a range of value_types. The
+    // value_types between first_it and last_it will be inserted into
+    // the container object.
+    template<typename It>
+    cc_hash_table(It first, It last)
+    { base_type::copy_from_range(first, last); }
+
+    // Constructor taking __iterators to a range of value_types and
+    // some policy objects. The value_types between first_it and
+    // last_it will be inserted into the container object.
+    template<typename It>
+    cc_hash_table(It first, It last, const hash_fn& h)
+    : base_type(h)
+    { copy_from_range(first, last); }
+
+    // Constructor taking __iterators to a range of value_types and
+    // some policy objects The value_types between first_it and
+    // last_it will be inserted into the container object. r_hash_fn
+    // will be copied by the hash_fn object of the container object,
+    // and r_eq_fn will be copied by the eq_fn object of the container
+    // object.
+    template<typename It>
+    cc_hash_table(It first, It last, const hash_fn& h, const eq_fn& e)
+    : base_type(h, e)
+    { copy_from_range(first, last); }
+
+    // Constructor taking __iterators to a range of value_types and
+    // some policy objects The value_types between first_it and
+    // last_it will be inserted into the container object. r_hash_fn
+    // will be copied by the hash_fn object of the container object,
+    // r_eq_fn will be copied by the eq_fn object of the container
+    // object, and r_comb_hash_fn will be copied by the comb_hash_fn
+    // object of the container object.
+    template<typename It>
+    cc_hash_table(It first, It last, const hash_fn& h, const eq_fn& e,
+		  const comb_hash_fn& ch)
+    : base_type(h, e, ch)
+    { copy_from_range(first, last); }
+
+    // Constructor taking __iterators to a range of value_types and
+    // some policy objects The value_types between first_it and
+    // last_it will be inserted into the container object. r_hash_fn
+    // will be copied by the hash_fn object of the container object,
+    // r_eq_fn will be copied by the eq_fn object of the container
+    // object, r_comb_hash_fn will be copied by the comb_hash_fn
+    // object of the container object, and r_resize_policy will be
+    // copied by the resize_policy object of the container object.
+    template<typename It>
+    cc_hash_table(It first, It last, const hash_fn& h, const eq_fn& e, 
+		  const comb_hash_fn& ch, const resize_policy& rp)
+    : base_type(h, e, ch, rp)
+    { copy_from_range(first, last); }
+
+    cc_hash_table(const cc_hash_table& other)
+    : base_type((const base_type&)other)
+    { }
+
+    virtual
+    ~cc_hash_table() { }
+
+    cc_hash_table& 
+    operator=(const cc_hash_table& other)
+    {
+      if (this != &other)
+	{
+	  cc_hash_table tmp(other);
+	  swap(tmp);
+	}
+      return *this;
+    }
+
+    void
+    swap(cc_hash_table& other)
+    { base_type::swap(other); }
+  };
+
+#undef PB_DS_BASE_C_DEC
+
+
+#define PB_DS_BASE_C_DEC \
+  basic_hash_table<Key, Mapped,	Hash_Fn, Eq_Fn, Resize_Policy, Store_Hash, \
+		   gp_hash_tag, \
+		   typename __gnu_cxx::typelist::create2<Comb_Probe_Fn, Probe_Fn>::type, Allocator>
+
+  // A concrete general-probing hash-based associative container.
+  template<typename Key,
+	   typename Mapped,
+	   typename Hash_Fn = typename detail::default_hash_fn<Key>::type,
+	   typename Eq_Fn = typename detail::default_eq_fn<Key>::type,
+	   typename Comb_Probe_Fn = detail::default_comb_hash_fn::type,
+	   typename Probe_Fn = typename detail::default_probe_fn<Comb_Probe_Fn>::type,
+	   typename Resize_Policy = typename detail::default_resize_policy<Comb_Probe_Fn>::type,
+	   bool Store_Hash = detail::default_store_hash,
+	   typename Allocator = std::allocator<char> >
+  class gp_hash_table : public PB_DS_BASE_C_DEC
+  {
+  private:
+    typedef PB_DS_BASE_C_DEC 	base_type;
+
+  public:
+    typedef Hash_Fn 		hash_fn;
+    typedef Eq_Fn 		eq_fn;
+    typedef Comb_Probe_Fn	comb_probe_fn;
+    typedef Probe_Fn 		probe_fn;
+    typedef Resize_Policy 	resize_policy;
+
+    // Default constructor.
+    gp_hash_table() { }
+
+    // Constructor taking some policy objects. r_hash_fn will be
+    // copied by the hash_fn object of the container object.
+    gp_hash_table(const hash_fn& h)
+    : base_type(h) { }
+
+    // ConstructÃ1  Õ1  Œ1  œ1  –1  —1  “1  ”1  ‘1  ’1  ÷1  ◊1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  or taking some policy objects. r_hash_fn will be
+    // copied by the hash_fn object of the container object, and
+    // r_eq_fn will be copied by the eq_fn object of the container
+    // object.
+    gp_hash_table(const hash_fn& h, const eq_fn& e)
+    : base_type(h, e) { }
+
+    // Constructor taking some policy objects. r_hash_fn will be
+    // copied by the hash_fn object of the container object, r_eq_fn
+    // will be copied by the eq_fn object of the container object, and
+    // r_comb_probe_fn will be copied by the comb_probe_fn object of
+    // the container object.
+    gp_hash_table(const hash_fn& h, const eq_fn& e, const comb_probe_fn& cp)
+    : base_type(h, e, cp) { }
+
+    // Constructor taking some policy objects. r_hash_fn will be
+    // copied by the hash_fn object of the container object, r_eq_fn
+    // will be copied by the eq_fn object of the container object,
+    // r_comb_probe_fn will be copied by the comb_probe_fn object of
+    // the container object, and r_probe_fn will be copied by the
+    // probe_fn object of the container object.
+    gp_hash_table(const hash_fn& h, const eq_fn& e, const comb_probe_fn& cp, 
+		  const probe_fn& p)
+    : base_type(h, e, cp, p) { }
+
+    // Constructor taking some policy objects. r_hash_fn will be
+    // copied by the hash_fn object of the container object, r_eq_fn
+    // will be copied by the eq_fn object of the container object,
+    // r_comb_probe_fn will be copied by the comb_probe_fn object of
+    // the container object, r_probe_fn will be copied by the probe_fn
+    // object of the container object, and r_resize_policy will be
+    // copied by the Resize_Policy object of the container object.
+    gp_hash_table(const hash_fn& h, const eq_fn& e, const comb_probe_fn& cp, 
+		  const probe_fn& p, const resize_policy& rp)
+    : base_type(h, e, cp, p, rp) { }
+
+    // Constructor taking __iterators to a range of value_types. The
+    // value_types between first_it and last_it will be inserted into
+    // the container object.
+    template<typename It>
+    gp_hash_table(It first, It last)
+    { base_type::copy_from_range(first, last); }
+
+    // Constructor taking __iterators to a range of value_types and
+    // some policy objects. The value_types between first_it and
+    // last_it will be inserted into the container object. r_hash_fn
+    // will be copied by the hash_fn object of the container object.
+    template<typename It>
+    gp_hash_table(It first, It last, const hash_fn& h)
+    : base_type(h)
+    { base_type::copy_from_range(first, last); }
+
+    // Constructor taking __iterators to a range of value_types and
+    // some policy objects. The value_types between first_it and
+    // last_it will be inserted into the container object. r_hash_fn
+    // will be copied by the hash_fn object of the container object,
+    // and r_eq_fn will be copied by the eq_fn object of the container
+    // object.
+    template<typename It>
+    gp_hash_table(It first, It last, const hash_fn& h, const eq_fn& e)
+    : base_type(h, e)
+    { base_type::copy_from_range(first, last); }
+
+    // Constructor taking __iterators to a range of value_types and
+    // some policy objects. The value_types between first_it and
+    // last_it will be inserted into the container object. r_hash_fn
+    // will be copied by the hash_fn object of the container object,
+    // r_eq_fn will be copied by the eq_fn object of the container
+    // object, and r_comb_probe_fn will be copied by the comb_probe_fn
+    // object of the container object.
+    template<typename It>
+    gp_hash_table(It first, It last, const hash_fn& h, const eq_fn& e, 
+		  const comb_probe_fn& cp)
+    : base_type(h, e, cp)
+    { base_type::copy_from_range(first, last); }
+
+    // Constructor taking __iterators to a range of value_types and
+    // some policy objects. The value_types between first_it and
+    // last_it will be inserted into the container object. r_hash_fn
+    // will be copied by the hash_fn object of the container object,
+    // r_eq_fn will be copied by the eq_fn object of the container
+    // object, r_comb_probe_fn will be copied by the comb_probe_fn
+    // object of the container object, and r_probe_fn will be copied
+    // by the probe_fn object of the container object.
+    template<typename It>
+    gp_hash_table(It first, It last, const hash_fn& h, const eq_fn& e, 
+		  const comb_probe_fn& cp, const probe_fn& p)
+    : base_type(h, e, cp, p)
+    { base_type::copy_from_range(first, last); }
+
+    // Constructor taking __iterators to a range of value_types and
+    // some policy objects. The value_types between first_it and
+    // last_it will be inserted into the container object. r_hash_fn
+    // will be copied by the hash_fn object of the container object,
+    // r_eq_fn will be copied by the eq_fn object of the container
+    // object, r_comb_probe_fn will be copied by the comb_probe_fn
+    // object of the container object, r_probe_fn will be copied by
+    // the probe_fn object of the container object, and
+    // r_resize_policy will be copied by the resize_policy object of
+    // the container object.
+    template<typename It>
+    gp_hash_table(It first, It last, const hash_fn& h, const eq_fn& e, 
+		  const comb_probe_fn& cp, const probe_fn& p, 
+		  const resize_policy& rp)
+    : base_type(h, e, cp, p, rp)
+    { base_type::copy_from_range(first, last); }
+
+    gp_hash_table(const gp_hash_table& other)
+    : base_type((const base_type&)other)
+    { }
+
+    virtual
+    ~gp_hash_table() { }
+
+    gp_hash_table& 
+    operator=(const gp_hash_table& other)
+    {
+      if (this != &other)
+	{
+	  gp_hash_table tmp(other);
+	  swap(tmp);
+	}
+      return *this;
+    }
+
+    void
+    swap(gp_hash_table& other)
+    { base_type::swap(other); }
+  };
+
+#undef PB_DS_BASE_C_DEC
+
+
+#define PB_DS_BASE_C_DEC \
+  container_base<Key, Mapped, Tag, Policy_Tl, Allocator>
+
+  // An abstract basic tree-like (tree, trie) associative container.
+  template<typename Key, typename Mapped, typename Tag, 
+	   typename Node_Update, typename Policy_Tl, typename Allocator>
+  class basic_tree : public PB_DS_BASE_C_DEC
+  {
+  private:
+    typedef PB_DS_BASE_C_DEC 	base_type;
+
+  public:
+    typedef Node_Update 	node_update;
+
+    virtual
+    ~basic_tree() { }
+
+  protected:
+#define PB_DS_CLASS_NAME 		basic_tree
+#include <ext/pb_ds/detail/constructors_destructor_fn_imps.hpp>
+#undef PB_DS_CLASS_NAME
+  };
+
+#undef PB_DS_BASE_C_DEC
+
+
+#define PB_DS_TREE_NODE_AND_IT_TRAITS_C_DEC \
+  detail::tree_traits<Key, Mapped,Cmp_Fn,Node_Update,Tag, Allocator>
+
+#define PB_DS_BASE_C_DEC \
+  basic_tree<Key,Mapped,Tag,typename PB_DS_TREE_NODE_AND_IT_TRAITS_C_DEC::node_update, \
+	     typename __gnu_cxx::typelist::create2<Cmp_Fn, PB_DS_TREE_NODE_AND_IT_TRAITS_C_DEC >::type, Allocator>
+
+  // A concrete basic tree-based associative container.
+  template<typename Key, typename Mapped, typename Cmp_Fn = std::less<Key>,
+	   typename Tag = rb_tree_tag,
+	   template<typename Const_Node_Iterator, typename Node_Iterator, typename Cmp_Fn_, typename Allocator_>
+  class Node_Update = __gnu_pbds::null_tree_node_update,
+	   typename Allocator = std::allocator<char> >
+  class tree : public PB_DS_BASE_C_DEC
+  {
+  private:
+    typedef PB_DS_BASE_C_DEC 	base_type;
+
+  public:
+    // Comparison functor type.
+    typedef Cmp_Fn 		cmp_fn;
+
+    tree() { }
+
+    // Constructor taking some policy objects. r_cmp_fn will be copied
+    // by the Cmp_Fn object of the container object.
+    tree(const cmp_fn& c)
+    : base_type(c) { }
+
+    // Constructor taking __iterators to a range of value_types. The
+    // value_types between first_it and last_it will be inserted into
+    // the container object.
+    template<typename It>
+    tree(It first, It last)
+    { base_type::copy_from_range(first, last); }
+
+    // Constructor taking __iterators to a range of value_types and
+    // some policy objects The value_types between first_it and
+    // last_it will be inserted into the container object. r_cmp_fn
+    // will be copied by the cmp_fn object of the container object.
+    template<typename It>
+    tree(It first, It last, const cmp_fn& c)
+      : base_type(c)
+    { base_type::copy_from_range(first, last); }
+
+    tree(const tree& other)
+    : base_type((const base_type&)other) { }
+
+    virtual
+    ~tree() { }
+
+    tree& 
+    operator=(const tree& other)
+    {
+      if (this != &other)
+	{
+	  tree tmp(other);
+	  swap(tmp);
+	}
+      return *this;
+    }
+
+    void
+    swap(tree& other)
+    { base_type::swap(other); }
+  };
+
+#undef PB_DS_BASE_C_DEC
+#undef PB_DS_TREE_NODE_AND_IT_TRAITS_C_DEC
+
+
+#define PB_DS_TRIE_NODE_AND_ITS_TRAITS \
+  detail::trie_traits<Key,Mapped,E_Access_Traits,Node_Update,Tag,Allocator>
+
+#define PB_DS_BASE_C_DEC \
+  basic_tree<Key,Mapped,Tag, typename PB_DS_TRIE_NODE_AND_ITS_TRAITS::node_update, \
+	     typename __gnu_cxx::typelist::create2<E_Access_Traits, PB_DS_TRIE_NODE_AND_ITS_TRAITS >::type, Allocator>
+
+  // A concrete basic trie-based associative container.
+  template<typename Key,
+	   typename Mapped,
+	   typename E_Access_Traits = typename detail::default_trie_e_access_traits<Key>::type,
+	   typename Tag = pat_trie_tag,
+	   template<typename Const_Node_Iterator,
+		    typename Node_Iterator,
+		    typename E_Access_Traits_,
+		    typename Allocator_>
+  class Node_Update = null_trie_node_update,
+	   typename Allocator = std::allocator<char> >
+  class trie : public PB_DS_BASE_C_DEC
+  {
+  private:
+    typedef PB_DS_BASE_C_DEC base_type;
+
+  public:
+    // Element access traits type.
+    typedef E_Access_Traits e_access_traits;
+
+    trie() { }
+
+    // Constructor taking some policy objects. r_e_access_traits will
+    // be copied by the E_Access_Traits object of the container
+    // object.
+    trie(const e_access_traits& t)
+    : base_type(t) { }
+
+    // Constructor taking __iterators to a range of value_types. The
+    // value_types between first_it and last_it will be inserted into
+    // the container object.
+    template<typename It>
+    trie(It first, It last)
+    { base_type::copy_from_range(first, last); }
+
+    // Constructor taking __iterators to a range of value_types and
+    // some policy objects. The value_types between first_it and
+    // last_it will be inserted into the container object.
+    template<typename It>
+    trie(It first, It last, const e_access_traits& t)
+    : base_type(t)
+    { base_type::copy_from_range(first, last); }
+
+    trie(const trie& other)
+    : base_type((const base_type&)other) { }
+
+    virtual
+    ~trie() { }
+
+    trie& 
+    operator=(const trie& other)
+    {
+      if (this != &other)
+	{
+	  trie tmp(other);
+	  swap(tmp);
+	}
+      return *this;
+    }
+
+    void
+    swap(trie& other)
+    { base_type::swap(other); }
+  };
+
+#undef PB_DS_BASE_C_DEC
+#undef PB_DS_TRIE_NODE_AND_ITS_TRAITS
+
+
+#define PB_DS_BASE_C_DEC \
+  container_base<Key, Mapped, list_update_tag, \
+		 typename __gnu_cxx::typelist::create2<Eq_Fn, Update_Policy>::type, Allocator>
+
+  // A list-update based associative container.
+  template<typename Key,
+	   typename Mapped,
+	   class Eq_Fn = typename detail::default_eq_fn<Key>::type,
+	   class Update_Policy = detail::default_update_policy::type,
+	   class Allocator = std::allocator<char> >
+  class list_update : public PB_DS_BASE_C_DEC
+  {
+  private:
+    typedef PB_DS_BASE_C_DEC 	base_type;
+
+  public:
+    typedef Eq_Fn 		eq_fn;
+    typedef Update_Policy 	update_policy;
+    typedef Allocator 		allocator;
+
+    list_update() { }
+
+    // Constructor taking __iterators to a range of value_types. The
+    // value_types between first_it and last_it will be inserted into
+    // the container object.
+    template<typename It>
+    list_update(It first, It last)
+    { base_type::copy_from_range(first, last); }
+
+    list_update(const list_update& other)
+    : base_type((const base_type&)other) { }
+
+    virtual
+    ~list_update() { }
+
+    list_update& 
+    operator=(const list_update& other)
+    {
+      if (this !=& other)
+	{
+	  list_update tmp(other);
+	  swap(tmp);
+	}
+      return *this;
+    }
+
+    void
+    swap(list_update& other)
+    { base_type::swap(other); }
+  };
+
+#undef PB_DS_BASE_C_DEC
+
+} // namespace __gnu_pbds
+
+#endif 
+                                                                                                                                                                                       // -*- C++ -*-
+
+// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the terms
+// of the GNU General Public License as published by the Free Software
+// Foundation; either version 2, or (at your option) any later
+// version.
+
+// This library is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
+// MA 02111-1307, USA.
+
+// As a special exception, you may use this file as part of a free
+// software library without restriction.  Specifically, if other files
+// instantiate templates or use macros or inline functions from this
+// file, or you compile this file and link it with other files to
+// produce an executable, this file does not by itself cause the
+// resulting executable to be covered by the GNU General Public
+// License.  This exception does not however invalidate any other
+// reasons why the executable file might be covered by the GNU General
+// Public License.
+
+// Copyright (C) 2004 Ami Tavory and Vladimir Dreizin, IBM-HRL.
+
+// Permission to use, copy, modify, sell, and distribute this software
+// is hereby granted without fee, provided that the above copyright
+// notice appears in all copies, and that both that copyright notice
+// and this permission notice appear in supporting documentation. None
+// of the above authors, nor IBM Haifa Research Laboratories, make any
+// representation about the suitability of this software for any
+// purpose. It is provided "as is" without express or implied
+// warranty.
+
+/**
+ * @file priority_queue.hpp
+ * Contains priority_queues.
+ */
+
+#ifndef PB_DS_PRIORITY_QUEUE_HPP
+#define PB_DS_PRIORITY_QUEUE_HPP
+
+#include <ext/pb_ds/tag_and_trait.hpp>
+#include <ext/pb_ds/detail/priority_queue_base_dispatch.hpp>
+#include <ext/pb_ds/detail/standard_policies.hpp>
+
+namespace __gnu_pbds
+{
+  // A priority queue.
+  template<typename Value_Type, 
+	   typename Cmp_Fn = std::less<Value_Type>,
+	   typename Tag = pairing_heap_tag,
+	   typename Allocator = std::allocator<char> >
+  class priority_queue 
+    : public detail::priority_queue_base_dispatch<Value_Type,Cmp_Fn,Tag,Allocator>::type
+  {
+  private:
+    typedef typename detail::priority_queue_base_dispatch<Value_Type,Cmp_Fn,Tag,Allocator>::type base_type;
+
+  public:
+    typedef Value_Type 					value_type;
+    typedef Cmp_Fn 					cmp_fn;
+    typedef Tag 					container_category;
+    typedef Allocator 					allocator;
+    typedef typename allocator::size_type 		size_type;
+    typedef typename allocator::difference_type 	difference_type;
+
+    typedef typename allocator::template rebind<value_type>::other value_rebind;
+    typedef typename value_rebind::reference 		reference;
+    typedef typename value_rebind::const_reference 	const_reference;
+    typedef typename value_rebind::pointer 	   	pointer;
+    typedef typename value_rebind::const_pointer 	const_pointer;
+
+    typedef typename base_type::const_point_iterator const_point_iterator;
+    typedef typename base_type::point_iterator 		point_iterator;
+    typedef typename base_type::const_iterator 		const_iterator;
+    typedef typename base_type::iterator 		iterator;
+
+    priority_queue() { }
+
+    // Constructor taking some policy objects. r_cmp_fn will be copied
+    // by the Cmp_Fn object of the container object.
+    priority_queue(const cmp_fn& r_cmp_fn) : base_type(r_cmp_fn) { }
+
+    // Constructor taking __iterators to a range of value_types. The
+    // value_types between first_it and last_it will be inserted into
+    // the container object.
+    template<typename It>
+    priority_queue(It first_it, It last_it)
+    { base_type::copy_from_range(first_it, last_it); }
+
+    // Constructor taking __iterators to a range of value_types and
+    // some policy objects The value_types between first_it and
+    // last_it will be inserted into the container object. r_cmp_fn
+    // will be copied by the cmp_fn object of the container object.
+    template<typename It>
+    priority_queue(It first_it, It last_it, const cmp_fn& r_cmp_fn)
+    : base_type(r_cmp_fn)
+    { base_type::copy_from_range(first_it, last_it); }
+
+    priority_queue(const priority_queue& other)
+    : base_type((const base_type& )other) { }
+
+    virtual
+    ~priority_queue() { }
+
+    priority_queue& 
+    operator=(const priority_queue& other)
+    {
+      if (this !=& other)
+	{
+	  priority_queue tmp(other);
+	  swap(tmp);
+	}
+      return *this;
+    }
+
+    void
+    swap(priority_queue& other)
+    { base_type::swap(other); }
+  };
+} // namespace __gnu_pbds
+
+#endif 
+                                                                                                                                                                                    // -*- C++ -*-
+
+// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the terms
+// of the GNU General Public License as published by the Free Software
+// Foundation; either version 2, or (at your option) any later
+// version.
+
+// This library is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
+// MA 02111-1307, USA.
+
+// As a special exception, you may use this file as part of a free
+// software library without restriction.  Specifically, if other files
+// instantiate templates or use macros or inline functions from this
+// file, or you compile this file and link it with other files to
+// produce an executable, this file does not by itself cause the
+// resulting executable to be covered by the GNU General Public
+// License.  This exception does not however invalidate any other
+// reasons why the executable file might be covered by the GNU General
+// Public License.
+
+// Copyright (C) 2004 Ami Tavory and Vladimir Dreizin, IBM-HRL.
+
+// Permission to use, copy, modify, sell, and distribute this software
+// is hereby granted without fee, provided that the above copyright
+// notice appears in all copies, and that both that copyright notice
+// and this permission notice appear in supporting documentation. None
+// of the above authors, nor IBM Haifa Research Laboratories, make any
+// representation about the suitability of this software for any
+// purpose. It is provided "as is" without express or implied
+// warranty.
+
+/**
+ * @file hash_policy.hpp
+ * Contains hash-related policies.
+ */
+
+#ifndef PB_DS_HASH_POLICY_HPP
+#define PB_DS_HASH_POLICY_HPP
+
+#include <algorithm>
+#include <vector>
+#include <cmath>
+#include <ext/pb_ds/exception.hpp>
+#include <ext/pb_ds/detail/type_utils.hpp>
+#include <ext/pb_ds/detail/hash_fn/mask_based_range_hashing.hpp>
+#include <ext/pb_ds/detail/hash_fn/mod_based_range_hashing.hpp>
+#include <ext/pb_ds/detail/resize_policy/hash_load_check_resize_trigger_size_base.hpp>
+
+namespace __gnu_pbds
+{
+  // A null hash function, indicating that the combining hash function
+  // is actually a ranged hash function.
+  struct null_hash_fn
+  { };
+
+  // A null probe function, indicating that the combining probe
+  // function is actually a ranged probe function.
+  struct null_probe_fn
+  { };
+
+#define PB_DS_CLASS_T_DEC template<typename Size_Type>
+#define PB_DS_CLASS_C_DEC linear_probe_fn<Size_Type>
+
+  // A probe sequence policy using fixed increments.
+  template<typename Size_Type = size_t>
+  class linear_probe_fn
+  {
+  public:
+    typedef Size_Type size_type;
+
+    void
+    swap(PB_DS_CLASS_C_DEC& other);
+
+  protected:
+    // Returns the i-th offset from the hash value.
+    inline size_type
+    operator()(size_type i) const;
+  };
+
+#include <ext/pb_ds/detail/hash_fn/linear_probe_fn_imp.hpp>
+
+#undef PB_DS_CLASS_T_DEC
+#undef PB_DS_CLASS_C_DEC
+
+#define PB_DS_CLASS_T_DEC template<typename Size_Type>
+#define PB_DS_CLASS_C_DEC quadratic_probe_fn<Size_Type>
+
+  // A probe sequence policy using square increments.
+  template<typename Size_Type = size_t>
+  class quadratic_probe_fn
+  {
+  public:
+    typedef Size_Type size_type;
+
+    void
+    swap(PB_DS_CLASS_C_DEC& other);
+
+  protected:
+    // Returns the i-th offset from the hash value.
+    inline size_type
+    operator()(size_type i) const;
+  };
+
+#include <ext/pb_ds/detail/hash_fn/quadratic_probe_fn_imp.hpp>
+
+#undef PB_DS_CLASS_T_DEC
+#undef PB_DS_CLASS_C_DEC
+
+#define PB_DS_CLASS_T_DEC template<typename Size_Type>
+#define PB_DS_CLASS_C_DEC direct_mask_range_hashing<Size_Type>
+
+  // A mask range-hashing class (uses a bit-mask).
+  template<typename Size_Type = size_t>
+  class direct_mask_range_hashing 
+  : public detail::mask_based_range_hashing<Size_Type>
+  {
+  private:
+    typedef detail::mask_based_range_hashing<Size_Type> mask_based_base;
+
+  public:
+    typedef Size_Type size_type;
+
+    void
+    swap(PB_DS_CLASS_C_DEC& other);
+
+  protected:
+    void
+    notify_resized(size_type size);
+
+    // Transforms the __hash value hash into a ranged-hash value
+    // (using a bit-mask).
+    inline size_type
+    operator()(size_type hash) const;
+  };
+
+#include <ext/pb_ds/detail/hash_fn/direct_mask_range_hashing_imp.hpp>
+
+#undef PB_DS_CLASS_T_DEC
+#undef PB_DS_CLASS_C_DEC
+
+#define PB_DS_CLASS_T_DEC template<typename Size_Type>
+#define PB_DS_CLASS_C_DEC direct_mod_range_hashing<Size_Type>
+
+  // A mod range-hashing class (uses the modulo function).
+  template<typename Size_Type = size_t>
+  class direct_mod_range_hashing 
+  : public detail::mod_based_range_hashing<Size_Type>
+  {
+  public:
+    typedef Size_Type size_type;
+      
+    void
+    swap(PB_DS_CLASS_C_DEC& other);
+
+  protected:
+    void
+    notify_resized(size_type size);
+      
+    // Transforms the __hash value hash into a ranged-hash value
+    // (using a modulo operation).
+    inline size_type
+    operator()(size_type hash) const;
+      
+  private:
+    typedef detail::mod_based_range_hashing<size_type> mod_based_base;
+  };
+
+#include <ext/pb_ds/detail/hash_fn/direct_mod_range_hashing_imp.hpp>
+
+#undef PB_DS_CLASS_T_DEC
+#undef PB_DS_CLASS_C_DEC
+
+#define PB_DS_CLASS_T_DEC template<bool External_Load_Access, typename Size_Type>
+#define PB_DS_CLASS_C_DEC hash_load_check_resize_trigger<External_Load_Access, Size_Type>
+#define PB_DS_SIZE_BASE_C_DEC detail::hash_load_check_resize_trigger_size_base<Size_Type, External_Load_Access>
+
+  // A resize trigger policy based on a load check. It keeps the
+  // load factor between some load factors load_min and load_max.
+  template<bool External_Load_Access = false, typename Size_Type = size_t>
+  class hash_load_check_resize_trigger : private PB_DS_SIZE_BASE_C_DEC
+  {
+  public:
+    typedef Size_Type size_type;
+
+    enum
+      {
+	external_load_access = External_Load_Access
+      };
+
+    // Default constructor, or constructor taking load_min and
+    // load_max load factors between which this policy will keep the
+    // actual load.
+    hash_load_check_resize_trigger(float load_min = 0.125,
+				   float load_max = 0.5);
+
+    void
+    swap(hash_load_check_resize_trigger& other);
+
+    virtual
+    ~hash_load_check_resize_trigger();
+
+    // Returns a pair of the minimal and maximal loads, respectively.
+    inline std::pair<float, float>
+    get_loads() const;
+
+    // Sets the loads through a pair of the minimal and maximal
+    // loads, respectively.
+    void
+    set_loads(std::pair<float, float> load_pair);
+
+  protected:
+    inline void
+    notify_insert_search_start();
+
+    inline void
+    notify_insert_search_collision();
+
+    inline void
+    notify_insert_search_end();
+
+    inline void
+    notify_find_search_start();
+
+    inline void
+    notify_find_search_collision();
+
+    inline void
+    notify_find_search_end();
+
+    inline void
+    notify_erase_search_start();
+
+    inline void
+    notify_erase_search_collision();
+
+    inline void
+    notify_erase_search_end();
+
+    // Notifies an element was inserted. The total number of entries
+    // in the table is num_entries.
+    inline void
+    notify_inserted(size_type num_entries);
+
+    inline void
+    notify_erased(size_type num_entries);
+
+    // Notifies the table was cleared.
+    void
+    notify_cleared();
+
+    // Notifies the table was resized as a result of this object's
+    // signifying that a resize is needed.
+    void
+    notify_resized(size_type new_size);
+
+    void
+    notify_externally_resized(size_type new_size);
+
+    inline bool
+    is_resize_needed() const;
+
+    inline bool
+    is_grow_needed(size_type size, size_type num_entries) const;
+
+  private:
+    virtual void
+    do_resize(size_type new_size);
+
+    typedef PB_DS_SIZE_BASE_C_DEC size_base;
+
+#ifdef _GLIBCXX_DEBUG
+    void
+    assert_valid() const;
+#endif 
+
+    float 	m_load_min;
+    float 	m_load_max;
+    size_type 	m_next_shrink_size;
+    size_type 	m_next_grow_size;
+    bool 	m_resize_needed;
+  };
+
+#include <ext/pb_ds/detail/resize_policy/hash_load_check_resize_trigger_imp.hpp>
+
+#undef PB_DS_CLASS_T_DEC
+#undef PB_DS_CLASS_C_DEC
+#undef PB_DS_SIZE_BASE_C_DEC
+
+#define PB_DS_CLASS_T_DEC template<bool External_Load_Access, typename Size_Type>
+#define PB_DS_CLASS_C_DEC cc_hash_max_collision_check_resize_trigger<External_Load_Access, Size_Type>
+
+  // A resize trigger policy based on collision checks. It keeps the
+  // simulated load factor lower than some given load factor.
+  template<bool External_Load_Access = false, typename Size_Type = size_t>
+  class cc_hash_max_collision_check_resize_trigger
+  {
+  public:
+    typedef Size_Type size_type;
+
+    enum
+      {
+	external_load_access = External_Load_Access
+      };
+
+    // Default constructor, or constructor taking load, a __load
+    // factor which it will attempt to maintain.
+    cc_hash_max_collision_check_resize_trigger(float load = 0.5);
+
+    void
+    swap(PB_DS_CLASS_C_DEC& other);
+
+    // Returns the current load.
+    inline float
+    get_load() const;
+
+    // Sets the load; does not resize the container.
+    void
+    set_load(float load);
+
+  protected:
+    inline void
+    notify_insert_search_start();
+
+    inline void
+    notify_insert_search_collision();
+
+    inline void
+    notify_insert_search_end();
+
+    inline void
+    notify_find_search_start();
+
+    inline void
+    notify_find_search_collision();
+
+    inline void
+    notify_find_search_end();
+
+    inline void
+    notify_erase_search_start();
+
+    inline void
+    notify_erase_search_collision();
+
+    inline void
+    notify_erase_search_end();
+
+    inline void
+    notify_inserted(size_type num_entries);
+
+    inline void
+    notify_erased(size_type num_entries);
+
+    void
+    notify_cleared();
+
+    // Notifies the table was resized as a result of this object's
+    // signifying that a resize is needed.
+    void
+    notify_resized(size_type new_size);
+
+    void
+    notify_externally_resized(size_type new_size);
+
+    inline bool
+    is_resize_needed() const;
+
+    inline bool
+    is_grow_needed(size_type size, size_type num_entries) const;
+
+  private:
+    void
+    calc_max_num_coll();
+
+    inline void
+    calc_resize_needed();
+
+    float 	m_load;
+    size_type 	m_size;
+    size_type 	m_num_col;
+    size_type 	m_max_col;
+    bool 	m_resize_needed;
+  };
+
+#include <ext/pb_ds/detail/resize_policy/cc_hash_max_collision_check_resize_trigger_imp.hpp>
+
+#undef PB_DS_CLASS_T_DEC
+#undef PB_DS_CLASS_C_DEC
+
+#define PB_DS_CLASS_T_DEC template<typename Size_Type>
+#define PB_DS_CLASS_C_DEC hash_exponential_size_policy<Size_Type>
+
+  // A size policy whose sequence of sizes form an exponential
+  // sequence (typically powers of 2.
+  template<typename Size_Type = size_t>
+  class hash_exponential_size_policy
+  {
+  public:
+    typedef Size_Type size_type;
+
+    // Default constructor, or onstructor taking a start_size, or
+    // constructor taking a start size and grow_factor. The policy
+    // will use the sequence of sizes start_size, start_size*
+    // grow_factor, start_size* grow_factor^2, ...
+    hash_exponential_size_policy(size_type start_size = 8,
+				 size_type grow_factor = 2);
+
+    void
+    swap(PB_DS_CLASS_C_DEC& other);
+
+  protected:
+    size_type
+    get_nearest_larger_size(size_type size) const;
+
+    size_type
+    get_nearest_smaller_size(size_type size) const;
+
+  private:
+    size_type m_start_size;
+    size_type m_grow_factor;
+  };
+
+#include <ext/pb_ds/detail/resize_policy/hash_exponential_size_policy_imp.hpp>
+
+#undef PB_DS_CLASS_T_DEC
+#undef PB_DS_CLASS_C_DEC
+
+#define PB_DS_CLASS_T_DEC
+#define PB_DS_CLASS_C_DEC hash_prime_size_policy
+
+  // A size policy whose sequence of sizes form a nearly-exponential
+  // sequence of primes.
+  class hash_prime_size_policy
+  {
+  public:
+    // Size type.
+    typedef size_t size_type;
+
+    // Default constructor, or onstructor taking a start_size The
+    // policy will use the sequence of sizes approximately
+    // start_size, start_size* 2, start_size* 2^2, ...
+    hash_prime_size_Í1  Î1  Ï1  Ì1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  policy(size_type start_size = 8);
+
+    inline void
+    swap(PB_DS_CLASS_C_DEC& other);
+
+  protected:
+    size_type
+    get_nearest_larger_size(size_type size) const;
+
+    size_type
+    get_nearest_smaller_size(size_type size) const;
+
+  private:
+    size_type m_start_size;
+  };
+
+#include <ext/pb_ds/detail/resize_policy/hash_prime_size_policy_imp.hpp>
+
+#undef PB_DS_CLASS_T_DEC
+#undef PB_DS_CLASS_C_DEC
+
+#define PB_DS_CLASS_T_DEC template<typename Size_Policy, typename Trigger_Policy, bool External_Size_Access, typename Size_Type>
+
+#define PB_DS_CLASS_C_DEC hash_standard_resize_policy<Size_Policy, Trigger_Policy, External_Size_Access, Size_Type>
+
+  // A resize policy which delegates operations to size and trigger policies.
+  template<typename Size_Policy = hash_exponential_size_policy<>,
+	   typename Trigger_Policy = hash_load_check_resize_trigger<>,
+	   bool External_Size_Access = false,
+	   typename Size_Type = size_t>
+  class hash_standard_resize_policy 
+  : public Size_Policy, public Trigger_Policy
+  {
+  public:
+    typedef Size_Type 		size_type;
+    typedef Trigger_Policy 	trigger_policy;
+    typedef Size_Policy 	size_policy;
+
+    enum
+      {
+	external_size_access = External_Size_Access
+      };
+
+    // Default constructor.
+    hash_standard_resize_policy();
+
+    // constructor taking some policies r_size_policy will be copied
+    // by the Size_Policy object of this object.
+    hash_standard_resize_policy(const Size_Policy& r_size_policy);
+
+    // constructor taking some policies. r_size_policy will be
+    // copied by the Size_Policy object of this
+    // object. r_trigger_policy will be copied by the Trigger_Policy
+    // object of this object.
+    hash_standard_resize_policy(const Size_Policy& r_size_policy, 
+				const Trigger_Policy& r_trigger_policy);
+
+    virtual
+    ~hash_standard_resize_policy();
+
+    inline void
+    swap(PB_DS_CLASS_C_DEC& other);
+
+    // Access to the Size_Policy object used.
+    Size_Policy& 
+    get_size_policy();
+
+    // Const access to the Size_Policy object used.
+    const Size_Policy& 
+    get_size_policy() const;
+
+    // Access to the Trigger_Policy object used.
+    Trigger_Policy& 
+    get_trigger_policy();
+
+    // Access to the Trigger_Policy object used.
+    const Trigger_Policy& 
+    get_trigger_policy() const;
+
+    // Returns the actual size of the container.
+    inline size_type
+    get_actual_size() const;
+
+    // Resizes the container to suggested_new_size, a suggested size
+    // (the actual size will be determined by the Size_Policy
+    // object).
+    void
+    resize(size_type suggested_new_size);
+
+  protected:
+    inline void
+    notify_insert_search_start();
+
+    inline void
+    notify_insert_search_collision();
+
+    inline void
+    notify_insert_search_end();
+
+    inline void
+    notify_find_search_start();
+
+    inline void
+    notify_find_search_collision();
+
+    inline void
+    notify_find_search_end();
+
+    inline void
+    notify_erase_search_start();
+
+    inline void
+    notify_erase_search_collision();
+
+    inline void
+    notify_erase_search_end();
+
+    inline void
+    notify_inserted(size_type num_e);
+
+    inline void
+    notify_erased(size_type num_e);
+
+    void
+    notify_cleared();
+
+    void
+    notify_resized(size_type new_size);
+
+    inline bool
+    is_resize_needed() const;
+
+    // Queries what the new size should be, when the container is
+    // resized naturally. The current __size of the container is
+    // size, and the number of used entries within the container is
+    // num_used_e.
+    size_type
+    get_new_size(size_type size, size_type num_used_e) const;
+
+  private:
+    // Resizes to new_size.
+    virtual void
+    do_resize(size_type new_size);
+
+    typedef Trigger_Policy trigger_policy_base;
+
+    typedef Size_Policy size_policy_base;
+
+    size_type m_size;
+  };
+
+#include <ext/pb_ds/detail/resize_policy/hash_standard_resize_policy_imp.hpp>
+
+#undef PB_DS_CLASS_T_DEC
+#undef PB_DS_CLASS_C_DEC
+
+} // namespace __gnu_pbds
+
+#endif 
+                                                                                                                              // -*- C++ -*-
+
+// Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the terms
+// of the GNU General Public License as published by the Free Software
+// Foundation; either version 2, or (at your option) any later
+// version.
+
+// This library is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
+// MA 02111-1307, USA.
+
+// As a special exception, you may use this file as part of a free
+// software library without restriction.  Specifically, if other files
+// instantiate templates or use macros or inline functions from this
+// file, or you compile this file and link it with other files to
+// produce an executable, this file does not by itself cause the
+// resulting executable to be covered by the GNU General Public
+// License.  This exception does not however invalidate any other
+// reasons why the executable file might be covered by the GNU General
+// Public License.
+
+// Copyright (C) 2004 Ami Tavory and Vladimir Dreizin, IBM-HRL.
+
+// Permission to use, copy, modify, sell, and distribute this software
+// is hereby granted without fee, provided that the above copyright
+// notice appears in all copies, and that both that copyright notice
+// and this permission notice appear in supporting documentation. None
+// of the above authors, nor IBM Haifa Research Laboratories, make any
+// representation about the suitability of this software for any
+// purpose. It is provided "as is" without express or implied
+// warranty.
+
+/**
+ * @file trie_policy.hpp
+ * Contains trie-related policies.
+ */
+
+#ifndef PB_DS_TRIE_POLICY_HPP
+#define PB_DS_TRIE_POLICY_HPP
+
+#include <string>
+#include <ext/pb_ds/detail/type_utils.hpp>
+#include <ext/pb_ds/detail/trie_policy/trie_policy_base.hpp>
+
+namespace __gnu_pbds
+{
+  // A null node updator, indicating that no node updates are required.
+  template<typename Const_Node_Iterator,
+	   typename Node_Iterator,
+	   typename E_Access_Traits,
+	   typename Allocator>
+  struct null_trie_node_update
+  { };
+
+#define PB_DS_CLASS_T_DEC						\
+  template<typename String, typename String::value_type Min_E_Val, typename String::value_type Max_E_Val, bool Reverse, typename Allocator>
+
+#define PB_DS_CLASS_C_DEC						\
+  string_trie_e_access_traits<String, Min_E_Val,Max_E_Val,Reverse,Allocator>
+
+  // Element access traits for string types.
+  template<typename String = std::string,
+	   typename String::value_type Min_E_Val = detail::__numeric_traits<typename String::value_type>::__min, 
+	   typename String::value_type Max_E_Val = detail::__numeric_traits<typename String::value_type>::__max, 
+	   bool Reverse = false,
+	   typename Allocator = std::allocator<char> >
+  struct string_trie_e_access_traits
+  {
+  public:
+    typedef typename Allocator::size_type size_type;
+    typedef String key_type;
+    typedef typename Allocator::template rebind<key_type>::other key_rebind;
+    typedef typename key_rebind::const_reference const_key_reference;
+
+    enum
+      {
+	reverse = Reverse
+      };
+
+    // Element const iterator type.
+    typedef typename detail::__conditional_type<Reverse, typename String::const_reverse_iterator, typename String::const_iterator>::__type const_iterator;
+
+    // Element type.
+    typedef typename std::iterator_traits<const_iterator>::value_type e_type;
+
+    enum
+      {
+	min_e_val = Min_E_Val,
+	max_e_val = Max_E_Val,
+	max_size = max_e_val - min_e_val + 1
+      };
+    PB_DS_STATIC_ASSERT(min_max_size, max_size >= 2);
+
+    // Returns a const_iterator to the first element of
+    // const_key_reference agumnet.
+    inline static const_iterator
+    begin(const_key_reference);
+
+    // Returns a const_iterator to the after-last element of
+    // const_key_reference argument.
+    inline static const_iterator
+    end(const_key_reference);
+
+    // Maps an element to a position.
+    inline static size_type
+    e_pos(e_type e);
+
+  private:
+
+    inline static const_iterator
+    begin_imp(const_key_reference, detail::false_type);
+
+    inline static const_iterator
+    begin_imp(const_key_reference, detail::true_type);
+
+    inline static const_iterator
+    end_imp(const_key_reference, detail::false_type);
+
+    inline static const_iterator
+    end_imp(const_key_reference, detail::true_type);
+
+    static detail::integral_constant<int, Reverse> s_rev_ind;
+  };
+
+#include <ext/pb_ds/detail/trie_policy/string_trie_e_access_traits_imp.hpp>
+
+#undef PB_DS_CLASS_T_DEC
+#undef PB_DS_CLASS_C_DEC
+
+#define PB_DS_CLASS_T_DEC \
+  template<typename Const_Node_Iterator,typename Node_Iterator,class E_Access_Traits, typename Allocator>
+
+#define PB_DS_CLASS_C_DEC \
+  trie_prefix_search_node_update<Const_Node_Iterator, Node_Iterator, E_Access_Traits,Allocator>
+
+#define PB_DS_BASE_C_DEC \
+  detail::trie_policy_base<Const_Node_Iterator,Node_Iterator,E_Access_Traits, Allocator>
+
+  // A node updator that allows tries to be searched for the range of
+  // values that match a certain prefix.
+  template<typename Const_Node_Iterator,
+	   typename Node_Iterator,
+	   typename E_Access_Traits,
+	   typename Allocator>
+  class trie_prefix_search_node_update : private PB_DS_BASE_C_DEC
+  {
+  private:
+    typedef PB_DS_BASE_C_DEC base_type;
+
+  public:
+    typedef typename base_type::key_type key_type;
+    typedef typename base_type::const_key_reference const_key_reference;
+
+    // Element access traits.
+    typedef E_Access_Traits e_access_traits;
+
+    // Const element iterator.
+    typedef typename e_access_traits::const_iterator const_e_iterator;
+
+    // Allocator type.
+    typedef Allocator allocator;
+
+    // Size type.
+    typedef typename allocator::size_type size_type;
+    typedef detail::null_node_metadata metadata_type;
+    typedef Const_Node_Iterator const_node_iterator;
+    typedef Node_Iterator node_iterator;
+    typedef typename const_node_iterator::value_type const_iterator;
+    typedef typename node_iterator::value_type iterator;
+
+    // Finds the const iterator range corresponding to all values
+    // whose prefixes match r_key.
+    std::pair<const_iterator, const_iterator>
+    prefix_range(const_key_reference) const;
+
+    // Finds the iterator range corresponding to all values whose
+    // prefixes match r_key.
+    std::pair<iterator, iterator>
+    prefix_range(const_key_reference);
+
+    // Finds the const iterator range corresponding to all values
+    // whose prefixes match [b, e).
+    std::pair<const_iterator, const_iterator>
+    prefix_range(const_e_iterator, const_e_iterator) const;
+
+    // Finds the iterator range corresponding to all values whose
+    // prefixes match [b, e).
+    std::pair<iterator, iterator>
+    prefix_range(const_e_iterator, const_e_iterator);
+
+  protected:
+    // Called to update a node's metadata.
+    inline void
+    operator()(node_iterator node_it, const_node_iterator end_nd_it) const;
+
+  private:
+    // Returns the const iterator associated with the just-after last element.
+    virtual const_iterator
+    end() const = 0;
+
+    // Returns the iterator associated with the just-after last element.
+    virtual iterator
+    end() = 0;
+
+    // Returns the const_node_iterator associated with the trie's root node.
+    virtual const_node_iterator
+    node_begin() const = 0;
+
+    // Returns the node_iterator associated with the trie's root node.
+    virtual node_iterator
+    node_begin() = 0;
+
+    // Returns the const_node_iterator associated with a just-after leaf node.
+    virtual const_node_iterator
+    node_end() const = 0;
+
+    // Returns the node_iterator associated with a just-after leaf node.
+    virtual node_iterator
+    node_end() = 0;
+
+    // Access to the cmp_fn object.
+    virtual const e_access_traits& 
+    get_e_access_traits() const = 0;
+
+    node_iterator
+    next_child(node_iterator, const_e_iterator, const_e_iterator, 
+	       node_iterator, const e_access_traits&);
+  };
+
+#include <ext/pb_ds/detail/trie_policy/prefix_search_node_update_imp.hpp>
+
+#undef PB_DS_CLASS_C_DEC
+
+#define PB_DS_CLASS_C_DEC \
+  trie_order_statistics_node_update<Const_Node_Iterator, Node_Iterator,E_Access_Traits, Allocator>
+
+  // Functor updating ranks of entrees.
+  template<typename Const_Node_Iterator,
+	   typename Node_Iterator,
+	   typename E_Access_Traits,
+	   typename Allocator>
+  class trie_order_statistics_node_update : private PB_DS_BASE_C_DEC
+  {
+  private:
+    typedef PB_DS_BASE_C_DEC base_type;
+
+  public:
+    typedef E_Access_Traits e_access_traits;
+    typedef typename e_access_traits::const_iterator const_e_iterator;
+    typedef Allocator allocator;
+    typedef typename allocator::size_type size_type;
+    typedef typename base_type::key_type key_type;
+    typedef typename base_type::const_key_reference const_key_reference;
+
+    typedef size_type metadata_type;
+    typedef Const_Node_Iterator const_node_iterator;
+    typedef Node_Iterator node_iterator;
+    typedef typename const_node_iterator::value_type const_iterator;
+    typedef typename node_iterator::value_type iterator;
+
+    // Finds an entry by __order. Returns a const_iterator to the
+    // entry with the __order order, or a const_iterator to the
+    // container object's end if order is at least the size of the
+    // container object.
+    inline const_iterator
+    find_by_order(size_type) const;
+
+    // Finds an entry by __order. Returns an iterator to the entry
+    // with the __order order, or an iterator to the container
+    // object's end if order is at least the size of the container
+    // object.
+    inline iterator
+    find_by_order(size_type);
+
+    // Returns the order of a key within a sequence. For exapmle, if
+    // r_key is the smallest key, this method will return 0; if r_key
+    // is a key between the smallest and next key, this method will
+    // return 1; if r_key is a key larger than the largest key, this
+    // method will return the size of r_c.
+    inline size_type
+    order_of_key(const_key_reference) const;
+
+    // Returns the order of a prefix within a sequence. For exapmle,
+    // if [b, e] is the smallest prefix, this method will return 0; if
+    // r_key is a key between the smallest and next key, this method
+    // will return 1; if r_key is a key larger than the largest key,
+    // this method will return the size of r_c.
+    inline size_type
+    order_of_prefix(const_e_iterator, const_e_iterator) const;
+
+  private:
+    typedef typename base_type::const_reference const_reference;
+    typedef typename base_type::const_pointer const_pointer;
+
+    typedef typename Allocator::template rebind<metadata_type>::other metadata_rebind;
+    typedef typename metadata_rebind::const_reference const_metadata_reference;
+    typedef typename metadata_rebind::reference metadata_reference;
+
+    // Returns true if the container is empty.
+    virtual bool
+    empty() const = 0;
+
+    // Returns the iterator associated with the trie's first element.
+    virtual iterator
+    begin() = 0;
+
+    // Returns the iterator associated with the trie's
+    // just-after-last element.
+    virtual iterator
+    end() = 0;
+
+    // Returns the const_node_iterator associated with the trie's root node.
+    virtual const_node_iterator
+    node_begin() const = 0;
+
+    // Returns the node_iterator associated with the trie's root node.
+    virtual node_iterator
+    node_begin() = 0;
+
+    // Returns the const_node_iterator associated with a just-after
+    // leaf node.
+    virtual const_node_iterator
+    node_end() const = 0;
+
+    // Returns the node_iterator associated with a just-after leaf node.
+    virtual node_iterator
+    node_end() = 0;
+
+    // Access to the cmp_fn object.
+    virtual e_access_traits& 
+    get_e_access_traits() = 0;
+
+  protected:
+    // Updates the rank of a node through a node_iterator node_it;
+    // end_nd_it is the end node iterator.
+    inline void
+    operator()(node_iterator, const_node_iterator) const;
+
+    // Destructor.
+    virtual
+    ~trie_order_statistics˚1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              _node_update();
+  };
+
+#include <ext/pb_ds/detail/trie_policy/order_statistics_imp.hpp>
+
+#undef PB_DS_CLASS_T_DEC
+#undef PB_DS_CLASS_C_DEC
+#undef PB_DS_BASE_C_DEC
+
+} // namespace __gnu_pbds
+
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           X   .   S   ..  Y   basic_types.hpp Z   type_utils.hpp  [   gp_hash_table_map_  t   ov_tree_map_Å  (  priority_queue_base_dispatch.hppÇ   basic_tree_policy   Ü   unordered_iterator  ã  ( left_child_next_sibling_heap_   ô  $ container_base_dispatch.hpp ö   binary_heap_´   types_traits.hpp¨   cond_dealtor.hpp≠   rc_binomial_heap_   ∂   eq_fn   π  , #constructors_destructor_fn_imps.hpp ∫   rb_tree_map_≈   binomial_heap_base_ Õ   binomial_heap_  —   hash_fn ﬂ   debug_map_base.hpp  ‡    standard_policies.hpp   ·   tree_policy Ê   	pat_trie_      resize_policy      list_update_policy     tree_trace_base.hpp    
+thin_heap_     trie_policy $   pairing_heap_   ,   cc_hash_table_map_  H   bin_search_tree_Z   list_update_map_e  ® splay_tree_                                                                                                                                                     // -*- C++ -*-
+
+// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the terms
+// of the GNU General Public License as published by the Free Software
+// Foundation; either version 2, or (at your option) any later
+// version.
+
+// This library is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
+// MA 02111-1307, USA.
+
+// As a special exception, you may use this file as part of a free
+// software library without restriction.  Specifically, if other files
+// instantiate templates or use macros or inline functions from this
+// file, or you compile this file and link it with other files to
+// produce an executable, this file does not by itself cause the
+// resulting executable to be covered by the GNU General Public
+// License.  This exception does not however invalidate any other
+// reasons why the executable file might be covered by the GNU General
+// Public License.
+
+// Copyright (C) 2004 Ami Tavory and Vladimir Dreizin, IBM-HRL.
+
+// Permission to use, copy, modify, sell, and distribute this software
+// is hereby granted without fee, provided that the above copyright
+// notice appears in all copies, and that both that copyright notice
+// and this permission notice appear in supporting documentation. None
+// of the above authors, nor IBM Haifa Research Laboratories, make any
+// representation about the suitability of this software for any
+// purpose. It is provided "as is" without express or implied
+// warranty.
+
+/**
+ * @file basic_types.hpp
+ * Contains basic types used by containers.
+ */
+
+#ifndef PB_DS_BASIC_TYPES_HPP
+#define PB_DS_BASIC_TYPES_HPP
+
+#include <algorithm>
+#include <utility>
+#include <ext/pb_ds/tag_and_trait.hpp>
+#include <ext/pb_ds/detail/type_utils.hpp>
+
+namespace __gnu_pbds
+{
+  namespace detail
+  {
+    template<typename Key, typename Mapped, typename Allocator, bool Store_Hash>
+    struct value_type_base;
+
+    /**
+     * Specialization of value_type_base for the case where the hash value
+     * is not stored alongside each value.
+     **/
+    template<typename Key, typename Mapped, typename Allocator>
+    struct value_type_base<Key, Mapped, Allocator, false>
+    {
+      typedef typename Allocator::template rebind<Mapped>::other mapped_type_allocator;
+      typedef typename mapped_type_allocator::value_type mapped_type;
+      typedef typename mapped_type_allocator::pointer mapped_pointer;
+      typedef typename mapped_type_allocator::const_pointer const_mapped_pointer;
+      typedef typename mapped_type_allocator::reference mapped_reference;
+      typedef typename mapped_type_allocator::co

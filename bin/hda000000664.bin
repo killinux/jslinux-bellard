@@ -1,0 +1,1435 @@
+ghpart'
+     Perform a signed multiplication of operands 1 and 2, which have
+     mode M, and store the most significant half of the product in
+     operand 0.  The least significant half of the product is discarded.
+
+`umulM3_highpart'
+     Similar, but the multiplication is unsigned.
+
+`maddMN4'
+     Multiply operands 1 and 2, sign-extend them to mode N, add operand
+     3, and store the result in operand 0.  Operands 1 and 2 have mode
+     M and operands 0 and 3 have mode N.  Both modes must be integer or
+     fixed-point modes and N must be twice the size of M.
+
+     In other words, `maddMN4' is like `mulMN3' except that it also
+     adds operand 3.
+
+     These instructions are not allowed to `FAIL'.
+
+`umaddMN4'
+     Like `maddMN4', but zero-extend the multiplication operands
+     instead of sign-extending them.
+
+`ssmaddMN4'
+     Like `maddMN4', but all involved operations must be
+     signed-saturating.
+
+`usmaddMN4'
+     Like `umaddMN4', but all involved operations must be
+     unsigned-saturating.
+
+`msubMN4'
+     Multiply operands 1 and 2, sign-extend them to mode N, subtract the
+     result from operand 3, and store the result in operand 0.
+     Operands 1 and 2 have mode M and operands 0 and 3 have mode N.
+     Both modes must be integer or fixed-point modes and N must be twice
+     the size of M.
+
+     In other words, `msubMN4' is like `mulMN3' except that it also
+     subtracts the result from operand 3.
+
+     These instructions are not allowed to `FAIL'.
+
+`umsubMN4'
+     Like `msubMN4', but zero-extend the multiplication operands
+     instead of sign-extending them.
+
+`ssmsubMN4'
+     Like `msubMN4', but all involved operations must be
+     signed-saturating.
+
+`usmsubMN4'
+     Like `umsubMN4', but all involved operations must be
+     unsigned-saturating.
+
+`divmodM4'
+     Signed division that produces both a quotient and a remainder.
+     Operand 1 is divided by operand 2 to produce a quotient stored in
+     operand 0 and a remainder stored in operand 3.
+
+     For machines with an instruction that produces both a quotient and
+     a remainder, provide a pattern for `divmodM4' but do not provide
+     patterns for `divM3' and `modM3'.  This allows optimization in the
+     relatively common case when both the quotient and remainder are
+     computed.
+
+     If an instruction that just produces a quotient or just a remainder
+     exists and is more efficient than the instruction that produces
+     both, write the output routine of `divmodM4' to call
+     `find_reg_note' and look for a `REG_UNUSED' note on the quotient
+     or remainder and generate the appropriate instruction.
+
+`udivmodM4'
+     Similar, but does unsigned division.
+
+`ashlM3', `ssashlM3', `usashlM3'
+     Arithmetic-shift operand 1 left by a number of bits specified by
+     operand 2, and store the result in operand 0.  Here M is the mode
+     of operand 0 and operand 1; operand 2's mode is specified by the
+     instruction pattern, and the compiler will convert the operand to
+     that mode before generating the instruction.  The meaning of
+     out-of-range shift counts can optionally be specified by
+     `TARGET_SHIFT_TRUNCATION_MASK'.  *Note
+     TARGET_SHIFT_TRUNCATION_MASK::.
+
+`ashrM3', `lshrM3', `rotlM3', `rotrM3'
+     Other shift and rotate instructions, analogous to the `ashlM3'
+     instructions.
+
+`negM2', `ssnegM2', `usnegM2'
+     Negate operand 1 and store the result in operand 0.
+
+`absM2'
+     Store the absolute value of operand 1 into operand 0.
+
+`sqrtM2'
+     Store the square root of operand 1 into operand 0.
+
+     The `sqrt' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `sqrtf' built-in
+     function uses the mode which corresponds to the C data type
+     `float'.
+
+`fmodM3'
+     Store the remainder of dividing operand 1 by operand 2 into
+     operand 0, rounded towards zero to an integer.
+
+     The `fmod' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `fmodf' built-in
+     function uses the mode which corresponds to the C data type
+     `float'.
+
+`remainderM3'
+     Store the remainder of dividing operand 1 by operand 2 into
+     operand 0, rounded to the nearest integer.
+
+     The `remainder' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `remainderf'
+     built-in function uses the mode which corresponds to the C data
+     type `float'.
+
+`cosM2'
+     Store the cosine of operand 1 into operand 0.
+
+     The `cos' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `cosf' built-in
+     function uses the mode which corresponds to the C data type
+     `float'.
+
+`sinM2'
+     Store the sine of operand 1 into operand 0.
+
+     The `sin' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `sinf' built-in
+     function uses the mode which corresponds to the C data type
+     `float'.
+
+`expM2'
+     Store the exponential of operand 1 into operand 0.
+
+     The `exp' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `expf' built-in
+     function uses the mode which corresponds to the C data type
+     `float'.
+
+`logM2'
+     Store the natural logarithm of operand 1 into operand 0.
+
+     The `log' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `logf' built-in
+     function uses the mode which corresponds to the C data type
+     `float'.
+
+`powM3'
+     Store the value of operand 1 raised to the exponent operand 2 into
+     operand 0.
+
+     The `pow' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `powf' built-in
+     function uses the mode which corresponds to the C data type
+     `float'.
+
+`atan2M3'
+     Store the arc tangent (inverse tangent) of operand 1 divided by
+     operand 2 into operand 0, using the signs of both arguments to
+     determine the quadrant of the result.
+
+     The `atan2' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `atan2f' built-in
+     function uses the mode which corresponds to the C data type
+     `float'.
+
+`floorM2'
+     Store the largest integral value not greater than argument.
+
+     The `floor' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `floorf' built-in
+     function uses the mode which corresponds to the C data type
+     `float'.
+
+`btruncM2'
+     Store the argument rounded to integer towards zero.
+
+     The `trunc' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `truncf' built-in
+     function uses the mode which corresponds to the C data type
+     `float'.
+
+`roundM2'
+     Store the argument rounded to integer away from zero.
+
+     The `round' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `roundf' built-in
+     function uses the mode which corresponds to the C data type
+     `float'.
+
+`ceilM2'
+     Store the argument rounded to integer away from zero.
+
+     The `ceil' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `ceilf' built-in
+     function uses the mode which corresponds to the C data type
+     `float'.
+
+`nearbyintM2'
+     Store the argument rounded according to the default rounding mode
+
+     The `nearbyint' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `nearbyintf'
+     built-in function uses the mode which corresponds to the C data
+     type `float'.
+
+`rintM2'
+     Store the argument rounded according to the default rounding mode
+     and raise the inexact exception when the result differs in value
+     from the argument
+
+     The `rint' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `rintf' built-in
+     function uses the mode which corresponds to the C data type
+     `float'.
+
+`lrintMN2'
+     Convert operand 1 (valid for floating point mode M) to fixed point
+     mode N as a signed number according to the current rounding mode
+     and store in operand 0 (which has mode N).
+
+`lroundM2'
+     Convert operand 1 (valid for floating point mode M) to fixed point
+     mode N as a signed number rounding to nearest and away from zero
+     and store in operand 0 (which has mode N).
+
+`lfloorM2'
+     Convert operand 1 (valid for floating point mode M) to fixed point
+     mode N as a signed number rounding down and store in operand 0
+     (which has mode N).
+
+`lceilM2'
+     Convert operand 1 (valid for floating point mode M) to fixed point
+     mode N as a signed number rounding up and store in operand 0
+     (which has mode N).
+
+`copysignM3'
+     Store a value with the magnitude of operand 1 and the sign of
+     operand 2 into operand 0.
+
+     The `copysign' built-in function of C always uses the mode which
+     corresponds to the C data type `double' and the `copysignf'
+     built-in function uses the mode which corresponds to the C data
+     type `float'.
+
+`ffsM2'
+     Store into operand 0 one plus the index of the least significant
+     1-bit of operand 1.  If operand 1 is zero, store zero.  M is the
+     mode of operand 0; operand 1's mode is specified by the instruction
+     pattern, and the compiler will convert the operand to that mode
+     before generating the instruction.
+
+     The `ffs' built-in function of C always uses the mode which
+     corresponds to the C data type `int'.
+
+`clzM2'
+     Store into operand 0 the number of leading 0-bits in X, starting
+     at the most significant bit position.  If X is 0, the
+     `CLZ_DEFINED_VALUE_AT_ZERO' (*note Misc::) macro defines if the
+     result is undefined or has a useful value.  M is the mode of
+     operand 0; operand 1's mode is specified by the instruction
+     pattern, and the compiler will convert the operand to that mode
+     before generating the instruction.
+
+`ctzM2'
+     Store into operand 0 the number of trailing 0-bits in X, starting
+     at the least significant bit position.  If X is 0, the
+     `CTZ_DEFINED_VALUE_AT_ZERO' (*note Misc::) macro defines if the
+     result is undefined or has a useful value.  M is the mode of
+     operand 0; operand 1's mode is specified by the instruction
+     pattern, and the compiler will convert the operand to that mode
+     before generating the instruction.
+
+`popcountM2'
+     Store into operand 0 the number of 1-bits in X.  M is the mode of
+     operand 0; operand 1's mode is specified by the instruction
+     pattern, and the compiler will convert the operand to that mode
+     before generating the instruction.
+
+`parityM2'
+     Store into operand 0 the parity of X, i.e. the number of 1-bits in
+     X modulo 2.  M is the mode of operand 0; operand 1's mode is
+     specified by the instruction pattern, and the compiler will convert
+     the operand to that mode before generating the instruction.
+
+`one_cmplM2'
+     Store the bitwise-complement of operand 1 into operand 0.
+
+`cmpM'
+     Compare operand 0 and operand 1, and set the condition codes.  The
+     RTL pattern should look like this:
+
+          (set (cc0) (compare (match_operand:M 0 ...)
+                              (match_operand:M 1 ...)))
+
+`tstM'
+     Compare operand 0 against zero, and set the condition codes.  The
+     RTL pattern should look like this:
+
+          (set (cc0) (match_operand:M 0 ...))
+
+     `tstM' patterns should not be defined for machines that do not use
+     `(cc0)'.  Doing so would confuse the optimizer since it would no
+     longer be clear which `set' operations were comparisons.  The
+     `cmpM' patterns should be used instead.
+
+`movmemM'
+     Block move instruction.  The destination and source blocks of
+     memory are the first two operands, and both are `mem:BLK's with an
+     address in mode `Pmode'.
+
+     The number of bytes to move is the third operand, in mode M.
+     Usually, you specify `word_mode' for M.  However, if you can
+     generate better code knowing the range of valid lengths is smaller
+     than those representable in a full word, you should provide a
+     pattern with a mode corresponding to the range of values you can
+     handle efficiently (e.g., `QImode' for values in the range 0-127;
+     note we avoid numbers that appear negative) and also a pattern
+     with `word_mode'.
+
+     The fourth operand is the known shared alignment of the source and
+     destination, in the form of a `const_int' rtx.  Thus, if the
+     compiler knows that both source and destination are word-aligned,
+     it may provide the value 4 for this operand.
+
+     Optional operands 5 and 6 specify expected alignment and size of
+     block respectively.  The expected alignment differs from alignment
+     in operand 4 in a way that the blocks are not required to be
+     aligned according to it in all cases. Expected size, when unknown,
+     is set to `(const_int -1)'.
+
+     Descriptions of multiple `movmemM' patterns can only be beneficial
+     if the patterns for smaller modes have fewer restrictions on their
+     first, second and fourth operands.  Note that the mode M in
+     `movmemM' does not impose any restriction on the mode of
+     individually moved data units in the block.
+
+     These patterns need not give special consideration to the
+     possibility that the source and destination strings might overlap.
+
+`movstr'
+     String copy instruction, with `stpcpy' semantics.  Operand 0 is an
+     output operand in mode `Pmode'.  The addresses of the destination
+     and source strings are operands 1 and 2, and both are `mem:BLK's
+     with addresses in mode `Pmode'.  The execution of the expansion of
+     this pattern should store in operand 0 the address in which the
+     `NUL' terminator was stored in the destination string.
+
+`setmemM'
+     Block set instruction.  The destination string is the first
+     operand, given as a `mem:BLK' whose address is in mode `Pmode'.
+     The number of bytes to set is the second operand, in mode M.  The
+     value to initialize the memory with is the third operand. Targets
+     that only support the clearing of memory should reject any value
+     that is not the constant 0.  See `movmemM' for a discussion of the
+     choice of mode.
+
+     The fourth operand is the known alignment of the destination, in
+     the form of a `const_int' rtx.  Thus, if the compiler knows that
+     the destination is word-aligned, it may provide the value 4 for
+     this operand.
+
+     Optional operands 5 and 6 specify expected alignment and size of
+     block respectively.  The expected alignment differs from alignment
+     in operand 4 in a way that the blocks are not required to be
+     aligned according to it in all cases. Expected size, when unknown,
+     is set to `(const_int -1)'.
+
+     The use for multiple `setmemM' is as for `movmemM'.
+
+`cmpstrnM'
+     String compare instruction, with five operands.  Operand 0 is the
+     output; it has mode M.  The remaining four operands are like the
+     operands of `movmemM'.  The two memory blocks specified are
+     compared byte by byte in lexicographic order starting at the
+     beginning of each string.  The instruction is not allowed to
+     prefetch more than one byte at a time since either string may end
+     in the first byte and reading past that may access an invalid page
+     or segment and cause a fault.  The effect of the instruction is to
+     store a value in operand 0 whose sign indicates the result of the
+     comparison.
+
+`cmpstrM'
+     String compare instruction, without known maximum length.  Operand
+     0 is the output; it has mode M.  The second and third operand are
+     the blocks of memory to be compared; both are `mem:BLK' with an
+     address in mode `Pmode'.
+
+     The fourth operand is the known shared alignment of the source and
+     destination, in the form of a `const_int' rtx.  Thus, if the
+     compiler knows that both source and destination are word-aligned,
+     it may provide the value 4 for this operand.
+
+     The two memory blocks specified are compared byte by byte in
+     lexicographic order starting at the beginning of each string.  The
+     instruction is not allowed to prefetch more than one byte at a
+     time since either string may end in the first byte and reading
+     past that may access an invalid page or segment and cause a fault.
+     The effect of the instruction is to store a value in operand 0
+     whose sign indicates the result of the comparison.
+
+`cmpmemM'
+     Block compare instruction, with five operands like the operands of
+     `cmpstrM'.  The two memory blocks specified are compared byte by
+     byte in lexicographic order starting at the beginning of each
+     block.  Unlike `cmpstrM' the instruction can prefetch any bytes in
+     the two memory blocks.  The effect of the instruction is to store
+     a value in operand 0 whose sign indicates the result of the
+     comparison.
+
+`strlenM'
+     Compute the length of a string, with three operands.  Operand 0 is
+     the result (of mode M), operand 1 is a `mem' referring to the
+     first character of the string, operand 2 is the character to
+     search for (normally zero), and operand 3 is a constant describing
+     the known alignment of the beginning of the string.
+
+`floatMN2'
+     Convert signed integer operand 1 (valid for fixed point mode M) to
+     floating point mode N and store in operand 0 (which has mode N).
+
+`floatunsMN2'
+     Convert unsigned integer operand 1 (valid for fixed point mode M)
+     to floating point mode N and store in operand 0 (which has mode N).
+
+`fixMN2'
+     Convert operand 1 (valid for floating point mode M) to fixed point
+     mode N as a signed number and store in operand 0 (which has mode
+     N).  This instruction's result is defined only when the value of
+     operand 1 is an integer.
+
+     If the machine description defines this pattern, it also needs to
+     define the `ftrunc' pattern.
+
+`fixunsMN2'
+     Convert operand 1 (valid for floating point mode M) to fixed point
+     mode N as an unsigned number and store in operand 0 (which has
+     mode N).  This instruction's result is defined only when the value
+     of operand 1 is an integer.
+
+`ftruncM2'
+     Convert operand 1 (valid for floating point mode M) to an integer
+     value, still represented in floating point mode M, and store it in
+     operand 0 (valid for floating point mode M).
+
+`fix_truncMN2'
+     Like `fixMN2' but works for any floating point value of mode M by
+     converting the value to an integer.
+
+`fixuns_truncMN2'
+     Like `fixunsMN2' but works for any floating point value of mode M
+     by converting the value to an integer.
+
+`truncMN2'
+     Truncate operand 1 (valid for mode M) to mode N and store in
+     operand 0 (which has mode N).  Both modes must be fixed point or
+     both floating point.
+
+`extendMN2'
+     Sign-extend operand 1 (valid for mode M) to mode N and store in
+     operand 0 (which has mode N).  Both modes must be fixed point or
+     both floating point.
+
+`zero_extendMN2'
+     Zero-extend operand 1 (valid for mode M) to mode N and store in
+     operand 0 (which has mode N).  Both modes must be fixed point.
+
+`fractMN2'
+     Convert operand 1 of mode M to mode N and store in operand 0
+     (which has mode N).  Mode M and mode N could be fixed-point to
+     fixed-point, signed integer to fixed-point, fixed-point to signed
+     integer, floating-point to fixed-point, or fixed-point to
+     floating-point.  When overflows or underflows happen, the results
+     are undefined.
+
+`satfractMN2'
+     Convert operand 1 of mode M to mode N and store in operand 0
+     (which has mode N).  Mode M and mode N could be fixed-point to
+     fixed-point, signed integer to fixed-point, or floating-point to
+     fixed-point.  When overflows or underflows happen, the instruction
+     saturates the results to the maximum or the minimum.
+
+`fractunsMN2'
+     Convert operand 1 of mode M to mode N and store in operand 0
+     (which has mode N).  Mode M and mode N could be unsigned integer
+     to fixed-point, or fixed-point to unsigned integer.  When
+     overflows or underflows happen, the results are undefined.
+
+`satfractunsMN2'
+     Convert unsigned integer operand 1 of mode M to fixed-point mode N
+     and store in operand 0 (which has mode N).  When overflows or
+     underflows happen, the instruction saturates the results to the
+     maximum or the minimum.
+
+`extv'
+     Extract a bit-field from operand 1 (a register or memory operand),
+     where operand 2 specifies the width in bits and operand 3 the
+     starting bit, and store it in operand 0.  Operand 0 must have mode
+     `word_mode'.  Operand 1 may have mode `byte_mode' or `word_mode';
+     often `word_mode' is allowed only for registers.  Operands 2 and 3
+     must be valid for `word_mode'.
+
+     The RTL generation pass generates this instruction only with
+     constants for operands 2 and 3 and the constant is never zero for
+     operand 2.
+
+     The bit-field value is sign-extended to a full word integer before
+     it is stored in operand 0.
+
+`extzv'
+     Like `extv' except that the bit-field value is zero-extended.
+
+`insv'
+     Store operand 3 (which must be valid for `word_mode') into a
+     bit-field in operand 0, where operand 1 specifies the width in¶  ¶  ¶  ¶  ¶  ¶  ¶  ¶  ¶  ¶   ¶  !¶  "¶  #¶  $¶  %¶  &¶  '¶  (¶  )¶  *¶  +¶  ,¶  -¶  .¶  /¶  0¶  1¶  2¶  3¶  4¶  5¶  6¶  7¶  8¶  9¶  :¶  ;¶  <¶  =¶  >¶  ?¶  @¶  A¶  B¶  C¶  D¶  E¶  F¶  G¶  H¶  I¶  J¶  K¶  L¶  M¶  N¶  O¶  P¶  Q¶  R¶  S¶  T¶  U¶  V¶  W¶  X¶  Y¶  Z¶  [¶  \¶  ]¶  ^¶  _¶  `¶  a¶  b¶  c¶  d¶  e¶  f¶  g¶  h¶  i¶  j¶  k¶  l¶  m¶  n¶  o¶  p¶  q¶  r¶  s¶  t¶  u¶  v¶  w¶  x¶  y¶  z¶  {¶  |¶  }¶  ~¶  ¶  Ä¶  Å¶  Ç¶  É¶  Ñ¶  Ö¶  Ü¶  á¶  à¶  â¶  ä¶  ã¶  å¶  ç¶  é¶  è¶  ê¶  ë¶  í¶  ì¶  î¶  ï¶  ñ¶  ó¶  ò¶  ô¶  ö¶  õ¶  ú¶  ù¶  û¶  ü¶  †¶  °¶  ¢¶  £¶  §¶  •¶  ¶¶  ß¶  ®¶  ©¶  ™¶  ´¶  ¨¶  ≠¶  Æ¶  Ø¶  ∞¶  ±¶  ≤¶  ≥¶  ¥¶  µ¶  ∂¶  ∑¶  ∏¶  π¶  ∫¶  ª¶  º¶  Ω¶  æ¶  ø¶  ¿¶  ¡¶  ¬¶  √¶  ƒ¶  ≈¶  ∆¶  «¶  »¶  …¶   ¶  À¶  Ã¶  Õ¶  Œ¶  œ¶  –¶  —¶  “¶  ”¶  ‘¶  ’¶  ÷¶  ◊¶  ÿ¶  Ÿ¶  ⁄¶  €¶  ‹¶  ›¶  ﬁ¶  ﬂ¶  ‡¶  ·¶  ‚¶  „¶  ‰¶  Â¶  Ê¶  Á¶  Ë¶  È¶  Í¶  Î¶  Ï¶  Ì¶  Ó¶  Ô¶  ¶  Ò¶  Ú¶  Û¶  Ù¶  ı¶  ˆ¶  ˜¶  ¯¶  ˘¶  ˙¶  ˚¶  ¸¶  ˝¶  ˛¶  ˇ¶   ß  ß  ß  ß  ß  ß  ß  ß  ß  	ß  
+ß  ß  ß  ß  ß  ß  ß  ß  ß  ß  ß  ß  
+     bits and operand 2 the starting bit.  Operand 0 may have mode
+     `byte_mode' or `word_mode'; often `word_mode' is allowed only for
+     registers.  Operands 1 and 2 must be valid for `word_mode'.
+
+     The RTL generation pass generates this instruction only with
+     constants for operands 1 and 2 and the constant is never zero for
+     operand 1.
+
+`movMODEcc'
+     Conditionally move operand 2 or operand 3 into operand 0 according
+     to the comparison in operand 1.  If the comparison is true,
+     operand 2 is moved into operand 0, otherwise operand 3 is moved.
+
+     The mode of the operands being compared need not be the same as
+     the operands being moved.  Some machines, sparc64 for example,
+     have instructions that conditionally move an integer value based
+     on the floating point condition codes and vice versa.
+
+     If the machine does not have conditional move instructions, do not
+     define these patterns.
+
+`addMODEcc'
+     Similar to `movMODEcc' but for conditional addition.  Conditionally
+     move operand 2 or (operands 2 + operand 3) into operand 0
+     according to the comparison in operand 1.  If the comparison is
+     true, operand 2 is moved into operand 0, otherwise (operand 2 +
+     operand 3) is moved.
+
+`sCOND'
+     Store zero or nonzero in the operand according to the condition
+     codes.  Value stored is nonzero iff the condition COND is true.
+     COND is the name of a comparison operation expression code, such
+     as `eq', `lt' or `leu'.
+
+     You specify the mode that the operand must have when you write the
+     `match_operand' expression.  The compiler automatically sees which
+     mode you have used and supplies an operand of that mode.
+
+     The value stored for a true condition must have 1 as its low bit,
+     or else must be negative.  Otherwise the instruction is not
+     suitable and you should omit it from the machine description.  You
+     describe to the compiler exactly which value is stored by defining
+     the macro `STORE_FLAG_VALUE' (*note Misc::).  If a description
+     cannot be found that can be used for all the `sCOND' patterns, you
+     should omit those operations from the machine description.
+
+     These operations may fail, but should do so only in relatively
+     uncommon cases; if they would fail for common cases involving
+     integer comparisons, it is best to omit these patterns.
+
+     If these operations are omitted, the compiler will usually
+     generate code that copies the constant one to the target and
+     branches around an assignment of zero to the target.  If this code
+     is more efficient than the potential instructions used for the
+     `sCOND' pattern followed by those required to convert the result
+     into a 1 or a zero in `SImode', you should omit the `sCOND'
+     operations from the machine description.
+
+`bCOND'
+     Conditional branch instruction.  Operand 0 is a `label_ref' that
+     refers to the label to jump to.  Jump if the condition codes meet
+     condition COND.
+
+     Some machines do not follow the model assumed here where a
+     comparison instruction is followed by a conditional branch
+     instruction.  In that case, the `cmpM' (and `tstM') patterns should
+     simply store the operands away and generate all the required insns
+     in a `define_expand' (*note Expander Definitions::) for the
+     conditional branch operations.  All calls to expand `bCOND'
+     patterns are immediately preceded by calls to expand either a
+     `cmpM' pattern or a `tstM' pattern.
+
+     Machines that use a pseudo register for the condition code value,
+     or where the mode used for the comparison depends on the condition
+     being tested, should also use the above mechanism.  *Note Jump
+     Patterns::.
+
+     The above discussion also applies to the `movMODEcc' and `sCOND'
+     patterns.
+
+`cbranchMODE4'
+     Conditional branch instruction combined with a compare instruction.
+     Operand 0 is a comparison operator.  Operand 1 and operand 2 are
+     the first and second operands of the comparison, respectively.
+     Operand 3 is a `label_ref' that refers to the label to jump to.
+
+`jump'
+     A jump inside a function; an unconditional branch.  Operand 0 is
+     the `label_ref' of the label to jump to.  This pattern name is
+     mandatory on all machines.
+
+`call'
+     Subroutine call instruction returning no value.  Operand 0 is the
+     function to call; operand 1 is the number of bytes of arguments
+     pushed as a `const_int'; operand 2 is the number of registers used
+     as operands.
+
+     On most machines, operand 2 is not actually stored into the RTL
+     pattern.  It is supplied for the sake of some RISC machines which
+     need to put this information into the assembler code; they can put
+     it in the RTL instead of operand 1.
+
+     Operand 0 should be a `mem' RTX whose address is the address of the
+     function.  Note, however, that this address can be a `symbol_ref'
+     expression even if it would not be a legitimate memory address on
+     the target machine.  If it is also not a valid argument for a call
+     instruction, the pattern for this operation should be a
+     `define_expand' (*note Expander Definitions::) that places the
+     address into a register and uses that register in the call
+     instruction.
+
+`call_value'
+     Subroutine call instruction returning a value.  Operand 0 is the
+     hard register in which the value is returned.  There are three more
+     operands, the same as the three operands of the `call' instruction
+     (but with numbers increased by one).
+
+     Subroutines that return `BLKmode' objects use the `call' insn.
+
+`call_pop', `call_value_pop'
+     Similar to `call' and `call_value', except used if defined and if
+     `RETURN_POPS_ARGS' is nonzero.  They should emit a `parallel' that
+     contains both the function call and a `set' to indicate the
+     adjustment made to the frame pointer.
+
+     For machines where `RETURN_POPS_ARGS' can be nonzero, the use of
+     these patterns increases the number of functions for which the
+     frame pointer can be eliminated, if desired.
+
+`untyped_call'
+     Subroutine call instruction returning a value of any type.
+     Operand 0 is the function to call; operand 1 is a memory location
+     where the result of calling the function is to be stored; operand
+     2 is a `parallel' expression where each element is a `set'
+     expression that indicates the saving of a function return value
+     into the result block.
+
+     This instruction pattern should be defined to support
+     `__builtin_apply' on machines where special instructions are needed
+     to call a subroutine with arbitrary arguments or to save the value
+     returned.  This instruction pattern is required on machines that
+     have multiple registers that can hold a return value (i.e.
+     `FUNCTION_VALUE_REGNO_P' is true for more than one register).
+
+`return'
+     Subroutine return instruction.  This instruction pattern name
+     should be defined only if a single instruction can do all the work
+     of returning from a function.
+
+     Like the `movM' patterns, this pattern is also used after the RTL
+     generation phase.  In this case it is to support machines where
+     multiple instructions are usually needed to return from a
+     function, but some class of functions only requires one
+     instruction to implement a return.  Normally, the applicable
+     functions are those which do not need to save any registers or
+     allocate stack space.
+
+     For such machines, the condition specified in this pattern should
+     only be true when `reload_completed' is nonzero and the function's
+     epilogue would only be a single instruction.  For machines with
+     register windows, the routine `leaf_function_p' may be used to
+     determine if a register window push is required.
+
+     Machines that have conditional return instructions should define
+     patterns such as
+
+          (define_insn ""
+            [(set (pc)
+                  (if_then_else (match_operator
+                                   0 "comparison_operator"
+                                   [(cc0) (const_int 0)])
+                                (return)
+                                (pc)))]
+            "CONDITION"
+            "...")
+
+     where CONDITION would normally be the same condition specified on
+     the named `return' pattern.
+
+`untyped_return'
+     Untyped subroutine return instruction.  This instruction pattern
+     should be defined to support `__builtin_return' on machines where
+     special instructions are needed to return a value of any type.
+
+     Operand 0 is a memory location where the result of calling a
+     function with `__builtin_apply' is stored; operand 1 is a
+     `parallel' expression where each element is a `set' expression
+     that indicates the restoring of a function return value from the
+     result block.
+
+`nop'
+     No-op instruction.  This instruction pattern name should always be
+     defined to output a no-op in assembler code.  `(const_int 0)' will
+     do as an RTL pattern.
+
+`indirect_jump'
+     An instruction to jump to an address which is operand zero.  This
+     pattern name is mandatory on all machines.
+
+`casesi'
+     Instruction to jump through a dispatch table, including bounds
+     checking.  This instruction takes five operands:
+
+       1. The index to dispatch on, which has mode `SImode'.
+
+       2. The lower bound for indices in the table, an integer constant.
+
+       3. The total range of indices in the table--the largest index
+          minus the smallest one (both inclusive).
+
+       4. A label that precedes the table itself.
+
+       5. A label to jump to if the index has a value outside the
+          bounds.
+
+     The table is a `addr_vec' or `addr_diff_vec' inside of a
+     `jump_insn'.  The number of elements in the table is one plus the
+     difference between the upper bound and the lower bound.
+
+`tablejump'
+     Instruction to jump to a variable address.  This is a low-level
+     capability which can be used to implement a dispatch table when
+     there is no `casesi' pattern.
+
+     This pattern requires two operands: the address or offset, and a
+     label which should immediately precede the jump table.  If the
+     macro `CASE_VECTOR_PC_RELATIVE' evaluates to a nonzero value then
+     the first operand is an offset which counts from the address of
+     the table; otherwise, it is an absolute address to jump to.  In
+     either case, the first operand has mode `Pmode'.
+
+     The `tablejump' insn is always the last insn before the jump table
+     it uses.  Its assembler code normally has no need to use the
+     second operand, but you should incorporate it in the RTL pattern so
+     that the jump optimizer will not delete the table as unreachable
+     code.
+
+`decrement_and_branch_until_zero'
+     Conditional branch instruction that decrements a register and
+     jumps if the register is nonzero.  Operand 0 is the register to
+     decrement and test; operand 1 is the label to jump to if the
+     register is nonzero.  *Note Looping Patterns::.
+
+     This optional instruction pattern is only used by the combiner,
+     typically for loops reversed by the loop optimizer when strength
+     reduction is enabled.
+
+`doloop_end'
+     Conditional branch instruction that decrements a register and
+     jumps if the register is nonzero.  This instruction takes five
+     operands: Operand 0 is the register to decrement and test; operand
+     1 is the number of loop iterations as a `const_int' or
+     `const0_rtx' if this cannot be determined until run-time; operand
+     2 is the actual or estimated maximum number of iterations as a
+     `const_int'; operand 3 is the number of enclosed loops as a
+     `const_int' (an innermost loop has a value of 1); operand 4 is the
+     label to jump to if the register is nonzero.  *Note Looping
+     Patterns::.
+
+     This optional instruction pattern should be defined for machines
+     with low-overhead looping instructions as the loop optimizer will
+     try to modify suitable loops to utilize it.  If nested
+     low-overhead looping is not supported, use a `define_expand'
+     (*note Expander Definitions::) and make the pattern fail if
+     operand 3 is not `const1_rtx'.  Similarly, if the actual or
+     estimated maximum number of iterations is too large for this
+     instruction, make it fail.
+
+`doloop_begin'
+     Companion instruction to `doloop_end' required for machines that
+     need to perform some initialization, such as loading special
+     registers used by a low-overhead looping instruction.  If
+     initialization insns do not always need to be emitted, use a
+     `define_expand' (*note Expander Definitions::) and make it fail.
+
+`canonicalize_funcptr_for_compare'
+     Canonicalize the function pointer in operand 1 and store the result
+     into operand 0.
+
+     Operand 0 is always a `reg' and has mode `Pmode'; operand 1 may be
+     a `reg', `mem', `symbol_ref', `const_int', etc and also has mode
+     `Pmode'.
+
+     Canonicalization of a function pointer usually involves computing
+     the address of the function which would be called if the function
+     pointer were used in an indirect call.
+
+     Only define this pattern if function pointers on the target machine
+     can have different values but still call the same function when
+     used in an indirect call.
+
+`save_stack_block'
+`save_stack_function'
+`save_stack_nonlocal'
+`restore_stack_block'
+`restore_stack_function'
+`restore_stack_nonlocal'
+     Most machines save and restore the stack pointer by copying it to
+     or from an object of mode `Pmode'.  Do not define these patterns on
+     such machines.
+
+     Some machines require special handling for stack pointer saves and
+     restores.  On those machines, define the patterns corresponding to
+     the non-standard cases by using a `define_expand' (*note Expander
+     Definitions::) that produces the required insns.  The three types
+     of saves and restores are:
+
+       1. `save_stack_block' saves the stack pointer at the start of a
+          block that allocates a variable-sized object, and
+          `restore_stack_block' restores the stack pointer when the
+          block is exited.
+
+       2. `save_stack_function' and `restore_stack_function' do a
+          similar job for the outermost block of a function and are
+          used when the function allocates variable-sized objects or
+          calls `alloca'.  Only the epilogue uses the restored stack
+          pointer, allowing a simpler save or restore sequence on some
+          machines.
+
+       3. `save_stack_nonlocal' is used in functions that contain labels
+          branched to by nested functions.  It saves the stack pointer
+          in such a way that the inner function can use
+          `restore_stack_nonlocal' to restore the stack pointer.  The
+          compiler generates code to restore the frame and argument
+          pointer registers, but some machines require saving and
+          restoring additional data such as register window information
+          or stack backchains.  Place insns in these patterns to save
+          and restore any such required data.
+
+     When saving the stack pointer, operand 0 is the save area and
+     operand 1 is the stack pointer.  The mode used to allocate the
+     save area defaults to `Pmode' but you can override that choice by
+     defining the `STACK_SAVEAREA_MODE' macro (*note Storage Layout::).
+     You must specify an integral mode, or `VOIDmode' if no save area
+     is needed for a particular type of save (either because no save is
+     needed or because a machine-specific save area can be used).
+     Operand 0 is the stack pointer and operand 1 is the save area for
+     restore operations.  If `save_stack_block' is defined, operand 0
+     must not be `VOIDmode' since these saves can be arbitrarily nested.
+
+     A save area is a `mem' that is at a constant offset from
+     `virtual_stack_vars_rtx' when the stack pointer is saved for use by
+     nonlocal gotos and a `reg' in the other two cases.
+
+`allocate_stack'
+     Subtract (or add if `STACK_GROWS_DOWNWARD' is undefined) operand 1
+     from the stack pointer to create space for dynamically allocated
+     data.
+
+     Store the resultant pointer to this space into operand 0.  If you
+     are allocating space from the main stack, do this by emitting a
+     move insn to copy `virtual_stack_dynamic_rtx' to operand 0.  If
+     you are allocating the space elsewhere, generate code to copy the
+     location of the space to operand 0.  In the latter case, you must
+     ensure this space gets freed when the corresponding space on the
+     main stack is free.
+
+     Do not define this pattern if all that must be done is the
+     subtraction.  Some machines require other operations such as stack
+     probes or maintaining the back chain.  Define this pattern to emit
+     those operations in addition to updating the stack pointer.
+
+`check_stack'
+     If stack checking cannot be done on your system by probing the
+     stack with a load or store instruction (*note Stack Checking::),
+     define this pattern to perform the needed check and signaling an
+     error if the stack has overflowed.  The single operand is the
+     location in the stack furthest from the current stack pointer that
+     you need to validate.  Normally, on machines where this pattern is
+     needed, you would obtain the stack limit from a global or
+     thread-specific variable or register.
+
+`nonlocal_goto'
+     Emit code to generate a non-local goto, e.g., a jump from one
+     function to a label in an outer function.  This pattern has four
+     arguments, each representing a value to be used in the jump.  The
+     first argument is to be loaded into the frame pointer, the second
+     is the address to branch to (code to dispatch to the actual label),
+     the third is the address of a location where the stack is saved,
+     and the last is the address of the label, to be placed in the
+     location for the incoming static chain.
+
+     On most machines you need not define this pattern, since GCC will
+     already generate the correct code, which is to load the frame
+     pointer and static chain, restore the stack (using the
+     `restore_stack_nonlocal' pattern, if defined), and jump indirectly
+     to the dispatcher.  You need only define this pattern if this code
+     will not work on your machine.
+
+`nonlocal_goto_receiver'
+     This pattern, if defined, contains code needed at the target of a
+     nonlocal goto after the code already generated by GCC.  You will
+     not normally need to define this pattern.  A typical reason why
+     you might need this pattern is if some value, such as a pointer to
+     a global table, must be restored when the frame pointer is
+     restored.  Note that a nonlocal goto only occurs within a
+     unit-of-translation, so a global table pointer that is shared by
+     all functions of a given module need not be restored.  There are
+     no arguments.
+
+`exception_receiver'
+     This pattern, if defined, contains code needed at the site of an
+     exception handler that isn't needed at the site of a nonlocal
+     goto.  You will not normally need to define this pattern.  A
+     typical reason why you might need this pattern is if some value,
+     such as a pointer to a global table, must be restored after
+     control flow is branched to the handler of an exception.  There
+     are no arguments.
+
+`builtin_setjmp_setup'
+     This pattern, if defined, contains additional code needed to
+     initialize the `jmp_buf'.  You will not normally need to define
+     this pattern.  A typical reason why you might need this pattern is
+     if some value, such as a pointer to a global table, must be
+     restored.  Though it is preferred that the pointer value be
+     recalculated if possible (given the address of a label for
+     instance).  The single argument is a pointer to the `jmp_buf'.
+     Note that the buffer is five words long and that the first three
+     are normally used by the generic mechanism.
+
+`builtin_setjmp_receiver'
+     This pattern, if defined, contains code needed at the site of an
+     built-in setjmp that isn't needed at the site of a nonlocal goto.
+     You will not normally need to define this pattern.  A typical
+     reason why you might need this pattern is if some value, such as a
+     pointer to a global table, must be restored.  It takes one
+     argument, which is the label to which builtin_longjmp transfered
+     control; this pattern may be emitted at a small offset from that
+     label.
+
+`builtin_longjmp'
+     This pattern, if defined, performs the entire action of the
+     longjmp.  You will not normally need to define this pattern unless
+     you also define `builtin_setjmp_setup'.  The single argument is a
+     pointer to the `jmp_buf'.
+
+`eh_return'
+     This pattern, if defined, affects the way `__builtin_eh_return',
+     and thence the call frame exception handling library routines, are
+     built.  It is intended to handle non-trivial actions needed along
+     the abnormal return path.
+
+     The address of the exception handler to which the function should
+     return is passed as operand to this pattern.  It will normally
+     need to copied by the pattern to some special register or memory
+     location.  If the pattern needs to determine the location of the
+     target call frame in order to do so, it may use
+     `EH_RETURN_STACKADJ_RTX', if defined; it will have already been
+     assigned.
+
+     If this pattern is not defined, the default action will be to
+     simply copy the return address to `EH_RETURN_HANDLER_RTX'.  Either
+     that macro or this pattern needs to be defined if call frame
+     exception handling is to be used.
+
+`prologue'
+     This pattern, if defined, emits RTL for entry to a function.  The
+     function entry is responsible for setting up the stack frame,
+     initializing the frame pointer register, saving callee saved
+     registers, etc.
+
+     Using a prologue pattern is generally preferred over defining
+     `TARGET_ASM_FUNCTION_PROLOGUE' to emit assembly code for the
+     prologue.
+
+     The `prologue' pattern is particularly useful for targets which
+     perform instruction scheduling.
+
+`epilogue'
+     This pattern emits RTL for exit from a function.  The function
+     exit is responsible for deallocating the stack frame, restoring
+     callee saved registers and emitting the return instruction.
+
+     Using an epilogue pattern is generally preferred over defining
+     `TARGET_ASM_FUNCTION_EPILOGUE' to emit assembly code for the
+     epilogue.
+
+     The `epilogue' pattern is particularly useful for targets which
+     perform instruction scheduling or which have delay slots for their
+     return instruction.
+
+`sibcall_epilogue'
+     This pattern, if defined, emits RTL for exit from a function
+     without the final branch back to the calling function.  This
+     pattern will be emitted before any sibling call (aka tail call)
+     sites.
+
+     The `sibcall_epilogue' pattern must not clobber any arguments used
+     for parameter passing or any stack slots for arguments passed to
+     the current function.
+
+`trap'
+     This pattern, if defined, signals an error, typically by causing
+     some kind of signal to be raised.  Among other places, it is used
+     by the Java front end to signal `invalid array index' exceptions.
+
+`conditional_trap'
+     Conditional trap instruction.  Operand 0 is a piece of RTL which
+     performs a comparison.  Operand 1 is the trap code, an integer.
+
+     A typical `conditional_trap' pattern looks like
+
+          (define_insn "conditional_trap"
+            [(trap_if (match_operator 0 "trap_operator"
+                       [(cc0) (const_int 0)])
+                      (match_operand 1 "const_int_operand" "i"))]
+            ""
+            "...")
+
+`prefetch'
+     This pattern, if defined, emits code for a non-faulting data
+     prefetch instruction.  Operand 0 is the address of the memory to
+     prefetch.  Operand 1 is a constant 1 if the prefetch is preparing
+     for a write to the memory address, or a constant 0 otherwise.
+     Operand 2 is the expected degree of temporal locality of the data
+     and is a value between 0 and 3, inclusive; 0 means that the data
+     has no temporal locality, so it need not be left in the cache
+     after the access; 3 means that the data has a high degree of
+     temporal locality and should be left in all levels of cache
+     possible;  1 and 2 mean, respectively, a low or moderate degree of
+     temporal locality.
+
+     Targets that do not support write prefetches or locality hints can
+     ignore the values of operands 1 and 2.
+
+`blockage'
+     This pattern defines a pseudo insn that prevents the instruction
+     scheduler from moving instructions across the boundary defined by
+     the blockage insn.  Normally an UNSPEC_VOLATILE pattern.
+
+`memory_barrier'
+     If the target memory model is not fully synchronous, then this
+     pattern should be defined to an instruction that orders both loads
+     and stores before the instruction with respect to loads and stores
+     after the instruction.  This pattern has no operands.
+
+`sync_compare_and_swapMODE'
+     This pattern, if defined, emits code for an atomic compare-and-swap
+     operation.  Operand 1 is the memory on which the atomic operation
+     is performed.  Operand 2 is the "old" value to be compared against
+     the current contents of the memory location.  Operand 3 is the
+     "new" value to store in the memory if the compare succeeds.
+     Operand 0 is the result of the operation; it should contain the
+     contents of the memory before the operation.  If the compare
+     succeeds, this should obviously be a copy of operand 2.
+
+     This pattern must show that both operand 0 and operand 1 are
+     modified.
+
+     This pattern must issue any memory barrier instructions such that
+     all memory operations before the atomic operation occur before the
+     atomic operation and all memory operations after the atomic
+     operation occur after the atomic operation.
+
+`sync_compare_and_swap_ccMODE'
+     This pattern is just like `sync_compare_and_swapMODE', except it
+     should act as if compare part of the compare-and-swap were issued
+     via `cmpM'.  This comparison will only be used with `EQ' and `NE'
+     branches and `setcc' operations.
+
+     Some targets do expose the success or failure of the
+     compare-and-swap operation via the status flags.  Ideally we
+     wouldn't need a separate named pattern in order to take advantage
+     of this, but the combine pass does not handle patterns with
+     multiple sets, which is required by definition for
+     `sync_compare_and_swapMODE'.
+
+`sync_addMODE', `sync_subMODE'
+`sync_iorMODE', `sync_andMODE'
+`sync_xorMODE', `sync_nandMODE'
+     These patterns emit code for an atomic operation on memory.
+     Operand 0 is the memory on which the atomic operation is performed.
+     Operand 1 is the second operand to the binary operator.
+
+     The "nand" operation is `~op0 & op1'.
+
+     This pattern must issue any memory barrier instructions such that
+     all memory operations before the atomic operation occur before the
+     atomic operation and all memory operations after the atomic
+     operation occur after the atomic operation.
+
+     If these patterns are not defined, the operation will be
+     constructed from a compare-and-swap operation, if defined.
+
+`sync_old_addMODE', `sync_old_subMODE'
+`sync_old_iorMODE', `sync_old_andMODE'
+`sync_old_xorMODE', `sync_old_nandMODE'
+     These patterns are emit code for an atomic operation on memory,
+     and return the value that the memory contained before the
+     operation.  Operand 0 is the result value, operand 1 is the memory
+     on which the atomic operation is performed, and operand 2 is the
+     second operand to the binary operator.
+
+     This pattern must issue any memory barrier instructions such that
+     all memory operations before the atomic operation occur before the
+     atomic operation and all memory operations after the atomic
+     operation occur after the atomic operation.
+
+     If these patterns are not defined, the operation will be
+     constructed from a compare-and-swap operation, if defined.
+
+`sync_new_addMODE', `sync_new_subMODE'
+`sync_new_iorMODE', `sync_new_andMODE'
+`sync_new_xorMODE', `sync_new_nandMODE'
+     These patterns are like their `sync_old_OP' counterparts, except
+     that they return the value that exists in the memory location
+     after the operation, rather than before the operation.
+
+`sync_lock_test_and_setMODE'
+     This pattern takes two forms, based on the capabilities of the
+     target.  In either case, operand 0 is the result of the operand,
+     operand 1 is the memory on which the atomic operation is
+     performed, and operand 2 is the value to set in the lock.
+
+     In the ideal case, this operation is an atomic exchange operation,
+     in which the previous value in memory operand is copied into the
+     result operand, and the value operand is stored in the memory
+     operand.
+
+     For less capable targets, any value operand that is not the
+     constant 1 should be rejected with `FAIL'.  In this case the
+     target may use an atomic test-and-set bit operation.  The result
+     operand should contain 1 if the bit was previously set and 0 if
+     the bit was previously clear.  The true contents of the memory
+     operand are implementation defined.
+
+     This pattern must issue any memory barrier instructions such that
+     the pattern as a whole acts as an acquire barrier, that is all
+     memory operations after the pattern do not occur until the lock is
+     acquired.
+
+     If this pattern is not defined, the operation will be constructed
+     from a compare-and-swap operation, if defined.
+
+`sync_lock_releaseMODE'
+     This pattern, if defined, releases a lock set by
+     `sync_lock_test_and_setMODE'.  Operand 0 is the memory that
+     contains the lock; operand 1 is the value to store in the lock.
+
+     If the target doesn't implement full semantics for
+     `sync_lock_test_and_setMODE', any value operand which is not the
+     constant 0 should be rejected with `FAIL', and the true contents
+     of the memory operand are implementation defined.
+
+     This pattern must issue any memory barrier instructions such that
+     the pattern as a whole acts as a release barrier, that is the lock
+     is released only after all previous memory operations have
+     completed.
+
+     If this pattern is not defined, then a `memory_barrier' pattern
+     will be emitted, followed by a store of the value to the memory
+     operand.
+
+`stack_protect_set'
+     This pattern, if defined, moves a `Pmode' value from the memory in
+     operand 1 to the memory in operand 0 without leaving the value in
+     a register afterward.  This is to avoid leaking the value some
+     place that an attacker might use to rewrite the stack guard slot
+     after having clobbered it.
+
+     If this pattern is not defined, then a plain move pattern is
+     generated.
+
+`stack_protect_test'
+     This pattern, if defined, compares a `Pmode' value from the memory
+     in operand 1 with the memory in operand 0 without leaving the
+     value in a register afterward and branches to operand 2 if the
+     values weren't equal.
+
+     If this pattern is not defined, then a plain compare pattern and
+     conditional branch pattern is used.
+
+`clear_cache'
+     This pattern, if defined, flushes the instruction cache for a
+     region of memory.  The region is bounded to by the Pmode pointers
+     in operand 0 inclusive and operand 1 exclusive.
+
+     If this pattern is not defined, a call to the library function
+     `__clear_cache' is used.
+
+
+
+File: gccint.info,  Node: Pattern Ordering,  Next: Dependent Patterns,  Prev: Standard Names,  Up: Machine Desc
+
+14.10 When the Order of Patterns Matters
+========================================
+
+Sometimes an insn can match more than one instruction pattern.  Then the
+pattern that appears first in the machine description is the one used.
+Therefore, more specific patterns (patterns that will match fewer
+things) and faster instructions (those that will produce better code
+when they do match) should usually go first in the description.
+
+ In some cases the effect of ordering the patterns can be used to hide
+a pattern when it is not valid.  For example, the 68000 has an
+instruction for converting a fullword to floating point and another for
+converting a byte to floating point.  An instruction converting an
+integer to floating point could match either one.  We put the pattern
+to convert the fullword first to make sure that one will be used rather
+than the other.  (Otherwise a large integer might be generated as a
+single-byte immediate quantity, which would not work.)  Instead of
+using this pattern ordering it would be possible to make the pattern
+for convert-a-byte smart enough to deal properly with any constant
+value.
+
+
+File: gccint.info,  Node: Dependent Patterns,  Next: Jump Patterns,  Prev: Pattern Ordering,  Up: Machine Desc
+
+14.11 Interdependence of Patterns
+=================================
+
+Every machine description must have a named pattern for each of the
+conditional branch names `bCOND'.  The recognition template must always
+have the form
+
+     (set (pc)
+          (if_then_else (COND (cc0) (const_int 0))
+                        (label_ref (match_operand 0 "" ""))
+                        (pc)))
+
+In addition, every machine description must have an anonymous pattern
+for each of the possible reverse-conditional branches.  Their templates
+look like
+
+     (set (pc)
+          (if_then_else (COND (cc0) (const_int 0))
+                        (pc)
+                        (label_ref (match_operand 0 "" ""))))
+
+They are necessary because jump optimization can turn direct-conditional
+branches into reverse-conditional branches.
+
+ It is often convenient to use the `match_operator' construct to reduce
+the number of patterns that must be specified for branches.  For
+example,
+
+     (define_insn ""
+       [(set (pc)
+             (if_then_else (match_operator 0 "comparison_operator"
+                                           [(cc0) (const_int 0)])
+                           (pc)
+                           (label_ref (match_operand 1 "" ""))))]
+       "CONDITION"
+       "...")
+
+ In some cases machines support instructions identical except for the
+machine mode of one or more operands.  For example, there may be
+"sign-extend halfword" and "sign-extend byte" instructions whose
+patterns are
+
+     (set (match_operand:SI 0 ...)
+          (extend:SI (match_operand:HI 1 ...)))
+
+     (set (match_operand:SI 0 ...)
+          (extend:SI (match_operand:QI 1 ...)))
+
+Constant integers do not specify a machine mode, so an instruction to
+extend a constant value could match either pattern.  The pattern it
+actually will match is the one that appears first in the file.  For
+correct results, this must be the one for the widest possible mode
+(`HImode', here).  If the pattern matches the `QImode' instruction, the
+results will be incorrect if the constant value does not actually fit
+that mode.
+
+ Such instructions to extend constants are rarely generated because
+they are optimized away, but they do occasionally happen in nonoptimized
+compilations.
+
+ If a constraint in a pattern allows a constant, the reload pass may
+replace a register with a constant permitted by the constraint in some
+cases.  Similarly for memory references.  Because of this substitution,
+you should not provide separate patterns for increment and decrement
+instructions.  Instead, they should be generated from the same pattern
+that supports register-register add insns by examining the operands and
+generating the appropriate machine instruction.
+
+
+File: gccint.info,  Node: Jump Patterns,  Next: Looping Patterns,  Prev: Dependent Patterns,  Up: Machine Desc
+
+14.12 Defining Jump Instruction Patterns
+========================================
+
+For most machines, GCC assumes that the machine has a condition code.
+A comparison insn sets the condition code, recording the results of both
+signed and unsigned comparison of the given operands.  A separate branch
+insn tests the condition code and branches or not according its value.
+The branch insns come in distinct signed and unsigned flavors.  Many
+common machines, such as the VAX, the 68000 and the 32000, work this
+way.
+
+ Some machines have distinct signed and unsigned compare instructions,
+and only one set of conditional branch instructions.  The easiest way
+to handle these machines is to treat them just like the others until
+the final stage where assembly code is written.  At this time, when
+outputting code for the compare instruction, peek ahead at the
+following branch using `next_cc0_user (insn)'.  (The variable `insn'
+refers to the insn being output, in the output-writing code in an
+instruction pattern.)  If the RTL says that is an unsigned branch,
+output an unsigned compare; otherwise output a signed compare.  When
+the branch itself is output, you can treat signed and unsigned branches
+identically.
+
+ The reason you can do this is that GCC always generates a pair of
+consecutive RTL insns, possibly separated by `note' insns, one to set
+the condition code and one to test it, and keeps the pair inviolate
+until the end.
+
+ To go with this technique, you must define the machine-description
+macro `NOTICE_UPDATE_CC' to do `CC_STATUS_INIT'; in other words, no
+compare instruction is superfluous.
+
+ Some machines have compare-and-branch instructions and no condition
+code.  A similar technique works for them.  When it is time to "output"
+a compare instruction, record its operands in two static variables.
+When outputting the branch-on-condition-code instruction that follows,
+actually output a compare-and-branch instruction that uses the
+remembered operands.
+
+ It also works to define patterns for compare-and-branch instructions.
+In optimizing compilation, the pair of compare and branch instructions
+will be combined according to these patterns.  But this does not happen
+if optimization is not requested.  So you must use one of the solutions
+above in addition to any special patterns you define.
+
+ In many RISC machines, most instructions do not affect the condition
+code and there may not even be a separate condition code register.  On
+these machines, the restriction that the definition and use of the
+condition code be adjacent insns is not necessary and can prevent
+important optimizations.  For example, on the IBM RS/6000, there is a
+delay for taken branches unless the condition code register is set three
+instructions earlier than the conditional branch.  The instruction
+scheduler cannot perform this optimization if it is not permitted to
+separate the definition and use of the condition code register.
+
+ On these machines, do not use `(cc0)', but instead use a register to
+represent the condition code.  If there is a specific condition code
+register in the machine, use a hard register.  If the condition code or
+comparison result can be placed in any general register, or if there are
+multiple condition registers, use a pseudo register.
+
+ On some machines, the type of branch instruction generated may depend
+on the way the condition code was produced; for example, on the 68k and
+SPARC, setting the condition code directly from an add or subtract
+instruction does not clear the overflow bit the way that a test
+instruction does, so a different branch instruction must be used for
+some conditional branches.  For machines that use `(cc0)', the set and
+use of the condition code must be adjacent (separated only by `note'
+insns) allowing flags in `cc_status' to be used.  (*Note Condition
+Code::.)  Also, the comparison and branch insns can be located from
+each other by using the functions `prev_cc0_setter' and `next_cc0_user'.
+
+ However, this is not true on machines that do not use `(cc0)'.  On
+those machines, no assumptions can be made about the adjacency of the
+compare and branch insns and the above methods cannot be used.  Instead,
+we use the machine mode of the condition code register to record
+different formats of the condition code register.
+
+ Registers used to store the condition code value should have a mode
+that is in class `MODE_CC'.  Normally, it will be `CCmode'.  If
+additional modes are required (as for the add example mentioned above in
+the SPARC), define them in `MACHINE-modes.def' (*note Condition
+Code::).  Also define `SELECT_CC_MODE' to choose a mode given an
+operand of a compare.
+
+ If it is known during RTL generation that a different mode will be
+required (for example, if the machine has separate compare instructions
+for signed and unsigned quantities, like most IBM processors), they can
+be specified at that time.
+
+ If the cases that require different modes would be made by instruction
+combination, the macro `SELECT_CC_MODE' determines which machine mode
+should be used for the comparison result.  The patterns should be
+written using that mode.  To support the case of the add on the SPARC
+discussed above, we have the pattern
+
+     (define_insn ""
+       [(set (reg:CC_NOOV 0)
+             (compare:CC_NOOV
+               (plus:SI (match_operand:SI 0 "register_operand" "%r")
+                        (match_operand:SI 1 "arith_operand" "rI"))
+               (const_int 0)))]
+       ""
+       "...")
+
+ The `SELECT_CC_MODE' macro on the SPARC returns `CC_NOOVmode' for
+comparisons whose argument is a `plus'.
+
+
+File: gccint.info,  Node: Looping Patterns,  Next: Insn Canonicalizations,  Prev: Jump Patterns,  Up: Machine Desc
+
+14.13 Defining Looping Instruction Patterns
+===========================================
+
+Some machines have special jump instructions that can be utilized to
+make loops more efficient.  A common example is the 68000 `dbra'
+instruction which performs a decrement of a register and a branch if the
+result was greater than zero.  Other machines, in particular digital
+signal processors (DSPs), have special block repeat instructions to
+provide low-overhead loop support.  For example, the TI TMS320C3x/C4x
+DSPs have a block repeat instruction that loads special registers to
+mark the top and end of a loop and to count the number of loop
+iterations.  This avoids the need for fetching and executing a
+`dbra'-like instruction and avoids pipeline stalls associated with the
+jump.
+
+ GCC has three special named patterns to support low overhead looping.
+They are `decrement_and_branch_until_zero', `doloop_begin', and
+`doloop_end'.  The first pattern, `decrement_and_branch_until_zero', is
+not emitted during RTL generation but may be emitted during the
+instruction combination phase.  This requires the assistance of the
+loop optimizer, using information collected during strength reduction,
+to reverse a loop to count down to zero.  Some targets also require the
+loop optimizer to add a

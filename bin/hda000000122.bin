@@ -1,0 +1,1794 @@
+         exclusive or instruction, for example `xc' exclusive or
+                character
+
+   Certain characters at the end of the mnemonic may describe a property
+of the instruction:
+
+     c   the instruction uses a 8-bit character operand
+     f   the instruction extends a 32-bit operand to 64 bit
+     g   the operands are treated as 64-bit values
+     h   the operand uses a 16-bit halfword operand
+     i   the instruction uses an immediate operand
+     l   the instruction uses unsigned, logical operands
+     m   the instruction uses a mask or operates on multiple values
+     r   if r is the last character, the instruction operates on registers
+     y   the instruction uses 20-bit displacements
+
+   There are many exceptions to the scheme outlined in the above lists,
+in particular for the priviledged instructions. For non-priviledged
+instruction it works quite well, for example the instruction `clgfr' c:
+compare instruction, l: unsigned operands, g: 64-bit operands, f: 32-
+to 64-bit extension, r: register operands. The instruction compares an
+64-bit value in a register with the zero extended 32-bit value from a
+second register.  For a complete list of all mnemonics see appendix B
+in the Principles of Operation.
+
+
+File: as.info,  Node: s390 Operands,  Next: s390 Formats,  Prev: s390 Mnemonics,  Up: s390 Syntax
+
+9.31.3.3 Instruction Operands
+.............................
+
+Instruction operands can be grouped into three classes, operands located
+in registers, immediate operands, and operands in storage.
+
+   A register operand can be located in general, floating-point, access,
+or control register. The register is identified by a four-bit field.
+The field containing the register operand is called the R field.
+
+   Immediate operands are contained within the instruction and can have
+8, 16 or 32 bits. The field containing the immediate operand is called
+the I field. Dependent on the instruction the I field is either signed
+or unsigned.
+
+   A storage operand consists of an address and a length. The address
+of a storage operands can be specified in any of these ways:
+
+   * The content of a single general R
+
+   * The sum of the content of a general register called the base
+     register B plus the content of a displacement field D
+
+   * The sum of the contents of two general registers called the index
+     register X and the base register B plus the content of a
+     displacement field
+
+   * The sum of the current instruction address and a 32-bit signed
+     immediate field multiplied by two.
+
+   The length of a storage operand can be:
+
+   * Implied by the instruction
+
+   * Specified by a bitmask
+
+   * Specified by a four-bit or eight-bit length field L
+
+   * Specified by the content of a general register
+
+   The notation for storage operand addresses formed from multiple
+fields is as follows:
+
+`Dn(Bn)'
+     the address for operand number n is formed from the content of
+     general register Bn called the base register and the displacement
+     field Dn.
+
+`Dn(Xn,Bn)'
+     the address for operand number n is formed from the content of
+     general register Xn called the index register, general register Bn
+     called the base register and the displacement field Dn.
+
+`Dn(Ln,Bn)'
+     the address for operand number n is formed from the content of
+     general regiser Bn called the base register and the displacement
+     field Dn.  The length of the operand n is specified by the field
+     Ln.
+
+   The base registers Bn and the index registers Xn of a storage
+operand can be skipped. If Bn and Xn are skipped, a zero will be stored
+to the operand field. The notation changes as follows:
+
+     full notation        short notation
+     ------------------------------------------ 
+     Dn(0,Bn)             Dn(Bn)
+     Dn(0,0)              Dn
+     Dn(0)                Dn
+     Dn(Ln,0)             Dn(Ln)
+
+
+File: as.info,  Node: s390 Formats,  Next: s390 Aliases,  Prev: s390 Operands,  Up: s390 Syntax
+
+9.31.3.4 Instruction Formats
+............................
+
+The Principles of Operation manuals lists 26 instruction formats where
+some of the formats have multiple variants. For the `.insn' pseudo
+directive the assembler recognizes some of the formats.  Typically, the
+most general variant of the instruction format is used by the `.insn'
+directive.
+
+   The following table lists the abbreviations used in the table of
+instruction formats:
+
+     OpCode / OpCd   Part of the op code.
+     Bx              Base register number for operand x.
+     Dx              Displacement for operand x.
+     DLx             Displacement lower 12 bits for operand x.
+     DHx             Displacement higher 8-bits for operand x.
+     Rx              Register number for operand x.
+     Xx              Index register number for operand x.
+     Ix              Signed immediate for operand x.
+     Ux              Unsigned immediate for operand x.
+
+   An instruction is two, four, or six bytes in length and must be
+aligned on a 2 byte boundary. The first two bits of the instruction
+specify the length of the instruction, 00 indicates a two byte
+instruction, 01 and 10 indicates a four byte instruction, and 11
+indicates a six byte instruction.
+
+   The following table lists the s390 instruction formats that are
+available with the `.insn' pseudo directive:
+
+`E format'
+
+     +-------------+
+     |    OpCode   |
+     +-------------+
+     0            15
+
+`RI format: <insn> R1,I2'
+
+     +--------+----+----+------------------+
+     | OpCode | R1 |OpCd|        I2        |
+     +--------+----+----+------------------+
+     0        8    12   16                31
+
+`RIE format: <insn> R1,R3,I2'
+
+     +--------+----+----+------------------+--------+--------+
+     | OpCode | R1 | R3 |        I2        |////////| OpCode |
+     +--------+----+----+------------------+--------+--------+
+     0        8    12   16                 32       40      47
+
+`RIL format: <insn> R1,I2'
+
+     +--------+----+----+------------------------------------+
+     | OpCode | R1 |OpCd|                  I2                |
+     +--------+----+----+------------------------------------+
+     0        8    12   16                                  47
+
+`RILU format: <insn> R1,U2'
+
+     +--------+----+----+------------------------------------+
+     | OpCode | R1 |OpCd|                  U2                |
+     +--------+----+----+------------------------------------+
+     0        8    12   16                                  47
+
+`RIS format: <insn> R1,I2,M3,D4(B4)'
+
+     +--------+----+----+----+-------------+--------+--------+
+     | OpCode | R1 | M3 | B4 |     D4      |   I2   | Opcode |
+     +--------+----+----+----+-------------+--------+--------+
+     0        8    12   16   20            32       36      47
+
+`RR format: <insn> R1,R2'
+
+     +--------+----+----+
+     | OpCode | R1 | R2 |
+     +--------+----+----+
+     0        8    12  15
+
+`RRE format: <insn> R1,R2'
+
+     +------------------+--------+----+----+
+     |      OpCode      |////////| R1 | R2 |
+     +------------------+--------+----+----+
+     0                  16       24   28  31
+
+`RRF format: <insn> R1,R2,R3,M4'
+
+     +------------------+----+----+----+----+
+     |      OpCode      | R3 | M4 | R1 | R2 |
+     +------------------+----+----+----+----+
+     0                  16   20   24   28  31
+
+`RRS format: <insn> R1,R2,M3,D4(B4)'
+
+     +--------+----+----+----+-------------+----+----+--------+
+     | OpCode | R1 | R3 | B4 |     D4      | M3 |////| OpCode |
+     +--------+----+----+----+-------------+----+----+--------+
+     0        8    12   16   20            32   36   40      47
+
+`RS format: <insn> R1,R3,D2(B2)'
+
+     +--------+----+----+----+-------------+
+     | OpCode | R1 | R3 | B2 |     D2      |
+     +--------+----+----+----+-------------+
+     0        8    12   16   20           31
+
+`RSE format: <insn> R1,R3,D2(B2)'
+
+     +--------+----+----+----+-------------+--------+--------+
+     | OpCode | R1 | R3 | B2 |     D2      |////////| OpCode |
+     +--------+----+----+----+-------------+--------+--------+
+     0        8    12   16   20            32       40      47
+
+`RSI format: <insn> R1,R3,I2'
+
+     +--------+----+----+------------------------------------+
+     | OpCode | R1 | R3 |                  I2                |
+     +--------+----+----+------------------------------------+
+     0        8    12   16                                  47
+
+`RSY format: <insn> R1,R3,D2(B2)'
+
+     +--------+----+----+----+-------------+--------+--------+
+     | OpCode | R1 | R3 | B2 |    DL2      |  DH2   | OpCode |
+     +--------+----+----+----+-------------+--------+--------+
+     0        8    12   16   20            32       40      47
+
+`RX format: <insn> R1,D2(X2,B2)'
+
+     +--------+----+----+----+-------------+
+     | OpCode | R1 | X2 | B2 |     D2      |
+     +--------+----+----+----+-------------+
+     0        8    12   16   20           31
+
+`RXE format: <insn> R1,D2(X2,B2)'
+
+     +--------+----+----+----+-------------+--------+--------+
+     | OpCode | R1 | X2 | B2 |     D2      |////////| OpCode |
+     +--------+----+----+----+-------------+--------+--------+
+     0        8    12   16   20            32       40      47
+
+`RXF format: <insn> R1,R3,D2(X2,B2)'
+
+     +--------+----+----+----+-------------+----+---+--------+
+     | OpCode | R3 | X2 | B2 |     D2      | R1 |///| OpCode |
+     +--------+----+----+----+-------------+----+---+--------+
+     0        8    12   16   20            32   36  40      47
+
+`RXY format: <insn> R1,D2(X2,B2)'
+
+     +--------+----+----+----+-------------+--------+--------+
+     | OpCode | R1 | X2 | B2 |     DL2     |   DH2  | OpCode |
+     +--------+----+----+----+-------------+--------+--------+
+     0        8    12   16   20            32   36   40      47
+
+`S format: <insn> D2(B2)'
+
+     +------------------+----+-------------+
+     |      OpCode      | B2 |     D2      |
+     +------------------+----+-------------+
+     0                  16   20           31
+
+`SI format: <insn> D1(B1),I2'
+
+     +--------+---------+----+-------------+
+     | OpCode |   I2    | B1 |     D1      |
+     +--------+---------+----+-------------+
+     0        8         16   20           31
+
+`SIY format: <insn> D1(B1),U2'
+
+     +--------+---------+----+-------------+--------+--------+
+     | OpCode |   I2    | B1 |     DL1     |  DH1   | OpCode |
+     +--------+---------+----+-------------+--------+--------+
+     0        8         16   20            32   36   40      47
+
+`SIL format: <insn> D1(B1),I2'
+
+     +------------------+----+-------------+-----------------+
+     |      OpCode      | B1 |      D1     |       I2        |
+     +------------------+----+-------------+-----------------+
+     0                  16   20            32               47
+
+`SS format: <insn> D1(R1,B1),D2(B3),R3'
+
+     +--------+----+----+----+-------------+----+------------+
+     | OpCode | R1 | R3 | B1 |     D1      | B2 |     D2     |
+     +--------+----+----+----+-------------+----+------------+
+     0        8    12   16   20            32   36          47
+
+`SSE format: <insn> D1(B1),D2(B2)'
+
+     +------------------+----+-------------+----+------------+
+     |      OpCode      | B1 |     D1      | B2 |     D2     |
+     +------------------+----+-------------+----+------------+
+     0        8    12   16   20            32   36           47
+
+`SSF format: <insn> D1(B1),D2(B2),R3'
+
+     +--------+----+----+----+-------------+----+------------+
+     | OpCode | R3 |OpCd| B1 |     D1      | B2 |     D2     |
+     +--------+----+----+----+-------------+----+------------+
+     0        8    12   16   20            32   36           47
+
+
+   For the complete list of all instruction format variants see the
+Principles of Operation manuals.
+
+
+File: as.info,  Node: s390 Aliases,  Next: s390 Operand Modifier,  Prev: s390 Formats,  Up: s390 Syntax
+
+9.31.3.5 Instruction Aliases
+............................
+
+A specific bit pattern can have multiple mnemonics, for example the bit
+pattern `0xa7000000' has the mnemonics `tmh' and `tmlh'. In addition,
+there are a number of mnemonics recognized by `as' that are not present
+in the Principles of Operation.  These are the short forms of the
+branch instructions, where the condition code mask operand is encoded
+in the mnemonic. This is relevant for the branch instructions, the
+compare and branch instructions, and the compare and trap instructions.
+
+   For the branch instructions there are 20 condition code strings that
+can be used as part of the mnemonic in place of a mask operand in the
+instruction format:
+
+     instruction          short form
+     ------------------------------------------ 
+     bcr   M1,R2          b<m>r  R2
+     bc    M1,D2(X2,B2)   b<m>   D2(X2,B2)
+     brc   M1,I2          j<m>   I2
+     brcl  M1,I2          jg<m>  I2
+
+   In the mnemonic for a branch instruction the condition code string
+<m> can be any of the following:
+
+     o     jump on overflow / if ones
+     h     jump on A high
+     p     jump on plus
+     nle   jump on not low or equal
+     l     jump on A low
+     m     jump on minus
+     nhe   jump on not high or equal
+     lh    jump on low or high
+     ne    jump on A not equal B
+     nz    jump on not zero / if not zeros
+     e     jump on A equal B
+     z     jump on zero / if zeroes
+     nlh   jump on not low or high
+     he    jump on high or equal
+     nl    jump on A not low
+     nm    jump on not minus / if not mixed
+     le    jump on low or equal
+     nh    jump on A not high
+     np    jump on not plus
+     no    jump on not overflow / if not ones
+
+   For the compare and branch, and compare and trap instructions there
+are 12 condition code strings that can be used as part of the mnemonic
+in place of a mask operand in the instruction format:
+
+     instruction                 short form
+     -------------------------------------------------------- 
+     crb    R1,R2,M3,D4(B4)      crb<m>    R1,R2,D4(B4)
+     cgrb   R1,R2,M3,D4(B4)      cgrb<m>   R1,R2,D4(B4)
+     crj    R1,R2,M3,I4          crj<m>    R1,R2,I4
+     cgrj   R1,R2,M3,I4          cgrj<m>   R1,R2,I4
+     cib    R1,I2,M3,D4(B4)      cib<m>    R1,I2,D4(B4)
+     cgib   R1,I2,M3,D4(B4)      cgib<m>   R1,I2,D4(B4)
+     cij    R1,I2,M3,I4          cij<m>    R1,I2,I4
+     cgij   R1,I2,M3,I4          cgij<m>   R1,I2,I4
+     crt    R1,R2,M3             crt<m>    R1,R2
+     cgrt   R1,R2,M3             cgrt<m>   R1,R2
+     cit    R1,I2,M3             cit<m>    R1,I2
+     cgit   R1,I2,M3             cgit<m>   R1,I2
+     clrb   R1,R2,M3,D4(B4)      clrb<m>   R1,R2,D4(B4)
+     clgrb  R1,R2,M3,D4(B4)      clgrb<m>  R1,R2,D4(B4)
+     clrj   R1,R2,M3,I4          clrj<m>   R1,R2,I4
+     clgrj  R1,R2,M3,I4          clgrj<m>  R1,R2,I4
+     clib   R1,I2,M3,D4(B4)      clib<m>   R1,I2,D4(B4)
+     clgib  R1,I2,M3,D4(B4)      clgib<m>  R1,I2,D4(B4)
+     clij   R1,I2,M3,I4          clij<m>   R1,I2,I4
+     clgij  R1,I2,M3,I4          clgij<m>  R1,I2,I4
+     clrt   R1,R2,M3             clrt<m>   R1,R2
+     clgrt  R1,R2,M3             clgrt<m>  R1,R2
+     clfit  R1,I2,M3             clfit<m>  R1,I2
+     clgit  R1,I2,M3             clgit<m>  R1,I2
+
+   In the mnemonic for a compare and branch and compare and trap
+instruction the condition code string <m> can be any of the following:
+
+     h     jump on A high
+     nle   jump on not low or equal
+     l     jump on A low
+     nhe   jump on not high oê  ë  í  ì  î  ï  ñ  ó  ò  ô  ö  õ  ú  ù  û  ü  †  °  ¢  £  §  •  ¶  ß  ®  ©  ™  ´  ¨  ≠  Æ  Ø  ∞  ±  ≤  ≥  ¥  µ  ∂  ∑  ∏  π  ∫  ª  º  Ω  æ  ø  ¿  ¡  ¬  √  ƒ  ≈  ∆  «  »  …     À  Ã  Õ  Œ  œ  –  —  “  ”  ‘  ’  ÷  ◊  ÿ  Ÿ  ⁄  €  ‹  ›  ﬁ  ﬂ  ‡  ·  ‚  „  ‰  Â  Ê  Á  Ë  È  Í  Î  Ï  Ì  Ó  Ô    Ò  Ú  Û  Ù  ı  ˆ  ˜  ¯  ˘  ˙  ˚  ¸  ˝  ˛  ˇ                     	  
+                                               !  "  #  $  %  &  '  (  )  *  +  ,  -  .  /  0  1  2  3  4  5  6  7  8  9  :  ;  <  =  >  ?  @  A  B  C  D  E  F  G  H  I  J  K  L  M  N  O  P  Q  R  S  T  U  V  W  X  Y  Z  [  \  ]  ^  _  `  a  b  c  d  e  f  g  h  i  j  k  l  m  n  o  p  q  r  s  t  u  v  w  x  y  z  {  |  }  ~    Ä  Å  Ç  É  Ñ  Ö  Ü  á  à  â  ä  ã  å  ç  é  è  r equal
+     ne    jump on A not equal B
+     lh    jump on low or high
+     e     jump on A equal B
+     nlh   jump on not low or high
+     nl    jump on A not low
+     he    jump on high or equal
+     nh    jump on A not high
+     le    jump on low or equal
+
+
+File: as.info,  Node: s390 Operand Modifier,  Next: s390 Instruction Marker,  Prev: s390 Aliases,  Up: s390 Syntax
+
+9.31.3.6 Instruction Operand Modifier
+.....................................
+
+If a symbol modifier is attached to a symbol in an expression for an
+instruction operand field, the symbol term is replaced with a reference
+to an object in the global offset table (GOT) or the procedure linkage
+table (PLT). The following expressions are allowed: `symbol@modifier +
+constant', `symbol@modifier + label + constant', and `symbol@modifier -
+label + constant'.  The term `symbol' is the symbol that will be
+entered into the GOT or PLT, `label' is a local label, and `constant'
+is an arbitrary expression that the assembler can evaluate to a
+constant value.
+
+   The term `(symbol + constant1)@modifier +/- label + constant2' is
+also accepted but a warning message is printed and the term is
+converted to `symbol@modifier +/- label + constant1 + constant2'.
+
+`@got'
+`@got12'
+     The @got modifier can be used for displacement fields, 16-bit
+     immediate fields and 32-bit pc-relative immediate fields. The
+     @got12 modifier is synonym to @got. The symbol is added to the
+     GOT. For displacement fields and 16-bit immediate fields the
+     symbol term is replaced with the offset from the start of the GOT
+     to the GOT slot for the symbol.  For a 32-bit pc-relative field
+     the pc-relative offset to the GOT slot from the current
+     instruction address is used.
+
+`@gotent'
+     The @gotent modifier can be used for 32-bit pc-relative immediate
+     fields.  The symbol is added to the GOT and the symbol term is
+     replaced with the pc-relative offset from the current instruction
+     to the GOT slot for the symbol.
+
+`@gotoff'
+     The @gotoff modifier can be used for 16-bit immediate fields. The
+     symbol term is replaced with the offset from the start of the GOT
+     to the address of the symbol.
+
+`@gotplt'
+     The @gotplt modifier can be used for displacement fields, 16-bit
+     immediate fields, and 32-bit pc-relative immediate fields. A
+     procedure linkage table entry is generated for the symbol and a
+     jump slot for the symbol is added to the GOT. For displacement
+     fields and 16-bit immediate fields the symbol term is replaced
+     with the offset from the start of the GOT to the jump slot for the
+     symbol. For a 32-bit pc-relative field the pc-relative offset to
+     the jump slot from the current instruction address is used.
+
+`@plt'
+     The @plt modifier can be used for 16-bit and 32-bit pc-relative
+     immediate fields. A procedure linkage table entry is generated for
+     the symbol.  The symbol term is replaced with the relative offset
+     from the current instruction to the PLT entry for the symbol.
+
+`@pltoff'
+     The @pltoff modifier can be used for 16-bit immediate fields. The
+     symbol term is replaced with the offset from the start of the PLT
+     to the address of the symbol.
+
+`@gotntpoff'
+     The @gotntpoff modifier can be used for displacement fields. The
+     symbol is added to the static TLS block and the negated offset to
+     the symbol in the static TLS block is added to the GOT. The symbol
+     term is replaced with the offset to the GOT slot from the start of
+     the GOT.
+
+`@indntpoff'
+     The @indntpoff modifier can be used for 32-bit pc-relative
+     immediate fields. The symbol is added to the static TLS block and
+     the negated offset to the symbol in the static TLS block is added
+     to the GOT. The symbol term is replaced with the pc-relative
+     offset to the GOT slot from the current instruction address.
+
+   For more information about the thread local storage modifiers
+`gotntpoff' and `indntpoff' see the ELF extension documentation `ELF
+Handling For Thread-Local Storage'.
+
+
+File: as.info,  Node: s390 Instruction Marker,  Next: s390 Literal Pool Entries,  Prev: s390 Operand Modifier,  Up: s390 Syntax
+
+9.31.3.7 Instruction Marker
+...........................
+
+The thread local storage instruction markers are used by the linker to
+perform code optimization.
+
+`:tls_load'
+     The :tls_load marker is used to flag the load instruction in the
+     initial exec TLS model that retrieves the offset from the thread
+     pointer to a thread local storage variable from the GOT.
+
+`:tls_gdcall'
+     The :tls_gdcall marker is used to flag the branch-and-save
+     instruction to the __tls_get_offset function in the global dynamic
+     TLS model.
+
+`:tls_ldcall'
+     The :tls_ldcall marker is used to flag the branch-and-save
+     instruction to the __tls_get_offset function in the local dynamic
+     TLS model.
+
+   For more information about the thread local storage instruction
+marker and the linker optimizations see the ELF extension documentation
+`ELF Handling For Thread-Local Storage'.
+
+
+File: as.info,  Node: s390 Literal Pool Entries,  Prev: s390 Instruction Marker,  Up: s390 Syntax
+
+9.31.3.8 Literal Pool Entries
+.............................
+
+A literal pool is a collection of values. To access the values a pointer
+to the literal pool is loaded to a register, the literal pool register.
+Usually, register %r13 is used as the literal pool register (*Note s390
+Register::). Literal pool entries are created by adding the suffix
+:lit1, :lit2, :lit4, or :lit8 to the end of an expression for an
+instruction operand. The expression is added to the literal pool and the
+operand is replaced with the offset to the literal in the literal pool.
+
+`:lit1'
+     The literal pool entry is created as an 8-bit value. An operand
+     modifier must not be used for the original expression.
+
+`:lit2'
+     The literal pool entry is created as a 16 bit value. The operand
+     modifier @got may be used in the original expression. The term
+     `x@got:lit2' will put the got offset for the global symbol x to
+     the literal pool as 16 bit value.
+
+`:lit4'
+     The literal pool entry is created as a 32-bit value. The operand
+     modifier @got and @plt may be used in the original expression. The
+     term `x@got:lit4' will put the got offset for the global symbol x
+     to the literal pool as a 32-bit value. The term `x@plt:lit4' will
+     put the plt offset for the global symbol x to the literal pool as
+     a 32-bit value.
+
+`:lit8'
+     The literal pool entry is created as a 64-bit value. The operand
+     modifier @got and @plt may be used in the original expression. The
+     term `x@got:lit8' will put the got offset for the global symbol x
+     to the literal pool as a 64-bit value. The term `x@plt:lit8' will
+     put the plt offset for the global symbol x to the literal pool as
+     a 64-bit value.
+
+   The assembler directive `.ltorg' is used to emit all literal pool
+entries to the current position.
+
+
+File: as.info,  Node: s390 Directives,  Next: s390 Floating Point,  Prev: s390 Syntax,  Up: S/390-Dependent
+
+9.31.4 Assembler Directives
+---------------------------
+
+`as' for s390 supports all of the standard ELF assembler directives as
+outlined in the main part of this document.  Some directives have been
+extended and there are some additional directives, which are only
+available for the s390 `as'.
+
+`.insn'
+     This directive permits the numeric representation of an
+     instructions and makes the assembler insert the operands according
+     to one of the instructions formats for `.insn' (*Note s390
+     Formats::).  For example, the instruction `l %r1,24(%r15)' could
+     be written as `.insn rx,0x58000000,%r1,24(%r15)'.  
+
+`.short'
+`.long'
+`.quad'
+     This directive places one or more 16-bit (.short), 32-bit (.long),
+     or 64-bit (.quad) values into the current section. If an ELF or
+     TLS modifier is used only the following expressions are allowed:
+     `symbol@modifier + constant', `symbol@modifier + label +
+     constant', and `symbol@modifier - label + constant'.  The
+     following modifiers are available:
+    `@got'
+    `@got12'
+          The @got modifier can be used for .short, .long and .quad.
+          The @got12 modifier is synonym to @got. The symbol is added
+          to the GOT. The symbol term is replaced with offset from the
+          start of the GOT to the GOT slot for the symbol.
+
+    `@gotoff'
+          The @gotoff modifier can be used for .short, .long and .quad.
+          The symbol term is replaced with the offset from the start of
+          the GOT to the address of the symbol.
+
+    `@gotplt'
+          The @gotplt modifier can be used for .long and .quad. A
+          procedure linkage table entry is generated for the symbol and
+          a jump slot for the symbol is added to the GOT. The symbol
+          term is replaced with the offset from the start of the GOT to
+          the jump slot for the symbol.
+
+    `@plt'
+          The @plt modifier can be used for .long and .quad. A
+          procedure linkage table entry us generated for the symbol.
+          The symbol term is replaced with the address of the PLT entry
+          for the symbol.
+
+    `@pltoff'
+          The @pltoff modifier can be used for .short, .long and .quad.
+          The symbol term is replaced with the offset from the start of
+          the PLT to the address of the symbol.
+
+    `@tlsgd'
+    `@tlsldm'
+          The @tlsgd and @tlsldm modifier can be used for .long and
+          .quad. A tls_index structure for the symbol is added to the
+          GOT. The symbol term is replaced with the offset from the
+          start of the GOT to the tls_index structure.
+
+    `@gotntpoff'
+    `@indntpoff'
+          The @gotntpoff and @indntpoff modifier can be used for .long
+          and .quad.  The symbol is added to the static TLS block and
+          the negated offset to the symbol in the static TLS block is
+          added to the GOT. For @gotntpoff the symbol term is replaced
+          with the offset from the start of the GOT to the GOT slot,
+          for @indntpoff the symbol term is replaced with the address
+          of the GOT slot.
+
+    `@dtpoff'
+          The @dtpoff modifier can be used for .long and .quad. The
+          symbol term is replaced with the offset of the symbol
+          relative to the start of the TLS block it is contained in.
+
+    `@ntpoff'
+          The @ntpoff modifier can be used for .long and .quad. The
+          symbol term is replaced with the offset of the symbol
+          relative to the TCB pointer.
+
+     For more information about the thread local storage modifiers see
+     the ELF extension documentation `ELF Handling For Thread-Local
+     Storage'.
+
+`.ltorg'
+     This directive causes the current contents of the literal pool to
+     be dumped to the current location (*Note s390 Literal Pool
+     Entries::).
+
+
+File: as.info,  Node: s390 Floating Point,  Prev: s390 Directives,  Up: S/390-Dependent
+
+9.31.5 Floating Point
+---------------------
+
+The assembler recognizes both the IEEE floating-point instruction and
+the hexadecimal floating-point instructions. The floating-point
+constructors `.float', `.single', and `.double' always emit the IEEE
+format. To assemble hexadecimal floating-point constants the `.long'
+and `.quad' directives must be used.
+
+
+File: as.info,  Node: SCORE-Dependent,  Next: Sparc-Dependent,  Prev: S/390-Dependent,  Up: Machine Dependencies
+
+9.32 SCORE Dependent Features
+=============================
+
+* Menu:
+
+* SCORE-Opts::   	Assembler options
+* SCORE-Pseudo::        SCORE Assembler Directives
+
+
+File: as.info,  Node: SCORE-Opts,  Next: SCORE-Pseudo,  Up: SCORE-Dependent
+
+9.32.1 Options
+--------------
+
+The following table lists all available SCORE options.
+
+`-G NUM'
+     This option sets the largest size of an object that can be
+     referenced implicitly with the `gp' register. The default value is
+     8.
+
+`-EB'
+     Assemble code for a big-endian cpu
+
+`-EL'
+     Assemble code for a little-endian cpu
+
+`-FIXDD'
+     Assemble code for fix data dependency
+
+`-NWARN'
+     Assemble code for no warning message for fix data dependency
+
+`-SCORE5'
+     Assemble code for target is SCORE5
+
+`-SCORE5U'
+     Assemble code for target is SCORE5U
+
+`-SCORE7'
+     Assemble code for target is SCORE7, this is default setting
+
+`-SCORE3'
+     Assemble code for target is SCORE3
+
+`-march=score7'
+     Assemble code for target is SCORE7, this is default setting
+
+`-march=score3'
+     Assemble code for target is SCORE3
+
+`-USE_R1'
+     Assemble code for no warning message when using temp register r1
+
+`-KPIC'
+     Generate code for PIC.  This option tells the assembler to generate
+     score position-independent macro expansions.  It also tells the
+     assembler to mark the output file as PIC.
+
+`-O0'
+     Assembler will not perform any optimizations
+
+`-V'
+     Sunplus release version
+
+
+
+File: as.info,  Node: SCORE-Pseudo,  Prev: SCORE-Opts,  Up: SCORE-Dependent
+
+9.32.2 SCORE Assembler Directives
+---------------------------------
+
+A number of assembler directives are available for SCORE.  The
+following table is far from complete.
+
+`.set nwarn'
+     Let the assembler not to generate warnings if the source machine
+     language instructions happen data dependency.
+
+`.set fixdd'
+     Let the assembler to insert bubbles (32 bit nop instruction / 16
+     bit nop! Instruction) if the source machine language instructions
+     happen data dependency.
+
+`.set nofixdd'
+     Let the assembler to generate warnings if the source machine
+     language instructions happen data dependency. (Default)
+
+`.set r1'
+     Let the assembler not to generate warnings if the source program
+     uses r1. allow user to use r1
+
+`set nor1'
+     Let the assembler to generate warnings if the source program uses
+     r1. (Default)
+
+`.sdata'
+     Tell the assembler to add subsequent data into the sdata section
+
+`.rdata'
+     Tell the assembler to add subsequent data into the rdata section
+
+`.frame "frame-register", "offset", "return-pc-register"'
+     Describe a stack frame. "frame-register" is the frame register,
+     "offset" is the distance from the frame register to the virtual
+     frame pointer, "return-pc-register" is the return program register.
+     You must use ".ent" before ".frame" and only one ".frame" can be
+     used per ".ent".
+
+`.mask "bitmask", "frameoffset"'
+     Indicate which of the integer registers are saved in the current
+     function's stack frame, this is for the debugger to explain the
+     frame chain.
+
+`.ent "proc-name"'
+     Set the beginning of the procedure "proc_name". Use this directive
+     when you want to generate information for the debugger.
+
+`.end proc-name'
+     Set the end of a procedure. Use this directive to generate
+     information for the debugger.
+
+`.bss'
+     Switch the destination of following statements into the bss
+     section, which is used for data that is uninitialized anywhere.
+
+
+
+File: as.info,  Node: SH-Dependent,  Next: SH64-Dependent,  Prev: MSP430-Dependent,  Up: Machine Dependencies
+
+9.33 Renesas / SuperH SH Dependent Features
+===========================================
+
+* Menu:
+
+* SH Options::              Options
+* SH Syntax::               Syntax
+* SH Floating Point::       Floating Point
+* SH Directives::           SH Machine Directives
+* SH Opcodes::              Opcodes
+
+
+File: as.info,  Node: SH Options,  Next: SH Syntax,  Up: SH-Dependent
+
+9.33.1 Options
+--------------
+
+`as' has following command-line options for the Renesas (formerly
+Hitachi) / SuperH SH family.
+
+`--little'
+     Generate little endian code.
+
+`--big'
+     Generate big endian code.
+
+`--relax'
+     Alter jump instructions for long displacements.
+
+`--small'
+     Align sections to 4 byte boundaries, not 16.
+
+`--dsp'
+     Enable sh-dsp insns, and disable sh3e / sh4 insns.
+
+`--renesas'
+     Disable optimization with section symbol for compatibility with
+     Renesas assembler.
+
+`--allow-reg-prefix'
+     Allow '$' as a register name prefix.
+
+`--fdpic'
+     Generate an FDPIC object file.
+
+`--isa=sh4 | sh4a'
+     Specify the sh4 or sh4a instruction set.
+
+`--isa=dsp'
+     Enable sh-dsp insns, and disable sh3e / sh4 insns.
+
+`--isa=fp'
+     Enable sh2e, sh3e, sh4, and sh4a insn sets.
+
+`--isa=all'
+     Enable sh1, sh2, sh2e, sh3, sh3e, sh4, sh4a, and sh-dsp insn sets.
+
+`-h-tick-hex'
+     Support H'00 style hex constants in addition to 0x00 style.
+
+
+
+File: as.info,  Node: SH Syntax,  Next: SH Floating Point,  Prev: SH Options,  Up: SH-Dependent
+
+9.33.2 Syntax
+-------------
+
+* Menu:
+
+* SH-Chars::                Special Characters
+* SH-Regs::                 Register Names
+* SH-Addressing::           Addressing Modes
+
+
+File: as.info,  Node: SH-Chars,  Next: SH-Regs,  Up: SH Syntax
+
+9.33.2.1 Special Characters
+...........................
+
+`!' is the line comment character.
+
+   You can use `;' instead of a newline to separate statements.
+
+   Since `$' has no special meaning, you may use it in symbol names.
+
+
+File: as.info,  Node: SH-Regs,  Next: SH-Addressing,  Prev: SH-Chars,  Up: SH Syntax
+
+9.33.2.2 Register Names
+.......................
+
+You can use the predefined symbols `r0', `r1', `r2', `r3', `r4', `r5',
+`r6', `r7', `r8', `r9', `r10', `r11', `r12', `r13', `r14', and `r15' to
+refer to the SH registers.
+
+   The SH also has these control registers:
+
+`pr'
+     procedure register (holds return address)
+
+`pc'
+     program counter
+
+`mach'
+`macl'
+     high and low multiply accumulator registers
+
+`sr'
+     status register
+
+`gbr'
+     global base register
+
+`vbr'
+     vector base register (for interrupt vectors)
+
+
+File: as.info,  Node: SH-Addressing,  Prev: SH-Regs,  Up: SH Syntax
+
+9.33.2.3 Addressing Modes
+.........................
+
+`as' understands the following addressing modes for the SH.  `RN' in
+the following refers to any of the numbered registers, but _not_ the
+control registers.
+
+`RN'
+     Register direct
+
+`@RN'
+     Register indirect
+
+`@-RN'
+     Register indirect with pre-decrement
+
+`@RN+'
+     Register indirect with post-increment
+
+`@(DISP, RN)'
+     Register indirect with displacement
+
+`@(R0, RN)'
+     Register indexed
+
+`@(DISP, GBR)'
+     `GBR' offset
+
+`@(R0, GBR)'
+     GBR indexed
+
+`ADDR'
+`@(DISP, PC)'
+     PC relative address (for branch or for addressing memory).  The
+     `as' implementation allows you to use the simpler form ADDR
+     anywhere a PC relative address is called for; the alternate form
+     is supported for compatibility with other assemblers.
+
+`#IMM'
+     Immediate data
+
+
+File: as.info,  Node: SH Floating Point,  Next: SH Directives,  Prev: SH Syntax,  Up: SH-Dependent
+
+9.33.3 Floating Point
+---------------------
+
+SH2E, SH3E and SH4 groups have on-chip floating-point unit (FPU). Other
+SH groups can use `.float' directive to generate IEEE floating-point
+numbers.
+
+   SH2E and SH3E support single-precision floating point calculations as
+well as entirely PCAPI compatible emulation of double-precision
+floating point calculations. SH2E and SH3E instructions are a subset of
+the floating point calculations conforming to the IEEE754 standard.
+
+   In addition to single-precision and double-precision floating-point
+operation capability, the on-chip FPU of SH4 has a 128-bit graphic
+engine that enables 32-bit floating-point data to be processed 128 bits
+at a time. It also supports 4 * 4 array operations and inner product
+operations. Also, a superscalar architecture is employed that enables
+simultaneous execution of two instructions (including FPU
+instructions), providing performance of up to twice that of
+conventional architectures at the same frequency.
+
+
+File: as.info,  Node: SH Directives,  Next: SH Opcodes,  Prev: SH Floating Point,  Up: SH-Dependent
+
+9.33.4 SH Machine Directives
+----------------------------
+
+`uaword'
+`ualong'
+     `as' will issue a warning when a misaligned `.word' or `.long'
+     directive is used.  You may use `.uaword' or `.ualong' to indicate
+     that the value is intentionally misaligned.
+
+
+File: as.info,  Node: SH Opcodes,  Prev: SH Directives,  Up: SH-Dependent
+
+9.33.5 Opcodes
+--------------
+
+For detailed information on the SH machine instruction set, see
+`SH-Microcomputer User's Manual' (Renesas) or `SH-4 32-bit CPU Core
+Architecture' (SuperH) and `SuperH (SH) 64-Bit RISC Series' (SuperH).
+
+   `as' implements all the standard SH opcodes.  No additional
+pseudo-instructions are needed on this family.  Note, however, that
+because `as' supports a simpler form of PC-relative addressing, you may
+simply write (for example)
+
+     mov.l  bar,r0
+
+where other assemblers might require an explicit displacement to `bar'
+from the program counter:
+
+     mov.l  @(DISP, PC)
+
+   Here is a summary of SH opcodes:
+
+     Legend:
+     Rn        a numbered register
+     Rm        another numbered register
+     #imm      immediate data
+     disp      displacement
+     disp8     8-bit displacement
+     disp12    12-bit displacement
+
+     add #imm,Rn                    lds.l @Rn+,PR
+     add Rm,Rn                      mac.w @Rm+,@Rn+
+     addc Rm,Rn                     mov #imm,Rn
+     addv Rm,Rn                     mov Rm,Rn
+     and #imm,R0                    mov.b Rm,@(R0,Rn)
+     and Rm,Rn                      mov.b Rm,@-Rn
+     and.b #imm,@(R0,GBR)           mov.b Rm,@Rn
+     bf disp8                       mov.b @(disp,Rm),R0
+     bra disp12                     mov.b @(disp,GBR),R0
+     bsr disp12                     mov.b @(R0,Rm),Rn
+     bt disp8                       mov.b @Rm+,Rn
+     clrmac                         mov.b @Rm,Rn
+     clrt                           mov.b R0,@(disp,Rm)
+     cmp/eq #imm,R0                 mov.b R0,@(disp,GBR)
+     cmp/eq Rm,Rn                   mov.l Rm,@(disp,Rn)
+     cmp/ge Rm,Rn                   mov.l Rm,@(R0,Rn)
+     cmp/gt Rm,Rn                   mov.l Rm,@-Rn
+     cmp/hi Rm,Rn                   mov.l Rm,@Rn
+     cmp/hs Rm,Rn                   mov.l @(disp,Rn),Rm
+     cmp/pl Rn                      mov.l @(disp,GBR),R0
+     cmp/pz Rn                      mov.l @(disp,PC),Rn
+     cmp/str Rm,Rn                  mov.l @(R0,Rm),Rn
+     div0s Rm,Rn                    mov.l @Rm+,Rn
+     div0u                          mov.l @Rm,Rn
+     div1 Rm,Rn                     mov.l R0,@(disp,GBR)
+     exts.b Rm,Rn                   mov.w Rm,@(R0,Rn)
+     exts.w Rm,Rn                   mov.w Rm,@-Rn
+     extu.b Rm,Rn                   mov.w Rm,@Rn
+     extu.w Rm,Rn                   mov.w @(disp,Rm),R0
+     jmp @Rn                        mov.w @(disp,GBR),R0
+     jsr @Rn                        mov.w @(disp,PC),Rn
+     ldc Rn,GBR                     mov.w @(R0,Rm),Rn
+     ldc Rn,SR                      mov.w @Rm+,Rn
+     ldc Rn,VBR                     mov.w @Rm,Rn
+     ldc.l @Rn+,GBR                 mov.w R0,@(disp,Rm)
+     ldc.l @Rn+,SR                  mov.w R0,@(disp,GBR)
+     ldc.l @Rn+,VBR                 mova @(disp,PC),R0
+     lds Rn,MACH                    movt Rn
+     lds Rn,MACL                    muls Rm,Rn
+     lds Rn,PR                      mulu Rm,Rn
+     lds.l @Rn+,MACH                neg Rm,Rn
+     lds.l @Rn+,MACL                negc Rm,Rn
+
+     nop                            stc VBR,Rn
+     not Rm,Rn                      stc.l GBR,@-Rn
+     or #imm,R0                     stc.l SR,@-Rn
+     or Rm,Rn                       stc.l VBR,@-Rn
+     or.b #imm,@(R0,GBR)            sts MACH,Rn
+     rotcl Rn                       sts MACL,Rn
+     rotcr Rn                       sts PR,Rn
+     rotl Rn                        sts.l MACH,@-Rn
+     rotr Rn                        sts.l MACL,@-Rn
+     rte                            sts.l PR,@-Rn
+     rts                            sub Rm,Rn
+     sett                           subc Rm,Rn
+     shal Rn                        subv Rm,Rn
+     shar Rn                        swap.b Rm,Rn
+     shll Rn                        swap.w Rm,Rn
+     shll16 Rn                      tas.b @Rn
+     shll2 Rn                       trapa #imm
+     shll8 Rn                       tst #imm,R0
+     shlr Rn                        tst Rm,Rn
+     shlr16 Rn                      tst.b #imm,@(R0,GBR)
+     shlr2 Rn                       xor #imm,R0
+     shlr8 Rn                       xor Rm,Rn
+     sleep                          xor.b #imm,@(R0,GBR)
+     stc GBR,Rn                     xtrct Rm,Rn
+     stc SR,Rn
+
+
+File: as.info,  Node: SH64-Dependent,  Next: PDP-11-Dependent,  Prev: SH-Dependent,  Up: Machine Dependencies
+
+9.34 SuperH SH64 Dependent Features
+===================================
+
+* Menu:
+
+* SH64 Options::              Options
+* SH64 Syntax::               Syntax
+* SH64 Directives::           SH64 Machine Directives
+* SH64 Opcodes::              Opcodes
+
+
+File: as.info,  Node: SH64 Options,  Next: SH64 Syntax,  Up: SH64-Dependent
+
+9.34.1 Options
+--------------
+
+`-isa=sh4 | sh4a'
+     Specify the sh4 or sh4a instruction set.
+
+`-isa=dsp'
+     Enable sh-dsp insns, and disable sh3e / sh4 insns.
+
+`-isa=fp'
+     Enable sh2e, sh3e, sh4, and sh4a insn sets.
+
+`-isa=all'
+     Enable sh1, sh2, sh2e, sh3, sh3e, sh4, sh4a, and sh-dsp insn sets.
+
+`-isa=shmedia | -isa=shcompact'
+     Specify the default instruction set.  `SHmedia' specifies the
+     32-bit opcodes, and `SHcompact' specifies the 16-bit opcodes
+     compatible with previous SH families.  The default depends on the
+     ABI selected; the default for the 64-bit ABI is SHmedia, and the
+     default for the 32-bit ABI is SHcompact.  If neither the ABI nor
+     the ISA is specified, the default is 32-bit SHcompact.
+
+     Note that the `.mode' pseudo-op is not permitted if the ISA is not
+     specified on the command line.
+
+`-abi=32 | -abi=64'
+     Specify the default ABI.  If the ISA is specified and the ABI is
+     not, the default ABI depends on the ISA, with SHmedia defaulting
+     to 64-bit and SHcompact defaulting to 32-bit.
+
+     Note that the `.abi' pseudo-op is not permitted if the ABI is not
+     specified on the command line.  When the ABI is specified on the
+     command line, any `.abi' pseudo-ops in the source must match it.
+
+`-shcompact-const-crange'
+     Emit code-range descriptors for constants in SHcompact code
+     sections.
+
+`-no-mix'
+     Disallow SHmedia code in the same section as constants and
+     SHcompact code.
+
+`-no-expand'
+     Do not expand MOVI, PT, PTA or PTB instructions.
+
+`-expand-pt32'
+     With -abi=64, expand PT, PTA and PTB instructions to 32 bits only.
+
+`-h-tick-hex'
+     Support H'00 style hex constants in addition to 0x00 style.
+
+
+
+File: as.info,  Node: SH64 Syntax,  Next: SH64 Directives,  Prev: SH64 Options,  Up: SH64-Dependent
+
+9.34.2 Syntax
+-------------
+
+* Menu:
+
+* SH64-Chars::                Special Characters
+* SH64-Regs::                 Register Names
+* SH64-Addressing::           Addressing Modes
+
+
+File: as.info,  Node: SH64-Chars,  Next: SH64-Regs,  Up: SH64 Syntax
+
+9.34.2.1 Special Characters
+...........................
+
+`!' is the line comment character.
+
+   You can use `;' instead of a newline to separate statements.
+
+   Since `$' has no special meaning, you may use it in symbol names.
+
+
+File: as.info,  Node: SH64-Regs,  Next: SH64-Addressing,  Prev: SH64-Chars,  Up: SH64 Syntax
+
+9.34.2.2 Register Names
+.......................
+
+You can use the predefined symbols `r0' through `r63' to refer to the
+SH64 general registers, `cr0' through `cr63' for control registers,
+`tr0' through `tr7' for target address registers, `fr0' through `fr63'
+for single-precision floating point registers, `dr0' through `dr62'
+(even numbered registers only) for double-precision floating point
+registers, `fv0' through `fv60' (multiples of four only) for
+single-precision floating point vectors, `fp0' through `fp62' (even
+numbered registers only) for single-precision floating point pairs,
+`mtrx0' through `mtrx48' (multiples of 16 only) for 4x4 matrices of
+single-precision floating point registers, `pc' for the program
+counter, and `fpscr' for the floating point status and control register.
+
+   You can also refer to the control registers by the mnemonics `sr',
+`ssr', `pssr', `intevt', `expevt', `pexpevt', `tra', `spc', `pspc',
+`resvec', `vbr', `tea', `dcr', `kcr0', `kcr1', `ctc', and `usr'.
+
+
+File: as.info,  Node: SH64-Addressing,  Prev: SH64-Regs,  Up: SH64 Syntax
+
+9.34.2.3 Addressing Modes
+.........................
+
+SH64 operands consist of either a register or immediate value.  The
+immediate value can be a constant or label reference (or portion of a
+label reference), as in this example:
+
+     	movi	4,r2
+     	pt	function, tr4
+     	movi	(function >> 16) & 65535,r0
+     	shori	function & 65535, r0
+     	ld.l	r0,4,r0
+
+   Instruction label references can reference labels in either SHmedia
+or SHcompact.  To differentiate between the two, labels in SHmedia
+sections will always have the least significant bit set (i.e. they will
+be odd), which SHcompact labels will have the least significant bit
+reset (i.e. they will be even).  If you need to reference the actual
+address of a label, you can use the `datalabel' modifier, as in this
+example:
+
+     	.long	function
+     	.long	datalabel function
+
+   In that example, the first longword may or may not have the least
+significant bit set depending on whether the label is an SHmedia label
+or an SHcompact label.  The second longword will be the actual address
+of the label, regardless of what type of label it is.
+
+
+File: as.info,  Node: SH64 Directives,  Next: SH64 Opcodes,  Prev: SH64 Syntax,  Up: SH64-Dependent
+
+9.34.3 SH64 Machine Directives
+------------------------------
+
+In addition to the SH directives, the SH64 provides the following
+directives:
+
+`.mode [shmedia|shcompact]'
+`.isa [shmedia|shcompact]'
+     Specify the ISA for the following instructions (the two directives
+     are equivalent).  Note that programs such as `objdump' rely on
+     symbolic labels to determine when such mode switches occur (by
+     checking the least significant bit of the label's address), so
+     such mode/isa changes should always be followed by a label (in
+     practice, this is true anyway).  Note that you cannot use these
+     directives if you didn't specify an ISA on the command line.
+
+`.abi [32|64]'
+     Specify the ABI for the following instructions.  Note that you
+     cannot use this directive unless you specified an ABI on the
+     command line, and the ABIs specified must match.
+
+`.uaquad'
+     Like .uaword and .ualong, this allows you to specify an
+     intentionally unaligned quadword (64 bit word).
+
+
+
+File: as.info,  Node: SH64 Opcodes,  Prev: SH64 Directives,  Up: SH64-Dependent
+
+9.34.4 Opcodes
+--------------
+
+For detailed information on the SH64 machine instruction set, see
+`SuperH 64 bit RISC Series Architecture Manual' (SuperH, Inc.).
+
+   `as' implements all the standard SH64 opcodes.  In addition, the
+following pseudo-opcodes may be expanded into one or more alternate
+opcodes:
+
+`movi'
+     If the value doesn't fit into a standard `movi' opcode, `as' will
+     replace the `movi' with a sequence of `movi' and `shori' opcodes.
+
+`pt'
+     This expands to a sequence of `movi' and `shori' opcode, followed
+     by a `ptrel' opcode, or to a `pta' or `ptb' opcode, depending on
+     the label referenced.
+
+
+
+File: as.info,  Node: Sparc-Dependent,  Next: TIC54X-Dependent,  Prev: SCORE-Dependent,  Up: Machine Dependencies
+
+9.35 SPARC Dependent Features
+=============================
+
+* Menu:
+
+* Sparc-Opts::                  Options
+* Sparc-Aligned-Data::		Option to enforce aligned data
+* Sparc-Syntax::		Syntax
+* Sparc-Float::                 Floating Point
+* Sparc-Directives::            Sparc Machine Directives
+
+
+File: as.info,  Node: Sparc-Opts,  Next: Sparc-Aligned-Data,  Up: Sparc-Dependent
+
+9.35.1 Options
+--------------
+
+The SPARC chip family includes several successive versions, using the
+same core instruction set, but including a few additional instructions
+at each version.  There are exceptions to this however.  For details on
+what instructions each variant supports, please see the chip's
+architecture reference manual.
+
+   By default, `as' assumes the core instruction set (SPARC v6), but
+"bumps" the architecture level as needed: it switches to successively
+higher architectures as it encounters instructions that only exist in
+the higher levels.
+
+   If not configured for SPARC v9 (`sparc64-*-*') GAS will not bump
+past sparclite by default, an option must be passed to enable the v9
+instructions.
+
+   GAS treats sparclite as being compatible with v8, unless an
+architecture is explicitly requested.  SPARC v9 is always incompatible
+with sparclite.
+
+`-Av6 | -Av7 | -Av8 | -Asparclet | -Asparclite'
+`-Av8plus | -Av8plusa | -Av9 | -Av9a'
+     Use one of the `-A' options to select one of the SPARC
+     architectures explicitly.  If you select an architecture
+     explicitly, `as' reports a fatal error if it encounters an
+     instruction or feature requiring an incompatible or higher level.
+
+     `-Av8plus' and `-Av8plusa' select a 32 bit environment.
+
+     `-Av9' and `-Av9a' select a 64 bit environment and are not
+     available unless GAS is explicitly configured with 64 bit
+     environment support.
+
+     `-Av8plusa' and `-Av9a' enable the SPARC V9 instruction set with
+     UltraSPARC extensions.
+
+`-xarch=v8plus | -xarch=v8plusa'
+     For compatibility with the SunOS v9 assembler.  These options are
+     equivalent to -Av8plus and -Av8plusa, respectively.
+
+`-bump'
+     Warn whenever it is necessary to switch to another level.  If an
+     architecture level is explicitly requested, GAS will not issue
+     warnings until that level is reached, and will then bump the level
+     as required (except between incompatible levels).
+
+`-32 | -64'
+     Select the word size, either 32 bits or 64 bits.  These options
+     are only available with the ELF object file format, and require
+     that the necessary BFD support has been included.
+
+
+File: as.info,  Node: Sparc-Aligned-Data,  Next: Sparc-Syntax,  Prev: Sparc-Opts,  Up: Sparc-Dependent
+
+9.35.2 Enforcing aligned data
+-----------------------------
+
+SPARC GAS normally permits data to be misaligned.  For example, it
+permits the `.long' pseudo-op to be used on a byte boundary.  However,
+the native SunOS assemblers issue an error when they see misaligned
+data.
+
+   You can use the `--enforce-aligned-data' option to make SPARC GAS
+also issue an error about misaligned data, just as the SunOS assemblers
+do.
+
+   The `--enforce-aligned-data' option is not the default because gcc
+issues misaligned data pseudo-ops when it initializes certain packed
+data structures (structures defined using the `packed' attribute).  You
+may have to assemble with GAS in order to initialize packed data
+structures in your own code.
+
+
+File: as.info,  Node: Sparc-Syntax,  Next: Sparc-Float,  Prev: Sparc-Aligned-Data,  Up: Sparc-Dependent
+
+9.35.3 Sparc Syntax
+-------------------
+
+The assembler syntax closely follows The Sparc Architecture Manual,
+versions 8 and 9, as well as most extensions defined by Sun for their
+UltraSPARC and Niagara line of processors.
+
+* Menu:
+
+* Sparc-Chars::                Special Characters
+* Sparc-Regs::                 Register Names
+* Sparc-Constants::            Constant Names
+* Sparc-Relocs::               Relocations
+* Sparc-Size-Translations::    Size Translations
+
+
+File: as.info,  Node: Sparc-Chars,  Next: Sparc-Regs,  Up: Sparc-Syntax
+
+9.35.3.1 Special Characters
+...........................
+
+`#' is the line comment character.
+
+   `;' can be used instead of a newline to separate statements.
+
+
+File: as.info,  Node: Sparc-Regs,  Next: Sparc-Constants,  Prev: Sparc-Chars,  Up: Sparc-Syntax
+
+9.35.3.2 Register Names
+.......................
+
+The Sparc integer register file is broken down into global, outgoing,
+local, and incoming.
+
+   * The 8 global registers are referred to as `%gN'.
+
+   * The 8 outgoing registers are referred to as `%oN'.
+
+   * The 8 local registers are referred to as `%lN'.
+
+   * The 8 incoming registers are referred to as `%iN'.
+
+   * The frame pointer register `%i6' can be referenced using the alias
+     `%fp'.
+
+   * The stack pointer register `%o6' can be referenced using the alias
+     `%sp'.
+
+   Floating point registers are simply referred to as `%fN'.  When
+assembling for pre-V9, only 32 floating point registers are available.
+For V9 and later there are 64, but there are restrictions when
+referencing the upper 32 registers.  They can only be accessed as
+double or quad, and thus only even or quad numbered accesses are
+allowed.  For example, `%f34' is a legal floating point register, but
+`%f35' is not.
+
+   Certain V9 instructions allow access to ancillary state registers.
+Most simply they can be referred to as `%asrN' where N can be from 16
+to 31.  However, there are some aliases defined to reference ASR
+registers defined for various UltraSPARC processors:
+
+   * The tick compare register is referred to as `%tick_cmpr'.
+
+   * The system tick register is referred to as `%stick'.  An alias,
+     `%sys_tick', exists but is deprecated and should not be used by
+     new software.
+
+   * The system tick compare register is referred to as `%stick_cmpr'.
+     An alias, `%sys_tick_cmpr', exists but is deprecated and should
+     not be used by new software.
+
+   * The software interrupt register is referred to as `%softint'.
+
+   * The set software interrupt register is referred to as
+     `%set_softint'.  The mnemonic `%softint_set' is provided as an
+     alias.
+
+   * The clear software interrupt register is referred to as
+     `%clear_softint'.  The mnemonic `%softint_clear' is provided as an
+     alias.
+
+   * The performance instrumentation counters register is referred to as
+     `%pic'.
+
+   * The performance control register is referred to as `%pcr'.
+
+   * The graphics status register is referred to as `%gsr'.
+
+   * The V9 dispatch control register is referred to as `%dcr'.
+
+   Various V9 branch and conditional move instructions allow
+specification of which set of integer condition codes to test.  These
+are referred to as `%xcc' and `%icc'.
+
+   In V9, there are 4 sets of floating point condition codes which are
+referred to as `%fccN'.
+
+   Several special privileged and non-privileged registers exist:
+
+   * The V9 address space identifier register is referred to as `%asi'.
+
+   * The V9 restorable windows register is referred to as `%canrestore'.
+
+   * The V9 savable windows register is referred to as `%cansave'.
+
+   * The V9 clean windows register is referred to as `%cleanwin'.
+
+   * The V9 current window pointer register is referred to as `%cwp'.
+
+   * The floating-point queue register is referred to as `%fq'.
+
+   * The V8 co-processor queue register is referred to as `%cq'.
+
+   * The floating point status register is referred to as `%fsr'.
+
+   * The other windows register is referred to as `%otherwin'.
+
+   * The V9 program counter register is referred to as `%pc'.
+
+   * The V9 next program counter register is referred to as `%npc'.
+
+   * The V9 processor interrupt level register is referred to as `%pil'.
+
+   * The V9 processor state register is referred to as `%pstate'.
+
+   * The trap base address register is referred to as `%tba'.
+
+   * The V9 tick register is referred to as `%tick'.
+
+   * The V9 trap level is referred to as `%tl'.
+
+   * The V9 trap program counter is referred to as `%tpc'.
+
+   * The V9 trap next program counter is referred to as `%tnpc'.
+
+   * The V9 trap state is referred to as `%tstate'.
+
+   * The V9 trap type is referred to as `%tt'.
+
+   * The V9 condition codes is referred to as `%ccr'.
+
+   * The V9 floating-point registers state is referred to as `%fprs'.
+
+   * The V9 version register is referred to as `%ver'.
+
+   * The V9 window state register is referred to as `%wstate'.
+
+   * The Y register is referred to as `%y'.
+
+   * The V8 window invalid mask register is referred to as `%wim'.
+
+   * The V8 processor state register is referred to as `%psr'.
+
+   * The V9 global register level register is referred to as `%gl'.
+
+   Several special register names exist for hypervisor mode code:
+
+   * The hyperprivileged processor state register is referred to as
+     `%hpstate'.
+
+   * The hyperprivileged trap state register is referred to as
+     `%htstate'.
+
+   * The hyperprivileged interrupt pending register is referred to as
+     `%hintp'.
+
+   * The hyperprivileged trap base address register is referred to as
+     `%htba'.
+
+   * The hyperprivileged implementation version register is referred to
+     as `%hver'.
+
+   * The hyperprivileged system tick compare register is referred to as
+     `%hstick_cmpr'.  Note that there is no `%hstick' register, the
+     normal `%stick' is used.
+
+
+File: as.info,  Node: Sparc-Constants,  Next: Sparc-Relocs,  Prev: Sparc-Regs,  Up: Sparc-Syntax
+
+9.35.3.3 Constants
+..................
+
+Several Sparc instructions take an immediate operand field for which
+mnemonic names exist.  Two such examples are `membar' and `prefetch'.
+Another example are the set of V9 memory access instruction that allow
+specification of an address space identifier.
+
+   The `membar' instruction specifies a memory barrier that is the
+defined by the operand which is a bitmask.  The supported mask
+mnemonics are:
+
+   * `#Sync' requests that all operations (including nonmemory
+     reference operations) appearing prior to the `membar' must have
+     been performed and the effects of any exceptions become visible
+     before any instructions after the `membar' may be initiated.  This
+     corresponds to `membar' cmask field bit 2.
+
+   * `#MemIssue' requests that all memory reference operations
+     appearing prior to the `membar' must have been performed before
+     any memory operation after the `membar' may be initiated.  This
+     corresponds to `membar' cmask field bit 1.
+
+   * `#Lookaside' requests that a store appearing prior to the `membar'
+     must complete before any load following the `membar' referencing
+     the same address can be initiated.  This corresponds to `membar'
+     cmask field bit 0.
+
+   * `#StoreStore' defines that the effects of all stores appearing
+     prior to the `membar' instruction must be visible to all
+     processors before the effect of any stores following the `membar'.
+     Equivalent to the deprecated `stbar' instruction.  This
+     corresponds to `membar' mmask field bit 3.
+
+   * `#LoadStore' defines all loads appearing prior to the `membar'
+     instruction must have been performed before the effect of any
+     stores following the `membar' is visible to any other processor.
+     This corresponds to `membar' mmask field bit 2.
+
+   * `#StoreLoad' defines that the effects of all stores appearing
+     prior to the `membar' instruction must be visible to all
+     processors before loads following the `membar' may be performed.
+     This corresponds to `membar' mmask field bit 1.
+
+   * `#LoadLoad' defines that all loads appearing prior to the `membar'
+     instruction must have been performed before any loads following
+     the `membar' may be performed.  This corresponds to `membar' mmask
+     field bit 0.
+
+
+   These values can be ored together, for example:
+
+     membar #Sync
+     membar #StoreLoad | #LoadLoad
+     membar #StoreLoad | #StoreStore
+
+   The `prefetch' and `prefetcha' instructions take a prefetch function
+code.  The following prefetch function code constant mnemonics are
+available:
+
+   * `#n_reads' requests a prefetch for several reads, and corresponds
+     to a prefetch function code of 0.
+
+     `#one_read' requests a prefetch for one read, and corresponds to a
+     prefetch function code of 1.
+
+     `#n_writes' requests a prefetch for several writes (and possibly
+     reads), and corresponds to a prefetch function code of 2.
+
+     `#one_write' requests a prefetch for one write, and corresponds to
+     a prefetch function code of 3.
+
+     `#page' requests a prefetch page, and corresponds to a prefetch
+     function code of 4.
+
+     `#invalidate' requests a prefetch invalidate, and corresponds to a
+     prefetch function code of 16.
+
+     `#unified' requests a prefetch to the nearest unified cache, and
+     corresponds to a prefetch function code of 17.
+
+     `#n_reads_strong' requests a strong prefetch for several reads,
+     and corresponds to a prefetch function code of 20.
+
+     `#one_read_strong' requests a strong prefetch for one read, and
+     corresponds to a prefetch function code of 21.
+
+     `#n_writes_strong' requests a strong prefetch for several writes,
+     and corresponds to a prefetch function code of 22.
+
+     `#one_write_strong' requests a strong prefetch for one write, and
+     corresponds to a prefetch function code of 23.
+
+     Onle one prefetch code may be specified.  Here are some examples:
+
+          prefetch  [%l0 + %l2], #one_read
+          prefetch  [%g2 + 8], #n_writes
+          prefetcha [%g1] 0x8, #unified
+          prefetcha [%o0 + 0x10] %asi, #n_reads
+
+     The actual behavior of a given prefetch function code is processor
+     specific.  If a processor does not implement a given prefetch
+     function code, it will treat the prefetch instruction as a nop.
+
+     For instructions that accept an immediate address space identifier,
+     `as' provides many mnemonics corresponding to V9 defined as well
+     as UltraSPARC and Niagara extended values.  For example, `#ASI_P'
+     and `#ASI_BLK_INIT_QUAD_LDD_AIUS'.  See the V9 and processor
+     specific manuals for details.
+
+
+
+File: as.info,  Node: Sparc-Relocs,  Next: Sparc-Size-Translations,  Prev: Sparc-Constants,  Up: Sparc-Syntax
+
+9.35.3.4 Relocations
+....................
+
+ELF relocations are available as defined in the 32-bit and 64-bit Sparc
+ELF specifications.
+
+   `R_SPARC_HI22' is obtained using `%hi' and `R_SPARC_LO10' is
+obtained using `%lo'.  Likewise `R_SPARC_HIX22' is obtained from `%hix'
+and `R_SPARC_LOX10' is obtained using `%lox'.  For example:
+
+     sethi %hi(symbol), %g1
+     or    %g1, %lo(symbol), %g1
+
+     sethi %hix(symbol), %g1
+     xor   %g1, %lox(symbol), %g1
+
+   These "high" mnemonics extract bits 31:10 of their operand, and the
+"low" mnemonics extract bits 9:0 of their operand.
+
+   V9 code model relocations can be requested as follows:
+
+   * `R_SPARC_HH22' is requested using `%hh'.  It can also be generated
+     using `%uhi'.
+
+   * `R_SPARC_HM10' is requested using `%hm'.  It can also be generated
+     using `%ulo'.
+
+   * `R_SPARC_LM22' is requested using `%lm'.
+
+   * `R_SPARC_H44' is requested using `%h44'.
+
+   * `R_SPARC_M44' is requested using `%m44'.
+
+   * `R_SPARC_L44' is requested using `%l44'.
+
+   The PC relative relocation `R_SPARC_PC22' can be obtained by
+enclosing an operand inside of `%pc22'.  Likewise, the `R_SPARC_PC10'
+relocation can be obtained using `%pc10'.  These are mostly used when
+assembling PIC code.  For example, the standard PIC sequence on Sparc
+to get the base of the global offset table, PC relative, into a
+register, can be performed as:
+
+     sethi %pc22(_GLOBAL_OFFSET_TABLE_-4), %l7
+     add   %l7, %pc10(_GLOBAL_OFFSET_TABLE_+4), %l7
+
+   Several relocations exist to allow the link editor to potentially
+optimize GOT data references.  The `R_SPARC_GOTDATA_OP_HIX22'
+relocation can obtained by enclosing an operand inside of
+`%gdop_hix22'.  The `R_SPARC_GOTDATA_OP_LOX10' relocation can obtained
+by enclosing an operand inside of `%gdop_lox10'.  Likewise,
+`R_SPARC_GOTDATA_OP' can be obtained by enclosing an operand inside of
+`%gdop'.  For example, assuming the GOT base is in register `%l7':
+
+     sethi %gdop_hix22(symbol), %l1
+     xor   %l1, %gdop_lox10(symbol), %l1
+     ld    [%l7 + %l1], %l2, %gdop(symbol)
+
+   There are many relocations that can be requested for access to
+thread local storage variables.  All of the Sparc TLS mnemonics are
+supported:
+
+   * `R_SPARC_TLS_GD_HI22' is requested using `%tgd_hi22'.
+
+   * `R_SPARC_TLS_GD_LO10' is requested using `%tgd_lo10'.
+
+   * `R_SPARC_TLS_GD_ADD' is requested using `%tgd_add'.
+
+   * `R_SPARC_TLS_GD_CALL' is requested using `%tgd_call'.
+
+   * `R_SPARC_TLS_LDM_HI22' is requested using `%tldm_hi22'.
+
+   * `R_SPARC_TLS_LDM_LO10' is requested using `%tldm_lo10'.
+
+   * `R_SPARC_TLS_LDM_ADD' is requested using `%tldm_add'.
+
+   * `R_SPARC_TLS_LDM_CALL' is requested using `%tldm_call'.
+
+   * `R_SPARC_TLS_LDO_HIX22' is requested using `%tldo_hix22'.
+
+   * `R_SPARC_TLS_LDO_LOX10' is requested using `%tldo_lox10'.
+
+   * `R_SPARC_TLS_LDO_ADD' is requested using `%tldo_add'.
+
+   * `R_SPARC_TLS_IE_HI22' is requested using `%tie_hi22'.
+
+   * `R_SPARC_TLS_IE_LO10' is requested using `%tie_lo10'.
+
+   * `R_SPARC_TLS_IE_LD' is requested using `%tie_ld'.
+
+   * `R_SPARC_TLS_IE_LDX' is requested using `%tie_ldx'.
+
+   * `R_SPARC_TLS_IE_ADD' is requested using `%tie_add'.
+
+   * `R_SPARC_TLS_LE_HIX22' is requested using `%tle_hix22'.
+
+   * `R_SPARC_TLS_LE_LOX10' is requested using `%tle_lox10'.
+
+   Here are some example TLS model sequences.
+
+   First, General Dynamic:
+
+     sethi  %tgd_hi22(symbol), %l1
+     add    %l1, %tgd_lo10(symbol), %l1
+     add    %l7, %l1, %o0, %tgd_add(symbol)
+     call   __tls_get_addr, %tgd_call(symbol)
+     nop
+
+   Local Dynamic:
+
+     sethi  %tldm_hi22(symbol), %l1
+     add    %l1, %tldm_lo10(symbol), %l1
+     add    %l7, %l1, %o0, %tldm_add(symbol)
+ 

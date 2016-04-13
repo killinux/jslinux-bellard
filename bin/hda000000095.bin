@@ -1,0 +1,1589 @@
+doubt.
+
+Sparc Solaris 2.7 with gcc 2.95.2 in `ABI=32'
+     A shared library build of GMP seems to fail in this combination,
+     it builds but then fails the tests, apparently due to some
+     incorrect data relocations within `gmp_randinit_lc_2exp_size'.
+     The exact cause is unknown, `--disable-shared' is recommended.
+
+
+File: gmp.info,  Node: Performance optimization,  Prev: Known Build Problems,  Up: Installing GMP
+
+2.6 Performance optimization
+============================
+
+For optimal performance, build GMP for the exact CPU type of the target
+computer, see *Note Build Options::.
+
+   Unlike what is the case for most other programs, the compiler
+typically doesn't matter much, since GMP uses assembly language for the
+most critical operation.
+
+   In particular for long-running GMP applications, and applications
+demanding extremely large numbers, building and running the `tuneup'
+program in the `tune' subdirectory, can be important.  For example,
+
+     cd tune
+     make tuneup
+     ./tuneup
+
+   will generate better contents for the `gmp-mparam.h' parameter file.
+
+   To use the results, put the output in the file file indicated in the
+`Parameters for ...' header.  Then recompile from scratch.
+
+   The `tuneup' program takes one useful parameter, `-f NNN', which
+instructs the program how long to check FFT multiply parameters.  If
+you're going to use GMP for extremely large numbers, you may want to
+run `tuneup' with a large NNN value.
+
+
+File: gmp.info,  Node: GMP Basics,  Next: Reporting Bugs,  Prev: Installing GMP,  Up: Top
+
+3 GMP Basics
+************
+
+*Using functions, macros, data types, etc. not documented in this
+manual is strongly discouraged.  If you do so your application is
+guaranteed to be incompatible with future versions of GMP.*
+
+* Menu:
+
+* Headers and Libraries::
+* Nomenclature and Types::
+* Function Classes::
+* Variable Conventions::
+* Parameter Conventions::
+* Memory Management::
+* Reentrancy::
+* Useful Macros and Constants::
+* Compatibility with older versions::
+* Demonstration Programs::
+* Efficiency::
+* Debugging::
+* Profiling::
+* Autoconf::
+* Emacs::
+
+
+File: gmp.info,  Node: Headers and Libraries,  Next: Nomenclature and Types,  Prev: GMP Basics,  Up: GMP Basics
+
+3.1 Headers and Libraries
+=========================
+
+All declarations needed to use GMP are collected in the include file
+`gmp.h'.  It is designed to work with both C and C++ compilers.
+
+     #include <gmp.h>
+
+   Note however that prototypes for GMP functions with `FILE *'
+parameters are only provided if `<stdio.h>' is included too.
+
+     #include <stdio.h>
+     #include <gmp.h>
+
+   Likewise `<stdarg.h>' (or `<varargs.h>') is required for prototypes
+with `va_list' parameters, such as `gmp_vprintf'.  And `<obstack.h>'
+for prototypes with `struct obstack' parameters, such as
+`gmp_obstack_printf', when available.
+
+   All programs using GMP must link against the `libgmp' library.  On a
+typical Unix-like system this can be done with `-lgmp', for example
+
+     gcc myprogram.c -lgmp
+
+   GMP C++ functions are in a separate `libgmpxx' library.  This is
+built and installed if C++ support has been enabled (*note Build
+Options::).  For example,
+
+     g++ mycxxprog.cc -lgmpxx -lgmp
+
+   GMP is built using Libtool and an application can use that to link
+if desired, *note GNU Libtool: (libtool)Top.
+
+   If GMP has been installed to a non-standard location then it may be
+necessary to use `-I' and `-L' compiler options to point to the right
+directories, and some sort of run-time path for a shared library.
+
+
+File: gmp.info,  Node: Nomenclature and Types,  Next: Function Classes,  Prev: Headers and Libraries,  Up: GMP Basics
+
+3.2 Nomenclature and Types
+==========================
+
+In this manual, "integer" usually means a multiple precision integer, as
+defined by the GMP library.  The C data type for such integers is
+`mpz_t'.  Here are some examples of how to declare such integers:
+
+     mpz_t sum;
+
+     struct foo { mpz_t x, y; };
+
+     mpz_t vec[20];
+
+   "Rational number" means a multiple precision fraction.  The C data
+type for these fractions is `mpq_t'.  For example:
+
+     mpq_t quotient;
+
+   "Floating point number" or "Float" for short, is an arbitrary
+precision mantissa with a limited precision exponent.  The C data type
+for such objects is `mpf_t'.  For example:
+
+     mpf_t fp;
+
+   The floating point functions accept and return exponents in the C
+type `mp_exp_t'.  Currently this is usually a `long', but on some
+systems it's an `int' for efficiency.
+
+   A "limb" means the part of a multi-precision number that fits in a
+single machine word.  (We chose this word because a limb of the human
+body is analogous to a digit, only larger, and containing several
+digits.)  Normally a limb is 32 or 64 bits.  The C data type for a limb
+is `mp_limb_t'.
+
+   Counts of limbs of a multi-precision number represented in the C type
+`mp_size_t'.  Currently this is normally a `long', but on some systems
+it's an `int' for efficiency, and on some systems it will be `long
+long' in the future.
+
+   Counts of bits of a multi-precision number are represented in the C
+type `mp_bitcnt_t'.  Currently this is always an `unsigned long', but on
+some systems it will be an `unsigned long long' in the future .
+
+   "Random state" means an algorithm selection and current state data.
+The C data type for such objects is `gmp_randstate_t'.  For example:
+
+     gmp_randstate_t rstate;
+
+   Also, in general `mp_bitcnt_t' is used for bit counts and ranges, and
+`size_t' is used for byte or character counts.
+
+
+File: gmp.info,  Node: Function Classes,  Next: Variable Conventions,  Prev: Nomenclature and Types,  Up: GMP Basics
+
+3.3 Function Classes
+====================
+
+There are six classes of functions in the GMP library:
+
+  1. Functions for signed integer arithmetic, with names beginning with
+     `mpz_'.  The associated type is `mpz_t'.  There are about 150
+     functions in this class.  (*note Integer Functions::)
+
+  2. Functions for rational number arithmetic, with names beginning with
+     `mpq_'.  The associated type is `mpq_t'.  There are about 40
+     functions in this class, but the integer functions can be used for
+     arithmetic on the numerator and denominator separately.  (*note
+     Rational Number Functions::)
+
+  3. Functions for floating-point arithmetic, with names beginning with
+     `mpf_'.  The associated type is `mpf_t'.  There are about 60
+     functions is this class.  (*note Floating-point Functions::)
+
+  4. Functions compatible with Berkeley MP, such as `itom', `madd', and
+     `mult'.  The associated type is `MINT'.  (*note BSD Compatible
+     Functions::)
+
+  5. Fast low-level functions that operate on natural numbers.  These
+     are used by the functions in the preceding groups, and you can
+     also call them directly from very time-critical user programs.
+     These functions' names begin with `mpn_'.  The associated type is
+     array of `mp_limb_t'.  There are about 30 (hard-to-use) functions
+     in this class.  (*note Low-level Functions::)
+
+  6. Miscellaneous functions.  Functions for setting up custom
+     allocation and functions for generating random numbers.  (*note
+     Custom Allocation::, and *note Random Number Functions::)
+
+
+File: gmp.info,  Node: Variable Conventions,  Next: Parameter Conventions,  Prev: Function Classes,  Up: GMP Basics
+
+3.4 Variable Conventions
+========================
+
+GMP functions generally have output arguments before input arguments.
+This notation is by analogy with the assignment operator.  The BSD MP
+compatibility functions are exceptions, having the output arguments
+last.
+
+   GMP lets you use the same variable for both input and output in one
+call.  For example, the main function for integer multiplication,
+`mpz_mul', can be used to square `x' and put the result back in `x' with
+
+     mpz_mul (x, x, x);
+
+   Before you can assign to a GMP variable, you need to initialize it
+by calling one of the special initialization functions.  When you're
+done with a variable, you need to clear it out, using one of the
+functions for that purpose.  Which function to use depends on the type
+of variable.  See the chapters on integer functions, rational number
+functions, and floating-point functions for details.
+
+   A variable should only be initialized once, or at least cleared
+between each initialization.  After a variable has been initialized, it
+may be assigned to any number of times.
+
+   For efficiency reasons, avoid excessive initializing and clearing.
+In general, initialize near the start of a function and clear near the
+end.  For example,
+
+     void
+     foo (void)
+     {
+       mpz_t  n;
+       int    i;
+       mpz_init (n);
+       for (i = 1; i < 100; i++)
+         {
+           mpz_mul (n, ...);
+           mpz_fdiv_q (n, ...);
+           ...
+         }
+       mpz_clear (n);
+     }
+
+
+File: gmp.info,  Node: Parameter Conventions,  Next: Memory Management,  Prev: Variable Conventions,  Up: GMP Basics
+
+3.5 Parameter Conventions
+=========================
+
+When a GMP variable is used as a function parameter, it's effectively a
+call-by-reference, meaning if the function stores a value there it will
+change the original in the caller.  Parameters which are input-only can
+be designated `const' to provoke a compiler error or warning on
+attempting to modify them.
+
+   When a function is going to return a GMP result, it should designate
+a parameter that it sets, like the library functions do.  More than one
+value can be returned by having more than one output parameter, again
+like the library functions.  A `return' of an `mpz_t' etc doesn't
+return the object, only a pointer, and this is almost certainly not
+what's wanted.
+
+   Here's an example accepting an `mpz_t' parameter, doing a
+calculation, and storing the result to the indicated parameter.
+
+     void
+     foo (mpz_t result, const mpz_t param, unsigned long n)
+     {
+       unsigned long  i;
+       mpz_mul_ui (result, param, n);
+       for (i = 1; i < n; i++)
+         mpz_add_ui (result, result, i*7);
+     }
+
+     int
+     main (void)
+     {
+       mpz_t  r, n;
+       mpz_init (r);
+       mpz_init_set_str (n, "123456", 0);
+       foo (r, n, 20L);
+       gmp_printf ("%Zd\n", r);
+       return 0;
+     }
+
+   `foo' works even if the mainline passes the same variable for
+`param' and `result', just like the library functions.  But sometimes
+it's tricky to make that work, and an application might not want to
+bother supporting that sort of thing.
+
+   For interest, the GMP types `mpz_t' etc are implemented as
+one-element arrays of certain structures.  This is why declaring a
+variable creates an object with the fields GMP needs, but then using it
+as a parameter passes a pointer to the object.  Note that the actual
+fields in each `mpz_t' etc are for internal use only and should not be
+accessed directly by code that expects to be compatible with future GMP
+releases.
+
+
+File: gmp.info,  Node: Memory Management,  Next: Reentrancy,  Prev: Parameter Conventions,  Up: GMP Basics
+
+3.6 Memory Management
+=====================
+
+The GMP types like `mpz_t' are small, containing only a couple of sizes,
+and pointers to allocated data.  Once a variable is initialized, GMP
+takes care of all space allocation.  Additional space is allocated
+whenever a variable doesn't have enough.
+
+   `mpz_t' and `mpq_t' variables never reduce their allocated space.
+Normally this is the best policy, since it avoids frequent reallocation.
+Applications that need to return memory to the heap at some particular
+point can use `mpz_realloc2', or clear variables no longer needed.
+
+   `mpf_t' variables, in the current implementation, use a fixed amount
+of space, determined by the chosen precision and allocated at
+initialization, so their size doesn't change.
+
+   All memory is allocated using `malloc' and friends by default, but
+this can be changed, see *Note Custom Allocation::.  Temporary memory
+on the stack is also used (via `alloca'), but this can be changed at
+build-time if desired, see *Note Build Options::.
+
+
+File: gmp.info,  Node: Reentrancy,  Next: Useful Macros and Constants,  Prev: Memory Management,  Up: GMP Basics
+
+3.7 Reentrancy
+==============
+
+GMP is reentrant and thread-safe, with some exceptions:
+
+   * If configured with `--enable-alloca=malloc-notreentrant' (or with
+     `--enable-alloca=notreentrant' when `alloca' is not available),
+     then naturally GMP is not reentrant.
+
+   * `mpf_set_default_prec' and `mpf_init' use a global variable for the
+     selected precision.  `mpf_init2' can be used instead, and in the
+     C++ interface an explicit precision to the `mpf_class' constructor.
+
+   * `mpz_random' and the other old random number functions use a global
+     random state and are hence not reentrant.  The newer random number
+     functions that accept a `gmp_randstate_t' parameter can be used
+     instead.
+
+   * `gmp_randinit' (obsolete) returns an error indication through a
+     global variable, which is not thread safe.  Applications are
+     advised to use `gmp_randinit_default' or `gmp_randinit_lc_2exp'
+     instead.
+
+   * `mp_set_memory_functions' uses global variables to store the
+     selected memory allocation functions.
+
+   * If the memory allocation functions set by a call to
+     `mp_set_memory_functions' (or `malloc' and friends by default) are
+     not reentrant, then GMP will not be reentrant either.
+
+   * If the standard I/O functions such as `fwrite' are not reentrant
+     then the GMP I/O functions using them will not be reentrant either.
+
+   * It's safe for two threads to read from the same GMP variable
+     simultaneously, but it's not safe for one to read while the
+     another might be writing, nor for two threads to write
+     simultaneously.  It's not safe for two threads to generate a
+     random number from the same `gmp_randstate_t' simultaneously,
+     since this involves an update of that variable.
+
+
+File: gmp.info,  Node: Useful Macros and Constants,  Next: Compatibility with older versions,  Prev: Reentrancy,  Up: GMP Basics
+
+3.8 Useful Macros and Constants
+===============================
+
+ -- Global Constant: const int mp_bits_per_limb
+     The number of bits per limb.
+
+ -- Macro: __GNU_MP_VERSION
+ -- Macro: __GNU_MP_VERSION_MINOR
+ -- Macro: __GNU_MP_VERSION_PATCHLEVEL
+     The major and minor GMP version, and patch level, respectively, as
+     integers.  For GMP i.j, these numbers will be i, j, and 0,
+     respectively.  For GMP i.j.k, these numbers will be i, j, and k,
+     respectively.
+
+ -- Global Constant: const char * const gmp_version
+     The GMP version number, as a null-terminated string, in the form
+     "i.j.k".  This release is "5.0.1".  Note that the format "i.j" was
+     used when k was zero was used before version 4.3.0.
+
+ -- Macro: __GMP_CC
+ -- Macro: __GMP_CFLAGS
+     The compiler and compiler flags, respectively, used when compiling
+     GMP, as strings.
+
+
+File: gmp.info,  Node: Compatibility with older versions,  Next: Demonstration Programs,  Prev: Useful Macros and Constants,  Up: GMP Basics
+
+3.9 Compatibility with older versions
+=====================================
+
+This version of GMP is upwardly binary compatible with all 4.x and 3.x
+versions, and upwardly compatible at the source level with all 2.x
+versions, with the following exceptions.
+
+   * `mpn_gcd' had its source arguments swapped as of GMP 3.0, for
+     consistency with other `mpn' functions.
+
+   * `mpf_get_prec' counted precision slightly differently in GMP 3.0
+     and 3.0.1, but in 3.1 reverted to the 2.x style.
+
+   There are a number of compatibility issues between GMP 1 and GMP 2
+that of course also apply when porting applications from GMP 1 to GMP
+4.  Please see the GMP 2 manual for details.
+
+   The Berkeley MP compatibility library (*note BSD Compatible
+Functions::) is source and binary compatible with the standard `libmp'.
+
+
+File: gmp.info,  Node: Demonstration Programs,  Next: Efficiency,  Prev: Compatibility with older versions,  Up: GMP Basics
+
+3.10 Demonstration programs
+===========================
+
+The `demos' subdirectory has some sample programs using GMP.  These
+aren't built or installed, but there's a `Makefile' with rules for them.
+For instance,
+
+     make pexpr
+     ./pexpr 68^975+10
+
+The following programs are provided
+
+   * `pexpr' is an expression evaluator, the program used on the GMP
+     web page.
+
+   * The `calc' subdirectory has a similar but simpler evaluator using
+     `lex' and `yacc'.
+
+   * The `expr' subdirectory is yet another expression evaluator, a
+     library designed for ease of use within a C program.  See
+     `demos/expr/README' for more information.
+
+   * `factorize' is a Pollard-Rho factorization program.
+
+   * `isprime' is a command-line interface to the `mpz_probab_prime_p'
+     function.
+
+   * `primes' counts or lists primes in an interval, using a sieve.
+
+   * `qcn' is an example use of `mpz_kronecker_ui' to estimate quadratic
+     class numbers.
+
+   * The `perl' subdirectory is a comprehensive perl interface to GMP.
+     See `demos/perl/INSTALL' for more information.  Documentation is
+     in POD format in `demos/perl/GMP.pm'.
+
+   As an aside, consideration has been given at various times to some
+sort of expression evaluation within the main GMP library.  Going
+beyond something minimal quickly leads to matters like user-defined
+functions, looping, fixnums for control variables, etc, which are
+considered outside the scope of GMP (much closer to language
+interpreters or compilers, *Note Language Bindings::.)  Something
+simple for program input convenience may yet be a possibility, a
+combination of the `expr' demo and the `pexpr' tree back-end perhaps.
+But for now the above evaluators are offered as illustrations.
+
+
+File: gmp.info,  Node: Efficiency,  Next: Debugging,  Prev: Demonstration Programs,  Up: GMP Basics
+
+3.11 Efficiency
+===============
+
+Small Operands
+     On small operands, the time for function call overheads and memory
+     allocation can be significant in comparison to actual calculation.
+     This is unavoidable in a general purpose variable precision
+     library, although GMP attempts to be as efficient as it can on
+     both large and small operands.
+
+Static Linking
+     On some CPUs, in particular the x86s, the static `libgmp.a' should
+     be used for maximum speed, since the PIC code in the shared
+     `libgmp.so' will have a small overhead on each function call and
+     global data address.  For many programs this will be
+     insignificant, but for long calculations there's a gain to be had.
+
+Initializing and Clearing
+     Avoid excessive initializing and clearing of variables, since this
+     can be quite time consuming, especially in comparison to otherwise
+     fast operations like addition.
+
+     A language interpreter might want to keep a free list or stack of
+     initialized variables ready for use.  It should be possible to
+     integrate something like that with a garbage collector too.
+
+Reallocations
+     An `mpz_t' or `mpq_t' variable used to hold successively increasing
+     values will have its memory repeatedly `realloc'ed, which could be
+     quite slow or could fragment memory, depending on the C library.
+     If an application can estimate the final size then `mpz_init2' or
+     `mpz_realloc2' can be called to allocate the necessary space from
+     the beginning (*note Initializing Integers::).
+
+     It doesn't matter if a size set with `mpz_init2' or `mpz_realloc2'
+     is too small, since all functions will do a further reallocation
+     if necessary.  Badly overestimating memory required will waste
+     space though.
+
+`2exp' Functions
+     It's up to an application to call functions like `mpz_mul_2exp'
+     when appropriate.  General purpose functions like `mpz_mul' make
+     no attempt to identify powers of two or other special forms,
+     because such inputs will usually be very rare and testing every
+     time would be wasteful.
+
+`ui' and `si' Functions
+     The `ui' functions and the small number of `si' functions exist for
+     convenience and should be used where applicable.  But if for
+     example an `mpz_t' contains a value that fits in an `unsigned
+     long' there's no need extract it and call a `ui' function, just
+     use the regular `mpz' function.
+
+In-Place Operations
+     `mpz_abs', `mpq_abs', `mpf_abs', `mpz_neg', `mpq_neg' and
+     `mpf_neg' are fast when used for in-place operations like
+     `mpz_abs(x,x)', since in the current implementation only a single
+     field of `x' needs changing.  On suitable compilers (GCC for
+     instance) this is inlined too.
+
+     `mpz_add_ui', `mpz_sub_ui', `mpf_add_ui' and `mpf_sub_ui' benefit
+     from an in-place operation like `mpz_add_ui(x,x,y)', since usually
+     only one or two limbs of `x' will need to be changed.  The same
+     applies to the full precision `mpz_add' etc if `y' is small.  If
+     `y' is big then cache locality may be helped, but that's all.
+
+     `mpz_mul' is currently the opposite, a separate destination is
+     slightly better.  A call like `mpz_mul(x,x,y)' will, unless `y' is
+     only one limb, make a temporary copy of `x' before forming the
+     result.  Normally that copying will only be a tiny fraction of the
+     time for the multiply, so this is not a particularly important
+     consideration.
+
+     `mpz_set', `mpq_set', `mpq_set_num', `mpf_set', etc, make no
+     attempt to recognise a copy of something to itself, so a call like
+     `mpz_set(x,x)' will be wasteful.  Naturally that would never be
+     written deliberately, but if it might arise from two pointers to
+     the same object then a test to avoid it might be desirable.
+
+          if (x != y)
+            mpz_set (x, y);
+
+     Note that it's never worth introducing extra `mpz_set' calls just
+     to get in-place operations.  If a result should go to a particular
+     variable then just direct it there and let GMP take care of data
+     movement.
+
+Divisibility Testing (Small Integers)
+     `mpz_divisible_ui_p' and `mpz_congruent_ui_p' are the best
+     functions for testing whether an `mpz_t' is divisible by an
+     individual small integer.  They use an algorithm which is faster
+     than `mpz_tdiv_ui', but which gives no useful information about
+     the actual remainder, only whether it's zero (or a particular
+     value).
+
+     However when testing divisibility by several small integers, it's
+     best to take a remainder modulo their product, to save
+     multi-precision operations.  For instance to test whether a number
+     is divisible by any of 23, 29 or 31 take a remainder modulo
+     23*29*31 = 20677 and then test that.
+
+     The division functions like `mpz_tdiv_q_ui' which give a quotient
+     as well as a remainder are generally a little slower than the
+     remainder-only functions like `mpz_tdiv_ui'.  If the quotient is
+     only rarely wanted then it's probably best to just take a
+     remainder and then go back and calculate the quotient if and when
+     it's wanted (`mpz_divexact_ui' can be used if the remainder is
+     zero).
+
+Rational Arithmetic
+     The `mpq' functions operate on `mpq_t' values with no common
+     factors in the numerator and denominator.  Common factors are
+     checked-for and cast out as necessary.  In general, cancelling
+     factors every time is the best approach since it minimizes the
+     sizes for subsequent operations.
+
+     However, applications that know something about the factorization
+     of the values they're working with might be able to avoid some of
+     the GCDs used for canonicalization, or swap them for divisions.
+     For example when multiplying by a prime it's enough to check for
+     factors of it in the denominator instead of doing a full GCD.  Or
+     when forming a big product it might be known that very little
+     cancellation will be possible, and so canonicalization can be left
+     to the end.
+
+     The `mpq_numref' and `mpq_denref' macros give access to the
+     numerator and denominator to do things outside the scope of the
+     supplied `mpq' functions.  *Note Applying Integer Functions::.
+
+     The canonical form for rationals allows mixed-type `mpq_t' and
+     integer additions or subtractions to be done directly with
+     multiples of the denominator.  This will be somewhat faster than
+     `mpq_add'.  For example,
+
+          /* mpq increment */
+          mpz_add (mpq_numref(q), mpq_numref(q), mpq_denref(q));
+
+          /* mpq += unsigned long */
+          mpz_addmul_ui (mpq_numref(q), mpq_denref(q), 123UL);
+
+          /* mpq -= mpz */
+          mpz_submul (mpq_numref(q), mpq_denref(q), z);
+
+Number Sequences
+     Functions like `mpz_fac_ui', `mpz_fib_ui' and `mpz_bin_uiui' are
+     designed for calculating isolated values.  If a range of values is
+     wanted it's probably best to call to get a starting point and
+     iterate from there.
+
+Text Input/Output
+     Hexadecimal or octal are suggested for input or output in text
+     form.  Power-of-2 bases like these can be converted much more
+     efficiently than other bases, like decimal.  For big numbers
+     there's usually nothing of particular interest to be seen in the
+     digits, so the base doesn't matter much.
+
+     Maybe we can hope octal will one day become the normal base for
+     everyday use, as proposed by King Charles XII of Sweden and later
+     reformers.
+
+
+File: gmp.info,  Node: Debugging,  Next: Profiling,  Prev: Efficiency,  Up: GMP Basics
+
+3.12 Debugging
+==============
+
+Stack Overflow
+     Depending on the system, a segmentation violation or bus error
+     might be the only indication of stack overflow.  See
+     `--enable-alloca' choices in *Note Build Options::, for how to
+     address this.
+
+     In new enough versions of GCC, `-fstack-check' may be able to
+     ensure an overflow is recognised by the system before too much
+     damage is done, or `-fstack-limit-symbol' or
+     `-fstack-limit-register' may be able to add checking if the system
+     itself doesn't do any (*note Options for Code Generation:
+     (gcc)Code Gen Options.).  These options must be added to the
+     `CFLAGS' used in the GMP build (*note Build Options::), adding
+     them just to an application will have no effect.  Note also
+     they're a slowdown, adding overhead to each function call and each
+     stack allocation.
+
+Heap Problems
+     The most likely cause of application problems with GMP is heap
+     corruption.  Failing to `init' GMP variables will have
+     unpredictable effects, and corruption arising elsewhere in a
+     program may well affect GMP.  Initializing GMP variables more than
+     once or failing to clear them will cause memory leaks.
+
+     In all such cases a `malloc' debugger is recommended.  On a GNU or
+     BSD system the standard C library `malloc' has some diagnostic
+     facilities, see *Note Allocation Debugging: (libc)Allocation
+     Debugging, or `man 3 malloc'.  Other possibilities, in no
+     particular order, include
+
+          `http://www.inf.ethz.ch/personal/biere/projects/ccmalloc/'
+          `http://dmalloc.com/'
+          `http://www.perens.com/FreeSoftware/'  (electric fence)
+          `http://packages.debian.org/stable/devel/fda'
+          `http://www.gnupdate.org/components/leakbug/'
+          `http://people.redhat.com/~otaylor/memprof/'
+          `http://www.cbmamiga.demon.co.uk/mpatrol/'
+
+     The GMP default allocation routines in `memory.c' also have a
+     simple sentinel scheme which can be enabled with `#define DEBUG'
+     in that file.  This is mainly designed for detecting buffer
+     overruns during GMP development, but might find other uses.
+
+Stack Backtraces
+     On some systems the compiler options GMP uses by default can
+     interfere with debugging.  In particular on x86 and 68k systems
+     `-fomit-frame-pointer' is used and this generally inhibits stack
+     backtracing.  Recompiling without such options may help while
+     debugging, though the usual caveats about it potentially moving a
+     memory problem or hiding a compiler bug will apply.
+
+GDB, the GNU Debugger
+     A sample `.gdbinit' is included in the distribution, showing how
+     to call some undocumented dump functions to print GMP variables
+     from within GDB.  Note that these functions shouldn't be used in
+     final application code since they're undocumented and may be
+     subject to incompatible changes in future versions of GMP.
+
+Source File Paths
+     GMP has multiple source files with the same name, in different
+     directories.  For example `mpz', `mpq' and `mpf' each have an
+     `init.c'.  If the debugger can't already determine the right one
+     it may help to build with absolute paths on each C file.  One way
+     to do that is to use a separate object directory with an absolute
+     path to the source directory.
+
+          cd /my/build/dir
+          /my/source/dir/gmp-5.0.1/configure
+
+     This works via `VPATH', and might require GNU `make'.  Alternately
+     it might be possible to change the `.c.lo' rules appropriately.
+
+Assertion Checking
+     The build option `--enable-assert' is available to add some
+     consistency checks to the library (see *Note Build Options::).
+     These are likely to be of limited value to most applications.
+     Assertion failures are just as likely to indicate memory
+     corruption as a library or compiler bug.
+
+     Applications using the low-level `mpn' functions, however, will
+     benefit from `--enable-assert' since it adds checks on the
+     parameters of most such functions, many of which have subtle
+     restrictions on their usage.  Note however that only the generic C
+     code has checks, not the assembly code, so CPU `none' should be
+     used for maximum checking.
+
+Temporary Memory Checking
+     The build option `--enable-alloca=debug' arranges that each block
+     of temporary memory in GMP is allocated with a separate call to
+     `malloc' (or the allocation function set with
+     `mp_set_memory_functions').
+
+     This can help a malloc debugger detect accesses outside the
+     intended bounds, or detect memory not released.  In a normal
+     build, on the other hand, temporary memory is allocated in blocks
+     which GMP divides up for its own use, or may be allocated with a
+     compiler builtin `alloca' which will go nowhere near any malloc
+     debugger hooks.
+
+Maximum Debuggability
+     To summarize the above, a GMP build for maximum debuggability
+     would be
+
+          ./configure --disable-shared --enable-assert \
+            --enable-alloca=debug --host=none CFLAGS=-g
+
+     For C++, add `--enable-cxx CXXFLAGS=-g'.
+
+Checker
+     The GCC checker (`http://savannah.nongnu.org/projects/checker/')
+     can be used with GMP.  It contains a stub library which means GMP
+     applications compiled with checker can use a normal GMP build.
+
+     A build of GMP with checking within GMP itself can be made.  This
+     will run very very slowly.  On GNU/Linux for example,
+
+          ./configure --host=none-pc-linux-gnu CC=checkergcc
+
+     `--host=none' must be used, since the GMP assembly code doesn't
+     support the checking scheme.  The GMP C++ features cannot be used,
+     since current versions of checker (0.9.9.1) don't yet support the
+     standard C++ library.
+
+Valgrind
+     The valgrind program (`http://valgrind.org/') is a memory checker
+     for x86s.  It translates and emulates machine instructions to do
+     strong checks for uninitialized data (at the level of individual
+     bits), memory accesses through bad pointers, and memory leaks.
+
+     Recent versions of Valgrind are getting support for MMX and
+     SSE/SSE2 instructions, for past versions GMP will need to be
+     configured not to use those, ie. for an x86 without them (for
+     instance plain `i486').
+
+Other Problems
+     Any suspected bug in GMP itself should be isolated to make sure
+     it's not an application problem, see *Note Reporting Bugs::.
+
+
+File: gmp.info,  Node: Profiling,  Next: Autoconf,  Prev: Debugging,  Up: GMP Basics
+
+3.13 Profiling
+==============
+
+Running a program under a profiler is a good way to find where it's
+spending most time and where improvements can be best sought.  The
+profiling choices for a GMP build are as follows.
+
+`--disable-profiling'
+     The default is to add nothing special for profiling.
+
+     It should be possible to just compile the mainline of a program
+     with `-p' and use `prof' to get a profile consisting of
+     timer-based sampling of the program counter.  Most of the GMP
+     assembly code has the necessary symbol information.
+
+     This approach has the advantage of minimizing interference with
+     normal program operation, but on most systems the resolution of
+     the sampling is quite low (10 milliseconds for instance),
+     requiring long runs to get accurate information.
+
+`--enable-profiling=prof'
+     Build with support for the system `prof', which means `-p' added
+     to the `CFLAGS'.
+
+     This provides call counting in addition to program counter
+     sampling, which allows the most frequently called routines to be
+     identified, and an average time spent in each routine to be
+     determined.
+
+     The x86 assembly code has support for this option, but on other
+     processors the assembly routines will be as if compiled without
+     `-p' and therefore won't appear in the call counts.
+
+     On some systems, such as GNU/Linux, `-p' in fact means `-pg' and in
+     this case `--enable-profiling=gprof' described below should be used
+     instead.
+
+`--enable-profiling=gprof'
+     Build with support for `gprof', which means `-pg' added to the
+     `CFLAGS'.
+
+     This provides call graph construction in addition to call counting
+     and program counter sampling, which makes it possible to count
+     calls coming from different locations.  For example the number of
+     calls to `mpn_mul' from `mpz_mul' versus the number from
+     `mpf_mul'.  The program counter sampling is still flat though, so
+     only a total time in `mpn_mul' would be accumulated, not a
+     separate amount for each call site.
+
+     The x86 assembly code has support for this option, but on other
+     processors the assembly routines will be as if compiled without
+     `-pg' and therefore not be included in the call counts.
+
+     On x86 and m68k systems `-pg' and `-fomit-frame-pointer' are
+     incompatible, so the latter is omitted from the default flags in
+     that case, which might result in poorer code generation.
+
+     Incidentally, it should be possible to use the `gprof' program
+     with a plain `--enable-profiling=prof' build.  But in that case
+     only the `gprof -p' flat profile and call counts can be expected
+     to be valid, not the `gprof -q' call graph.
+
+`--enable-profiling=instrument'
+     Build with the GCC option `-finstrument-functions' added to the
+     `CFLAGS' (*note Options for Code Generation: (gcc)Code Gen
+     Options.).
+
+     This inserts special instrumenting calls at the start and end of
+     each function, allowing exact timing and full call graph
+     construction.
+
+     This instrumenting is not normally a standard system feature and
+     will require support from an external library, such as
+
+          `http://sourceforge.net/projects/fnccheck/'
+
+     This should be included in `LIBS' during the GMP configure so that
+     test programs will link.  For example,
+
+          ./configure --enable-profiling=instrument LIBS=-lfc
+
+     On a GNU system the C library provides dummy instrumenting
+     functions, so programs compiled with this option will link.  In
+     this case it's only necessary to ensure the correct library is
+     added when linking an application.
+
+     The x86 assembly code supports this option, but on other
+     processors the assembly routines will be as if compiled without
+     `-finstrument-functions' meaning time spent in them will
+     effectively be attributed to their caller.
+
+
+File: gmp.info,  Node: Autoconf,  Next: Emacs,  Prev: Profiling,  Up: GMP Basics
+
+3.14 Autoconf
+=============
+
+Autoconf based applications can easily check whether GMP is installed.
+The only thing to be noted is that GMP library symbols from version 3
+onwards have prefixes like `__gmpz'.  The following therefore would be
+a simple test,
+
+     AC_CHECK_LIB(gmp, __gmpz_init)
+
+   This just uses the default `AC_CHECK_LIB' actions for found or not
+found, but an application that must have GMP would want to generate an
+error if not found.  For example,
+
+     AC_CHECK_LIB(gmp, __gmpz_init, ,
+       [AC_MSG_ERROR([GNU MP not found, see http://gmplib.org/])])
+
+   If functions added in some particular version of GMP are required,
+then one of those can be used when checking.  For example `mpz_mul_si'
+was added in GMP 3.1,
+
+     AC_CHECK_LIB(gmp, __gmpz_mul_si, ,
+       [AC_MSG_ERROR(
+       [GNU MP not found, or not 3.1 or up, see http://gmplib.org/])])
+
+   An alternative would be to test the version number in `gmp.h' using
+say `AC_EGREP_CPP'.  That would make it possible to test the exact
+version, if some particular sub-minor release is known to be necessary.
+
+   In general it's recommended that applications should simply demand a
+new enough GMP rather than trying to provide supplements for features
+not available in past versions.
+
+   Occasionally an application will need or want to know the size of a
+type at configuration or preprocessing time, not just with `sizeof' in
+the code.  This can be done in the normal way with `mp_limb_t' etc, but
+GMP 4.0 or up is best for this, since prior versions needed certain
+`-D' defines on systems using a `long long' limb.  The following would
+suit Autoconf 2.50 or up,
+
+     AC_CHECK_SIZEOF(mp_limb_t, , [#include <gmp.h>])
+
+
+File: gmp.info,  Node: Emacs,  Prev: Autoconf,  Up: GMP Basics
+
+3.15 Emacs
+==========
+
+<C-h C-i> (`info-lookup-symbol') is a good way to find documentation on
+C functions while editing (*note Info Documentation Lookup: (emacs)Info
+Lookup.).
+
+   The GMP manual can be included in such lookups by putting the
+following in your `.emacs',
+
+     (eval-after-load "info-look"
+       '(let ((mode-value (assoc 'c-mode (assoc 'symbol info-lookup-alist))))
+          (setcar (nthcdr 3 mode-value)
+                  (cons '("(gmp)Function Index" nil "^ -.* " "\\>")
+                        (nth 3 mode-value)))))
+
+
+File: gmp.info,  Node: Reporting Bugs,  Next: Integer Functions,  Prev: GMP Basics,  Up: Top
+
+4 Reporting Bugs
+****************
+
+If you think you have found a bug in the GMP library, please
+investigate it and report it.  We have made this library available to
+you, and it is not too much to ask you to report the bugs you find.
+
+   Before you report a bug, check it's not already addressed in *Note
+Known Build Problems::, or perhaps *Note Notes for Particular
+Systems::.  You may also want to check `http://gmplib.org/' for patches
+for this release.
+
+   Please include the following in any report,
+
+   * The GMP version number, and if pre-packaged or patched then say so.
+
+   * A test program that makes it possible for us to reproduce the bug.
+     Include instructions on how to run the program.
+
+   * A description of what is wrong.  If the results are incorrect, in
+     what way.  If you get a crash, say so.
+
+   * If you get a crash, include a stack backtrace from the debugger if
+     it's informative (`where' in `gdb', or `$C' in `adb').
+
+   * Please do not send core dumps, executables or `strace's.
+
+   * The configuration options you used when building GMP, if any.
+
+   * The name of the compiler and its version.  For `gcc', get the
+     version with `gcc -v', otherwise perhaps `what `which cc`', or
+     similar.
+
+   * The output from running `uname -a'.
+
+   * The output from running `./config.guess', and from running
+     `./configfsf.guess' (might be the same).
+
+   * If the bug is related to `configure', then the compressed contents
+     of `config.log'.
+
+   * If the bug is related to an `asm' file not assembling, then the
+     contents of `config.m4' and the offending line or lines from the
+     temporary `mpn/tmp-<file>.s'.
+
+   Please make an effort to produce a self-contained report, with
+something definite that can be tested or debugged.  Vague queries or
+piecemeal messages are difficult to act on and don't help the
+development effort.
+
+   It is not uncommon that an observed problem is actually due to a bug
+in the compiler; the GMP code tends to explore interesting corners in
+compilers.
+
+   If your bug report is good, we will do our best to help you get a
+corrected version of the library; if the bug report is poor, we won't
+do anything about it (except maybe ask you to send a better report).
+
+   Send your report to: <gmp-bugs@gmplib.org>.
+
+   If you think something in this manual is unclear, or downright
+incorrect, or if the language needs to be improved, please send a note
+to the same address.
+
+
+File: gmp.info,  Node: Integer Functions,  Next: Rational Number Functions,  Prev: Reporting Bugs,  Up: Top
+
+5 Integer Functions
+*******************
+
+This chapter describes the GMP functions for performing integer
+arithmetic.  These functions start with the prefix `mpz_'.
+
+   GMP integers are stored in objects of type `mpz_t'.
+
+* Menu:
+
+* Initializing Integers::
+* Assigning Integers::
+* Simultaneous Integer Init & Assign::
+* Converting Integers::
+* Integer Arithmetic::
+* Integer Division::
+* Integer Exponentiation::
+* Integer Roots::
+* Number Theoretic Functions::
+* Integer Comparisons::
+* Integer Logic and Bit Fiddling::
+* I/O of Integers::
+* Integer Random Numbers::
+* Integer Import and Export::
+* Miscellaneous Integer Functions::
+* Integer Special Functions::
+
+
+File: gmp.info,  Node: Initializing Integers,  Next: Assigning Integers,  Prev: Integer Functions,  Up: Integer Functions
+
+5.1 Initialization Functions
+============================
+
+The functions for integer arithmetic assume that all integer objects are
+initialized.  You do that by calling the function `mpz_init'.  For
+example,
+
+     {
+       mpz_t integ;
+       mpz_init (integ);
+       ...
+       mpz_add (integ, ...);
+       ...
+       mpz_sub (integ, ...);
+
+       /* Unless the program is about to exit, do ... */
+       mpz_clear (integ);
+     }
+
+   As you can see, you can store new values any number of times, once an
+object is initialized.
+
+ -- Function: void mpz_init (mpz_t X)
+     Initialize X, and set its value to 0.
+
+ -- Function: void mpz_inits (mpz_t X, ...)
+     Initialize a NULL-terminated list of `mpz_t' variables, and set
+     their values to 0.
+
+ -- Function: void mpz_init2 (mpz_t X, mp_bitcnt_t N)
+     Initialize X, with space for N-bit numbers, and set its value to 0.
+     Calling this function instead of `mpz_init' or `mpz_inits' is never
+     necessary; reallocation is handled automatically by GMP when
+     needed.
+
+     N is only the initial space, X will grow automatically in the
+     normal way, if necessary, for subsequent values stored.
+     `mpz_init2' makes it possible to avoid such reallocations if a
+     maximum size is known in advance.
+
+ -- Function: void mpz_clear (mpz_t X)
+     Free the space occupied by X.  Call this function for all `mpz_t'
+     variables when you are done with them.
+
+ -- Function: void mpz_clears (mpz_t X, ...)
+     Free the space occupied by a NULL-terminated list of `mpz_t'
+     variables.
+
+ -- Function: void mpz_realloc2 (mpz_t X, mp_bitcnt_t N)
+     Change the space allocated for X to N bits.  The value in X is
+     preserved if it fits, or is set to 0 if not.
+
+     Calling this function is never necessary; reallocation is handled
+     automatically by GMP when needed.  But this function can be used
+     to increase the space for a variable in order to avoid repeated
+     automatic reallocations, or to decrease it to give memory back to
+     the heap.
+
+
+File: gmp.info,  Node: Assigning Integers,  Next: Simultaneous Integer Init & Assign,  Prev: Initializing Integers,  Up: Integer Functions
+
+5.2 Assignment Functions
+========================
+
+These functions assign new values to already initialized integers
+(*note Initializing Integers::).
+
+ -- Function: void mpz_set (mpz_t ROP, mpz_t OP)
+ -- Function: void mpz_set_ui (mpz_t ROP, unsigned long int OP)
+ -- Function: void mpz_set_si (mpz_t ROP, signed long int OP)
+ -- Function: void mpz_set_d (mpz_t ROP, double OP)
+ -- Function: void mpz_set_q (mpz_t ROP, mpq_t OP)
+ -- Function: void mpz_set_f (mpz_t ROP, mpf_t OP)
+     Set the value of ROP from OP.
+
+     `mpz_set_d', `mpz_set_q' and `mpz_set_f' truncate OP to make it an
+     integer.
+
+ -- Function: int mpz_set_str (mpz_t ROP, char *STR, int BASE)
+     Set the value of ROP from STR, a null-terminated C string in base
+     BASE.  White space is allowed in the string, and is simply ignored.
+
+     The BASE may vary from 2 to 62, or if BASE is 0, then the leading
+     characters are used: `0x' and `0X' for hexadecimal, `0b' and `0B'
+     for binary, `0' for octal, or decimal otherwise.
+
+     For bases up to 36, case is ignored; upper-case and lower-case
+     letters have the same value.  For bases 37 to 62, upper-case
+     letter represent the usual 10..35 while lower-case letter
+     represent 36..61.
+
+     This function returns 0 if the entire string is a valid number in
+     base BASE.  Otherwise it returns -1.
+
+ -- Function: void mpz_swap (mpz_t ROP1, mpz_t ROP2)
+     Swap the values ROP1 and ROP2 efficiently.
+
+
+File: gmp.info,  Node: Simultaneous Integer Init & Assign,  Next: Converting Integers,  Prev: Assigning Integers,  Up: Integer Functions
+
+5.3 Combined Initialization and Assignment Functions
+====================================================
+
+For convenience, GMP provides a parallel series of initialize-and-set
+functions which initialize the output and then store the value there.
+These functions' names have the form `mpz_init_set...'
+
+   Here is an example of using one:
+
+     {
+       mpz_t pie;
+       mpz_init_set_str (pie, "3141592653589793238462643383279502884", 10);
+       ...
+       mpz_sub (pie, ...);
+       ...
+       mpz_clear (pie);
+     }
+
+Once the integer has been initialized by any of the `mpz_init_set...'
+functions, it can be used as the source or destination operand for the
+ordinary integer functions.  Don't use an initialize-and-set function
+on a variable already initialized!
+
+ -- Function: void mpz_init_set (mpz_t ROP, mpz_t OP)
+ -- Function: void mpz_init_set_ui (mpz_t ROP, unsigned long int OP)
+ -- Function: void mpz_init_set_si (mpz_t ROP, signed long int OP)
+ -- Function: void mpz_init_set_d (mpz_t ROP, double OP)
+     Initialize ROP with limb space and set the initial numeric value
+     from OP.
+
+ -- Function: int mpz_init_set_str (mpz_t ROP, char *STR, int BASE)
+     Initialize ROP and set its value like `mpz_set_str' (see its
+     documentation above for details).
+
+     If the string is a correct base BASE number, the function returns
+     0; if an error occurs it returns -1.  ROP is initialized even if
+     an error occurs.  (I.e., you have to call `mpz_clear' for it.)
+
+
+File: gmp.info,  Node: Converting Integers,  Next: Integer Arithmetic,  Prev: Simultaneous Integer Init & Assign,  Up: Integer Functions
+
+5.4 Conversion Functions
+========================
+
+This section describes functions for converting GMP integers to
+standard C types.  Functions for converting _to_ GMP integers are
+described in *Note Assigning Integers:: and *Note I/O of Integers::.
+
+ -- Function: unsigned long int mpz_get_ui (mpz_t OP)
+     Return the value of OP as an `unsigned long'.
+
+     If OP is too big to fit an `unsigned long' then just the least
+     significant bits that do fit are returned.  The sign of OP is
+     ignored, only the absolute value is used.
+
+ -- Function: signed long int mpz_get_si (mpz_t OP)
+     If OP fits into a `signed long int' return the value of OP.
+     Otherwise return the least significant part of OP, with the same
+     sign as OP.
+
+     If OP is too big to fit in a `signed long int', the returned
+     result is probably not very useful.  To find out if the value will
+     fit, use the function `mpz_fits_slong_p'.
+
+ -- Function: double mpz_get_d (mpz_t OP)
+     Convert OP to a `double', truncating if necessary (ie. rounding
+     towards zero).
+
+     If the exponent from the conversion is too big, the result is
+     system dependent.  An infinity is returned where available.  A
+     hardware overflow trap may or may not occur.
+
+ -- Function: double mpz_get_d_2exp (signed long int *EXP, mpz_t OP)
+     Convert OP to a `double', truncating if necessary (ie. rounding
+     towards zero), and returning the exponent separately.
+
+     The return value is in the range 0.5<=abs(D)<1 and the exponent is
+     stored to `*EXP'.  D * 2^EXP is the (truncated) OP value.  If OP
+     is zero, the return is 0.0 and 0 is stored to `*EXP'.
+
+     This is similar to the standard C `frexp' function (*note
+     Normalization Functions: (libc)Normalization Functions.).
+
+ -- Function: char * mpz_get_str (char *STR, int BASE, mpz_t OP)
+     Convert OP to a string of digits in base BASE.  The base argument
+     may vary from 2 to 62 or from -2 to -36.
+
+     For BASE in the range 2..36, digits and lower-case letters are
+     used; for -2..-36, digits and upper-case letters are used; for
+     37..62, digits, upper-case letters, and lower-case letters (in
+     that significance order) are used.
+
+     If STR is `NULL', the result string is allocated using the current
+     allocation function (*note Custom Allocation::).  The block will be
+     `strlen(str)+1' bytes, that being exactly enough for the string and
+     null-terminator.
+
+     If STR is not `NULL', it should point to a block of storage large
+     enough for the result, that being `mpz_sizeinbase (OP, BASE) + 2'.
+     The two extra bytes are for a possible minus sign, and the
+     null-terminator.
+
+     A pointer to the result string is returned, being either the
+     allocated block, or the given STR.
+
+
+File: gmp.info,  Node: Integer Arithmetic,  Next: Integer Division,  Prev: Converting Integers,  Up: Integer Functions
+
+5.5 Arithmetic Functions
+========================
+
+ -- Function: void mpz_add (mpz_t ROP, mpz_t OP1, mpz_t OP2)
+ -- Function: void mpz_add_ui (mpz_t ROP, mpz_t OP1, unsigned long int
+          OP2)
+     Set ROP to OP1 + OP2.
+
+ -- Function: void mpz_sub (mpz_t ROP, mpz_t OP1, mpz_t OP2)
+ -- Function: void mpz_sub_ui (mpz_t ROP, mpz_t OP1, unsigned long int
+          OP2)
+ -- Function: void mpz_ui_sub (mpz_t ROP, unsigned long int OP1, mpz_t
+          OP2)
+     Set ROP to OP1 - OP2.
+
+ -- Function: void mpz_mul (mpz_t ROP, mpz_t OP1, mpz_t OP2)
+ -- Function: void mpz_mul_si (mpz_t ROP, mpz_t OP1, long int OP2)
+ -- Function: void mpz_mul_ui (mpz_t ROP, mpz_t OP1, unsigned long int
+          OP2)
+     Set ROP to OP1 times OP2.
+
+ -- Function: void mpz_addmul (mpz_t ROP, mpz_t OP1, mpz_t OP2)
+ -- Function: void mpz_addmul_ui (mpz_t ROP, mpz_t OP1, unsigned long
+          int OP2)
+     Set ROP to ROP + OP1 times OP2.
+
+ -- Function: void mpz_submul (mpz_t ROP, mpz_t OP1, mpz_t OP2)
+ -- Function: void mpz_submul_ui (mpz_t ROP, mpz_t OP1, unsigned long
+          int OP2)
+     Set ROP to ROP - OP1 times OP2.
+
+ -- Function: void mpz_mul_2exp (mpz_t ROP, mpz_t OP1, mp_bitcnt_t OP2)
+     Set ROP to OP1 times 2 raised to OP2.  This operation can also be
+     defined as a left shift by OP2 bits.
+
+ -- Function: void mpz_neg (mpz_t ROP, mpz_t OP)
+     Set ROP to -OP.
+
+ -- Function: void mpz_abs (mpz_t ROP, mpz_t OP)
+     Set ROP to the absolute value of OP.
+
+
+File: gmp.info,  Node: Integer Division,  Next: Integer Exponentiation,  Prev: Integer Arithmetic,  Up: Integer Functions
+
+5.6 Division Functions
+======================
+
+Division is undefined if the divisor is zero.  Passing a zero divisor
+to the division or modulo functions (including the modular powering
+functions `mpz_powm' and `mpz_powm_ui'), will cause an intentional
+division by zero.  This lets a program handle arithmetic exceptions in
+these functions the same way as for normal C `int' arithmetic.
+
+ -- Function: void mpz_cdiv_q (mpz_t Q, mpz_t N, mpz_t D)
+ -- Function: void mpz_cdiv_r (mpz_t R, mpz_t N, mpz_t D)
+ -- Function: void mpz_cdiv_qr (mpz_t Q, mpz_t R, mpz_t N, mpz_t D)
+ -- Function: unsigned long int mpz_cdiv_q_ui (mpz_t Q, mpz_t N,
+          unsigned long int D)
+ -- Function: unsigned long int mpz_cdiv_r_ui (mpz_t R, mpz_t N,
+          unsigned long int D)
+ -- Function: unsigned long int mpz_cdiv_qr_ui (mpz_t Q, mpz_t R,
+          mpz_t N, unsigned long int D)
+ -- Function: unsigned long int mpz_cdiv_ui (mpz_t N,
+          unsigned long int D)
+ -- Function: void mpz_cdiv_q_2exp (mpz_t Q, mpz_t N, mp_bitcnt_t B)
+ -- Function: void mpz_cdiv_r_2exp (mpz_t R, mpz_t N, mp_bitcnt_t B)
+
+ -- Function: void mpz_fdiv_q (mpz_t Q, mpz_t N, mpz_t D)
+ -- Function: void mpz_fdiv_r (mpz_t R, mpz_t N, mpz_t D)
+ -- Function: void mpz_fdiv_qr (mpz_t Q, mpz_t R, mpz_t N, mpz_t D)
+ -- Function: unsigned long int mpz_fdiv_q_ui (mpz_t Q, mpz_t N,
+          unsigned long int D)
+ -- Function: unsigned long int mpz_fdiv_r_ui (mpz_t R, mpz_t N,
+          unsigned long int D)
+ -- Function: unsigned long int mpz_fdiv_qr_ui (mpz_t Q, mpz_t R,
+          mpz_t N, unsigned long int D)
+ -- Function: unsigned long int mpz_fdiv_ui (mpz_t N,
+          unsigned long int D)
+ -- Function: void mpz_fdiv_q_2exp (mpz_t Q, mpz_t N, mp_bitcnt_t B)
+ -- Function: void mpz_fdiv_r_2exp (mpz_t R, mpz_t N, mp_bitcnt_t B)
+
+ -- Function: void mpz_tdiv_q (mpz_t Q, mpz_t N, mpz_t D)
+ -- Function: void mpz_tdiv_r (mpz_t R, mpz_t N, mpz_t D)
+ -- Function: void mpz_tdiv_qr (mpz_t Q, mpz_t R, mpz_t N, mpz_t D)
+ -- Function: unsigned long int mpz_tdiv_q_ui (mpz_t Q, mpz_t N,
+          unsigned long int D)
+ -- Function: unsigned long int mpz_tdiv_r_ui (mpz_t R, mpz_t N,
+          unsigned long int D)
+ -- Function: unsigned long int mpz_tdiv_qr_ui (mpz_t Q, mpz_t R,
+          mpz_t N, unsigned long int D)
+ -- Function: unsigned long int mpz_tdiv_ui (mpz_t N,
+          unsigned long int D)
+ -- Function: void mpz_tdiv_q_2exp (mpz_t Q, mpz_t N, mp_bitcnt_t B)
+ -- Function: void mpz_tdiv_r_2exp (mpz_t R, mpz_t N, mp_bitcnt_t B)
+
+     Divide N by D, forming a quotient Q and/or remainder R.  For the
+     `2exp' functions, D=2^B.  The rounding is in three styles, each
+     suiting different applications.
+
+        * `cdiv' rounds Q up towards +infinity, and R will have the
+          opposite sign to D.  The `c' stands for "ceil".
+
+        * `fdiv' rounds Q down towards -infinity, and R will have the
+          same sign as D.  The `f' stands for "floor".
+
+        * `tdiv' rounds Q towards zero, and R will have the same sign
+          as N.  The `t' stands for "truncate".
+
+     In all cases Q and R will satisfy N=Q*D+R, and R will satisfy
+     0<=abs(R)<abs(D).
+
+     The `q' functions calculate only the quotient, the `r' functions
+     only the remainder, and the `qr' functions calculate both.  Note
+     that for `qr' the same variable cannot be passed for both Q and R,
+     or results will be unpredictable.
+
+     For the `ui' variants the return value is the remainder, and in
+     fact returning the remainder is all the `div_ui' functions do.  For
+     `tdiv' and `cdiv' the remainder can be negative, so for those the
+     return value is the absolute value of the remainder.
+
+     For the `2exp' variants the divisor is 2^B.  These functions are
+     implemented as right shifts and bit masks, but of course they
+     round the same as the other functions.
+
+     For positive N both `mpz_fdiv_q_2exp' and `mpz_tdiv_q_2exp' are
+     simple bitwise right shifts.  For negative N, `mpz_fdiv_q_2exp' is
+     effectively an arithmetic right shift treating N as twos complement
+     the same as the bitwise logical functions do, whereas
+     `mpz_tdiv_q_2exp' effectively treats N as sign and magnitude.
+
+ -- Function: void mpz_mod (mpz_t R, mpz_t N, mpz_t D)
+ -- Function: unsigned long int mpz_mod_ui (mpz_t R, mpz_t N,
+          unsigned long int D)
+     Set R to N `mod' D.  The sign of the divisor is ignored; the
+     result is always non-negative.
+
+     `mpz_mod_ui' is identical to `mpz_fdiv_r_ui' above, returning the
+     remainder as well as setting R.  See `mpz_fdiv_ui' above if only
+     the return value is wanted.
+
+ -- Function: void mpz_divexact (mpz_t Q, mpz_t N, mpz_t D)
+ -- Function: void mpz_divexact_ui (mpz_t Q, mpz_t N, unsigned long D)
+     Set Q to N/D.  These functions produce correct results only when
+     it is known in advance that D divides N.
+
+     These routines are much faster than the other division functions,
+     and are the best choice when exact division is known to occur, for
+     example reducing a rational to lowest terms.
+
+ -- Function: int mpz_divisible_p (mpz_t N, mpz_t D)
+ -- Function: int mpz_divisible_ui_p (mpz_t N, unsigned long int D)
+ -- Function: int mpz_divisible_2exp_p (mpz_t N, mp_bitcnt_t B)
+     Return non-zero if N is exactly divisible by D, or in the case of
+     `mpz_divisible_2exp_p' by 2^B.
+
+     N is divisible by D if there exists an integer Q satisfying N =
+     Q*D.  Unlike the other division functions, D=0 is accepted and
+     following the rule it can be seen that only 0 is considered
+     divisible by 0.
+
+ -- Function: int mpz_congruent_p (mpz_t N, mpz_t C, mpz_t D)
+ -- Function: int mpz_congruent_ui_p (mpz_t N, unsigned long int C,
+          unsigned long int D)
+ -- Function: int mpz_congruent_2exp_p (mpz_t N, mpz_t C, mp_bitcnt_t B)
+     Return non-zero if N is congruent to C modulo D, or in the case of
+     `mpz_congruent_2exp_p' modulo 2^B.
+
+     N is congruent to C mod D if there exists an integer Q satisfying
+     N = C + Q*D.  Unlike the other division functions, D=0 is accepted
+     and following the rule it can be seen that N and C are considered
+     congruent mod 0 only when exactly equal.
+
+
+File: gmp.info,  Node: Integer Exponentiation,  Next: Integer Roots,  Prev: Integer Division,  Up: Integer Functions
+
+5.7 Exponentiation Functions
+============================
+
+ -- Function: void mpz_powm (mpz_t ROP, mpz_t BASE, mpz_t EXP, mpz_t
+          MOD)
+ -- Function: void mpz_powm_ui (mpz_t ROP, mpz_t BASE, unsigned long
+          int EXP, mpz_t MOD)
+     Set ROP to (BASE raised to EXP) modulo MOD.
+
+     Negative EXP is supported if an inverse BASE^-1 mod MOD exists
+     (see `mpz_invert' in *Note Number Theoretic Functions::).  If an
+     inverse doesn't exist then a divide by zero is raised.
+
+ -- Function: void mpz_powm_sec (mpz_t ROP, mpz_t BASE, mpz_t EXP,
+          mpz_t MOD)
+     Set ROP to (BASE raised to EXP) modulo MOD.
+
+     It is required that EXP > 0 and that MOD is odd.
+
+     This function is designed to take the same time and have the same
+     cache access patterns for any two same-size arguments, assuming
+     that function arguments are placed at the same position and that
+     the machine state is identical upon function entry.  This function
+     is intended for cryptographic purposes, where resilience to
+     side-channel attacks is desired.
+
+ -- Function: void mpz_pow_ui (mpz_t ROP, mpz_t BASE, unsigned long int
+          EXP)
+ -- Function: void mpz_ui_pow_ui (mpz_t ROP, unsigned long int BASE,
+          unsigned long int EXP)
+     Set ROP to BASE raised to EXP.  The case 0^0 yields 1.
+
+
+File: gmp.info,  Node: Integer Roots,  Next: Number Theoretic Functions,  Prev: Integer Exponentiation,  Up: Integer Functions
+
+5.8 Root Extraction Functions
+=============================
+
+ -- Function: int mpz_root (mpz_t ROP, mpz_t OP, unsigned long int N)
+     Set ROP to  the truncated integer part of the Nth root of OP.
+     Return non-zero if the computation was exact, i.e., if OP is ROP
+     to the Nth power.
+
+ -- Function: void mpz_rootrem (mpz_t ROOT, mpz_t REM, mpz_t U,
+          unsigned long int N)
+     Set ROOT to  the truncated integer part of the Nth root of U.  Set
+     REM to the remainder, U-ROOT**N.
+
+ -- Function: void mpz_sqrt (mpz_t ROP, mpz_t OP)
+     Set ROP to  the truncated integer part of the square root of OP.
+
+ -- Function: void mpz_sqrtrem (mpz_t ROP1, mpz_t ROP2, mpz_t OP)
+     Set ROP1 to the truncated integer part of the square root of OP,
+     like `mpz_sqrt'.  Set ROP2 to the remainder OP-ROP1*ROP1, which
+     will be zero if OP is a perfect square.
+
+     If ROP1 and ROP2 are the same variable, the results are undefined.
+
+ -- Function: int mpz_perfect_power_p (mpz_t OP)
+     Return non-zero if OP is a perfect power, i.e., if there exist
+     integers A and B, with B>1, such that OP equals A raised to the
+     power B.
+
+     Under this definition both 0 and 1 are considered to be perfect
+     powers.  Negative values of OP are accepted, but of course can
+     only be odd perfect powers.
+
+ -- Function: int mpz_perfect_square_p (mpz_t OP)
+     Return non-zero if OP is a perfect square, i.e., if the square
+     root of OP is an integer.  Under this definition both 0 and 1 are
+     considered to be perfect squares.
+
+
+File: gmp.info,  Node: Number Theoretic Functions,  Next: Integer Comparisons,  Prev: Integer Roots,  Up: Integer Functions
+
+5.9 Number Theoretic Functions
+==============================
+
+ -- Function: int mpz_probab_prime_p (mpz_t N, int REPS)
+     Determine whether N is prime.  Return 2 if N is definitely prime,
+     return 1 if N is probably prime (without being certain), or return
+     0 if N is definitely composite.
+
+     This function does some trial divisions, then some Miller-Rabin
+     probabilistic primality tests.  REPS controls how many such tests
+     are done, 5 to 10 is a reasonable number, more will reduce the
+     chances of a composite being returned as "probably prime".
+
+     Miller-Rabin and similar tests can be more properly called
+     compositeness tests.  Numbers which fail are known to be composite
+     but those which pass might be prime or might be composite.  Only a
+     few composites pass, hence those which pass are considered
+     probably prime.
+
+ -- Function: void mpz_nextprime (mpz_t ROP, mpz_t OP)
+     Set ROP to the next prime greater than OP.
+
+     This function uses a probabilistic algorithm to identify primes.
+     For practical purposes it's adequate, the chance of a composite
+     passing will be extremely small.
+
+ -- Function: void mpz_gcd (mpz_t ROP, mpz_t OP1, mpz_t OP2)
+     Set ROP to the greatest common divisor of OP1 and OP2.  The result
+     is always positive even if one or both input operands are negative.
+
+ -- Function: unsigned long int mpz_gcd_ui (mpz_t ROP, mpz_t OP1,
+          unsigned long int OP2)
+     Compute the greatest common divisor of OP1 and OP2.  If ROP is not
+     `NULL', store the result there.
+
+     If the result is small enough to fit in an `unsigned long int', it
+     is returned.  If the result does not fit, 0 is returned, and the
+     result is equal to the argument OP1.  Note that the result will
+     always fit if OP2 is non-zero.
+
+ -- Function: void mpz_gcdext (mpz_t G, mpz_t S, mpz_t T, mpz_t A,
+          mpz_t B)
+     Set G to the greatest common divisor of A and B, and in addition
+     set S and T to coefficients satisfying A*S + B*T = G.  The value
+     in G is always positive, even if one or both of A and B are
+     negative.  The values in S and T are chosen such that abs(S) <=
+     abs(B) and abs(T) <= abs(A).
+
+     If T is `NULL' then that value is not computed.
+
+ -- Function: void mpz_lcm (mpz_t ROP, mpz_t OP1, mpz_t OP2)
+ -- Function: void mpz_lcm_ui (mpz_t ROP, mpz_t OP1, unsigned long OP2)
+     Set ROP to the least common multiple of OP1 and OP2.  ROP is
+     always positive, irrespective of the signs of OP1 and OP2.  ROP
+     will be zero if either OP1 or OP2 is zero.
+
+ -- Function: int mpz_invert (mpz_t ROP, mpz_t OP1, mpz_t OP2)
+     Compute the inverse of OP1 modulo OP2 and put the result in ROP.
+     If the inverse exists, the return value is non-zero and ROP will
+     satisfy 0 <= ROP < OP2.  If an inverse doesn't exist the return
+     value is zero and ROP is undefined.
+
+ -- Function: int mpz_jacobi (mpz_t A, mpz_t B)
+     Calculate the Jacobi symbol (A/B).  This is defined only for B odd.
+
+ -- Function: int mpz_legendre (mpz_t A, mpz_t P)
+     Calculate the Legendre symbol (A/P).  This is defined only for P
+     an odd positive prime, and for such P it's identical to the Jacobi
+     symbol.
+
+ -- Function: int mpz_kronecker (mpz_t A, mpz_t B)
+ -- Function: int mpz_kronecker_si (mpz_t A, long B)
+ -- Function: int mpz_kronecker_ui (mpz_t A, unsigned long B)
+ -- Function: int mpz_si_kronecker (long A, mpz_t B)
+ -- Function: int mpz_ui_kronecker (unsigned long A, mpz_t B)
+     Calculate the Jacobi symbol (A/B) with the Kronecker extension
+     (a/2)=(2/a) when a odd, or (a/2)=0 when a even.
+
+     When B is odd the Jacobi symbol and Kronecker symbol are
+     identical, so `mpz_kronecker_ui' etc can be used for mixed
+     precision Jacobi symbols too.
+
+     For more information see Henri Cohen section 1.4.2 (*note
+     References::), or any number theory textbook.  See also the
+     example program `demos/qcn.c' which uses `mpz_kronecker_ui'.
+
+ -- Function: mp_bitcnt_t mpz_remove (mpz_t ROP, mpz_t OP, mpz_t F)
+     Remove all occurrences of the factor F from OP and store the
+     result in ROP.  The return value is how many such occurrences were
+     removed.
+
+ -- Function: void mpz_fac_ui (mpz_t ROP, unsigned long int OP)
+     Set ROP to OP!, the factorial of OP.
+
+ -- Function: void mpz_bin_ui (mpz_t ROP, mpz_t N, unsigned long int K)
+ -- Function: void mpz_bin_uiui (mpz_t ROP, unsigned long int N,
+          unsigned long int K)
+     Compute the binomial coefficient N over K and s

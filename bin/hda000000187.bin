@@ -1,0 +1,1878 @@
+     *
+     * @returns The input stream with @p __x extracted or in an error state.
+     */
+    template<typename _CharT, typename _Traits>
+      friend std::basic_istream<_CharT, _Traits>&
+      operator>>(std::basic_istream<_CharT, _Traits>& __is,
+		 bernoulli_distribution& __x)
+      { return __is >> __x._M_p; }
+
+  private:
+    double _M_p;
+  };
+
+
+  /**
+   * @brief A discrete geometric random number distribution.
+   *
+   * The formula for the geometric probability mass function is 
+   * @f$ p(i) = (1 - p)p^{i-1} @f$ where @f$ p @f$ is the parameter of the
+   * distribution.
+   */
+  template<typename _IntType = int, typename _RealType = double>
+    class geometric_distribution
+    {
+    public:
+      // types
+      typedef _RealType input_type;
+      typedef _IntType  result_type;
+
+      // constructors and member function
+      explicit
+      geometric_distribution(const _RealType& __p = _RealType(0.5))
+      : _M_p(__p)
+      {
+	_GLIBCXX_DEBUG_ASSERT((_M_p > 0.0) && (_M_p < 1.0));
+	_M_initialize();
+      }
+
+      /**
+       * Gets the distribution parameter @p p.
+       */
+      _RealType
+      p() const
+      { return _M_p; }
+
+      void
+      reset() { }
+
+      template<class _UniformRandomNumberGenerator>
+        result_type
+        operator()(_UniformRandomNumberGenerator& __urng);
+
+      /**
+       * Inserts a %geometric_distribution random number distribution
+       * @p __x into the output stream @p __os.
+       *
+       * @param __os An output stream.
+       * @param __x  A %geometric_distribution random number distribution.
+       *
+       * @returns The output stream with the state of @p __x inserted or in
+       * an error state.
+       */
+      template<typename _IntType1, typename _RealType1,
+	       typename _CharT, typename _Traits>
+        friend std::basic_ostream<_CharT, _Traits>&
+        operator<<(std::basic_ostream<_CharT, _Traits>& __os,
+		   const geometric_distribution<_IntType1, _RealType1>& __x);
+
+      /**
+       * Extracts a %geometric_distribution random number distribution
+       * @p __x from the input stream @p __is.
+       *
+       * @param __is An input stream.
+       * @param __x  A %geometric_distribution random number generator engine.
+       *
+       * @returns The input stream with @p __x extracted or in an error state.
+       */
+      template<typename _CharT, typename _Traits>
+        friend std::basic_istream<_CharT, _Traits>&
+        operator>>(std::basic_istream<_CharT, _Traits>& __is,
+		   geometric_distribution& __x)
+        {
+	  __is >> __x._M_p;
+	  __x._M_initialize();
+	  return __is;
+	}
+
+    private:
+      void
+      _M_initialize()
+      { _M_log_p = std::log(_M_p); }
+
+      _RealType _M_p;
+      _RealType _M_log_p;
+    };
+
+
+  template<typename _RealType>
+    class normal_distribution;
+
+  /**
+   * @brief A discrete Poisson random number distribution.
+   *
+   * The formula for the Poisson probability mass function is
+   * @f$ p(i) = \frac{mean^i}{i!} e^{-mean} @f$ where @f$ mean @f$ is the
+   * parameter of the distribution.
+   */
+  template<typename _IntType = int, typename _RealType = double>
+    class poisson_distribution
+    {
+    public:
+      // types
+      typedef _RealType input_type;
+      typedef _IntType  result_type;
+
+      // constructors and member function
+      explicit
+      poisson_distribution(const _RealType& __mean = _RealType(1))
+      : _M_mean(__mean), _M_nd()
+      {
+	_GLIBCXX_DEBUG_ASSERT(_M_mean > 0.0);
+	_M_initialize();
+      }
+
+      /**
+       * Gets the distribution parameter @p mean.
+       */
+      _RealType
+      mean() const
+      { return _M_mean; }
+
+      void
+      reset()
+      { _M_nd.reset(); }
+
+      template<class _UniformRandomNumberGenerator>
+        result_type
+        operator()(_UniformRandomNumberGenerator& __urng);
+
+      /**
+       * Inserts a %poisson_distribution random number distribution
+       * @p __x into the output stream @p __os.
+       *
+       * @param __os An output stream.
+       * @param __x  A %poisson_distribution random number distribution.
+       *
+       * @returns The output stream with the state of @p __x inserted or in
+       * an error state.
+       */
+      template<typename _IntType1, typename _RealType1,
+	       typename _CharT, typename _Traits>
+        friend std::basic_ostream<_CharT, _Traits>&
+        operator<<(std::basic_ostream<_CharT, _Traits>& __os,
+		   const poisson_distribution<_IntType1, _RealType1>& __x);
+
+      /**
+       * Extracts a %poisson_distribution random number distribution
+       * @p __x from the input stream @p __is.
+       *
+       * @param __is An input stream.
+       * @param __x  A %poisson_distribution random number generator engine.
+       *
+       * @returns The input stream with @p __x extracted or in an error state.
+       */
+      template<typename _IntType1, typename _RealType1,
+	       typename _CharT, typename _Traits>
+        friend std::basic_istream<_CharT, _Traits>&
+        operator>>(std::basic_istream<_CharT, _Traits>& __is,
+		   poisson_distribution<_IntType1, _RealType1>& __x);
+
+    private:
+      void
+      _M_initialize();
+
+      // NB: Unused when _GLIBCXX_USE_C99_MATH_TR1 is undefined.
+      normal_distribution<_RealType> _M_nd;
+
+      _RealType _M_mean;
+
+      // Hosts either log(mean) or the threshold of the simple method.
+      _RealType _M_lm_thr;
+#if _GLIBCXX_USE_C99_MATH_TR1
+      _RealType _M_lfm, _M_sm, _M_d, _M_scx, _M_1cx, _M_c2b, _M_cb;
+#endif
+    };
+
+
+  /**
+   * @brief A discrete binomial random number distribution.
+   *
+   * The formula for the binomial probability mass function is 
+   * @f$ p(i) = \binom{n}{i} p^i (1 - p)^{t - i} @f$ where @f$ t @f$
+   * and @f$ p @f$ are the parameters of the distribution.
+   */
+  template<typename _IntType = int, typename _RealType = double>
+    class binomial_distribution
+    {
+    public:
+      // types
+      typedef _RealType input_type;
+      typedef _IntType  result_type;
+
+      // constructors and member function
+      explicit
+      binomial_distribution(_IntType __t = 1,
+			    const _RealType& __p = _RealType(0.5))
+      : _M_t(__t), _M_p(__p), _M_nd()
+      {
+	_GLIBCXX_DEBUG_ASSERT((_M_t >= 0) && (_M_p >= 0.0) && (_M_p <= 1.0));
+	_M_initialize();
+      }
+
+      /**
+       * Gets the distribution @p t parameter.
+       */
+      _IntType
+      t() const
+      { return _M_t; }
+      
+      /**
+       * Gets the distribution @p p parameter.
+       */
+      _RealType
+      p() const
+      { return _M_p; }
+
+      void
+      reset()
+      { _M_nd.reset(); }
+
+      template<class _UniformRandomNumberGenerator>
+        result_type
+        operator()(_UniformRandomNumberGenerator& __urng);
+
+      /**
+       * Inserts a %binomial_distribution random number distribution
+       * @p __x into the output stream @p __os.
+       *
+       * @param __os An output stream.
+       * @param __x  A %binomial_distribution random number distribution.
+       *
+       * @returns The output stream with the state of @p __x inserted or in
+       * an error state.
+       */
+      template<typename _IntType1, typename _RealType1,
+	       typename _CharT, typename _Traits>
+        friend std::basic_ostream<_CharT, _Traits>&
+        operator<<(std::basic_ostream<_CharT, _Traits>& __os,
+		   const binomial_distribution<_IntType1, _RealType1>& __x);
+
+      /**
+       * Extracts a %binomial_distribution random number distribution
+       * @p __x from the input stream @p __is.
+       *
+       * @param __is An input stream.
+       * @param __x  A %binomial_distribution random number generator engine.
+       *
+       * @returns The input stream with @p __x extracted or in an error state.
+       */
+      template<typename _IntType1, typename _RealType1,
+	       typename _CharT, typename _Traits>
+        friend std::basic_istream<_CharT, _Traits>&
+        operator>>(std::basic_istream<_CharT, _Traits>& __is,
+		   binomial_distribution<_IntType1, _RealType1>& __x);
+
+    private:
+      void
+      _M_initialize();
+
+      template<class _UniformRandomNumberGenerator>
+        result_type
+        _M_waiting(_UniformRandomNumberGenerator& __urng, _IntType __t);
+
+      // NB: Unused when _GLIBCXX_USE_C99_MATH_TR1 is undefined.
+      normal_distribution<_RealType> _M_nd;
+
+      _RealType _M_q;
+#if _GLIBCXX_USE_C99_MATH_TR1
+      _RealType _M_d1, _M_d2, _M_s1, _M_s2, _M_c,
+	        _M_a1, _M_a123, _M_s, _M_lf, _M_lp1p;
+#endif
+      _RealType _M_p;
+      _IntType  _M_t;
+
+      bool      _M_easy;
+    };
+
+  /* @} */ // group tr1_random_distributions_discrete
+
+  /**
+   * @addtogroup tr1_random_distributions_continuous Continuous Distributions
+   * @ingroup tr1_random_distributions
+   * @{
+   */
+
+  /**
+   * @brief Uniform continuous distribution for random numbers.
+   *
+   * A continuous random distribution on the range [min, max) with equal
+   * probability throughout the range.  The URNG should be real-valued and
+   * deliver number in the range [0, 1).
+   */
+  template<typename _RealType = double>
+    class uniform_real
+    {
+    public:
+      // types
+      typedef _RealType input_type;
+      typedef _RealType result_type;
+
+    public:
+      /**
+       * Constructs a uniform_real object.
+       *
+       * @param __min [IN]  The lower bound of the distribution.
+       * @param __max [IN]  The upper bound of the distribution.
+       */
+      explicit
+      uniform_real(_RealType __min = _RealType(0),
+		   _RealType __max = _RealType(1))
+      : _M_min(__min), _M_max(__max)
+      {
+	_GLIBCXX_DEBUG_ASSERT(_M_min <= _M_max);
+      }
+
+      result_type
+      min() const
+      { return _M_min; }
+
+      result_type
+      max() const
+      { return _M_max; }
+
+      void
+      reset() { }
+
+      template<class _UniformRandomNumberGenerator>
+        result_type
+        operator()(_UniformRandomNumberGenerator& __urng)
+        { return (__urng() * (_M_max - _M_min)) + _M_min; }
+
+      /**
+       * Inserts a %uniform_real random number distribution @p __x into the
+       * output stream @p __os.
+       *
+       * @param __os An output stream.
+       * @param __x  A %uniform_real random number distribution.
+       *
+       * @returns The output stream with the state of @p __x inserted or in
+       * an error state.
+       */
+      template<typename _RealType1, typename _CharT, typename _Traits>
+        friend std::basic_ostream<_CharT, _Traits>&
+        operator<<(std::basic_ostream<_CharT, _Traits>& __os,
+		   const uniform_real<_RealType1>& __x);
+
+      /**
+       * Extracts a %uniform_real random number distribution
+       * @p __x from the input stream @p __is.
+       *
+       * @param __is An input stream.
+       * @param __x  A %uniform_real random number generator engine.
+       *
+       * @returns The input stream with @p __x extracted or in an error state.
+       */
+      template<typename _RealType1, typename _CharT, typename _Traits>
+        friend std::basic_istream<_CharT, _Traits>&
+        operator>>(std::basic_istream<_CharT, _Traits>& __is,
+		   uniform_real<_RealType1>& __x);
+
+    private:
+      _RealType _M_min;
+      _RealType _M_max;
+    };
+
+
+  /**
+   * @brief An exponential continuous distribution for random numbers.
+   *
+   * The formula for the exponential probability mass function is 
+   * @f$ p(x) = \lambda e^{-\lambda x} @f$.
+   *
+   * <table border=1 cellpadding=10 cellspacing=0>
+   * <caption align=top>Distribution Statistics</caption>
+   * <tr><td>Mean</td><td>@f$ \frac{1}{\lambda} @f$</td></tr>
+   * <tr><td>Median</td><td>@f$ \frac{\ln 2}{\lambda} @f$</td></tr>
+   * <tr><td>Mode</td><td>@f$ zero @f$</td></tr>
+   * <tr><td>Range</td><td>@f$[0, \infty]@f$</td></tr>
+   * <tr><td>Standard Deviation</td><td>@f$ \frac{1}{\lambda} @f$</td></tr>
+   * </table>
+   */
+  template<typename _RealType = double>
+    class exponential_distribution
+    {
+    public:
+      // types
+      typedef _RealType input_type;
+      typedef _RealType result_type;
+
+    public:
+      /**
+       * Constructs an exponential distribution with inverse scale parameter
+       * @f$ \lambda @f$.
+       */
+      explicit
+      exponential_distribution(const result_type& __lambda = result_type(1))
+      : _M_lambda(__lambda)
+      { 
+	_GLIBCXX_DEBUG_ASSERT(_M_lambda > 0);
+      }
+
+      /**
+       * Gets the inverse scale parameter of the distribution.
+       */
+      _RealType
+      lambda() const
+      { return _M_lambda; }
+
+      /**
+       * Resets the distribution.
+       *
+       * Has no effect on exponential distributions.
+       */
+      void
+      reset() { }
+
+      template<class _UniformRandomNumberGenerator>
+        result_type
+        operator()(_UniformRandomNumberGenerator& __urng)
+        { return -std::log(__urng()) / _M_lambda; }
+
+      /**
+       * Inserts a %exponential_distribution random number distribution
+       * @p __x into the output stream @p __os.
+       *
+       * @param __os An output stream.
+       * @param __x  A %exponential_distribution random number distribution.
+       *
+       * @returns The output stream with the state of @p __x inserted or in
+       * an error state.
+       */
+      template<typename _RealType1, typename _CharT, typename _Traits>
+        friend std::basic_ostream<_CharT, _Traits>&
+        operator<<(std::basic_ostream<_CharT, _Traits>& __os,
+		   const exponential_distribution<_RealType1>& __x);
+
+      /**
+       * Extracts a %exponential_distribution random number distribution
+       * @p __x from the input stream @p __is.
+       *
+       * @param __is An input stream.
+       * @param __x A %exponential_distribution random number
+       *            generator engine.
+       *
+       * @returns The input stream with @p __x extracted or in an error state.
+       */
+      template<typename _CharT, typename _Traits>
+        friend std::basic_istream<_CharT, _Traits>&
+        operator>>(std::basic_istream<_CharT, _Traits>& __is,
+		   exponential_distribution& __x)
+        { return __is >> __x._M_lambda; }
+
+    private:
+      result_type _M_lambda;
+    };
+
+
+  /**
+   * @brief A normal continuous distribution for random numbers.
+   *
+   * The formula for the normal probability mass function is 
+   * @f$ p(x) = \frac{1}{\sigma \sqrt{2 \pi}} 
+   *            e^{- \frac{{x - mean}^ {2}}{2 \sigma ^ {2}} } @f$.
+   */
+  template<typename _RealType = double>
+    class normal_distribution
+    {
+    public:
+      // types
+      typedef _RealType input_type;
+      typedef _RealType result_type;
+
+    public:
+      /**
+       * Constructs a normal distribution with parameters @f$ mean @f$ and
+       * @f$ \sigma @f$.
+       */
+      explicit
+      normal_distribution(const result_type& __mean = result_type(0),
+			  const result_type& __sigma = result_type(1))
+      : _M_mean(__mean), _M_sigma(__sigma), _M_saved_available(false)
+      { 
+	_GLIBCXX_DEBUG_ASSERT(_M_sigma > 0);
+      }
+
+      /**
+       * Gets the mean of the distribution.
+       */
+      _RealType
+      mean() const
+      { return _M_mean; }
+
+      /**
+       * Gets the @f$ \sigma @f$ of the distribution.
+       */
+      _RealType
+      sigma() const
+      { return _M_sigma; }
+
+      /**
+       * Resets the distribution.
+       */
+      void
+      reset()
+      { _M_saved_available = false; }
+
+      template<class _UniformRandomNumberGenerator>
+        result_type
+        operator()(_UniformRandomNumberGenerator& __urng);
+
+      /**
+       * Inserts a %normal_distribution random number distribution
+       * @p __x into the output stream @p __os.
+       *
+       * @param __os An output stream.
+       * @param __x  A %normal_distribution random number distribution.
+       *
+       * @returns The output stream with the state of @p __x inserted or in
+       * an error state.
+       */
+      template<typename _RealType1, typename _CharT, typename _Traits>
+        friend std::basic_ostream<_CharT, _Traits>&
+        operator<<(std::basic_ostream<_CharT, _Traits>& __os,
+		   const normal_distribution<_RealType1>& __x);
+
+      /**
+       * Extracts a %normal_distribution random number distribution
+       * @p __x from the input stream @p __is.
+       *
+       * @param __is An input stream.
+       * @param __x  A %normal_distribution random number generator engine.
+       *
+       * @returns The input stream with @p __x extracted or in an error state.
+       */
+      template<typename _RealType1, typename _CharT, typename _Traits>
+        friend std::basic_istream<_CharT, _Traits>&
+        operator>>(std::basic_istream<_CharT, _Traits>& __is,
+		   normal_distribution<_RealType1>& __x);
+
+    private:
+      result_type _M_mean;
+      result_type _M_sigma;
+      result_type _M_saved;
+      bool        _M_saved_available;     
+    };
+
+
+  /**
+   * @brief A gamma continuous distribution for random numbers.
+   *
+   * The formula for the gamma probability mass function is 
+   * @f$ p(x) = \frac{1}{\Gamma(\alpha)} x^{\alpha - 1} e^{-x} @f$.
+   */
+  template<typename _RealType = double>
+    class gamma_distribution
+    {
+    public:
+      // types
+      typedef _RealType input_type;
+      typedef _RealType result_type;
+
+    public:
+      /**
+       * Constructs a gamma distribution with parameters @f$ \alpha @f$.
+       */
+      explicit
+      gamma_distribution(const result_type& __alpha_val = result_type(1))
+      : _M_alpha(__alpha_val)
+      { 
+	_GLIBCXX_DEBUG_ASSERT(_M_alpha > 0);
+	_M_initialize();
+      }
+
+      /**
+       * Gets the @f$ \alpha @f$ of the distribution.
+       */
+      _RealType
+      alpha() const
+      { return _M_alpha; }
+
+      /**
+       * Resets the distribution.
+       */
+      void
+      reset() { }
+
+      template<class _UniformRandomNumberGenerator>
+        result_type
+        operator()(_UniformRandomNumberGenerator& __urng);
+
+      /**
+       * Inserts a %gamma_distribution random number distribution
+       * @p __x into the output stream @p __os.
+       *
+       * @param __os An output stream.
+       * @param __x  A %gamma_distribution random number distribution.
+       *
+       * @returns The output stream with the state of @p __x inserted or in
+       * an error state.
+       */
+      template<typename _RealType1, typename _CharT, typename _Traits>
+        friend std::basic_ostream<_CharT, _Traits>&
+        operator<<(std::basic_ostream<_CharT, _Traits>& __os,
+		   const gamma_distribution<_RealType1>& __x);
+
+      /**
+       * Extracts a %gamma_distribution random number distribution
+       * @p __x from the input stream @p __is.
+       *
+       * @param __is An input stream.
+       * @param __x  A %gamma_distribution random number generator engine.
+       *
+       * @returns The input stream with @p __x extracted or in an error state.
+       */
+      template<typename _CharT, typename _Traits>
+        friend std::basic_istream<_CharT, _Traits>&
+        operator>>(std::basic_istream<_CharT, _Traits>& __is,
+		   gamma_distribution& __x)
+        {
+	  __is >> __x._M_alpha;
+	  __x._M_initialize();
+	  return __is;
+	}
+
+    private:
+      void
+      _M_initialize();
+
+      result_type _M_alpha;
+
+      // Hosts either lambda of GB or d of modified Vaduva's.
+      result_type _M_l_d;
+    };
+
+  /* @} */ // group tr1_random_distributions_continuous
+  /* @} */ // group tr1_random_distributions
+  /* @} */ // group tr1_random
+
+_GLIBCXX_END_NAMESPACE_TR1
+}
+
+#include <tr1_impl/random.tcc>
+                                                                                                                                                                                                                                      // TR1 cstdlib -*- C++ -*-
+
+// Copyright (C) 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file tr1_impl/cstdlib
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+#if _GLIBCXX_HOSTED
+
+namespace std
+{
+_GLIBCXX_BEGIN_NAMESPACE_TR1
+
+#if _GLIBCXX_USE_C99
+
+#if !_GLIBCXX_USE_C99_LONG_LONG_DYNAMIC
+  // types
+  using std::lldiv_t;
+
+  // functions
+  using std::llabs;
+  using std::lldiv;
+#endif
+
+  using std::atoll;
+  using std::strtoll;
+  using std::strtoull;
+
+  using std::strtof;
+  using std::strtold;
+
+  // overloads
+  using std::abs;
+#if !_GLIBCXX_USE_C99_LONG_LONG_DYNAMIC
+  using std::div;
+#endif
+
+#endif
+
+_GLIBCXX_END_NAMESPACE_TR1
+}
+
+#endif
+       // TR1 unordered_set -*- C++ -*-
+
+// Copyright (C) 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file tr1_impl/unordered_set
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+namespace std
+{ 
+_GLIBCXX_BEGIN_NAMESPACE_TR1
+
+  // XXX When we get typedef templates these class definitions
+  // will be unnecessary.
+  template<class _Value,
+	   class _Hash = hash<_Value>,
+	   class _Pred = std::equal_to<_Value>,
+	   class _Alloc = std::allocator<_Value>,
+	   bool __cache_hash_code = false>
+    class __unordered_set
+    : public _Hashtable<_Value, _Value, _Alloc,
+			std::_Identity<_Value>, _Pred,
+			_Hash, __detail::_Mod_range_hashing,
+			__detail::_Default_ranged_hash,
+			__detail::_Prime_rehash_policy,
+			__cache_hash_code, true, true>
+    {
+      typedef _Hashtable<_Value, _Value, _Alloc,
+			 std::_Identity<_Value>, _Pred,
+			 _Hash, __detail::_Mod_range_hashing,
+			 __detail::_Default_ranged_hash,
+			 __detail::_Prime_rehash_policy,
+			 __cache_hash_code, true, true>
+        _Base;
+
+    public:
+      typedef typename _Base::size_type       size_type;
+      typedef typename _Base::hasher          hasher;
+      typedef typename _Base::key_equal       key_equal;
+      typedef typename _Base::allocator_type  allocator_type;
+      
+      explicit
+      __unordered_set(size_type __n = 10,
+		      const hasher& __hf = hasher(),
+		      const key_equal& __eql = key_equal(),
+		      const allocator_type& __a = allocator_type())
+      : _Base(__n, __hf, __detail::_Mod_range_hashing(),
+	      __detail::_Default_ranged_hash(), __eql,
+	      std::_Identity<_Value>(), __a)
+      { }
+
+      template<typename _InputIterator>
+        __unordered_set(_InputIterator __f, _InputIterator __l, 
+			size_type __n = 10,
+			const hasher& __hf = hasher(), 
+			const key_equal& __eql = key_equal(), 
+			const allocator_type& __a = allocator_type())
+	: _Base(__f, __l, __n, __hf, __detail::_Mod_range_hashing(),
+		__detail::_Default_ranged_hash(), __eql,
+		std::_Identity<_Value>(), __a)
+        { }
+
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+      __unordered_set(__unordered_set&& __x)
+      : _Base(std::forward<_Base>(__x)) { }
+#endif
+    };
+
+  template<class _Value,
+	   class _Hash = hash<_Value>,
+	   class _Pred = std::equal_to<_Value>,
+	   class _Alloc = std::allocator<_Value>,
+	   bool __cache_hash_code = false>
+    class __unordered_multiset
+    : public _Hashtable<_Value, _Value, _Alloc,
+			std::_Identity<_Value>, _Pred,
+			_Hash, __detail::_Mod_range_hashing,
+			__detail::_Default_ranged_hash,
+			__detail::_Prime_rehash_policy,
+			__cache_hash_code, true, false>
+    {
+      typedef _Hashtable<_Value, _Value, _Alloc,
+			 std::_Identity<_Value>, _Pred,
+			 _Hash, __detail::_Mod_range_hashing,
+			 __detail::_Default_ranged_hash,
+			 __detail::_Prime_rehash_policy,
+			 __cache_hash_code, true, false>
+        _Base;
+
+    public:
+      typedef typename _Base::size_type       size_type;
+      typedef typename _Base::hasher          hasher;
+      typedef typename _Base::key_equal       key_equal;
+      typedef typename _Base::allocator_type  allocator_type;
+      
+      explicit
+      __unordered_multiset(size_type __n = 10,
+			   const hasher& __hf = hasher(),
+			   const key_equal& __eql = key_equal(),
+			   const allocator_type& __a = allocator_type())
+      : _Base(__n, __hf, __detail::_Mod_range_hashing(),
+	      __detail::_Default_ranged_hash(), __eql,
+	      std::_Identity<_Value>(), __a)
+      { }
+
+
+      template<typename _InputIterator>
+        __unordered_multiset(_InputIterator __f, _InputIterator __l, 
+			     typename _Base::size_type __n = 0,
+			     const hasher& __hf = hasher(), 
+			     const key_equal& __eql = key_equal(), 
+			     const allocator_type& __a = allocator_type())
+	: _Base(__f, __l, __n, __hf, __detail::_Mod_range_hashing(),
+		__detail::_Default_ranged_hash(), __eql,
+		std::_Identity<_Value>(), __a)
+        { }
+
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+      __unordered_multiset(__unordered_multiset&& __x)
+      : _Base(std::forward<_Base>(__x)) { }
+#endif
+    };
+
+  template<class _Value, class _Hash, class _Pred, class _Alloc,
+	   bool __cache_hash_code>
+    inline void
+    swap(__unordered_set<_Value, _Hash, _Pred, _Alloc, __cache_hash_code>& __x,
+	 __unordered_set<_Value, _Hash, _Pred, _Alloc, __cache_hash_code>& __y)
+    { __x.swap(__y); }
+
+  template<class _Value, class _Hash, class _Pred, class _Alloc,
+	   bool __cache_hash_code>
+    inline void
+    swap(__unordered_multiset<_Value, _Hash, _Pred,
+	 _Alloc, __cache_hash_code>& __x,
+	 __unordered_multiset<_Value, _Hash, _Pred,
+	 _Alloc, __cache_hash_code>& __y)
+    { __x.swap(__y); }
+
+
+  /// class unordered_set
+  template<class _Value,
+	   class _Hash = hash<_Value>,
+	   class _Pred = std::equal_to<_Value>,
+	   class _Alloc = std::allocator<_Value> >
+    class unordered_set
+    : public __unordered_set<_Value, _Hash, _Pred, _Alloc>
+    {
+      typedef __unordered_set<_Value, _Hash, _Pred, _Alloc>  _Base;
+
+    public:
+      typedef typename _Base::size_type       size_type;
+      typedef typename _Base::hasher          hasher;
+      typedef typename _Base::key_equal       key_equal;
+      typedef typename _Base::allocator_type  allocator_type;
+      
+      explicit
+      unordered_set(size_type __n = 10,
+		    const hasher& __hf = hasher(),
+		    const key_equal& __eql = key_equal(),
+		    const allocator_type& __a = allocator_type())
+      : _Base(__n, __hf, __eql, __a)
+      { }
+
+      template<typename _InputIterator>
+        unordered_set(_InputIterator __f, _InputIterator __l, 
+		      size_type __n = 10,
+		      const hasher& __hf = hasher(), 
+		      const key_equal& __eql = key_equal(), 
+		      const allocator_type& __a = allocator_type())
+	: _Base(__f, __l, __n, __hf, __eql, __a)
+        { }
+
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+      unordered_set(unordered_set&& __x)
+      : _Base(std::forward<_Base>(__x)) { }
+
+      unordered_set&
+      operator=(unordered_set&& __x)
+      {
+	// NB: DR 675.
+	this->clear();
+	this->swap(__x); 
+	return *this;	
+      }
+#endif
+    };
+
+  /// class unordered_multiset
+  template<class _Value,
+	   class _Hash = hash<_Value>,
+	   class _Pred = std::equal_to<_Value>,
+	   class _Alloc = std::allocator<_Value> >
+    class unordered_multiset
+    : public __unordered_multiset<_Value, _Hash, _Pred, _Alloc>
+    {
+      typedef __unordered_multiset<_Value, _Hash, _Pred, _Alloc>  _Base;
+
+    public:
+      typedef typename _Base::size_type       size_type;
+      typedef typename _Base::hasher          hasher;
+      typedef typename _Base::key_equal       key_equal;
+      typedef typename _Base::allocator_type  allocator_type;
+      
+      explicit
+      unordered_multiset(size_type __n = 10,
+			 const hasher& __hf = hasher(),
+			 const key_equal& __eql = key_equal(),
+			 const allocator_type& __a = allocator_type())
+      : _Base(__n, __hf, __eql, __a)
+      { }
+
+
+      template<typename _InputIterator>
+        unordered_multiset(_InputIterator __f, _InputIterator __l, 
+			   typename _Base::size_type __n = 0,
+			   const hasher& __hf = hasher(), 
+			   const key_equal& __eql = key_equal(), 
+			   const allocator_type& __a = allocator_type())
+	: _Base(__f, __l, __n, __hf, __eql, __a)
+        { }
+
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+      unordered_multiset(unordered_multiset&& __x)
+      : _Base(std::forward<_Base>(__x)) { }
+
+      unordered_multiset&
+      operator=(unordered_multiset&& __x)
+      {
+	// NB: DR 675.
+	this->clear();
+	this->swap(__x); 
+	return *this;	
+      }
+#endif
+    };
+
+  template<class _Value, class _Hash, class _Pred, class _Alloc>
+    inline void
+    swap(unordered_set<_Value, _Hash, _Pred, _Alloc>& __x,
+	 unordered_set<_Value, _Hash, _Pred, _Alloc>& __y)
+    { __x.swap(__y); }
+
+  template<class _Value, class _Hash, class _Pred, class _Alloc>
+    inline void
+    swap(unordered_multiset<_Value, _Hash, _Pred, _Alloc>& __x,
+	 unordered_multiset<_Value, _Hash, _Pred, _Alloc>& __y)
+    { __x.swap(__y); }
+
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+  template<class _Value, class _Hash, class _Pred, class _Alloc>
+    inline void
+    swap(unordered_set<_Value, _Hash, _Pred, _Alloc>&& __x,
+	 unordered_set<_Value, _Hash, _Pred, _Alloc>& __y)
+    { __x.swap(__y); }
+
+  template<class _Value, class _Hash, class _Pred, class _Alloc>
+    inline void
+    swap(unordered_set<_Value, _Hash, _Pred, _Alloc>& __x,
+	 unordered_set<_Value, _Hash, _Pred, _Alloc>&& __y)
+    { __x.swap(__y); }
+
+  template<class _Value, class _Hash, class _Pred, class _Alloc>
+    inline void
+    swap(unordered_multiset<_Value, _Hash, _Pred, _Alloc>&& __x,
+	 unordered_multiset<_Value, _Hash, _Pred, _Alloc>& __y)
+    { __x.swap(__y); }
+
+  template<class _Value, class _Hash, class _Pred, class _Alloc>
+    inline void
+    swap(unordered_multiset<_Value, _Hash, _Pred, _Alloc>& __x,
+	 unordered_multiset<_Value, _Hash, _Pred, _Alloc>&& __y)
+    { __x.swap(__y); }
+#endif
+
+_GLIBCXX_END_NAMESPACE_TR1
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          // TR1 cwchar -*- C++ -*-
+
+// Copyright (C) 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file tr1_impl/cwchar
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+#if _GLIBCXX_USE_WCHAR_T
+
+namespace std
+{
+_GLIBCXX_BEGIN_NAMESPACE_TR1
+
+#if _GLIBCXX_HAVE_WCSTOF
+  using std::wcstof;
+#endif
+#if _GLIBCXX_HAVE_VFWSCANF
+  using std::vfwscanf;
+#endif
+#if _GLIBCXX_HAVE_VSWSCANF
+  using std::vswscanf;
+#endif
+#if _GLIBCXX_HAVE_VWSCANF
+  using std::vwscanf;
+#endif
+
+#if _GLIBCXX_USE_C99
+  using std::wcstold;
+  using std::wcstoll;
+  using std::wcstoull;
+#endif
+
+_GLIBCXX_END_NAMESPACE_TR1
+}
+
+#endif
+                                                             // TR1 unordered_map -*- C++ -*-
+
+// Copyright (C) 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file tr1_impl/unordered_map
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+namespace std
+{
+_GLIBCXX_BEGIN_NAMESPACE_TR1
+
+  // XXX When we get typedef templates these class definitions
+  // will be unnecessary.
+  template<class _Key, class _Tp,
+	   class _Hash = hash<_Key>,
+	   class _Pred = std::equal_to<_Key>,
+	   class _Alloc = std::allocator<std::pair<const _Key, _Tp> >,
+	   bool __cache_hash_code = false>
+    class __unordered_map
+    : public _Hashtable<_Key, std::pair<const _Key, _Tp>, _Alloc,
+			std::_Select1st<std::pair<const _Key, _Tp> >, _Pred, 
+			_Hash, __detail::_Mod_range_hashing,
+			__detail::_Default_ranged_hash,
+			__detail::_Prime_rehash_policy,
+			__cache_hash_code, false, true>
+    {
+      typedef _Hashtable<_Key, std::pair<const _Key, _Tp>, _Alloc,
+			 std::_Select1st<std::pair<const _Key, _Tp> >, _Pred,
+			 _Hash, __detail::_Mod_range_hashing,
+			 __detail::_Default_ranged_hash,
+			 __detail::_Prime_rehash_policy,
+			 __cache_hash_code, false, true>
+        _Base;
+
+    public:
+      typedef typename _Base::size_type       size_type;
+      typedef typename _Base::hasher          hasher;
+      typedef typename _Base::key_equal       key_equal;
+      typedef typename _Base::allocator_type  allocator_type;
+
+      explicit
+      __unordered_map(size_type __n = 10,
+		      const hasher& __hf = hasher(),
+		      const key_equal& __eql = key_equal(),
+		      const allocator_type& __a = allocator_type())
+      : _Base(__n, __hf, __detail::_Mod_range_hashing(),
+	      __detail::_Default_ranged_hash(),
+	      __eql, std::_Select1st<std::pair<const _Key, _Tp> >(), __a)
+      { }
+
+      template<typename _InputIterator>
+        __unordered_map(_InputIterator __f, _InputIterator __l, 
+			size_type __n = 10,
+			const hasher& __hf = hasher(), 
+			const key_equal& __eql = key_equal(), 
+			const allocator_type& __a = allocator_type())
+	: _Base(__f, __l, __n, __hf, __detail::_Mod_range_hashing(),
+		__detail::_Default_ranged_hash(),
+		__eql, std::_Select1st<std::pair<const _Key, _Tp> >(), __a)
+	{ }
+
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+      __unordered_map(__unordered_map&& __x)
+      : _Base(std::forward<_Base>(__x)) { }
+#endif
+    };
+  
+  template<class _Key, class _Tp,
+	   class _Hash = hash<_Key>,
+	   class _Pred = std::equal_to<_Key>,
+	   class _Alloc = std::allocator<std::pair<const _Key, _Tp> >,
+	   bool __cache_hash_code = false>
+    class __unordered_multimap
+    : public _Hashtable<_Key, std::pair<const _Key, _Tp>,
+			_Alloc,
+			std::_Select1st<std::pair<const _Key, _Tp> >, _Pred,
+			_Hash, __detail::_Mod_range_hashing,
+			__detail::_Default_ranged_hash,
+			__detail::_Prime_rehash_policy,
+			__cache_hash_code, false, false>
+    {
+      typedef _Hashtable<_Key, std::pair<const _Key, _Tp>,
+			 _Alloc,
+			 std::_Select1st<std::pair<const _Key, _Tp> >, _Pred,
+			 _Hash, __detail::_Mod_range_hashing,
+			 __detail::_Default_ranged_hash,
+			 __detail::_Prime_rehash_policy,
+			 __cache_hash_code, false, false>
+        _Base;
+
+    public:
+      typedef typename _Base::size_type       size_type;
+      typedef typename _Base::hasher          hasher;
+      typedef typename _Base::key_equal       key_equal;
+      typedef typename _Base::allocator_type  allocator_type;
+      
+      explicit
+      __unordered_multimap(size_type __n = 10,
+			   const hasher& __hf = hasher(),
+			   const key_equal& __eql = key_equal(),
+			   const allocator_type& __a = allocator_type())
+      : _Base(__n, __hf, __detail::_Mod_range_hashing(),
+	      __detail::_Default_ranged_hash(),
+	      __eql, std::_Select1st<std::pair<const _Key, _Tp> >(), __a)
+      { }
+
+
+      template<typename _InputIterator>
+        __unordered_multimap(_InputIterator __f, _InputIterator __l, 
+			     typename _Base::size_type __n = 0,
+			     const hasher& __hf = hasher(), 
+			     const key_equal& __eql = key_equal(), 
+			     const allocator_type& __a = allocator_type())
+	: _Base(__f, __l, __n, __hf, __detail::_Mod_range_hashing(),
+		__detail::_Default_ranged_hash(),
+		__eql, std::_Select1st<std::pair<const _Key, _Tp> >(), __a)
+        { }
+
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+      __unordered_multimap(__unordered_multimap&& __x)
+      : _Base(std::forward<_Base>(__x)) { }
+#endif
+    };
+
+  template<class _Key, class _Tp, class _Hash, class _Pred, class _Alloc,
+	   bool __cache_hash_code>
+    inline void
+    swap(__unordered_map<_Key, _Tp, _Hash, _Pred,
+	 _Alloc, __cache_hash_code>& __x,
+	 __unordered_map<_Key, _Tp, _Hash, _Pred,
+	 _Alloc, __cache_hash_code>& __y)
+    { __x.swap(__y); }
+
+  template<class _Key, class _Tp, class _Hash, class _Pred, class _Alloc,
+	   bool __cache_hash_code>
+    inline void
+    swap(__unordered_multimap<_Key, _Tp, _Hash, _Pred,
+	 _Alloc, __cache_hash_code>& __x,
+	 __unordered_multimap<_Key, _Tp, _Hash, _Pred,
+	 _Alloc, __cache_hash_code>& __y)
+    { __x.swap(__y); }
+
+
+  /// class unordered_map
+  template<class _Key, class _Tp,
+	   class _Hash = hash<_Key>,
+	   class _Pred = std::equal_to<_Key>,
+	   class _Alloc = std::allocator<std::pair<const _Key, _Tp> > >
+    class unordered_map
+    : public __unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>
+    {
+      typedef __unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>  _Base;
+
+    public:
+      typedef typename _Base::size_type       size_type;
+      typedef typename _Base::hasher          hasher;
+      typedef typename _Base::key_equal       key_equal;
+      typedef typename _Base::allocator_type  allocator_type;
+
+      explicit
+      unordered_map(size_type __n = 10,
+		    const hasher& __hf = hasher(),
+		    const key_equal& __eql = key_equal(),
+		    const allocator_type& __a = allocator_type())
+      : _Base(__n, __hf, __eql, __a)
+      { }
+
+      template<typename _InputIterator>
+        unordered_map(_InputIterator __f, _InputIterator __l, 
+		      size_type __n = 10,
+		      const hasher& __hf = hasher(), 
+		      const key_equal& __eql = key_equal(), 
+		      const allocator_type& __a = allocator_type())
+	: _Base(__f, __l, __n, __hf, __eql, __a)
+        { }
+
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+      unordered_map(unordered_map&& __x)
+      : _Base(std::forward<_Base>(__x)) { }
+
+      unordered_map&
+      operator=(unordered_map&& __x)
+      {
+	// NB: DR 675.
+	this->clear();
+	this->swap(__x); 
+	return *this;	
+      }
+#endif
+    };
+  
+  /// class unordered_multimap
+  template<class _Key, class _Tp,
+	   class _Hash = hash<_Key>,
+	   class _Pred = std::equal_to<_Key>,
+	   class _Alloc = std::allocator<std::pair<const _Key, _Tp> > >
+    class unordered_multimap
+    : public __unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>
+    {
+      typedef __unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>  _Base;
+
+    public:
+      typedef typename _Base::size_type       size_type;
+      typedef typename _Base::hasher          hasher;
+      typedef typename _Base::key_equal       key_equal;
+      typedef typename _Base::allocator_type  allocator_type;
+      
+      explicit
+      unordered_multimap(size_type __n = 10,
+			 const hasher& __hf = hasher(),
+			 const key_equal& __eql = key_equal(),
+			 const allocator_type& __a = allocator_type())
+      : _Base(__n, __hf, __eql, __a)
+      { }
+
+
+      template<typename _InputIterator>
+        unordered_multimap(_InputIterator __f, _InputIterator __l, 
+			   typename _Base::size_type __n = 0,
+			   const hasher& __hf = hasher(), 
+			   const key_equal& __eql = key_equal(), 
+			   const allocator_type& __a = allocator_type())
+	: _Base(__f, __l, __n, __hf, __eql, __a)
+        { }
+
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+      unordered_multimap(unordered_multimap&& __x)
+      : _Base(std::forward<_Base>(__x)) { }
+
+      unordered_multimap&
+      operator=(unordered_multimap&& __x)
+      {
+	// NB: DR 675.
+	this->clear();
+	this->swap(__x); 
+	return *this;	
+      }
+#endif
+    };
+
+  template<class _Key, class _Tp, class _Hash, class _Pred, class _Alloc>
+    inline void
+    swap(unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>& __x,
+	 unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>& __y)
+    { __x.swap(__y); }
+
+  template<class _Key, class _Tp, class _Hash, class _Pred, class _Alloc>
+    inline void
+    swap(unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>& __x,
+	 unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>& __y)
+    { __x.swap(__y); }
+
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+  template<class _Key, class _Tp, class _Hash, class _Pred, class _Alloc>
+    inline void
+    swap(unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>&& __x,
+	 unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>& __y)
+    { __x.swap(__y); }
+
+  template<class _Key, class _Tp, class _Hash, class _Pred, class _Alloc>
+    inline void
+    swap(unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>& __x,
+	 unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>&& __y)
+    { __x.swap(__y); }
+
+  template<class _Key, class _Tp, class _Hash, class _Pred, class _Alloc>
+    inline void
+    swap(unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>&& __x,
+	 unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>& __y)
+    { __x.swap(__y); }
+
+  template<class _Key, class _Tp, class _Hash, class _Pred, class _Alloc>
+    inline void
+    swap(unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>& __x,
+	 unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>&& __y)
+    { __x.swap(__y); }
+#endif
+
+_GLIBCXX_END_NAMESPACE_TR1
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      // class template regex -*- C++ -*-
+
+// Copyright (C) 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/**
+ * @file tr1_impl/regex
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+namespace std
+{
+_GLIBCXX_BEGIN_NAMESPACE_TR1
+
+/**
+ * @addtogroup tr1_regex Regular Expressions
+ * A facility for performing regular expression pattern matching.
+ * @{
+ */
+
+namespace regex_constants
+{
+  // [7.5.1] Bitmask Type syntax_option_type
+  enum __syntax_option
+    {
+      _S_icase,
+      _S_nosubs,
+      _S_optimize,
+      _S_collate,
+      _S_ECMAScript,
+      _S_basic,
+      _S_extended,
+      _S_awk,
+      _S_grep,
+      _S_egrep,
+      _S_syntax_last
+    };
+
+  /**
+   * @brief This is a bitmask type indicating how to interpret the regex.
+   *
+   * The @c syntax_option_type is implementation defined but it is valid to
+   * perform bitwise operations on these values and expect the right thing to
+   * happen.
+   *
+   * A valid value of type syntax_option_type shall have exactly one of the
+   * elements @c ECMAScript, @c basic, @c extended, @c awk, @c grep, @c egrep
+   * set.
+   */
+  typedef unsigned int syntax_option_type;
+
+  /// Specifies that the matching of regular expressions against a character
+  /// sequence shall be performed without regard to case.
+  static const syntax_option_type icase      = 1 << _S_icase;
+
+  /// Specifies that when a regular expression is matched against a character
+  /// container sequence, no sub-expression matches are to be stored in the
+  /// supplied match_results structure.
+  static const syntax_option_type nosubs     = 1 << _S_nosubs;
+
+  /// Specifies that the regular expression engine should pay more attention to
+  /// the speed with which regular expressions are matched, and less to the
+  /// speed with which regular expression objects are constructed. Otherwise
+  /// it has no detectable effect on the program output.
+  static const syntax_option_type optimize   = 1 << _S_optimize;
+
+  /// Specifies that character ranges of the form [a-b] should be locale
+  /// sensitive.
+  static const syntax_option_type collate    = 1 << _S_collate;
+
+  /// Specifies that the grammar recognized by the regular expression engine is
+  /// that used by ECMAScript in ECMA-262 [Ecma International, ECMAScript
+  /// Language Specification, Standard Ecma-262, third edition, 1999], as
+  /// modified in tr1 section [7.13].  This grammar is similar to that defined
+  /// in the PERL scripting language but extended with elements found in the
+  /// POSIX regular expression grammar.
+  static const syntax_option_type ECMAScript = 1 << _S_ECMAScript;
+
+  /// Specifies that the grammar recognized by the regular expression engine is
+  /// that used by POSIX basic regular expressions in IEEE Std 1003.1-2001,
+  /// Portable Operating System Interface (POSIX), Base Definitions and
+  /// Headers, Section 9, Regular Expressions [IEEE, Information Technology --
+  /// Portable Operating System Interface (POSIX), IEEE Standard 1003.1-2001].
+  static const syntax_option_type basic      = 1 << _S_basic;
+
+  /// Specifies that the grammar recognized by the regular expression engine is
+  /// that used by POSIX extended regular expressions in IEEE Std 1003.1-2001,
+  /// Portable Operating System Interface (POSIX), Base Definitions and Headers,
+  /// Section 9, Regular Expressions.
+  static const syntax_option_type extended   = 1 << _S_extended;
+
+  /// Specifies that the grammar recognized by the regular expression engine is
+  /// that used by POSIX utility awk in IEEE Std 1003.1-2001.  This option is
+  /// identical to syntax_option_type extended, except that C-style escape
+  /// sequences are supported.  These sequences are, explicitly, '\\', '\a',
+  /// '\b', '\f', '\n', '\r', '\t' , '\v', '\"', '\\', and '\ddd' (where ddd is
+  /// one, two, or three octal digits).  
+  static const syntax_option_type awk        = 1 << _S_awk;
+
+  /// Specifies that the grammar recognized by the regular expression engine is
+  /// that used by POSIX utility grep in IEEE Std 1003.1-2001.  This option is
+  /// identical to syntax_option_type basic, except that newlines are treated
+  /// as whitespace.
+  static const syntax_option_type grep       = 1 << _S_grep;
+
+  /// Specifies that the grammar recognized by the regular expression engine is
+  /// that used by POSIX utility grep when given the -E option in
+  /// IEEE Std 1003.1-2001.  This option is identical to syntax_option_type 
+  /// extended, except that newlines are treated as whitespace.
+  static const syntax_option_type egrep      = 1 << _S_egrep;
+
+
+  // [7.5.2] Bitmask Type match_flag_type
+  enum __match_flag
+    {
+      _S_not_bol,
+      _S_not_eol,
+      _S_not_bow,
+      _S_not_eow,
+      _S_any,
+      _S_not_null,
+      _S_continuous,
+      _S_prev_avail,
+      _S_sed,
+      _S_no_copy,
+      _S_first_only,
+      _S_match_flag_last
+    };
+
+  /**
+   * @brief This is a bitmask type indicating regex matching rules.
+   *
+   * Matching a regular expression against a sequence of characters [first,
+   * last) proceeds according to the rules of the grammar specified for the
+   * regular expression object, modified according to the effects listed
+   * below for any bitmask elements set.
+   *
+   * The @c match_flag_type is implementation defined but it is valid to
+   * perform bitwise operations on these values and expect the right thing to
+   * happen.
+   */
+  typedef std::bitset<_S_match_flag_last> match_flag_type;
+
+  static const match_flag_type match_default     = 0;
+
+  /// The first character in the sequence [first, last) is treated as though it
+  /// is not at the beginning of a line, so the character "^" in the regular
+  /// expression shall not match [first, first).
+  static const match_flag_type match_not_bol     = 1 << _S_not_bol;
+
+  /// The last character in the sequence [first, last) is treated as though it
+  /// is not at the end of a line, so the character "$" in the regular
+  /// expression shall not match [last, last).
+  static const match_flag_type match_not_eol     = 1 << _S_not_eol;
+   
+  /// The expression "\b" is not matched against the sub-sequence
+  /// [first,first).
+  static const match_flag_type match_not_bow     = 1 << _S_not_bow;
+   
+  /// The expression "\b" should not be matched against the sub-sequence
+  /// [last,last).
+  static const match_flag_type match_not_eow     = 1 << _S_not_eow;
+   
+  /// If more than one match is possible then any match is an acceptable
+  /// result.
+  static const match_flag_type match_any         = 1 << _S_any;
+   
+  /// The expression does not match an empty sequence.
+  static const match_flag_type match_not_null    = 1 << _S_not_null;
+   
+  /// The expression only matches a sub-sequence that begins at first .
+  static const match_flag_type match_continuous  = 1 << _S_continuous;
+   
+  /// --first is a valid iterator position.  When this flag is set then the
+  /// flags match_not_bol and match_not_bow are ignored by the regular
+  /// expression algorithms 7.11 and iterators 7.12.
+  static const match_flag_type match_prev_avail  = 1 << _S_prev_avail;
+
+  /// When a regular expression match is to be replaced by a new string, the
+  /// new string is constructed using the rules used by the ECMAScript replace
+  /// function in ECMA- 262 [Ecma International, ECMAScript Language
+  /// Specification, Standard Ecma-262, third edition, 1999], part 15.5.4.11
+  /// String.prototype.replace. In addition, during search and replace
+  /// operations all non-overlapping occurrences of the regular expression
+  /// are located and replaced, and sections of the input that did not match
+  /// the expression are copied unchanged to the output string.
+  ///
+  /// Format strings (from ECMA-262 [15.5.4.11]):
+  /// $$  $
+  /// $&  The matched substring.
+  /// $`  The portion of <em>string</em> that precedes the matched substring.
+  /// $'  The portion of <em>string</em> that follows the matched substring.
+  /// $n  The nth capture, where n is in [1,9] and $n is not followed by a
+  ///     decimal digit.  If n <= m and the nth capture is undefined, use the
+  ///     empty string
+  ///     instead. If n > m, the result is implementation-defined.
+  /// $nn The nnth capture, where nn is a two-digit decimal number on [01, 99].
+  ///     If nn <= m and the nth capture is undefined, use the empty string
+  ///     instead. If nn > m, the result is implementation-defined.
+  ///
+  static const match_flag_type format_default    = 0;
+
+  /// When a regular expression match is to be replaced by a new string, the
+  /// new string is constructed using the rules used by the POSIX sed utility
+  /// in IEEE Std 1003.1- 2001 [IEEE, Information Technology -- Portable
+  /// Operating System Interface (POSIX), IEEE Standard 1003.1-2001].
+  static const match_flag_type format_sed        = 1 << _S_sed;
+
+  /// During a search and replace operation, sections of the character
+  /// container sequence being searched that do not match the regular
+  /// expression shall not be copied to the output string.
+  static const match_flag_type format_no_copy    = 1 << _S_no_copy;
+
+  /// When specified during a search and replace operation, only the first
+  /// occurrence of the regular expression shall be replaced.
+  static const match_flag_type format_first_only = 1 << _S_first_only;
+
+
+  /// [7.5.3] implementation-defined error type
+  enum error_type
+    {
+      _S_error_collate,
+      _S_error_ctype,
+      _S_error_escape,
+      _S_error_backref,
+      _S_error_brack,
+      _S_error_paren,
+      _S_error_brace,
+      _S_error_badbrace,
+      _S_error_range,
+      _S_error_space,
+      _S_error_badrepeat,
+      _S_error_complexity,
+      _S_error_stack,
+      _S_error_last
+    };
+
+  /// The expression contained an invalid collating element name.
+  static const error_type error_collate(_S_error_collate);
+
+  /// The expression contained an invalid character class name.
+  static const error_type error_ctype(_S_error_ctype);
+
+  /// The expression contained an invalid escaped character, or a trailing
+  /// escape.
+  static const error_type error_escape(_S_error_escape);
+
+  /// The expression contained an invalid back reference.
+  static const error_type error_backref(_S_error_backref);
+
+  /// The expression contained mismatched [ and ].
+  static const error_type error_brack(_S_error_brack);
+
+  /// The expression contained mismatched ( and ).
+  static const error_type error_paren(_S_error_paren);
+
+  /// The expression contained mismatched { and }
+  static const error_type error_brace(_S_error_brace);
+
+  /// The expression contained an invalid range in a {} expression.
+  static const error_type error_badbrace(_S_error_badbrace);
+
+  /// The expression contained an invalid character range,
+  /// such as [b-a] in most encodings.
+  static const error_type error_range(_S_error_range);
+
+  /// There was insufficient memory to convert the expression into a
+  /// finite state machine.
+  static const error_ú.  û.  ü.  ý.  þ.  ÿ.   /  /  /  /  /  /  /  /  /  	/  
+/  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /   /  !/  "/  #/  $/  %/  &/  '/  (/  )/  */  +/  ,/  -/  ./  //  0/  1/  2/  3/  4/  5/  6/  7/  8/  9/  :/  ;/  </  =/  >/  ?/  @/  A/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  type error_space(_S_error_space);
+
+  /// One of *?+{ was not preceded by a valid regular expression.
+  static const error_type error_badrepeat(_S_error_badrepeat);
+
+  /// The complexity of an attempted match against a regular expression
+  /// exceeded a pre-set level.
+  static const error_type error_complexity(_S_error_complexity);
+
+  /// There was insufficient memory to determine whether the
+  /// regular expression could match the specified character sequence.
+  static const error_type error_stack(_S_error_stack);
+}
+
+
+  // [7.8] Class regex_error
+  /**
+   * Defines the exception objects thrown report errors from the
+   * regular expression library.
+   */
+  class regex_error
+  : public std::runtime_error
+  {
+  public:
+    /**
+     * @brief constructs a regex_error object.
+     *
+     * @param ecode the regex error code.
+     */
+    explicit
+    regex_error(regex_constants::error_type __ecode)
+    : std::runtime_error("regex_error"), _M_code(__ecode)
+    { }
+
+    /**
+     * @brief gets the regex error code.
+     *
+     * @returns the regex error code.
+     */
+    regex_constants::error_type
+    code() const
+    { return _M_code; }
+
+  protected:
+    regex_constants::error_type _M_code;
+  };
+
+
+  // [7.7] Class regex_traits
+  /**
+   * A regular expression traits class that satisfies the requirements of tr1
+   * section [7.2].
+   *
+   * The class %regex is parameterized around a set of related types and
+   * functions used to complete the definition of its semantics.  This class
+   * satisfies the requirements of such a traits class.
+   */
+  template<typename _Ch_type>
+    struct regex_traits
+    {
+    public:
+      typedef _Ch_type                     char_type;
+      typedef std::basic_string<char_type> string_type;
+      typedef std::locale                  locale_type;
+      typedef std::ctype_base::mask        char_class_type;
+
+    public:
+      /**
+       * @brief Constructs a default traits object.
+       */
+      regex_traits()
+      { }
+      
+      /**
+       * @brief Gives the length of a C-style string starting at @p __p.
+       *
+       * @param __p a pointer to the start of a character sequence.
+       *
+       * @returns the number of characters between @p *__p and the first
+       * default-initialized value of type @p char_type.  In other words, uses
+       * the C-string algorithm for determining the length of a sequence of
+       * characters.
+       */
+      static std::size_t
+      length(const char_type* __p)
+      { return string_type::traits_type::length(__p); }
+
+      /**
+       * @brief Performs the identity translation.
+       *
+       * @param c A character to the locale-specific character set.
+       *
+       * @returns c.
+       */
+      char_type
+      translate(char_type __c) const
+      { return __c; }
+      
+      /**
+       * @brief Translates a character into a case-insensitive equivalent.
+       *
+       * @param c A character to the locale-specific character set.
+       *
+       * @returns the locale-specific lower-case equivalent of c.
+       * @throws std::bad_cast if the imbued locale does not support the ctype
+       *         facet.
+       */
+      char_type
+      translate_nocase(char_type __c) const
+      {
+	using std::ctype;
+	using std::use_facet;
+	return use_facet<ctype<char_type> >(_M_locale).tolower(__c);
+      }
+      
+      /**
+       * @brief Gets a sort key for a character sequence.
+       *
+       * @param first beginning of the character sequence.
+       * @param last  one-past-the-end of the character sequence.
+       *
+       * Returns a sort key for the character sequence designated by the
+       * iterator range [F1, F2) such that if the character sequence [G1, G2)
+       * sorts before the character sequence [H1, H2) then
+       * v.transform(G1, G2) < v.transform(H1, H2).
+       *
+       * What this really does is provide a more efficient way to compare a
+       * string to multiple other strings in locales with fancy collation
+       * rules and equivalence classes.
+       *
+       * @returns a locale-specific sort key equivalent to the input range.
+       *
+       * @throws std::bad_cast if the current locale does not have a collate
+       *         facet.
+       */
+      template<typename _Fwd_iter>
+        string_type
+        transform(_Fwd_iter __first, _Fwd_iter __last) const
+        {
+	  using std::collate;
+	  using std::use_facet;
+	  const collate<_Ch_type>& __c(use_facet<
+				       collate<_Ch_type> >(_M_locale));
+	  string_type __s(__first, __last);
+	  return __c.transform(__s.data(), __s.data() + __s.size());
+	}
+
+      /**
+       * @brief Dunno.
+       *
+       * @param first beginning of the character sequence.
+       * @param last  one-past-the-end of the character sequence.
+       *
+       * Effects: if typeid(use_facet<collate<_Ch_type> >) ==
+       * typeid(collate_byname<_Ch_type>) and the form of the sort key
+       * returned by collate_byname<_Ch_type>::transform(first, last) is known
+       * and can be converted into a primary sort key then returns that key,
+       * otherwise returns an empty string. WTF??
+       *
+       * @todo Implement this function.
+       */
+      template<typename _Fwd_iter>
+        string_type
+        transform_primary(_Fwd_iter __first, _Fwd_iter __last) const
+        { return string_type(); }
+
+      /**
+       * @brief Gets a collation element by name.
+       *
+       * @param first beginning of the collation element name.
+       * @param last  one-past-the-end of the collation element name.
+       * 
+       * @returns a sequence of one or more characters that represents the
+       * collating element consisting of the character sequence designated by
+       * the iterator range [first, last). Returns an empty string if the
+       * character sequence is not a valid collating element.
+       *
+       * @todo Implement this function.
+       */
+      template<typename _Fwd_iter>
+        string_type
+        lookup_collatename(_Fwd_iter __first, _Fwd_iter __last) const
+        { return string_type(); }
+
+      /**
+       * @brief Maps one or mire characters to a named character
+       *        classification.
+       *
+       * 

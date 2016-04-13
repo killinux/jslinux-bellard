@@ -1,0 +1,1895 @@
+'\"
+'\" Copyright (c) 1997 by Sun Microsystems, Inc.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: binary.n,v 1.11.2.8 2005/02/10 10:28:21 dkf Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH binary n 8.0 Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+binary \- Insert and extract fields from binary strings
+.SH SYNOPSIS
+\fBbinary format \fIformatString \fR?\fIarg arg ...\fR?
+.br
+\fBbinary scan \fIstring formatString \fR?\fIvarName varName ...\fR?
+.BE
+
+.SH DESCRIPTION
+.PP
+This command provides facilities for manipulating binary data.  The
+first form, \fBbinary format\fR, creates a binary string from normal
+Tcl values.  For example, given the values 16 and 22, on a 32 bit
+architecture, it might produce an 8-byte binary string consisting of
+two 4-byte integers, one for each of the numbers.  The second form of
+the command, \fBbinary scan\fR, does the opposite: it extracts data
+from a binary string and returns it as ordinary Tcl string values.
+
+.SH "BINARY FORMAT"
+.PP
+The \fBbinary format\fR command generates a binary string whose layout
+is specified by the \fIformatString\fR and whose contents come from
+the additional arguments.  The resulting binary value is returned.
+.PP
+The \fIformatString\fR consists of a sequence of zero or more field
+specifiers separated by zero or more spaces.  Each field specifier is
+a single type character followed by an optional numeric \fIcount\fR.
+Most field specifiers consume one argument to obtain the value to be
+formatted.  The type character specifies how the value is to be
+formatted.  The \fIcount\fR typically indicates how many items of the
+specified type are taken from the value.  If present, the \fIcount\fR
+is a non-negative decimal integer or \fB*\fR, which normally indicates
+that all of the items in the value are to be used.  If the number of
+arguments does not match the number of fields in the format string
+that consume arguments, then an error is generated.
+.PP
+Here is a small example to clarify the relation between the field
+specifiers and the arguments:
+.CS
+\fBbinary format d3d {1.0 2.0 3.0 4.0} 0.1\fR
+.CE
+.PP
+The first argument is a list of four numbers, but because of the count
+of 3 for the associated field specifier, only the first three will be
+used. The second argument is associated with the second field
+specifier. The resulting binary string contains the four numbers 1.0,
+2.0, 3.0 and 0.1.
+.PP
+Each type-count pair moves an imaginary cursor through the binary
+data, storing bytes at the current position and advancing the cursor
+to just after the last byte stored.  The cursor is initially at
+position 0 at the beginning of the data.  The type may be any one of
+the following characters:
+.IP \fBa\fR 5
+Stores a character string of length \fIcount\fR in the output string.
+Every character is taken as modulo 256 (i.e. the low byte of every
+character is used, and the high byte discarded) so when storing
+character strings not wholly expressible using the characters \\u0000-\\u00ff,
+the \fBencoding convertto\fR command should be used
+first if this truncation is not desired (i.e. if the characters are
+not part of the ISO 8859-1 character set.)
+If \fIarg\fR has fewer than \fIcount\fR bytes, then additional zero
+bytes are used to pad out the field.  If \fIarg\fR is longer than the
+specified length, the extra characters will be ignored.  If
+\fIcount\fR is \fB*\fR, then all of the bytes in \fIarg\fR will be
+formatted.  If \fIcount\fR is omitted, then one character will be
+formatted.  For example,
+.RS
+.CS
+\fBbinary format a7a*a alpha bravo charlie\fR
+.CE
+will return a string equivalent to \fBalpha\\000\\000bravoc\fR.
+.RE
+.IP \fBA\fR 5
+This form is the same as \fBa\fR except that spaces are used for
+padding instead of nulls.  For example,
+.RS
+.CS
+\fBbinary format A6A*A alpha bravo charlie\fR
+.CE
+will return \fBalpha bravoc\fR.
+.RE
+.IP \fBb\fR 5
+Stores a string of \fIcount\fR binary digits in low-to-high order
+within each byte in the output string.  \fIArg\fR must contain a
+sequence of \fB1\fR and \fB0\fR characters.  The resulting bytes are
+emitted in first to last order with the bits being formatted in
+low-to-high order within each byte.  If \fIarg\fR has fewer than
+\fIcount\fR digits, then zeros will be used for the remaining bits.
+If \fIarg\fR has more than the specified number of digits, the extra
+digits will be ignored.  If \fIcount\fR is \fB*\fR, then all of the
+digits in \fIarg\fR will be formatted.  If \fIcount\fR is omitted,
+then one digit will be formatted.  If the number of bits formatted
+does not end at a byte boundary, the remaining bits of the last byte
+will be zeros.  For example,
+.RS
+.CS
+\fBbinary format b5b* 11100 111000011010\fR
+.CE
+will return a string equivalent to \fB\\x07\\x87\\x05\fR.
+.RE
+.IP \fBB\fR 5
+This form is the same as \fBb\fR except that the bits are stored in
+high-to-low order within each byte.  For example,
+.RS
+.CS
+\fBbinary format B5B* 11100 111000011010\fR
+.CE
+will return a string equivalent to \fB\\xe0\\xe1\\xa0\fR.
+.RE
+.IP \fBh\fR 5
+Stores a string of \fIcount\fR hexadecimal digits in low-to-high
+within each byte in the output string.  \fIArg\fR must contain a
+sequence of characters in the set ``0123456789abcdefABCDEF''.  The
+resulting bytes are emitted in first to last order with the hex digits
+being formatted in low-to-high order within each byte.  If \fIarg\fR
+has fewer than \fIcount\fR digits, then zeros will be used for the
+remaining digits.  If \fIarg\fR has more than the specified number of
+digits, the extra digits will be ignored.  If \fIcount\fR is
+\fB*\fR, then all of the digits in \fIarg\fR will be formatted.  If
+\fIcount\fR is omitted, then one digit will be formatted.  If the
+number of digits formatted does not end at a byte boundary, the
+remaining bits of the last byte will be zeros.  For example,
+.RS
+.CS
+\fBbinary format h3h* AB def\fR
+.CE
+will return a string equivalent to \fB\\xba\\x00\\xed\\x0f\fR.
+.RE
+.IP \fBH\fR 5
+This form is the same as \fBh\fR except that the digits are stored in
+high-to-low order within each byte.  For example,
+.RS
+.CS
+\fBbinary format H3H* ab DEF\fR
+.CE
+will return a string equivalent to \fB\\xab\\x00\\xde\\xf0\fR.
+.RE
+.IP \fBc\fR 5
+Stores one or more 8-bit integer values in the output string.  If no
+\fIcount\fR is specified, then \fIarg\fR must consist of an integer
+value; otherwise \fIarg\fR must consist of a list containing at least
+\fIcount\fR integer elements.  The low-order 8 bits of each integer
+are stored as a one-byte value at the cursor position.  If \fIcount\fR
+is \fB*\fR, then all of the integers in the list are formatted.  If
+the number of elements in the list is fewer than \fIcount\fR, then an
+error is generated.  If the number of elements in the list is greater
+than \fIcount\fR, then the extra elements are ignored.  For example,
+.RS
+.CS
+\fBbinary format c3cc* {3 -3 128 1} 260 {2 5}\fR
+.CE
+will return a string equivalent to
+\fB\\x03\\xfd\\x80\\x04\\x02\\x05\fR, whereas
+.CS
+\fBbinary format c {2 5}\fR
+.CE
+will generate an error.
+.RE
+.IP \fBs\fR 5
+This form is the same as \fBc\fR except that it stores one or more
+16-bit integers in little-endian byte order in the output string.  The
+low-order 16-bits of each integer are stored as a two-byte value atMZ  NZ  OZ  PZ  QZ  RZ  SZ  TZ  UZ  VZ  WZ  XZ  YZ  ZZ  [Z  \Z  ]Z  ^Z  _Z                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+the cursor position with the least significant byte stored first.  For
+example,
+.RS
+.CS
+\fBbinary format s3 {3 -3 258 1}\fR
+.CE
+will return a string equivalent to 
+\fB\\x03\\x00\\xfd\\xff\\x02\\x01\fR.
+.RE
+.IP \fBS\fR 5
+This form is the same as \fBs\fR except that it stores one or more
+16-bit integers in big-endian byte order in the output string.  For
+example,
+.RS
+.CS
+\fBbinary format S3 {3 -3 258 1}\fR
+.CE
+will return a string equivalent to 
+\fB\\x00\\x03\\xff\\xfd\\x01\\x02\fR.
+.RE
+.IP \fBi\fR 5
+This form is the same as \fBc\fR except that it stores one or more
+32-bit integers in little-endian byte order in the output string.  The
+low-order 32-bits of each integer are stored as a four-byte value at
+the cursor position with the least significant byte stored first.  For
+example,
+.RS
+.CS
+\fBbinary format i3 {3 -3 65536 1}\fR
+.CE
+will return a string equivalent to 
+\fB\\x03\\x00\\x00\\x00\\xfd\\xff\\xff\\xff\\x00\\x00\\x01\\x00\fR
+.RE
+.IP \fBI\fR 5
+This form is the same as \fBi\fR except that it stores one or more one
+or more 32-bit integers in big-endian byte order in the output string.
+For example,
+.RS
+.CS
+\fBbinary format I3 {3 -3 65536 1}\fR
+.CE
+will return a string equivalent to 
+\fB\\x00\\x00\\x00\\x03\\xff\\xff\\xff\\xfd\\x00\\x01\\x00\\x00\fR
+.RE
+.IP \fBw\fR 5
+.VS 8.4
+This form is the same as \fBc\fR except that it stores one or more
+64-bit integers in little-endian byte order in the output string.  The
+low-order 64-bits of each integer are stored as an eight-byte value at
+the cursor position with the least significant byte stored first.  For
+example,
+.RS
+.CS
+\fBbinary format w 7810179016327718216\fR
+.CE
+will return the string \fBHelloTcl\fR
+.RE
+.IP \fBW\fR 5
+This form is the same as \fBw\fR except that it stores one or more one
+or more 64-bit integers in big-endian byte order in the output string.
+For example,
+.RS
+.CS
+\fBbinary format Wc 4785469626960341345 110\fR
+.CE
+will return the string \fBBigEndian\fR
+.VE
+.RE
+.IP \fBf\fR 5
+This form is the same as \fBc\fR except that it stores one or more one
+or more single-precision floating in the machine's native
+representation in the output string.  This representation is not
+portable across architectures, so it should not be used to communicate
+floating point numbers across the network.  The size of a floating
+point number may vary across architectures, so the number of bytes
+that are generated may vary.  If the value overflows the
+machine's native representation, then the value of FLT_MAX
+as defined by the system will be used instead.  Because Tcl uses
+double-precision floating-point numbers internally, there may be some
+loss of precision in the conversion to single-precision.  For example,
+on a Windows system running on an Intel Pentium processor,
+.RS
+.CS
+\fBbinary format f2 {1.6 3.4}\fR
+.CE
+will return a string equivalent to 
+\fB\\xcd\\xcc\\xcc\\x3f\\x9a\\x99\\x59\\x40\fR.
+.RE
+.IP \fBd\fR 5
+This form is the same as \fBf\fR except that it stores one or more one
+or more double-precision floating in the machine's native
+representation in the output string.  For example, on a
+Windows system running on an Intel Pentium processor,
+.RS
+.CS
+\fBbinary format d1 {1.6}\fR
+.CE
+will return a string equivalent to 
+\fB\\x9a\\x99\\x99\\x99\\x99\\x99\\xf9\\x3f\fR.
+.RE
+.IP \fBx\fR 5
+Stores \fIcount\fR null bytes in the output string.  If \fIcount\fR is
+not specified, stores one null byte.  If \fIcount\fR is \fB*\fR,
+generates an error.  This type does not consume an argument.  For
+example,
+.RS
+.CS
+\fBbinary format a3xa3x2a3 abc def ghi\fR
+.CE
+will return a string equivalent to \fBabc\\000def\\000\\000ghi\fR.
+.RE
+.IP \fBX\fR 5
+Moves the cursor back \fIcount\fR bytes in the output string.  If
+\fIcount\fR is \fB*\fR or is larger than the current cursor position,
+then the cursor is positioned at location 0 so that the next byte
+stored will be the first byte in the result string.  If \fIcount\fR is
+omitted then the cursor is moved back one byte.  This type does not
+consume an argument.  For example,
+.RS
+.CS
+\fBbinary format a3X*a3X2a3 abc def ghi\fR
+.CE
+will return \fBdghi\fR.
+.RE
+.IP \fB@\fR 5
+Moves the cursor to the absolute location in the output string
+specified by \fIcount\fR.  Position 0 refers to the first byte in the
+output string.  If \fIcount\fR refers to a position beyond the last
+byte stored so far, then null bytes will be placed in the uninitialized
+locations and the cursor will be placed at the specified location.  If
+\fIcount\fR is \fB*\fR, then the cursor is moved to the current end of
+the output string.  If \fIcount\fR is omitted, then an error will be
+generated.  This type does not consume an argument. For example,
+.RS
+.CS
+\fBbinary format a5@2a1@*a3@10a1 abcde f ghi j\fR
+.CE
+will return \fBabfdeghi\\000\\000j\fR.
+.RE
+
+.SH "BINARY SCAN"
+.PP
+The \fBbinary scan\fR command parses fields from a binary string,
+returning the number of conversions performed.  \fIString\fR gives the
+input to be parsed and \fIformatString\fR indicates how to parse it.
+Each \fIvarName\fR gives the name of a variable; when a field is
+scanned from \fIstring\fR the result is assigned to the corresponding
+variable.
+.PP
+As with \fBbinary format\fR, the \fIformatString\fR consists of a
+sequence of zero or more field specifiers separated by zero or more
+spaces.  Each field specifier is a single type character followed by
+an optional numeric \fIcount\fR.  Most field specifiers consume one
+argument to obtain the variable into which the scanned values should
+be placed.  The type character specifies how the binary data is to be
+interpreted.  The \fIcount\fR typically indicates how many items of
+the specified type are taken from the data.  If present, the
+\fIcount\fR is a non-negative decimal integer or \fB*\fR, which
+normally indicates that all of the remaining items in the data are to
+be used.  If there are not enough bytes left after the current cursor
+position to satisfy the current field specifier, then the
+corresponding variable is left untouched and \fBbinary scan\fR returns
+immediately with the number of variables that were set.  If there are
+not enough arguments for all of the fields in the format string that
+consume arguments, then an error is generated.
+.PP
+A similar example as with \fBbinary format\fR should explain the
+relation between field specifiers and arguments in case of the binary
+scan subcommand:
+.CS
+\fBbinary scan $bytes s3s first second\fR
+.CE
+.PP
+This command (provided the binary string in the variable \fIbytes\fR
+is long enough) assigns a list of three integers to the variable
+\fIfirst\fR and assigns a single value to the variable \fIsecond\fR.
+If \fIbytes\fR contains fewer than 8 bytes (i.e. four 2-byte
+integers), no assignment to \fIsecond\fR will be made, and if
+\fIbytes\fR contains fewer than 6 bytes (i.e. three 2-byte integers),
+no assignment to \fIfirst\fR will be made.  Hence:
+.CS
+\fBputs [binary scan abcdefg s3s first second]\fR
+\fBputs $first\fR
+\fBputs $second\fR
+.CE
+will print (assuming neither variable is set previously):
+.CS
+\fB1\fR
+\fB25185 25699 26213\fR
+\fIcan't read "second": no such variable\fR
+.CE
+.PP
+It is \fBimportant\fR to note that the \fBc\fR, \fBs\fR, and \fBS\fR
+(and \fBi\fR and \fBI\fR on 64bit systems) will be scanned into
+long data size values.  In doing this, values that have their high
+bit set (0x80 for chars, 0x8000 for shorts, 0x80000000 for ints),
+will be sign extended.  Thus the following will occur:
+.CS
+\fBset signShort [binary format s1 0x8000]\fR
+\fBbinary scan $signShort s1 val; \fI# val == 0xFFFF8000\fR
+.CE
+If you want to produce an unsigned value, then you can mask the return 
+value to the desired size.  For example, to produce an unsigned short 
+value:
+.CS
+\fBset val [expr {$val & 0xFFFF}]; \fI# val == 0x8000\fR
+.CE
+.PP
+Each type-count pair moves an imaginary cursor through the binary data,
+reading bytes from the current position.  The cursor is initially
+at position 0 at the beginning of the data.  The type may be any one of
+the following characters:
+.IP \fBa\fR 5
+The data is a character string of length \fIcount\fR.  If \fIcount\fR
+is \fB*\fR, then all of the remaining bytes in \fIstring\fR will be
+scanned into the variable.  If \fIcount\fR is omitted, then one
+character will be scanned.
+All characters scanned will be interpreted as being in the
+range \\u0000-\\u00ff so the \fBencoding convertfrom\fR command might be
+needed if the string is not an ISO 8859\-1 string.
+For example,
+.RS
+.CS
+\fBbinary scan abcde\\000fghi a6a10 var1 var2\fR
+.CE
+will return \fB1\fR with the string equivalent to \fBabcde\\000\fR
+stored in \fBvar1\fR and \fBvar2\fR left unmodified.
+.RE
+.IP \fBA\fR 5
+This form is the same as \fBa\fR, except trailing blanks and nulls are stripped from
+the scanned value before it is stored in the variable.  For example,
+.RS
+.CS
+\fBbinary scan "abc efghi  \\000" A* var1\fR
+.CE
+will return \fB1\fR with \fBabc efghi\fR stored in \fBvar1\fR.
+.RE
+.IP \fBb\fR 5
+The data is turned into a string of \fIcount\fR binary digits in
+low-to-high order represented as a sequence of ``1'' and ``0''
+characters.  The data bytes are scanned in first to last order with
+the bits being taken in low-to-high order within each byte.  Any extra
+bits in the last byte are ignored.  If \fIcount\fR is \fB*\fR, then
+all of the remaining bits in \fBstring\fR will be scanned.  If
+\fIcount\fR is omitted, then one bit will be scanned.  For example,
+.RS
+.CS
+\fBbinary scan \\x07\\x87\\x05 b5b* var1 var2\fR
+.CE
+will return \fB2\fR with \fB11100\fR stored in \fBvar1\fR and
+\fB1110000110100000\fR stored in \fBvar2\fR.
+.RE
+.IP \fBB\fR 5
+This form is the same as \fBb\fR, except the bits are taken in
+high-to-low order within each byte.  For example,
+.RS
+.CS
+\fBbinary scan \\x70\\x87\\x05 B5B* var1 var2\fR
+.CE
+will return \fB2\fR with \fB01110\fR stored in \fBvar1\fR and
+\fB1000011100000101\fR stored in \fBvar2\fR.
+.RE
+.IP \fBh\fR 5
+The data is turned into a string of \fIcount\fR hexadecimal digits in
+low-to-high order represented as a sequence of characters in the set
+``0123456789abcdef''.  The data bytes are scanned in first to last
+order with the hex digits being taken in low-to-high order within each
+byte.  Any extra bits in the last byte are ignored.  If \fIcount\fR
+is \fB*\fR, then all of the remaining hex digits in \fBstring\fR will be
+scanned.  If \fIcount\fR is omitted, then one hex digit will be
+scanned.  For example,
+.RS
+.CS
+\fBbinary scan \\x07\\x86\\x05 h3h* var1 var2\fR
+.CE
+will return \fB2\fR with \fB706\fR stored in \fBvar1\fR and
+\fB50\fR stored in \fBvar2\fR.
+.RE
+.IP \fBH\fR 5
+This form is the same as \fBh\fR, except the digits are taken in
+high-to-low order within each byte.  For example,
+.RS
+.CS
+\fBbinary scan \\x07\\x86\\x05 H3H* var1 var2\fR
+.CE
+will return \fB2\fR with \fB078\fR stored in \fBvar1\fR and
+\fB05\fR stored in \fBvar2\fR.
+.RE
+.IP \fBc\fR 5
+The data is turned into \fIcount\fR 8-bit signed integers and stored
+in the corresponding variable as a list. If \fIcount\fR is \fB*\fR,
+then all of the remaining bytes in \fBstring\fR will be scanned.  If
+\fIcount\fR is omitted, then one 8-bit integer will be scanned.  For
+example,
+.RS
+.CS
+\fBbinary scan \\x07\\x86\\x05 c2c* var1 var2\fR
+.CE
+will return \fB2\fR with \fB7 -122\fR stored in \fBvar1\fR and \fB5\fR
+stored in \fBvar2\fR.  Note that the integers returned are signed, but
+they can be converted to unsigned 8-bit quantities using an expression
+like:
+.CS
+\fBexpr { $num & 0xff }\fR
+.CE
+.RE
+.IP \fBs\fR 5
+The data is interpreted as \fIcount\fR 16-bit signed integers
+represented in little-endian byte order.  The integers are stored in
+the corresponding variable as a list.  If \fIcount\fR is \fB*\fR, then
+all of the remaining bytes in \fBstring\fR will be scanned.  If
+\fIcount\fR is omitted, then one 16-bit integer will be scanned.  For
+example,
+.RS
+.CS
+\fBbinary scan \\x05\\x00\\x07\\x00\\xf0\\xff s2s* var1 var2\fR
+.CE
+will return \fB2\fR with \fB5 7\fR stored in \fBvar1\fR and \fB-16\fR
+stored in \fBvar2\fR.  Note that the integers returned are signed, but
+they can be converted to unsigned 16-bit quantities using an expression
+like:
+.CS
+\fBexpr { $num & 0xffff }\fR
+.CE
+.RE
+.IP \fBS\fR 5
+This form is the same as \fBs\fR except that the data is interpreted
+as \fIcount\fR 16-bit signed integers represented in big-endian byte
+order.  For example,
+.RS
+.CS
+\fBbinary scan \\x00\\x05\\x00\\x07\\xff\\xf0 S2S* var1 var2\fR
+.CE
+will return \fB2\fR with \fB5 7\fR stored in \fBvar1\fR and \fB-16\fR
+stored in \fBvar2\fR. 
+.RE
+.IP \fBi\fR 5
+The data is interpreted as \fIcount\fR 32-bit signed integers
+represented in little-endian byte order.  The integers are stored in
+the corresponding variable as a list.  If \fIcount\fR is \fB*\fR, then
+all of the remaining bytes in \fBstring\fR will be scanned.  If
+\fIcount\fR is omitted, then one 32-bit integer will be scanned.  For
+example,
+.RS
+.CS
+\fBbinary scan \\x05\\x00\\x00\\x00\\x07\\x00\\x00\\x00\\xf0\\xff\\xff\\xff i2i* var1 var2\fR
+.CE
+will return \fB2\fR with \fB5 7\fR stored in \fBvar1\fR and \fB-16\fR
+stored in \fBvar2\fR.  Note that the integers returned are signed, but
+they can be converted to unsigned 32-bit quantities using an expression
+like:
+.CS
+\fBexpr { $num & 0xffffffff }\fR
+.CE
+.RE
+.IP \fBI\fR 5
+This form is the same as \fBI\fR except that the data is interpreted
+as \fIcount\fR 32-bit signed integers represented in big-endian byte
+order.  For example,
+.RS
+.CS
+\fBbinary scan \\x00\\x00\\x00\\x05\\x00\\x00\\x00\\x07\\xff\\xff\\xff\\xf0 I2I* var1 var2\fR
+.CE
+will return \fB2\fR with \fB5 7\fR stored in \fBvar1\fR and \fB-16\fR
+stored in \fBvar2\fR.
+.RE
+.IP \fBw\fR 5
+.VS 8.4
+The data is interpreted as \fIcount\fR 64-bit signed integers
+represented in little-endian byte order.  The integers are stored in
+the corresponding variable as a list.  If \fIcount\fR is \fB*\fR, then
+all of the remaining bytes in \fBstring\fR will be scanned.  If
+\fIcount\fR is omitted, then one 64-bit integer will be scanned.  For
+example,
+.RS
+.CS
+\fBbinary scan \\x05\\x00\\x00\\x00\\x07\\x00\\x00\\x00\\xf0\\xff\\xff\\xff wi* var1 var2\fR
+.CE
+will return \fB2\fR with \fB30064771077\fR stored in \fBvar1\fR and
+\fB-16\fR stored in \fBvar2\fR.  Note that the integers returned are
+signed and cannot be represented by Tcl as unsigned values.
+.RE
+.IP \fBW\fR 5
+This form is the same as \fBw\fR except that the data is interpreted
+as \fIcount\fR 64-bit signed integers represented in big-endian byte
+order.  For example,
+.RS
+.CS
+\fBbinary scan \\x00\\x00\\x00\\x05\\x00\\x00\\x00\\x07\\xff\\xff\\xff\\xf0 WI* var1 var2\fR
+.CE
+will return \fB2\fR with \fB21474836487\fR stored in \fBvar1\fR and \fB-16\fR
+stored in \fBvar2\fR.
+.VE
+.RE
+.IP \fBf\fR 5
+The data is interpreted as \fIcount\fR single-precision floating point
+numbers in the machine's native representation.  The floating point
+numbers are stored in the corresponding variable as a list.  If
+\fIcount\fR is \fB*\fR, then all of the remaining bytes in
+\fBstring\fR will be scanned.  If \fIcount\fR is omitted, then one
+single-precision floating point number will be scanned.  The size of a
+floating point number may vary across architectures, so the number of
+bytes that are scanned may vary.  If the data does not represent a
+valid floating point number, the resulting value is undefined and
+compiler dependent.  For example, on a Windows system running on an
+Intel Pentium processor,
+.RS
+.CS
+\fBbinary scan \\x3f\\xcc\\xcc\\xcd f var1\fR
+.CE
+will return \fB1\fR with \fB1.6000000238418579\fR stored in
+\fBvar1\fR.
+.RE
+.IP \fBd\fR 5
+This form is the same as \fBf\fR except that the data is interpreted
+as \fIcount\fR double-precision floating point numbers in the
+machine's native representation. For example, on a Windows system
+running on an Intel Pentium processor,
+.RS
+.CS
+\fBbinary scan \\x9a\\x99\\x99\\x99\\x99\\x99\\xf9\\x3f d var1\fR
+.CE
+will return \fB1\fR with \fB1.6000000000000001\fR
+stored in \fBvar1\fR.
+.RE
+.IP \fBx\fR 5
+Moves the cursor forward \fIcount\fR bytes in \fIstring\fR.  If
+\fIcount\fR is \fB*\fR or is larger than the number of bytes after the
+current cursor cursor position, then the cursor is positioned after
+the last byte in \fIstring\fR.  If \fIcount\fR is omitted, then the
+cursor is moved forward one byte.  Note that this type does not
+consume an argument.  For example,
+.RS
+.CS
+\fBbinary scan \\x01\\x02\\x03\\x04 x2H* var1\fR
+.CE
+will return \fB1\fR with \fB0304\fR stored in \fBvar1\fR.
+.RE
+.IP \fBX\fR 5
+Moves the cursor back \fIcount\fR bytes in \fIstring\fR.  If
+\fIcount\fR is \fB*\fR or is larger than the current cursor position,
+then the cursor is positioned at location 0 so that the next byte
+scanned will be the first byte in \fIstring\fR.  If \fIcount\fR
+is omitted then the cursor is moved back one byte.  Note that this
+type does not consume an argument.  For example,
+.RS
+.CS
+\fBbinary scan \\x01\\x02\\x03\\x04 c2XH* var1 var2\fR
+.CE
+will return \fB2\fR with \fB1 2\fR stored in \fBvar1\fR and \fB020304\fR
+stored in \fBvar2\fR.
+.RE
+.IP \fB@\fR 5
+Moves the cursor to the absolute location in the data string specified
+by \fIcount\fR.  Note that position 0 refers to the first byte in
+\fIstring\fR.  If \fIcount\fR refers to a position beyond the end of
+\fIstring\fR, then the cursor is positioned after the last byte.  If
+\fIcount\fR is omitted, then an error will be generated.  For example,
+.RS
+.CS
+\fBbinary scan \\x01\\x02\\x03\\x04 c2@1H* var1 var2\fR
+.CE
+will return \fB2\fR with \fB1 2\fR stored in \fBvar1\fR and \fB020304\fR
+stored in \fBvar2\fR.
+.RE
+.SH "PLATFORM ISSUES"
+Sometimes it is desirable to format or scan integer values in the
+native byte order for the machine.  Refer to the \fBbyteOrder\fR
+element of the \fBtcl_platform\fR array to decide which type character
+to use when formatting or scanning integers.
+.SH EXAMPLES
+This is a procedure to write a Tcl string to a binary-encoded channel as
+UTF-8 data preceded by a length word:
+.CS
+proc writeString {channel string} {
+    set data [encoding convertto utf-8 $string]
+    puts -nonewline [\fBbinary format\fR Ia* \e
+            [string length $data] $data]
+}
+.CE
+.PP
+This procedure reads a string from a channel that was written by the
+previously presented \fBwriteString\fR procedure:
+.CS
+proc readString {channel} {
+    if {![\fBbinary scan\fR [read $channel 4] I length]} {
+        error "missing length"
+    }
+    set data [read $channel $length]
+    return [encoding convertfrom utf-8 $data]
+}
+.CE
+
+.SH "SEE ALSO"
+format(n), scan(n), tclvars(n)
+
+.SH KEYWORDS
+binary, format, scan
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              '\"
+'\" Copyright (c) 1993 The Regents of the University of California.
+'\" Copyright (c) 1994-1996 Sun Microsystems, Inc.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: incr.n,v 1.3.18.1 2004/10/27 12:52:40 dkf Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH incr n "" Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+incr \- Increment the value of a variable
+.SH SYNOPSIS
+\fBincr \fIvarName \fR?\fIincrement\fR?
+.BE
+
+.SH DESCRIPTION
+.PP
+Increments the value stored in the variable whose name is \fIvarName\fR.
+The value of the variable must be an integer.
+If \fIincrement\fR is supplied then its value (which must be an
+integer) is added to the value of variable \fIvarName\fR;  otherwise
+1 is added to \fIvarName\fR.
+The new value is stored as a decimal string in variable \fIvarName\fR
+and also returned as result.
+.SH EXAMPLES
+Add one to the contents of the variable \fIx\fR:
+.CS
+\fBincr\fR x
+.CE
+.PP
+Add 42 to the contents of the variable \fIx\fR:
+.CS
+\fBincr\fR x 42
+.CE
+.PP
+Add the contents of the variable \fIy\fR to the contents of the
+variable \fIx\fR:
+.CS
+\fBincr\fR x $y
+.CE
+.PP
+Add nothing at all to the variable \fIx\fR (often useful for checking
+whether an argument to a procedure is actually numeric and generating
+an error if it is not):
+.CS
+\fBincr\fR x 0
+.CE
+
+.SH "SEE ALSO"
+expr(n)
+
+.SH KEYWORDS
+add, increment, variable, value
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            '\"
+'\" Copyright (c) 1995-1996 Sun Microsystems, Inc.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: safe.n,v 1.4.2.1 2004/10/27 14:23:58 dkf Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH "Safe Tcl" n 8.0 Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+Safe\ Base \- A mechanism for creating and manipulating safe interpreters.
+.SH SYNOPSIS
+\fB::safe::interpCreate\fR ?\fIslave\fR? ?\fIoptions...\fR?
+.sp
+\fB::safe::interpInit\fR \fIslave\fR ?\fIoptions...\fR?
+.sp
+\fB::safe::interpConfigure\fR \fIslave\fR ?\fIoptions...\fR?
+.sp
+\fB::safe::interpDelete\fR \fIslave\fR
+.sp
+\fB::safe::interpAddToAccessPath\fR \fIslave\fR \fIdirectory\fR
+.sp
+\fB::safe::interpFindInAccessPath\fR \fIslave\fR \fIdirectory\fR
+.sp
+\fB::safe::setLogCmd\fR ?\fIcmd arg...\fR?
+.SH OPTIONS
+.PP
+?\fB\-accessPath\fR \fIpathList\fR?
+?\fB\-statics\fR \fIboolean\fR? ?\fB\-noStatics\fR?
+?\fB\-nested\fR \fIboolean\fR? ?\fB\-nestedLoadOk\fR?
+?\fB\-deleteHook\fR \fIscript\fR?
+.BE
+
+.SH DESCRIPTION
+Safe Tcl is a mechanism for executing untrusted Tcl scripts
+safely and for providing mediated access by such scripts to
+potentially dangerous functionality.
+.PP
+The Safe Base ensures that untrusted Tcl scripts cannot harm the
+hosting application.
+The Safe Base prevents integrity and privacy attacks. Untrusted Tcl
+scripts are prevented from corrupting the state of the hosting
+application or computer. Untrusted scripts are also prevented from
+disclosing information stored on the hosting computer or in the
+hosting application to any party.
+.PP
+The Safe Base allows a master interpreter to create safe, restricted
+interpreters that contain a set of predefined aliases for the \fBsource\fR,
+\fBload\fR, \fBfile\fR, \fBencoding\fR, and \fBexit\fR commands and
+are able to use the auto-loading and package mechanisms.
+.PP
+No knowledge of the file system structure is leaked to the
+safe interpreter, because it has access only to a virtualized path
+containing tokens. When the safe interpreter requests to source a file, it
+uses the token in the virtual path as part of the file name to source; the
+master interpreter transparently 
+translates the token into a real directory name and executes the 
+requested operation (see the section \fBSECURITY\fR below for details).
+Different levels of security can be selected by using the optional flags
+of the commands described below.
+.PP
+All commands provided in the master interpreter by the Safe Base reside in
+the \fBsafe\fR namespace:
+
+.SH COMMANDS
+The following commands are provided in the master interpreter:
+.TP
+\fB::safe::interpCreate\fR ?\fIslave\fR? ?\fIoptions...\fR?
+Creates a safe interpreter, installs the aliases described in the section
+\fBALIASES\fR and initializes the auto-loading and package mechanism as
+specified by the supplied \fBoptions\fR.
+See the \fBOPTIONS\fR section below for a description of the
+optional arguments.
+If the \fIslave\fR argument is omitted, a name will be generated.
+\fB::safe::interpCreate\fR always returns the interpreter name.
+.TP
+\fB::safe::interpInit\fR \fIslave\fR ?\fIoptions...\fR?
+This command is similar to \fBinterpCreate\fR except it that does not
+create the safe interpreter. \fIslave\fR must have been created by some
+other means, like \fBinterp create \-safe\fR.
+.TP
+\fB::safe::interpConfigure\fR \fIslave\fR ?\fIoptions...\fR?
+If no \fIoptions\fR are given, returns the settings for all options for the
+named safe interpreter as a list of options and their current values
+for that \fIslave\fR. 
+If a single additional argument is provided,
+it will return a list of 2 elements \fIname\fR and \fIvalue\fR where
+\fIname\fR is the full name of that option and \fIvalue\fR the current value
+for that option and the \fIslave\fR.
+If more than two additional arguments are provided, it will reconfigure the
+safe interpreter and change each and only the provided options.
+See the section on \fBOPTIONS\fR below for options description.
+Example of use:
+.RS
+.CS
+# Create a new interp with the same configuration as "$i0" :
+set i1 [eval safe::interpCreate [safe::interpConfigure $i0]]
+# Get the current deleteHook
+set dh [safe::interpConfigure $i0  \-del]
+# Change (only) the statics loading ok attribute of an interp
+# and its deleteHook (leaving the rest unchanged) :
+safe::interpConfigure $i0  \-delete {foo bar} \-statics 0 ;
+.CE
+.RE
+.TP
+\fB::safe::interpDelete\fR \fIslave\fR
+Deletes the safe interpreter and cleans up the corresponding  
+master interpreter data structures.
+If a \fIdeleteHook\fR script was specified for this interpreter it is
+evaluated before the interpreter is deleted, with the name of the
+interpreter as an additional argument.
+.TP
+\fB::safe::interpFindInAccessPath\fR \fIslave\fR \fIdirectory\fR
+This command finds and returns the token for the real directory
+\fIdirectory\fR in the safe interpreter's current virtual access path.
+It generates an error if the directory is not found.
+Example of use:
+.RS
+.CS
+$slave eval [list set tk_library [::safe::interpFindInAccessPath $name $tk_library]]
+.CE
+.RE
+.TP
+\fB::safe::interpAddToAccessPath\fR \fIslave\fR \fIdirectory\fR
+This command adds \fIdirectory\fR to the virtual path maintained for the
+safe interpreter in the master, and returns the token that can be used in
+the safe interpreter to obtain access to files in that directory.
+If the directory is already in the virtual path, it only returns the token
+without adding the directory to the virtual path again.
+Example of use:
+.RS
+.CS
+$slave eval [list set tk_library [::safe::interpAddToAccessPath $name $tk_library]]
+.CE
+.RE
+.TP
+\fB::safe::setLogCmd\fR ?\fIcmd arg...\fR?
+This command installs a script that will be called when interesting
+life cycle events occur for a safe interpreter.
+When called with no arguments, it returns the currently installed script.
+When called with one argument, an empty string, the currently installed
+script is removed and logging is turned off.
+The script will be invoked with one additional argument, a string
+describing the event of interest.
+The main purpose is to help in debugging safe interpreters.
+Using this facility you can get complete error messages while the safe
+interpreter gets only generic error messages.
+This prevents a safe interpreter from seeing messages about failures
+and other events that might contain sensitive information such as real
+directory names.
+.RS
+Example of use:
+.CS
+::safe::setLogCmd puts stderr
+.CE
+Below is the output of a sample session in which a safe interpreter
+attempted to source a file not found in its virtual access path.
+Note that the safe interpreter only received an error message saying that
+the file was not found:
+.CS
+NOTICE for slave interp10 : Created
+NOTICE for slave interp10 : Setting accessPath=(/foo/bar) staticsok=1 nestedok=0 deletehook=()
+NOTICE for slave interp10 : auto_path in interp10 has been set to {$p(:0:)}
+ERROR for slave interp10 : /foo/bar/init.tcl: no such file or directory
+.CE
+.RE
+
+.SH OPTIONS
+The following options are common to 
+\fB::safe::interpCreate\fR, \fB::safe::interpInit\fR, 
+and \fB::safe::interpConfigure\fR.
+Any option name can be abbreviated to its minimal 
+non-ambiguous name.
+Option names are not case sensitive.
+.TP 
+\fB\-accessPath\fR \fIdirectoryList\fR
+This option sets the tZ  uZ  vZ  wZ  xZ  yZ  zZ  {Z  |Z                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              list of directories from which the safe interpreter
+can \fBsource\fR and \fBload\fR files.
+If this option is not specified, or if it is given as the
+empty list, the safe interpreter will use the same directories as its
+master for auto-loading.
+See the section \fBSECURITY\fR below for more detail about virtual paths, 
+tokens and access control.
+.TP
+\fB\-statics\fR \fIboolean\fR
+This option specifies if the safe interpreter will be allowed
+to load statically linked packages (like \fBload {} Tk\fR).
+The default value is \fBtrue\fR : 
+safe interpreters are allowed to load statically linked packages.
+.TP
+\fB\-noStatics\fR
+This option is a convenience shortcut for \fB-statics false\fR and
+thus specifies that the safe interpreter will not be allowed
+to load statically linked packages.
+.TP
+\fB\-nested\fR \fIboolean\fR
+This option specifies if the safe interpreter will be allowed
+to load packages into its own sub-interpreters.
+The default value is \fBfalse\fR : 
+safe interpreters are not allowed to load packages into
+their own sub-interpreters.
+.TP
+\fB\-nestedLoadOk\fR
+This option is a convenience shortcut for \fB-nested true\fR and
+thus specifies the safe interpreter will be allowed
+to load packages into its own sub-interpreters.
+.TP 
+\fB\-deleteHook\fR \fIscript\fR
+When this option is given a non-empty \fIscript\fR, it will be
+evaluated in the master with the name of
+the safe interpreter as an additional argument
+just before actually deleting the safe interpreter.
+Giving an empty value removes any currently installed deletion hook
+script for that safe interpreter.
+The default value (\fB{}\fR) is not to have any deletion call back.
+.SH ALIASES
+The following aliases are provided in a safe interpreter:
+.TP
+\fBsource\fR \fIfileName\fR
+The requested file, a Tcl source file, is sourced into the safe interpreter
+if it is found.
+The \fBsource\fR alias can only source files from directories in
+the virtual path for the safe interpreter. The \fBsource\fR alias requires
+the safe interpreter to
+use one of the token names in its virtual path to denote the directory in
+which the file to be sourced can be found.
+See the section on \fBSECURITY\fR for more discussion of restrictions on
+valid filenames.
+.TP
+\fBload\fR \fIfileName\fR
+The requested file, a shared object file, is dynamically loaded into the
+safe interpreter if it is found.
+The filename must contain a token name mentioned in the virtual path for
+the safe interpreter for it to be found successfully.
+Additionally, the shared object file must contain a safe entry point; see
+the manual page for the \fBload\fR command for more details.
+.TP
+\fBfile\fR ?\fIsubCmd args...\fR?
+The \fBfile\fR alias provides access to a safe subset of the subcommands of
+the \fBfile\fR command; it allows only \fBdirname\fR, \fBjoin\fR,
+\fBextension\fR, \fBroot\fR, \fBtail\fR, \fBpathname\fR and \fBsplit\fR
+subcommands. For more details on what these subcommands do see the manual
+page for the \fBfile\fR command.
+.TP
+\fBencoding\fR ?\fIsubCmd args...\fR?
+The \fBencoding\fR alias provides access to a safe subset of the
+subcommands of the \fBencoding\fR command;  it disallows setting of
+the system encoding, but allows all other subcommands including
+\fBsystem\fR to check the current encoding.
+.TP
+\fBexit\fR
+The calling interpreter is deleted and its computation is stopped, but the
+Tcl process in which this interpreter exists is not terminated.
+
+.SH SECURITY
+The Safe Base does not attempt to completely prevent annoyance and
+denial of service attacks. These forms of attack prevent the
+application or user from temporarily using the computer to perform
+useful work, for example by consuming all available CPU time or
+all available screen real estate.
+These attacks, while aggravating, are deemed to be of lesser importance
+in general than integrity and privacy attacks that the Safe Base
+is to prevent.
+.PP
+The commands available in a safe interpreter, in addition to
+the safe set as defined in \fBinterp\fR manual page, are mediated aliases
+for \fBsource\fR, \fBload\fR, \fBexit\fR, and safe subsets of
+\fBfile\fR and \fBencoding\fR. The safe interpreter can also auto-load
+code and it can request that packages be loaded.
+.PP
+Because some of these commands access the local file system, there is a
+potential for information leakage about its directory structure.
+To prevent this, commands that take file names as arguments in a safe
+interpreter use tokens instead of the real directory names.
+These tokens are translated to the real directory name while a request to,
+e.g., source a file is mediated by the master interpreter.
+This virtual path system is maintained in the master interpreter for each safe
+interpreter created by \fB::safe::interpCreate\fR or initialized by
+\fB::safe::interpInit\fR and
+the path maps tokens accessible in the safe interpreter into real path
+names on the local file system thus preventing safe interpreters 
+from gaining knowledge about the
+structure of the file system of the host on which the interpreter is
+executing.
+The only valid file names arguments
+for the \fBsource\fR and \fBload\fR aliases provided to the slave
+are path in the form of 
+\fB[file join \fR\fItoken filename\fR\fB]\fR (i.e. when using the
+native file path formats: \fItoken\fR\fB/\fR\fIfilename\fR
+on Unix, \fItoken\fR\fB\\\fIfilename\fR on Windows, 
+and \fItoken\fR\fB:\fR\fIfilename\fR on the Mac),
+where \fItoken\fR is representing one of the directories 
+of the \fIaccessPath\fR list and \fIfilename\fR is
+one file in that directory (no sub directories access are allowed).
+.PP
+When a token is used in a safe interpreter in a request to source or
+load a file, the token is checked and
+translated to a real path name and the file to be
+sourced or loaded is located on the file system.
+The safe interpreter never gains knowledge of the actual path name under
+which the file is stored on the file system.
+.PP
+To further prevent potential information leakage from sensitive files that
+are accidentally included in the set of files that can be sourced by a safe
+interpreter, the \fBsource\fR alias restricts access to files
+meeting the following constraints: the file name must
+fourteen characters or shorter, must not contain more than one dot ("\fB.\fR"),
+must end up with the extension \fB.tcl\fR or be called \fBtclIndex\fR.
+.PP
+Each element of the initial access path
+list will be assigned a token that will be set in
+the slave \fBauto_path\fR and the first element of that list will be set as
+the \fBtcl_library\fR for that slave.
+.PP
+If the access path argument is not given or is the empty list, 
+the default behavior is to let the slave access the same packages
+as the master has access to (Or to be more precise: 
+only packages written in Tcl (which by definition can't be dangerous
+as they run in the slave interpreter) and C extensions that
+provides a Safe_Init entry point). For that purpose, the master's 
+\fBauto_path\fR will be used to construct the slave access path. 
+In order that the slave successfully loads the Tcl library files
+(which includes the auto-loading mechanism itself) the \fBtcl_library\fR will be
+added or moved to the first position if necessary, in the 
+slave access path, so the slave
+\fBtcl_library\fR will be the same as the master's (its real
+path will still be invisible to the slave though). 
+In order that auto-loading works the same for the slave and
+the master in this by default case, the first-level
+sub directories of each directory in the master \fBauto_path\fR will
+also be added (if not already included) to the slave access path.
+You can always specify a more
+restrictive path for which sub directories will never be searched by 
+explicitly specifying your directory list with the \fB\-accessPath\fR flag
+instead of relying on this default mechanism.
+.PP
+When the \fIaccessPath\fR is changed after the first creation or
+initialization (i.e. through \fBinterpConfigure -accessPath \fR\fIlist\fR),
+an \fBauto_reset\fR is automatically evaluated in the safe interpreter
+to synchronize its \fBauto_index\fR with the new token list.
+
+.SH "SEE ALSO"
+interp(n), library(n), load(n), package(n), source(n), unknown(n)
+ 
+.SH KEYWORDS
+alias, auto\-loading, auto_mkindex, load, master interpreter, safe
+interpreter, slave interpreter, source
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             '\"
+'\" Copyright (c) 1990-1992 The Regents of the University of California.
+'\" Copyright (c) 1994-1996 Sun Microsystems, Inc.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: update.n,v 1.4.18.1 2004/10/27 14:43:15 dkf Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# 

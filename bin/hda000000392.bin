@@ -1,0 +1,1365 @@
+-isystem dir"
+Search \fIdir\fR for header files, after all directories specified by
+\&\fB\-I\fR but before the standard system directories.  Mark it
+as a system directory, so that it gets the same special treatment as
+is applied to the standard system directories.
+If \fIdir\fR begins with \f(CW\*(C`=\*(C'\fR, then the \f(CW\*(C`=\*(C'\fR will be replaced
+by the sysroot prefix; see \fB\-\-sysroot\fR and \fB\-isysroot\fR.
+.IP "\fB\-iquote\fR \fIdir\fR" 4
+.IX Item "-iquote dir"
+Search \fIdir\fR only for header files requested with
+\&\f(CW\*(C`#include\ "\f(CIfile\f(CW"\*(C'\fR; they are not searched for
+\&\f(CW\*(C`#include\ <\f(CIfile\f(CW>\*(C'\fR, before all directories specified by
+\&\fB\-I\fR and before the standard system directories.
+If \fIdir\fR begins with \f(CW\*(C`=\*(C'\fR, then the \f(CW\*(C`=\*(C'\fR will be replaced
+by the sysroot prefix; see \fB\-\-sysroot\fR and \fB\-isysroot\fR.
+.IP "\fB\-fdirectives\-only\fR" 4
+.IX Item "-fdirectives-only"
+When preprocessing, handle directives, but do not expand macros.
+.Sp
+The option's behavior depends on the \fB\-E\fR and \fB\-fpreprocessed\fR
+options.
+.Sp
+With \fB\-E\fR, preprocessing is limited to the handling of directives
+such as \f(CW\*(C`#define\*(C'\fR, \f(CW\*(C`#ifdef\*(C'\fR, and \f(CW\*(C`#error\*(C'\fR.  Other
+preprocessor operations, such as macro expansion and trigraph
+conversion are not performed.  In addition, the \fB\-dD\fR option is
+implicitly enabled.
+.Sp
+With \fB\-fpreprocessed\fR, predefinition of command line and most
+builtin macros is disabled.  Macros such as \f(CW\*(C`_\|_LINE_\|_\*(C'\fR, which are
+contextually dependent, are handled normally.  This enables compilation of
+files previously preprocessed with \f(CW\*(C`\-E \-fdirectives\-only\*(C'\fR.
+.Sp
+With both \fB\-E\fR and \fB\-fpreprocessed\fR, the rules for
+\&\fB\-fpreprocessed\fR take precedence.  This enables full preprocessing of
+files previously preprocessed with \f(CW\*(C`\-E \-fdirectives\-only\*(C'\fR.
+.IP "\fB\-fdollars\-in\-identifiers\fR" 4
+.IX Item "-fdollars-in-identifiers"
+Accept \fB$\fR in identifiers.
+.IP "\fB\-fextended\-identifiers\fR" 4
+.IX Item "-fextended-identifiers"
+Accept universal character names in identifiers.  This option is
+experimental; in a future version of \s-1GCC\s0, it will be enabled by
+default for C99 and \*(C+.
+.IP "\fB\-fpreprocessed\fR" 4
+.IX Item "-fpreprocessed"
+Indicate to the preprocessor that the input file has already been
+preprocessed.  This suppresses things like macro expansion, trigraph
+conversion, escaped newline splicing, and processing of most directives.
+The preprocessor still recognizes and removes comments, so that you can
+pass a file preprocessed with \fB\-C\fR to the compiler without
+problems.  In this mode the integrated preprocessor is little more than
+a tokenizer for the front ends.
+.Sp
+\&\fB\-fpreprocessed\fR is implicit if the input file has one of the
+extensions \fB.i\fR, \fB.ii\fR or \fB.mi\fR.  These are the
+extensions that \s-1GCC\s0 uses for preprocessed files created by
+\&\fB\-save\-temps\fR.
+.IP "\fB\-ftabstop=\fR\fIwidth\fR" 4
+.IX Item "-ftabstop=width"
+Set the distance between tab stops.  This helps the preprocessor report
+correct column numbers in warnings or errors, even if tabs appear on the
+line.  If the value is less than 1 or greater than 100, the option is
+ignored.  The default is 8.
+.IP "\fB\-fexec\-charset=\fR\fIcharset\fR" 4
+.IX Item "-fexec-charset=charset"
+Set the execution character set, used for string and character
+constants.  The default is \s-1UTF\-8\s0.  \fIcharset\fR can be any encoding
+supported by the system's \f(CW\*(C`iconv\*(C'\fR library routine.
+.IP "\fB\-fwide\-exec\-charset=\fR\fIcharset\fR" 4
+.IX Item "-fwide-exec-charset=charset"
+Set the wide execution character set, used for wide string and
+character constants.  The default is \s-1UTF\-32\s0 or \s-1UTF\-16\s0, whichever
+corresponds to the width of \f(CW\*(C`wchar_t\*(C'\fR.  As with
+\&\fB\-fexec\-charset\fR, \fIcharset\fR can be any encoding supported
+by the system's \f(CW\*(C`iconv\*(C'\fR library routine; however, you will have
+problems with encodings that do not fit exactly in \f(CW\*(C`wchar_t\*(C'\fR.
+.IP "\fB\-finput\-charset=\fR\fIcharset\fR" 4
+.IX Item "-finput-charset=charset"
+Set the input character set, used for translation from the character
+set of the input file to the source character set used by \s-1GCC\s0.  If the
+locale does not specify, or \s-1GCC\s0 cannot get this information from the
+locale, the default is \s-1UTF\-8\s0.  This can be overridden by either the locale
+or this command line option.  Currently the command line option takes
+precedence if there's a conflict.  \fIcharset\fR can be any encoding
+supported by the system's \f(CW\*(C`iconv\*(C'\fR library routine.
+.IP "\fB\-fworking\-directory\fR" 4
+.IX Item "-fworking-directory"
+Enable generation of linemarkers in the preprocessor output that will
+let the compiler know the current working directory at the time of
+preprocessing.  When this option is enabled, the preprocessor will
+emit, after the initial linemarker, a second linemarker with the
+current working directory followed by two slashes.  \s-1GCC\s0 will use this
+directory, when it's present in the preprocessed input, as the
+directory emitted as the current working directory in some debugging
+information formats.  This option is implicitly enabled if debugging
+information is enabled, but this can be inhibited with the negated
+form \fB\-fno\-working\-directory\fR.  If the \fB\-P\fR flag is
+present in the command line, this option has no effect, since no
+\&\f(CW\*(C`#line\*(C'\fR directives are emitted whatsoever.
+.IP "\fB\-fno\-show\-column\fR" 4
+.IX Item "-fno-show-column"
+Do not print column numbers in diagnostics.  This may be necessary if
+diagnostics are being scanned by a program that does not understand the
+column numbers, such as \fBdejagnu\fR.
+.IP "\fB\-A\fR \fIpredicate\fR\fB=\fR\fIanswer\fR" 4
+.IX Item "-A predicate=answer"
+Make an assertion with the predicate \fIpredicate\fR and answer
+\&\fIanswer\fR.  This form is preferred to the older form \fB\-A\fR
+\&\fIpredicate\fR\fB(\fR\fIanswer\fR\fB)\fR, which is still supported, because
+it does not use shell special characters.
+.IP "\fB\-A \-\fR\fIpredicate\fR\fB=\fR\fIanswer\fR" 4
+.IX Item "-A -predicate=answer"
+Cancel an assertion with the predicate \fIpredicate\fR and answer
+\&\fIanswer\fR.
+.IP "\fB\-dCHARS\fR" 4
+.IX Item "-dCHARS"
+\&\fI\s-1CHARS\s0\fR is a sequence of one or more of the following characters,
+and must not be preceded by a space.  Other characters are interpreted
+by the compiler proper, or reserved for future versions of \s-1GCC\s0, and so
+are silently ignored.  If you specify characters whose behavior
+conflicts, the result is undefined.
+.RS 4
+.IP "\fBM\fR" 4
+.IX Item "M"
+Instead of the normal output, generate a list of \fB#define\fR
+directives for all the macros defined during the execution of the
+preprocessor, including predefined macros.  This gives you a way of
+finding out what is predefined in your version of the preprocessor.
+Assuming you have no file \fIfoo.h\fR, the command
+.Sp
+.Vb 1
+\&        touch foo.h; cpp \-dM foo.h
+.Ve
+.Sp
+will show all the predefined macros.
+.Sp
+If you use \fB\-dM\fR without the \fB\-E\fR option, \fB\-dM\fR is
+interpreted as a synonym for \fB\-fdump\-rtl\-mach\fR.
+.IP "\fBD\fR" 4
+.IX Item "D"
+Like \fBM\fR except in two respects: it does \fInot\fR include the
+predefined macros, and it outputs \fIboth\fR the \fB#define\fR
+directives and the result of preprocessing.  Both kinds of output go to
+the standard output file.
+.IP "\fBN\fR" 4
+.IX Item "N"
+Like \fBD\fR, but emit only the macro names, not their expansions.
+.IP "\fBI\fR" 4
+.IX Item "I"
+Output \fB#include\fR directives in addition to the result of
+preprocessing.
+.RE
+.RS 4
+.RE
+.IP "\fB\-P\fR" 4
+.IX Item "-P"
+Inhibit generation of linemarkers in the output from the preprocessor.
+This might be useful when running the preprocessor on something that is
+not C code, and will be sent to a program which might be confused by the
+linemarkers.
+.IP "\fB\-C\fR" 4
+.IX Item "-C"
+Do not discard comments.  All comments are passed through to the output
+file, except for comments in processed directives, which are deleted
+along with the directive.
+.Sp
+You should be prepared for side effects when using \fB\-C\fR; it
+causes the preprocessor to treat comments as tokens in their own right.
+For example, comments appearing at the start of what would be a
+directive line have the effect of turning that line into an ordinary
+source line, since the first token on the line is no longer a \fB#\fR.
+.IP "\fB\-CC\fR" 4
+.IX Item "-CC"
+Do not discard comments, including during macro expansion.  This is
+like \fB\-C\fR, except that comments contained within macros are
+also passed through to the output file where the macro is expanded.
+.Sp
+In addition to the side-effects of the \fB\-C\fR option, the
+\&\fB\-CC\fR option causes all \*(C+\-style comments inside a macro
+to be converted to C\-style comments.  This is to prevent later use
+of that macro from inadvertently commenting out the remainder of
+the source line.
+.Sp
+The \fB\-CC\fR option is generally used to support lint comments.
+.IP "\fB\-traditional\-cpp\fR" 4
+.IX Item "-traditional-cpp"
+Try to imitate the behavior of old-fashioned C preprocessors, as
+opposed to \s-1ISO\s0 C preprocessors.
+.IP "\fB\-trigraphs\fR" 4
+.IX Item "-trigraphs"
+Process trigraph sequences.
+These are three-character sequences, all starting with \fB??\fR, that
+are defined by \s-1ISO\s0 C to stand for single characters.  For example,
+\&\fB??/\fR stands for \fB\e\fR, so \fB'??/n'\fR is a character
+constant for a newline.  By default, \s-1GCC\s0 ignores trigraphs, but in
+standard-conforming modes it converts them.  See the \fB\-std\fR and
+\&\fB\-ansi\fR options.
+.Sp
+The nine trigraphs and their replacements are
+.Sp
+.Vb 2
+\&        Trigraph:       ??(  ??)  ??<  ??>  ??=  ??/  ??\*(Aq  ??!  ??\-
+\&        Replacement:      [    ]    {    }    #    \e    ^    |    ~
+.Ve
+.IP "\fB\-remap\fR" 4
+.IX Item "-remap"
+Enable special code to work around file systems which only permit very
+short file names, such as MS-DOS.
+.IP "\fB\-\-help\fR" 4
+.IX Item "--help"
+.PD 0
+.IP "\fB\-\-target\-help\fR" 4
+.IX Item "--target-help"
+.PD
+Print text describing all the command line options instead of
+preprocessing anything.
+.IP "\fB\-v\fR" 4
+.IX Item "-v"
+Verbose mode.  Print out \s-1GNU\s0 \s-1CPP\s0's version number at the beginning of
+execution, and report the final form of the include path.
+.IP "\fB\-H\fR" 4
+.IX Item "-H"
+Print the name of each header file used, in addition to other normal
+activities.  Each name is indented to show how deep in the
+\&\fB#include\fR stack it is.  Precompiled header files are also
+printed, even if they are found to be invalid; an invalid precompiled
+header file is printed with \fB...x\fR and a valid one with \fB...!\fR .
+.IP "\fB\-version\fR" 4
+.IX Item "-version"
+.PD 0
+.IP "\fB\-\-version\fR" 4
+.IX Item "--version"
+.PD
+Print out \s-1GNU\s0 \s-1CPP\s0's version number.  With one dash, proceed to
+preprocess as normal.  With two dashes, exit immediately.
+.Sh "Passing Options to the Assembler"
+.IX Subsection "Passing Options to the Assembler"
+You can pass options to the assembler.
+.IP "\fB\-Wa,\fR\fIoption\fR" 4
+.IX Item "-Wa,option"
+Pass \fIoption\fR as an option to the assembler.  If \fIoption\fR
+contains commas, it is split into multiple options at the commas.
+.IP "\fB\-Xassembler\fR \fIoption\fR" 4
+.IX Item "-Xassembler option"
+Pass \fIoption\fR as an option to the assembler.  You can use this to
+supply system-specific assembler options which \s-1GCC\s0 does not know how to
+recognize.
+.Sp
+If you want to pass an option that takes an argument, you must use
+\&\fB\-Xassembler\fR twice, once for the option and once for the argument.
+.Sh "Options for Linking"
+.IX Subsection "Options for Linking"
+These options come into play when the compiler links object files into
+an executable output file.  They are meaningless if the compiler is
+not doing a link step.
+.IP "\fIobject-file-name\fR" 4
+.IX Item "object-file-name"
+A file name that does not end in a special recognized suffix is
+considered to name an object file or library.  (Object files are
+distinguished from libraries by the linker according to the file
+contents.)  If linking is done, these object files are used as input
+to the linker.
+.IP "\fB\-c\fR" 4
+.IX Item "-c"
+.PD 0
+.IP "\fB\-S\fR" 4
+.IX Item "-S"
+.IP "\fB\-E\fR" 4
+.IX Item "-E"
+.PD
+If any of these options is used, then the linker is not run, and
+object file names should not be used as arguments.
+.IP "\fB\-l\fR\fIlibrary\fR" 4
+.IX Item "-llibrary"
+.PD 0
+.IP "\fB\-l\fR \fIlibrary\fR" 4
+.IX Item "-l library"
+.PD
+Search the library named \fIlibrary\fR when linking.  (The second
+alternative with the library as a separate argument is only for
+\&\s-1POSIX\s0 compliance and is not recommended.)
+.Sp
+It makes a difference where in the command you write this option; the
+linker searches and processes libraries and object files in the order they
+are specified.  Thus, \fBfoo.o \-lz bar.o\fR searches library \fBz\fR
+after file \fIfoo.o\fR but before \fIbar.o\fR.  If \fIbar.o\fR refers
+to functions in \fBz\fR, those functions may not be loaded.
+.Sp
+The linker searches a standard list of directories for the library,
+which is actually a file named \fIlib\fIlibrary\fI.a\fR.  The linker
+then uses this file as if it had been specified precisely by name.
+.Sp
+The directories searched include several standard system directories
+plus any that you specify with \fB\-L\fR.
+.Sp
+Normally the files found this way are library files\-\-\-archive files
+whose members are object files.  The linker handles an archive file by
+scanning through it for members which define symbols that have so far
+been referenced but not defined.  But if the file that is found is an
+ordinary object file, it is linked in the usual fashion.  The only
+difference between using an \fB\-l\fR option and specifying a file name
+is that \fB\-l\fR surrounds \fIlibrary\fR with \fBlib\fR and \fB.a\fR
+and searches several directories.
+.IP "\fB\-lobjc\fR" 4
+.IX Item "-lobjc"
+You need this special case of the \fB\-l\fR option in order to
+link an Objective-C or Objective\-\*(C+ program.
+.IP "\fB\-nostartfiles\fR" 4
+.IX Item "-nostartfiles"
+Do not use the standard system startup files when linking.
+The standard system libraries are used normally, unless \fB\-nostdlib\fR
+or \fB\-nodefaultlibs\fR is used.
+.IP "\fB\-nodefaultlibs\fR" 4
+.IX Item "-nodefaultlibs"
+Do not use the standard system libraries when linking.
+Only the libraries you specify will be passed to the linker.
+The standard startup files are used normally, unless \fB\-nostartfiles\fR
+is used.  The compiler may generate calls to \f(CW\*(C`memcmp\*(C'\fR,
+\&\f(CW\*(C`memset\*(C'\fR, \f(CW\*(C`memcpy\*(C'\fR and \f(CW\*(C`memmove\*(C'\fR.
+These entries are usually resolved by entries in
+libc.  These entry points should be supplied through some other
+mechanism when this option is specified.
+.IP "\fB\-nostdlib\fR" 4
+.IX Item "-nostdlib"
+Do not use the standard system startup files or libraries when linking.
+No startup files and only the libraries you specify will be passed to
+the linker.  The compiler may generate calls to \f(CW\*(C`memcmp\*(C'\fR, \f(CW\*(C`memset\*(C'\fR,
+\&\f(CW\*(C`memcpy\*(C'\fR and \f(CW\*(C`memmove\*(C'\fR.
+These entries are usually resolved by entries in
+libc.  These entry points should be supplied through some other
+mechanism when this option is specified.
+.Sp
+One of the standard libraries bypassed by \fB\-nostdlib\fR and
+\&\fB\-nodefaultlibs\fR is \fIlibgcc.a\fR, a library of internal subroutines
+that \s-1GCC\s0 uses to overcome shortcomings of particular machines, or special
+needs for some languages.
+.Sp
+In most cases, you need \fIlibgcc.a\fR even when you want to avoid
+other standard libraries.  In other words, when you specify \fB\-nostdlib\fR
+or \fB\-nodefaultlibs\fR you should usually specify \fB\-lgcc\fR as well.
+This ensures that you have no unresolved references to internal \s-1GCC\s0
+library subroutines.  (For example, \fB_\|_main\fR, used to ensure \*(C+
+constructors will be called.)
+.IP "\fB\-pie\fR" 4
+.IX Item "-pie"
+Produce a position independent executable on targets which support it.
+For predictable results, you must also specify the same set of options
+that were used to generate code (\fB\-fpie\fR, \fB\-fPIE\fR,
+or model suboptions) when you specify this option.
+.IP "\fB\-rdynamic\fR" 4
+.IX Item "-rdynamic"
+Pass the flag \fB\-export\-dynamic\fR to the \s-1ELF\s0 linker, on targets
+that support it. This instructs the linker to add all symbols, not
+only used ones, to the dynamic symbol table. This option is needed
+for some uses of \f(CW\*(C`dlopen\*(C'\fR or to allow obtaining backtraces
+from within a program.
+.IP "\fB\-s\fR" 4
+.IX Item "-s"
+Remove all symbol table and relocation information from the executable.
+.IP "\fB\-static\fR" 4
+.IX Item "-static"
+On systems that support dynamic linking, this prevents linking with the shared
+libraries.  On other systems, this option has no effect.
+.IP "\fB\-shared\fR" 4
+.IX Item "-shared"
+Produce a shared object which can then be linked with other objects to
+form an executable.  Not all systems support this option.  For predictable
+results, you must also specify the same set of options that were used to
+generate code (\fB\-fpic\fR, \fB\-fPIC\fR, or model suboptions)
+when you specify this option.[1]
+.IP "\fB\-shared\-libgcc\fR" 4
+.IX Item "-shared-libgcc"
+.PD 0
+.IP "\fB\-static\-libgcc\fR" 4
+.IX Item "-static-libgcc"
+.PD
+On systems that provide \fIlibgcc\fR as a shared library, these options
+force the use of either the shared or static version respectively.
+If no shared version of \fIlibgcc\fR was built when the compiler was
+configured, these options have no effect.
+.Sp
+There are several situations in which an application should use the
+shared \fIlibgcc\fR instead of the static version.  The most common
+of these is when the application wishes to throw and catch exceptions
+across different shared libraries.  In that case, each of the libraries
+as well as the application itself should use the shared \fIlibgcc\fR.
+.Sp
+Therefore, the G++ and \s-1GCJ\s0 drivers automatically add
+\&\fB\-shared\-libgcc\fR whenever you build a shared library or a main
+executable, because \*(C+ and Java programs typically use exceptions, so
+this is the right thing to do.
+.Sp
+If, instead, you use the \s-1GCC\s0 driver to create shared libraries, you may
+find that they will not always be linked with the shared \fIlibgcc\fR.
+If \s-1GCC\s0 finds, at its configuration time, that you have a non-GNU linker
+or a \s-1GNU\s0 linker that does not support option \fB\-\-eh\-frame\-hdr\fR,
+it will link the shared version of \fIlibgcc\fR into shared libraries
+by default.  Otherwise, it will take advantage of the linker and optimize
+away the linking with the shared version of \fIlibgcc\fR, linking with
+the static version of libgcc by default.  This allows exceptions to
+propagate through such shared libraries, without incurring relocation
+costs at library load time.
+.Sp
+However, if a library or main executable is supposed to throw or catch
+exceptions, you must link it using the G++ or \s-1GCJ\s0 driver, as appropriate
+for the languages used in the program, or using the option
+\&\fB\-shared\-libgcc\fR, such that it is linked with the shared
+\&\fIlibgcc\fR.
+.IP "\fB\-symbolic\fR" 4
+.IX Item "-symbolic"
+Bind references to global symbols when building a shared object.  Warn
+about any unresolved references (unless overridden by the link editor
+option \fB\-Xlinker \-z \-Xlinker defs\fR).  Only a few systems support
+this option.
+.IP "\fB\-Xlinker\fR \fIoption\fR" 4
+.IX Item "-Xlinker option"
+Pass \fIoption\fR as an option to the linker.  You can use this to
+supply system-specific linker options which \s-1GCC\s0 does not know how to
+recognize.
+.Sp
+If you want to pass an option that takes an argument, you must use
+\&\fB\-Xlinker\fR twice, once for the option and once for the argument.
+For example, to pass \fB\-assert definitions\fR, you must write
+\&\fB\-Xlinker \-assert \-Xlinker definitions\fR.  It does not work to write
+\&\fB\-Xlinker \*(L"\-assert definitions\*(R"\fR, because this passes the entire
+string as a single argument, which is not what the linker expects.
+.IP "\fB\-Wl,\fR\fIoption\fR" 4
+.IX Item "-Wl,option"
+Pass \fIoption\fR as an option to the linker.  If \fIoption\fR contains
+commas, it is split into multiple options at the commas.
+.IP "\fB\-u\fR \fIsymbol\fR" 4
+.IX Item "-u symbol"
+Pretend the symbol \fIsymbol\fR is undefined, to force linking of
+library modules to define it.  You can use \fB\-u\fR multiple times with
+different symbols to force loading of additional library modules.
+.Sh "Options for Directory Search"
+.IX Subsection "Options for Directory Search"
+These options specify directories to search for header files, for
+libraries and for parts of the compiler:
+.IP "\fB\-I\fR\fIdir\fR" 4
+.IX Item "-Idir"
+Add the directory \fIdir\fR to the head of the list of directories to be
+searched for header files.  This can be used to override a system header
+file, substituting your own version, since these directories are
+searched before the system header file directories.  However, you should
+not use this option to add directories that contain vendor-supplied
+system header files (use \fB\-isystem\fR for that).  If you use more than
+one \fB\-I\fR option, the directories are scanned in left-to-right
+order; the standard system directories come after.
+.Sp
+If a standard system include directory, or a directory specified with
+\&\fB\-isystem\fR, is also specified with \fB\-I\fR, the \fB\-I\fR
+option will be ignored.  The directory will still be searched but as a
+system directory at its normal position in the system include chain.
+This is to ensure that \s-1GCC\s0's procedure to fix buggy system headers and
+the ordering for the include_next directive are not inadvertently changed.
+If you really need to change the search order for system directories,
+use the \fB\-nostdinc\fR and/or \fB\-isystem\fR options.
+.IP "\fB\-iquote\fR\fIdir\fR" 4
+.IX Item "-iquotedir"
+Add the directory \fIdir\fR to the head of the list of directories to
+be searched for header files only for the case of \fB#include
+"\fR\fIfile\fR\fB"\fR; they are not searched for \fB#include <\fR\fIfile\fR\fB>\fR,
+otherwise just like \fB\-I\fR.
+.IP "\fB\-L\fR\fIdir\fR" 4
+.IX Item "-Ldir"
+Add directory \fIdir\fR to the list of directories to be searched
+for \fB\-l\fR.
+.IP "\fB\-B\fR\fIprefix\fR" 4
+.IX Item "-Bprefix"
+This option specifies where to find the executables, libraries,
+include files, and data files of the compiler itself.
+.Sp
+The compiler driver program runs one or more of the subprograms
+\&\fIcpp\fR, \fIcc1\fR, \fIas\fR and \fIld\fR.  It tries
+\&\fIprefix\fR as a prefix for each program it tries to run, both with and
+without \fImachine\fR\fB/\fR\fIversion\fR\fB/\fR.
+.Sp
+For each subprogram to be run, the compiler driver first tries the
+\&\fB\-B\fR prefix, if any.  If that name is not found, or if \fB\-B\fR
+was not specified, the driver tries two standard prefixes, which are
+\&\fI/usr/lib/gcc/\fR and \fI/usr/local/lib/gcc/\fR.  If neither of
+those results in a file name that is found, the unmodified program
+name is searched for using the directories specified in your
+\&\fB\s-1PATH\s0\fR environment variable.
+.Sp
+The compiler will check to see if the path provided by the \fB\-B\fR
+refers to a directory, and if necessary it will add a directory
+separator character at the end of the path.
+.Sp
+\&\fB\-B\fR prefixes that effectively specify directory names also apply
+to libraries in the linker, because the compiler translates these
+options into \fB\-L\fR options for the linker.  They also apply to
+includes files in the preprocessor, because the compiler translates these
+options into \fB\-isystem\fR options for the preprocessor.  In this case,
+the compiler appends \fBinclude\fR to the prefix.
+.Sp
+The run-time support file \fIlibgcc.a\fR can also be searched for using
+the \fB\-B\fR prefix, if needed.  If it is not found there, the two
+standard prefixes above are tried, and that is all.  The file is left
+out of the link if it is not found by those means.
+.Sp
+Another way to specify a prefix much like the \fB\-B\fR prefix is to use
+the environment variable \fB\s-1GCC_EXEC_PREFIX\s0\fR.
+.Sp
+As a special kludge, if the path provided by \fB\-B\fR is
+\&\fI[dir/]stage\fIN\fI/\fR, where \fIN\fR is a number in the range 0 to
+9, then it will be replaced by \fI[dir/]include\fR.  This is to help
+with boot-strapping the compiler.
+.IP "\fB\-specs=\fR\fIfile\fR" 4
+.IX Item "-specs=file"
+Process \fIfile\fR after the compiler reads in the standard \fIspecs\fR
+file, in order to override the defaults that the \fIgcc\fR driver
+program uses when determining what switches to pass to \fIcc1\fR,
+\&\fIcc1plus\fR, \fIas\fR, \fIld\fR, etc.  More than one
+\&\fB\-specs=\fR\fIfile\fR can be specified on the command line, and they
+are processed in order, from left to right.
+.IP "\fB\-\-sysroot=\fR\fIdir\fR" 4
+.IX Item "--sysroot=dir"
+Use \fIdir\fR as the logical root directory for headers and libraries.
+For example, if the compiler would normally search for headers in
+\&\fI/usr/include\fR and libraries in \fI/usr/lib\fR, it will instead
+search \fI\fIdir\fI/usr/include\fR and \fI\fIdir\fI/usr/lib\fR.
+.Sp
+If you use both this option and the \fB\-isysroot\fR option, then
+the \fB\-\-sysroot\fR option will apply to libraries, but the
+\&\fB\-isysroot\fR option will apply to header files.
+.Sp
+The \s-1GNU\s0 linker (beginning with version 2.16) has the necessary support
+for this option.  If your linker does not support this option, the
+header file aspect of \fB\-\-sysroot\fR will still work, but the
+library aspect will not.
+.IP "\fB\-I\-\fR" 4
+.IX Item "-I-"
+This option has been deprecated.  Please use \fB\-iquote\fR instead for
+\&\fB\-I\fR directories before the \fB\-I\-\fR and remove the \fB\-I\-\fR.
+Any directories you specify with \fB\-I\fR options before the \fB\-I\-\fR
+option are searched only for the case of \fB#include "\fR\fIfile\fR\fB"\fR;
+they are not searched for \fB#include <\fR\fIfile\fR\fB>\fR.
+.Sp
+If additional directories are specified with \fB\-I\fR options after
+the \fB\-I\-\fR, these directories are searched for all \fB#include\fR
+directives.  (Ordinarily \fIall\fR \fB\-I\fR directories are used
+this way.)
+.Sp
+In addition, the \fB\-I\-\fR option inhibits the use of the current
+directory (where the current input file came from) as the first search
+directory for \fB#include "\fR\fIfile\fR\fB"\fR.  There is no way to
+override this effect of \fB\-I\-\fR.  With \fB\-I.\fR you can specify
+searching the directory which was current when the compiler was
+invoked.  That is not exactly the same as what the preprocessor does
+by default, but it is often satisfactory.
+.Sp
+\&\fB\-I\-\fR does not inhibit the use of the standard system directories
+for header files.  Thus, \fB\-I\-\fR and \fB\-nostdinc\fR are
+independent.
+.Sh "Specifying Target Machine and Compiler Version"
+.IX Subsection "Specifying Target Machine and Compiler Version"
+The usual way to run \s-1GCC\s0 is to run the executable called \fIgcc\fR, or
+\&\fI<machine>\-gcc\fR when cross-compiling, or
+\&\fI<machine>\-gcc\-<version>\fR to run a version other than the one that
+was installed last.  Sometimes this is inconvenient, so \s-1GCC\s0 provides
+options that will switch to another cross-compiler or version.
+.IP "\fB\-b\fR \fImachine\fR" 4
+.IX Item "-b machine"
+The argument \fImachine\fR specifies the target machine for compilation.
+.Sp
+The value to use for \fImachine\fR is the same as was specified as the
+machine type when configuring \s-1GCC\s0 as a cross-compiler.  For
+example, if a cross-compiler was configured with \fBconfigure
+arm-elf\fR, meaning to compile for an arm processor with elf binaries,
+then you would specify \fB\-b arm-elf\fR to run that cross compiler.
+Because there are other options beginning with \fB\-b\fR, the
+configuration must contain a hyphen.
+.IP "\fB\-V\fR \fIversion\fR" 4
+.IX Item "-V version"
+The argument \fIversion\fR specifies which version of \s-1GCC\s0 to run.
+This is useful when multiple versions are installed.  For example,
+\&\fIversion\fR might be \fB4.0\fR, meaning to run \s-1GCC\s0 version 4.0.
+.PP
+The \fB\-V\fR and \fB\-b\fR options work by running the
+\&\fI<machine>\-gcc\-<version>\fR executable, so there's no real reason to
+use them if you can just run that directly.
+.Sh "Hardware Models and Configurations"
+.IX Subsection "Hardware Models and Configurations"
+Earlier we discussed the standard option \fB\-b\fR which chooses among
+different installed compilers for completely different target
+machines, such as \s-1VAX\s0 vs. 68000 vs. 80386.
+.PP
+In addition, each of these target machine types can have its own
+special options, starting with \fB\-m\fR, to choose among various
+hardware models or configurations\-\-\-for example, 68010 vs 68020,
+floating coprocessor or none.  A single installed version of the
+compiler can compile for any model or configuration, according to the
+options specified.
+.PP
+Some configurations of the compiler also support additional special
+options, usually for compatibility with other compilers on the same
+platform.
+.PP
+\fI\s-1ARC\s0 Options\fR
+.IX Subsection "ARC Options"
+.PP
+These options are defined for \s-1ARC\s0 implementations:
+.IP "\fB\-EL\fR" 4
+.IX Item "-EL"
+Compile code for little endian mode.  This is the default.
+.IP "\fB\-EB\fR" 4
+.IX Item "-EB"
+Compile code for big endian mode.
+.IP "\fB\-mmangle\-cpu\fR" 4
+.IX Item "-mmangle-cpu"
+Prepend the name of the cpu to all public symbol names.
+In multiple-processor systems, there are many \s-1ARC\s0 variants with different
+instruction and register set characteristics.  This flag prevents code
+compiled for one cpu to be linked with code compiled for another.
+No facility exists for handling variants that are \*(L"almost identical\*(R".
+This is an all or nothing option.
+.IP "\fB\-mcpu=\fR\fIcpu\fR" 4
+.IX Item "-mcpu=cpu"
+Compile code for \s-1ARC\s0 variant \fIcpu\fR.
+Which variants are supported depend on the configuration.
+All variants support \fB\-mcpu=base\fR, this is the default.
+.IP "\fB\-mtext=\fR\fItext-section\fR" 4
+.IX Item "-mtext=text-section"
+.PD 0
+.IP "\fB\-mdata=\fR\fIdata-section\fR" 4
+.IX Item "-mdata=data-section"
+.IP "\fB\-mrodata=\fR\fIreadonly-data-section\fR" 4
+.IX Item "-mrodata=readonly-data-section"
+.PD
+Put functions, data, and readonly data in \fItext-section\fR,
+\&\fIdata-section\fR, and \fIreadonly-data-section\fR respectively
+by default.  This can be overridden with the \f(CW\*(C`section\*(C'\fR attribute.
+.PP
+\fI\s-1ARM\s0 Options\fR
+.IX Subsection "ARM Options"
+.PP
+These \fB\-m\fR options are defined for Advanced \s-1RISC\s0 Machines (\s-1ARM\s0)
+architectures:
+.IP "\fB\-mabi=\fR\fIname\fR" 4
+.IX Item "-mabi=name"
+Generate code for the specified \s-1ABI\s0.  Permissible values are: \fBapcs-gnu\fR,
+\&\fBatpcs\fR, \fBaapcs\fR, \fBaapcs-linux\fR and \fBiwmmxt\fR.
+.IP "\fB\-mapcs\-frame\fR" 4
+.IX Item "-mapcs-frame"
+Generate a stack frame that is compliant with the \s-1ARM\s0 Procedure Call
+Standard for all functions, even if this is not strictly necessary for
+correct execution of the code.  Specifying \fB\-fomit\-frame\-pointer\fR
+with this option will cause the stack frames not to be generated for
+leaf functions.  The default is \fB\-mno\-apcs\-frame\fR.
+.IP "\fB\-mapcs\fR" 4
+.IX Item "-mapcs"
+This is a synonym for \fB\-mapcs\-frame\fR.
+.IP "\fB\-mthumb\-interwork\fR" 4
+.IX Item "-mthumb-interwork"
+Generate code which supports calling between the \s-1ARM\s0 and Thumb
+instruction sets.  Without this option the two instruction sets cannot
+be reliably used inside one program.  The default is
+\&\fB\-mno\-thumb\-interwork\fR, since slightly larger code is generated
+when \fB\-mthumb\-interwork\fR is specified.
+.IP "\fB\-mno\-sched\-prolog\fR" 4
+.IX Item "-mno-sched-prolog"
+Prevent the reordering of instructions in the function prolog, or the
+merging of those instruction with the instructions in the function's
+body.  This means that all functions will start with a recognizable set
+of instructions (or in fact one of a choice from a small set of
+different function prologues), and this information can be used to
+locate the start if functions inside an executable piece of code.  The
+default is \fB\-msched\-prolog\fR.
+.IP "\fB\-mhard\-float\fR" 4
+.IX Item "-mhard-float"
+Generate output containing floating point instructions.  This is the
+default.
+.IP "\fB\-msoft\-float\fR" 4
+.IX Item "-msoft-float"
+Generate output containing library calls for floating point.
+\&\fBWarning:\fR the requisite libraries are not available for all \s-1ARM\s0
+targets.  Normally the facilities of the machine's usual C compiler are
+used, but this cannot be done directly in cross-compilation.  You must make
+your own arrangements to provide suitable library functions for
+cross-compilation.
+.Sp
+\&\fB\-msoft\-float\fR changes the calling convention in the output file;
+therefore, it is only useful if you compile \fIall\fR of a program with
+this option.  In particular, you need to compile \fIlibgcc.a\fR, the
+library that comes with \s-1GCC\s0, with \fB\-msoft\-float\fR in order for
+this to work.
+.IP "\fB\-mfloat\-abi=\fR\fIname\fR" 4
+.IX Item "-mfloat-abi=name"
+Specifies which \s-1ABI\s0 to use for floating point values.  Permissible values
+are: \fBsoft\fR, \fBsoftfp\fR and \fBhard\fR.
+.Sp
+\&\fBsoft\fR and \fBhard\fR are equivalent to \fB\-msoft\-float\fR
+and \fB\-mhard\-float\fR respectively.  \fBsoftfp\fR allows the generation
+of floating point instructions, but still uses the soft-float calling
+conventions.
+.IP "\fB\-mlittle\-endian\fR" 4
+.IX Item "-mlittle-endian"
+Generate code for a processor running in little-endian mode.  This is
+the default for all standard configurations.
+.IP "\fB\-mbig\-endian\fR" 4
+.IX Item "-mbig-endian"
+Generate code for a processor running in big-endian mode; the default is
+to compile code for a little-endian processor.
+.IP "\fB\-mwords\-little\-endian\fR" 4
+.IX Item "-mwords-little-endian"
+This option only applies when generating code for big-endian processors.
+Generate code for a little-endian word order but a big-endian byte
+order.  That is, a byte order of the form \fB32107654\fR.  Note: this
+option should only be used if you require compatibility with code for
+big-endian \s-1ARM\s0 processors generated by versions of the compiler prior to
+2.8.
+.IP "\fB\-mcpu=\fR\fIname\fR" 4
+.IX Item "-mcpu=name"
+This specifies the name of the target \s-1ARM\s0 processor.  \s-1GCC\s0 uses this name
+to determine what kind of instructions it can emit when generating
+assembly code.  Permissible names are: \fBarm2\fR, \fBarm250\fR,
+\&\fBarm3\fR, \fBarm6\fR, \fBarm60\fR, \fBarm600\fR, \fBarm610\fR,
+\&\fBarm620\fR, \fBarm7\fR, \fBarm7m\fR, \fBarm7d\fR, \fBarm7dm\fR,
+\&\fBarm7di\fR, \fBarm7dmi\fR, \fBarm70\fR, \fBarm700\fR,
+\&\fBarm700i\fR, \fBarm710\fR, \fBarm710c\fR, \fBarm7100\fR,
+\&\fBarm7500\fR, \fBarm7500fe\fR, \fBarm7tdmi\fR, \fBarm7tdmi\-s\fR,
+\&\fBarm8\fR, \fBstrongarm\fR, \fBstrongarm110\fR, \fBstrongarm1100\fR,
+\&\fBarm8\fR, \fBarm810\fR, \fBarm9\fR, \fBarm9e\fR, \fBarm920\fR,
+\&\fBarm920t\fR, \fBarm922t\fR, \fBarm946e\-s\fR, \fBarm966e\-s\fR,
+\&\fBarm968e\-s\fR, \fBarm926ej\-s\fR, \fBarm940t\fR, \fBarm9tdmi\fR,
+\&\fBarm10tdmi\fR, \fBarm1020t\fR, \fBarm1026ej\-s\fR,
+\&\fBarm10e\fR, \fBarm1020e\fR, \fBarm1022e\fR,
+\&\fBarm1136j\-s\fR, \fBarm1136jf\-s\fR, \fBmpcore\fR, \fBmpcorenovfp\fR,
+\&\fBarm1156t2\-s\fR, \fBarm1176jz\-s\fR, \fBarm1176jzf\-s\fR,
+\&\fBcortex\-a8\fR, \fBcortex\-r4\fR, \fBcortex\-m3\fR,
+\&\fBxscale\fR, \fBiwmmxt\fR, \fBep9312\fR.
+.IP "\fB\-mtune=\fR\fIname\fR" 4
+.IX Item "-mtune=name"
+This option is very similar to the \fB\-mcpu=\fR option, except that
+instead of specifying the actual target processor type, and hence
+restricting which instructions can be used, it specifies that \s-1GCC\s0 should
+tune the performance of the code as if the target were of the type
+specified in this option, but still choosing the instructions that it
+will generate based on the cpu specified by a \fB\-mcpu=\fR option.
+For some \s-1ARM\s0 implementations better performance can be obtained by using
+this option.
+.IP "\fB\-march=\fR\fIname\fR" 4
+.IX Item "-march=name"
+This specifies the name of the target \s-1ARM\s0 architecture.  \s-1GCC\s0 uses this
+name to determine what kind of instructions it can emit when generating
+assembly code.  This option can be used in conjunction with or instead
+of the \fB\-mcpu=\fR option.  Permissible names are: \fBarmv2\fR,
+\&\fBarmv2a\fR, \fBarmv3\fR, \fBarmv3m\fR, \fBarmv4\fR, \fBarmv4t\fR,
+\&\fBarmv5\fR, \fBarmv5t\fR, \fBarmv5te\fR, \fBarmv6\fR, \fBarmv6j\fR,
+\&\fBarmv6t2\fR, \fBarmv6z\fR, \fBarmv6zk\fR, \fBarmv7\fR, \fBarmv7\-a\fR,
+\&\fBarmv7\-r\fR, \fBarmv7\-m\fR, \fBiwmmxt\fR, \fBep9312\fR.
+.IP "\fB\-mfpu=\fR\fIname\fR" 4
+.IX Item "-mfpu=name"
+.PD 0
+.IP "\fB\-mfpe=\fR\fInumber\fR" 4
+.IX Item "-mfpe=number"
+.IP "\fB\-mfp=\fR\fInumber\fR" 4
+.IX Item "-mfp=number"
+.PD
+This specifies what floating point hardware (or hardware emulation) is
+available on the target.  Permissible names are: \fBfpa\fR, \fBfpe2\fR,
+\&\fBfpe3\fR, \fBmaverick\fR, \fBvfp\fR.  \fB\-mfp\fR and \fB\-mfpe\fR
+are synonyms for \fB\-mfpu\fR=\fBfpe\fR\fInumber\fR, for compatibility
+with older versions of \s-1GCC\s0.
+.Sp
+If \fB\-msoft\-float\fR is specified this specifies the format of
+floating point values.
+.IP "\fB\-mstructure\-size\-boundary=\fR\fIn\fR" 4
+.IX Item "-mstructure-size-boundary=n"
+The size of all structures and unions will be rounded up to a multiple
+of the number of bits set by this option.  Permissible values are 8, 32
+and 64.  The default value varies for different toolchains.  For the \s-1COFF\s0
+targeted toolchain the default value is 8.  A value of 64 is only allowed
+if the underlying \s-1ABI\s0 supports it.
+.Sp
+Specifying the larger number can produce faster, more efficient code, but
+can also increase the size of the program.  Different values are potentially
+incompatible.  Code compiled with one value cannot necessarily expect to
+work with code or libraries compiled with another value, if they exchange
+information using structures or unions.
+.IP "\fB\-mabort\-on\-noreturn\fR" 4
+.IX Item "-mabort-on-noreturn"
+Generate a call to the function \f(CW\*(C`abort\*(C'\fR at the end of a
+\&\f(CW\*(C`noreturn\*(C'\fR function.  It will be executed if the function tries to
+return.
+.IP "\fB\-mlong\-calls\fR" 4
+.IX Item "-mlong-calls"
+.PD 0
+.IP "\fB\-mno\-long\-calls\fR" 4
+.IX Item "-mno-long-calls"
+.PD
+Tells the compiler to perform function calls by first loading the
+address of the function into a register and then performing a subroutine
+call on this register.  This switch is needed if the target function
+will lie outside of the 64 megabyte addressing range of the offset based
+version of subroutine call instruction.
+.Sp
+Even if this switch is enabled, not all function calls will be turned
+into long calls.  The heuristic is that static functions, functions
+which have the \fBshort-call\fR attribute, functions that are inside
+the scope of a \fB#pragma no_long_calls\fR directive and functions whose
+definitions have already been compiled within the current compilation
+unit, will not be turned into long calls.  The exception to this rule is
+that weak function definitions, functions with the \fBlong-call\fR
+attribute or the \fBsection\fR attribute, and functions that are within
+the scope of a \fB#pragma long_calls\fR directive, will always be
+turned into long calls.
+.Sp
+This feature is not enabled by default.  Specifying
+\&\fB\-mno\-long\-calls\fR will restore the default behavior, as will
+placing the function calls within the scope of a \fB#pragma
+long_calls_off\fR directive.  Note these switches have no effect on how
+the compiler generates code to handle function calls via function
+pointers.
+.IP "\fB\-mnop\-fun\-dllimport\fR" 4
+.IX Item "-mnop-fun-dllimport"
+Disable support for the \f(CW\*(C`dllimport\*(C'\fR attribute.
+.IP "\fB\-msingle\-pic\-base\fR" 4
+.IX Item "-msingle-pic-base"
+Treat the register used for \s-1PIC\s0 addressing as read-only, rather than
+loading it in the prologue for each function.  The run-time system is
+responsible for initializing this register with an appropriate value
+before execution begins.
+.IP "\fB\-mpic\-register=\fR\fIreg\fR" 4
+.IX Item "-mpic-register=reg"
+Specify the register to be used for \s-1PIC\s0 addressing.  The default is R10
+unless stack-checking is enabled, when R9 is used.
+.IP "\fB\-mcirrus\-fix\-invalid\-insns\fR" 4
+.IX Item "-mcirrus-fix-invalid-insns"
+Insert NOPs into the instruction stream to in order to work around
+problems with invalid Maverick instruction combinations.  This option
+is only valid if the \fB\-mcpu=ep9312\fR option has been used to
+enable generation of instructions for the Cirrus Maverick floating
+point co-processor.  This option is not enabled by default, since the
+problem is only present in older Maverick implementations.  The default
+can be re-enabled by use of the \fB\-mno\-cirrus\-fix\-invalid\-insns\fR
+switch.
+.IP "\fB\-mpoke\-function\-name\fR" 4
+.IX Item "-mpoke-function-name"
+Write the name of each function into the text section, directly
+preceding the function prologue.  The generated code is similar to this:
+.Sp
+.Vb 9
+\&             t0
+\&                 .ascii "arm_poke_function_name", 0
+\&                 .align
+\&             t1
+\&                 .word 0xff000000 + (t1 \- t0)
+\&             arm_poke_function_name
+\&                 mov     ip, sp
+\&                 stmfd   sp!, {fp, ip, lr, pc}
+\&                 sub     fp, ip, #4
+.Ve
+.Sp
+When performing a stack backtrace, code can inspect the value of
+\&\f(CW\*(C`pc\*(C'\fR stored at \f(CW\*(C`fp + 0\*(C'\fR.  If the trace function then looks at
+location \f(CW\*(C`pc \- 12\*(C'\fR and the top 8 bits are set, then we know that
+there is a function name embedded immediately preceding this location
+and has length \f(CW\*(C`((pc[\-3]) & 0xff000000)\*(C'\fR.
+.IP "\fB\-mthumb\fR" 4
+.IX Item "-mthumb"
+Generate code for the Thumb instruction set.  The default is to
+use the 32\-bit \s-1ARM\s0 instruction set.
+This option automatically enables either 16\-bit Thumb\-1 or
+mixed 16/32\-bit Thumb\-2 instructions based on the \fB\-mcpu=\fR\fIname\fR
+and \fB\-march=\fR\fIname\fR options.
+.IP "\fB\-mtpcs\-frame\fR" 4
+.IX Item "-mtpcs-frame"
+Generate a stack frame that is compliant with the Thumb Procedure Call
+Standard for all non-leaf functions.  (A leaf function is one that does
+not call any other functions.)  The default is \fB\-mno\-tpcs\-frame\fR.
+.IP "\fB\-mtpcs\-leaf\-frame\fR" 4
+.IX Item "-mtpcs-leaf-frame"
+Generate a stack frame that is compliant with the Thumb Procedure Call
+Standard for all leaf functions.  (A leaf function is one that does
+not call any other functions.)  The default is \fB\-mno\-apcs\-leaf\-frame\fR.
+.IP "\fB\-mcallee\-super\-interworking\fR" 4
+.IX Item "-mcallee-super-interworking"
+Gives all externally visible functions in the file being compiled an \s-1ARM\s0
+instruction set header which switches to Thumb mode before executing the
+rest of the function.  This allows these functions to be called from
+non-interworking code.
+.IP "\fB\-mcaller\-super\-interworking\fR" 4
+.IX Item "-mcaller-super-interworking"
+Allows calls via function pointers (including virtual functions) to
+execute correctly regardless of whether the target code has been
+compiled for interworking or not.  There is a small overhead in the cost
+of executing a function pointer if this option is enabled.
+.IP "\fB\-mtp=\fR\fIname\fR" 4
+.IX Item "-mtp=name"
+Specify the access model for the thread local storage pointer.  The valid
+models are \fBsoft\fR, which generates calls to \f(CW\*(C`_\|_aeabi_read_tp\*(C'\fR,
+\&\fBcp15\fR, which fetches the thread pointer from \f(CW\*(C`cp15\*(C'\fR directly
+(supported in the arm6k architecture), and \fBauto\fR, which uses the
+best available method for the selected processor.  The default setting is
+\&\fBauto\fR.
+.PP
+\fI\s-1AVR\s0 Options\fR
+.IX Subsection "AVR Options"
+.PP
+These options are defined for \s-1AVR\s0 implementations:
+.IP "\fB\-mmcu=\fR\fImcu\fR" 4
+.IX Item "-mmcu=mcu"
+Specify \s-1ATMEL\s0 \s-1AVR\s0 instruction set or \s-1MCU\s0 type.
+.Sp
+Instruction set avr1 is for the minimal \s-1AVR\s0 core, not supported by the C
+compiler, only for assembler programs (\s-1MCU\s0 types: at90s1200, attiny10,
+attiny11, attiny12, attiny15, attiny28).
+.Sp
+Instruction set avr2 (default) is for the classic \s-1AVR\s0 core with up to
+8K program memory space (\s-1MCU\s0 types: at90s2313, at90s2323, attiny22,
+at90s2333, at90s2343, at90s4414, at90s4433, at90s4434, at90s8515,
+at90c8534, at90s8535).
+.Sp
+Instruction set avr3 is for the classic \s-1AVR\s0 core with up to 128K program
+memory space (\s-1MCU\s0 types: atmega103, atmega603, at43usb320, at76c711).
+.Sp
+Instruction set avr4 is for the enhanced \s-1AVR\s0 core with up to 8K program
+memory space (\s-1MCU\s0 types: atmega8, atmega83, atmega85).
+.Sp
+Instruction set avr5 is for the enhanced \s-1AVR\s0 core with up to 128K program
+memory space (\s-1MCU\s0 types: atmega16, atmega161, atmega163, atmega32, atmega323,
+atmega64, atmega128, at43usb355, at94k).
+.IP "\fB\-msize\fR" 4
+.IX Item "-msize"
+Output instruction sizes to the asm file.
+.IP "\fB\-minit\-stack=\fR\fIN\fR" 4
+.IX Item "-minit-stack=N"
+Specify the initial stack address, which may be a symbol or numeric value,
+\&\fB_\|_stack\fR is the default.
+.IP "\fB\-mno\-interrupts\fR" 4
+.IX Item "-mno-interrupts"
+Generated code is not compatible with hardware interrupts.
+Code size will be smaller.
+.IP "\fB\-mcall\-prologues\fR" 4
+.IX Item "-mcall-prologues"
+Functions prologues/epilogues expanded as call to appropriate
+subroutines.  Code size will be smaller.
+.IP "\fB\-mno\-tablejump\fR" 4
+.IX Item "-mno-tablejump"
+Do not generate tablejump insns which sometimes increase code size.
+.IP "\fB\-mtiny\-stack\fR" 4
+.IX Item "-mtiny-stack"
+Change only the low 8 bits of the stack pointer.
+.IP "\fB\-mint8\fR" 4
+.IX Item "-mint8"
+Assume int to be 8 bit integer.  This affects the sizes of all types: A
+char will be 1 byte, an int will be 1 byte, an long will be 2 bytes
+and long long will be 4 bytes.  Please note that this option does not
+comply to the C standards, but it will provide you with smaller code
+size.
+.PP
+\fIBlackfin Options\fR
+.IX Subsection "Blackfin Options"
+.IP "\fB\-mcpu=\fR\fIcpu\fR[\fB\-\fR\fIsirevision\fR]" 4
+.IX Item "-mcpu=cpu[-sirevision]"
+Specifies the name of the target Blackfin processor.  Currently, \fIcpu\fR
+can be one of \fBbf522\fR, \fBbf523\fR, \fBbf524\fR,
+\&\fBbf525\fR, \fBbf526\fR, \fBbf527\fR,
+\&\fBbf531\fR, \fBbf532\fR, \fBbf533\fR, \fBbf534\fR,
+\&\fBbf536\fR, \fBbf537\fR, \fBbf538\fR, \fBbf539\fR,
+\&\fBbf542\fR, \fBbf544\fR, \fBbf547\fR, \fBbf548\fR, \fBbf549\fR,
+\&\fBbf561\fR.
+The optional \fIsirevision\fR specifies the silicon revision of the target
+Blackfin processor.  Any workarounds available for the targeted silicon revision
+will be enabled.  If \fIsirevision\fR is \fBnone\fR, no workarounds are enabled.
+If \fIsirevision\fR is \fBany\fR, all workarounds for the targeted processor
+will be enabled.  The \f(CW\*(C`_\|_SILICON_REVISION_\|_\*(C'\fR macro is defined to two
+hexadecimal digits representing the major and minor numbers in the silicon
+revision.  If \fIsirevision\fR is \fBnone\fR, the \f(CW\*(C`_\|_SILICON_REVISION_\|_\*(C'\fR
+is not defined.  If \fIsirevision\fR is \fBany\fR, the
+\&\f(CW\*(C`_\|_SILICON_REVISION_\|_\*(C'\fR is defined to be \f(CW0xffff\fR.
+If this optional \fIsirevision\fR is not used, \s-1GCC\s0 assumes the latest known
+silicon revision of the targeted Blackfin processor.
+.Sp
+Support for \fBbf561\fR is incomplete.  For \fBbf561\fR,
+Only the processor macro is defined.
+Without this option, \fBbf532\fR is used as the processor by default.
+The corresponding predefined processor macros for \fIcpu\fR is to
+be defined.  And for \fBbfin-elf\fR toolchain, this causes the hardware \s-1BSP\s0
+provided by libgloss to be linked in if \fB\-msim\fR is not given.
+.IP "\fB\-msim\fR" 4
+.IX Item "-msim"
+Specifies that the program will be run on the simulator.  This causes
+the simulator \s-1BSP\s0 provided by libgloss to be linked in.  This option
+has effect only for \fBbfin-elf\fR toolchain.
+Certain other options, such as \fB\-mid\-shared\-library\fR and
+\&\fB\-mfdpic\fR, imply \fB\-msim\fR.
+.IP "\fB\-momit\-leaf\-frame\-pointer\fR" 4
+.IX Item "-momit-leaf-frame-pointer"
+Don't keep the frame pointer in a register for leaf functions.  This
+avoids the instructions to save, set up and restore frame pointers and
+makes an extra register available in leaf functions.  The option
+\&\fB\-fomit\-frame\-pointer\fR removes the frame pointer for all functions
+which might make debugging harder.
+.IP "\fB\-mspecld\-anomaly\fR" 4
+.IX Item "-mspecld-anomaly"
+When enabled, the compiler will ensure that the generated code does not
+contain speculative loads after jump instructions. If this option is used,
+\&\f(CW\*(C`_\|_WORKAROUND_SPECULATIVE_LOADS\*(C'\fR is defined.
+.IP "\fB\-mno\-specld\-anomaly\fR" 4
+.IX Item "-mno-specld-anomaly"
+Don't generate extra code to prevent speculative loads from occurring.
+.IP "\fB\-mcsync\-anomaly\fR" 4
+.IX Item "-mcsync-anomaly"
+When enabled, the compiler will ensure that the generated code does not
+contain \s-1CSYNC\s0 or \s-1SSYNC\s0 instructions too soon after conditional branches.
+If this option is used, \f(CW\*(C`_\|_WORKAROUND_SPECULATIVE_SYNCS\*(C'\fR is defined.
+.IP "\fB\-mno\-csync\-anomaly\fR" 4
+.IX Item "-mno-csync-anomaly"
+Don't generate extra code to prevent \s-1CSYNC\s0 or \s-1SSYNC\s0 instructions from
+occurring too soon after a conditional branch.
+.IP "\fB\-mlow\-64k\fR" 4
+.IX Item "-mlow-64k"
+When enabled, the compiler is free to take advantage of the knowledge that
+the entire program fits into the low 64k of memory.
+.IP "\fB\-mno\-low\-64k\fR" 4
+.IX Item "-mno-low-64k"
+Assume that the program is arbitrarily large.  This is the default.
+.IP "\fB\-mstack\-check\-l1\fR" 4
+.IX Item "-mstack-check-l1"
+Do stack checking using information placed into L1 scratchpad memory by the
+uClinux kernel.
+.IP "\fB\-mid\-shared\-library\fR" 4
+.IX Item "-mid-shared-library"
+Generate code that supports shared libraries via the library \s-1ID\s0 method.
+This allows for execute in place and shared libraries in an environment
+without virtual memory management.  This option implies \fB\-fPIC\fR.
+With a \fBbfin-elf\fR target, this option implies \fB\-msim\fR.
+.IP "\fB\-mno\-id\-shared\-library\fR" 4
+.IX Item "-mno-id-shared-library"
+Generate code that doesn't assume \s-1ID\s0 based shared libraries are being used.
+This is the default.
+.IP "\fB\-mleaf\-id\-shared\-library\fR" 4
+.IX Item "-mleaf-id-shared-library"
+Generate code that supports shared libraries via the library \s-1ID\s0 method,
+but assumes that this library or executable won't link against any other
+\&\s-1ID\s0 shared libraries.  That allows the compiler to use faster code for jumps
+and calls.
+.IP "\fB\-mno\-leaf\-id\-shared\-library\fR" 4
+.IX Item "-mno-leaf-id-shared-library"
+Do not assume that the code being compiled won't link against any \s-1ID\s0 shared
+libraries.  Slower code will be generated for jump and call insns.
+.IP "\fB\-mshared\-library\-id=n\fR" 4
+.IX Item "-mshared-library-id=n"
+Specified the identification number of the \s-1ID\s0 based shared library being
+compiled.  Specifying a value of 0 will generate more compact code, specifying
+other values will force the allocation of that number to the current
+library but is no more space or time efficient than omitting this option.
+.IP "\fB\-msep\-data\fR" 4
+.IX Item "-msep-data"
+Generate code that allows the data segment to be located in a different
+area of memory from the text segment.  This allows for execute in place in
+an environment without virtual memory management by eliminating relocations
+against the text section.
+.IP "\fB\-mno\-sep\-data\fR" 4
+.IX Item "-mno-sep-data"
+Generate code that assumes that the data segment follows the text segment.
+This is the default.
+.IP "\fB\-mlong\-calls\fR" 4
+.IX Item "-mlong-calls"
+.PD 0
+.IP "\fB\-mno\-long\-calls\fR" 4
+.IX Item "-mno-long-calls"
+.PD
+Tells the compiler to perform function calls by first loading the
+address of the function into a register and then performing a subroutine
+call on this register.  This switch is needed if the target function
+will lie outside of the 24 bit addressing range of the offset based
+version of subroutine call instruction.
+.Sp
+This feature is not enabled by default.  Specifying
+\&\fB\-mno\-long\-calls\fR will restore the default behavior.  Note these
+switches have no effect on how the compiler generates code to handle
+function calls via function pointers.
+.IP "\fB\-mfast\-fp\fR" 4
+.IX Item "-mfast-fp"
+Link with the fast floating-point library. This library relaxes some of
+the \s-1IEEE\s0 floating-point standard's rules for checking inputs against
+Not-a-Number (\s-1NAN\s0), in the interest of performance.
+.IP "\fB\-minline\-plt\fR" 4
+.IX Item "-minline-plt"
+Enable inlining of \s-1PLT\s0 entries in function calls to functions that are
+not known to bind locally.  It has no effect without \fB\-mfdpic\fR.
+.PP
+\fI\s-1CRIS\s0 Options\fR
+.IX Subsection "CRIS Options"
+.PP
+These options are defined specifically for the \s-1CRIS\s0 ports.
+.IP "\fB\-march=\fR\fIarchitecture-type\fR" 4
+.IX Item "-march=architecture-type"
+.PD 0
+.IP "\fB\-mcpu=\fR\fIarchitecture-type\fR" 4
+.IX Item "-mcpu=architecture-type"
+.PD
+Generate code for the specified architecture.  The choices for
+\&\fIarchitecture-type\fR are \fBv3\fR, \fBv8\fR and \fBv10\fR for
+respectively \s-1ETRAX\s0\ 4, \s-1ETRAX\s0\ 100, and \s-1ETRAX\s0\ 100\ \s-1LX\s0.
+Default is \fBv0\fR except for cris-axis-linux-gnu, where the default is
+\&\fBv10\fR.
+.IP "\fB\-mtune=\fR\fIarchitecture-type\fR" 4
+.IX Item "-mtune=architecture-type"
+Tune to \fIarchitecture-type\fR everything applicable about the generated
+code, except for the \s-1ABI\s0 and the set of available instructions.  The
+choices for \fIarchitecture-type\fR are the same as for
+\&\fB\-march=\fR\fIarchitecture-type\fR.
+.IP "\fB\-mmax\-stack\-frame=\fR\fIn\fR" 4
+.IX Item "-mmax-stack-frame=n"
+Warn when the stack frame of a function exceeds \fIn\fR bytes.
+.IP "\fB\-melinux\-stacksize=\fR\fIn\fR" 4
+.IX Item "-melinux-stacksize=n"
+Only available with the \fBcris-axis-aout\fR target.  Arranges for
+indications in the program to the kernel loader that the stack of the
+program should be set to \fIn\fR bytes.
+.IP "\fB\-metrax4\fR" 4
+.IX Item "-metrax4"
+.PD 0
+.IP "\fB\-metrax100\fR" 4
+.IX Item "-metrax100"
+.PD
+The options \fB\-metrax4\fR and \fB\-metrax100\fR are synonyms for
+\&\fB\-march=v3\fR and \fB\-march=v8\fR respectively.
+.IP "\fB\-mmul\-bug\-workaround\fR" 4
+.IX Item "-mmul-bug-workaround"
+.PD 0
+.IP "\fB\-mno\-mul\-bug\-workaround\fR" 4
+.IX Item "-mno-mul-bug-workaround"
+.PD
+Work around a bug in the \f(CW\*(C`muls\*(C'\fR and \f(CW\*(C`mulu\*(C'\fR instructions for \s-1CPU\s0
+models where it applies.  This option is active by default.
+.IP "\fB\-mpdebug\fR" 4
+.IX Item "-mpdebug"
+Enable CRIS-specific verbose debug-related information in the assembly
+code.  This option also has the effect to turn off the \fB#NO_APP\fR
+formatted-code indicator to the assembler at the beginning of the
+assembly file.
+.IP "\fB\-mcc\-init\fR" 4
+.IX Item "-mcc-init"
+Do not use condition-code results from previous instruction; always emit
+compare and test instructions before use of condition codes.
+.IP "\fB\-mno\-side\-effects\fR" 4
+.IX Item "-mno-side-effects"
+Do not emit instructions with side-effects in addressing modes other than
+post-increment.
+.IP "\fB\-mstack\-align\fR" 4
+.IX Item "-mstack-align"
+.PD 0
+.IP "\fB\-mno\-stack\-align\fR" 4
+.IX Item "-mno-stack-align"
+.IP "\fB\-mdata\-align\fR" 4
+.IX Item "-mdata-align"
+.IP "\fB\-mno\-data\-align\fR" 4
+.IX Item "-mno-data-align"
+.IP "\fB\-mconst\-align\fR" 4
+.IX Item "-mconst-align"
+.IP "\fB\-mno\-const\-align\fR" 4
+.IX Item "-mno-const-align"
+.PD
+These options (no-options) arranges (eliminate arrangements) for the
+stack-frame, individual data and constants to be aligned for the maximum
+single data access size for the chosen \s-1CPU\s0 model.  The default is to
+arrange for 32\-bit alignment.  \s-1ABI\s0 details such as structure layout are
+not affected by these options.
+.IP "\fB\-m32\-bit\fR" 4
+.IX Item "-m32-bit"
+.PD 0
+.IP "\fB\-m16\-bit\fR" 4
+.IX Item "-m16-bit"
+.IP "\fB\-m8\-bit\fR" 4
+.IX Item "-m8-bit"
+.PD
+Similar to the stack\- data\- and const-align options above, these options
+arrange for stack-frame, writable data and constants to all be 32\-bit,
+16\-bit or 8\-bit aligned.  The default is 32\-bit alignment.
+.IP "\fB\-mno\-prologue\-epilogue\fR" 4
+.IX Item "-mno-prologue-epilogue"
+.PD 0
+.IP "\fB\-mprologue\-epilogue\fR" 4
+.IX Item "-mprologue-epilogue"
+.PD
+With \fB\-mno\-prologue\-epilogue\fR, the normal function prologue and
+epilogue that sets up the stack-frame are omitted and no return
+instructions or return sequences are generated in the code.  Use this
+option only together with visual inspection of the compiled code: no
+warnings or errors are generated when call-saved registers must be saved,
+or storage for local variable needs to be allocated.
+.IP "\fB\-mno\-gotplt\fR" 4
+.IX Item "-mno-gotplt"
+.PD 0
+.IP "\fB\-mgotplt\fR" 4
+.IX Item "-mgotplt"
+.PD
+With \fB\-fpic\fR and \fB\-fPIC\fR, don't generate (do generate)
+instruction sequences that load addresses for functions from the \s-1PLT\s0 part
+of the \s-1GOT\s0 rather than (traditional on other architectures) calls to the
+\&\s-1PLT\s0.  The default is \fB\-mgotplt\fR.
+.IP "\fB\-maout\fR" 4
+.IX Item "-maout"
+Legacy no-op option only recognized with the cris-axis-aout target.
+.IP "\fB\-melf\fR" 4
+.IX Item "-melf"
+Legacy no-op option only recognized with the cris-axis-elf and
+cris-axis-linux-gnu targets.
+.IP "\fB\-melinux\fR" 4
+.IX Item "-melinux"
+Only recognized with the cris-axis-aout target, where it selects a
+GNU/linux\-like multilib, include files and instruction set for
+\&\fB\-march=v8\fR.
+.IP "\fB\-mlinux\fR" 4
+.IX Item "-mlinux"
+Legacy no-op option only recognized with the cris-axis-linux-gnu target.
+.IP "\fB\-sim\fR" 4
+.IX Item "-sim"
+This option, recognized for the cris-axis-aout and cris-axis-elf arranges
+to link with input-output functions from a simulator library.  Code,
+initialized data and zero-initialized data are allocated consecutively.
+.IP "\fB\-sim2\fR" 4
+.IX Item "-sim2"
+Like \fB\-sim\fR, but pass linker options to locate initialized data at
+0x40000000 and zero-initialized data at 0x80000000.
+.PP
+\fI\s-1CRX\s0 Options\fR
+.IX Subsection "CRX Options"
+.PP
+These options are defined specifically for the \s-1CRX\s0 ports.
+.IP "\fB\-mmac\fR" 4
+.IX Item "-mmac"
+Enable the use of multiply-accumulate instructions. Disabled by default.
+.IP "\fB\-mpush\-args\fR" 4
+.IX Item "-mpush-args"
+Push instructions will be used to pass outgoing arguments when functions
+are called. Enabled by default.
+.PP
+\fIDarwin Options\fR
+.IX Subsection "Darwin Options"
+.PP
+These options are defined for all architectures running the Darwin operating
+system.
+.PP
+\&\s-1FSF\s0 \s-1GCC\s0 on Darwin does not create \*(L"fat\*(R" object files; it will create
+an object file for the single architecture that it was built to
+target.  Apple's \s-1GCC\s0 on Darwin does create \*(L"fat\*(R" files if multiple
+\&\fB\-arch\fR options are used; it does so by running the compiler or
+linker multiple times and joining the results together with
+\&\fIlipo\fR.
+.PP
+The subtype of the file created (like \fBppc7400\fR or \fBppc970\fR or
+\&\fBi686\fR) is determined by the flags that specify the \s-1ISA\s0
+that \s-1GCC\s0 is targetting, like \fB\-mcpu\fR or \fB\-march\fR.  The
+\&\fB\-force_cpusubtype_ALL\fR option can be used to override this.
+.PP
+The Darwin tools vary in their behavior when presented with an \s-1ISA\s0
+mismatch.  The assembler, \fIas\fR, will only permit instructions to
+be used that are valid for the subtype of the file it is generating,
+so you cannot put 64\-bit instructions in an \fBppc750\fR object file.
+The linker for shared libraries, \fI/usr/bin/libtool\fR, will fail
+and print an error if asked to create a shared library with a less
+restrictive subtype than its input files (for instance, trying to put
+a \fBppc970\fR object file in a \fBppc7400\fR library).  The linker
+for executables, \fIld\fR, will quietly give the executable the most
+restrictive subtype of any of its input files.
+.IP "\fB\-F\fR\fIdir\fR" 4
+.IX Item "-Fdir"
+Add the framework directory \fIdir\fR to the head of the list of
+directories to be searched for header files.  These directories are
+interleaved with those specified by \fB\-I\fR options and are
+scanned in a left-to-right order.
+.Sp
+A framework directory is a directory with frameworks in it.  A
+framework is a directory with a \fB\*(L"Headers\*(R"\fR and/or
+\&\fB\*(L"PrivateHeaders\*(R"\fR directory contained directly in it that ends
+in \fB\*(L".framework\*(R"\fR.  The name of a framework is the name of this
+directory excluding the \fB\*(L".framework\*(R"\fR.  Headers associated with
+the framework are found in one of those two directories, with
+\&\fB\*(L"Headers\*(R"\fR being searched first.  A subframework is a framework
+directory that is in a framework's \fB\*(L"Frameworks\*(R"\fR directory.
+Includes of subframework headers can only appear in a header of a
+framework that contains the subframework, or in a sibling subframework
+header.  Two subframeworks are siblings if they occur in the same
+framework.  A subframework should not have the same name as a
+framework, a warning will be issued if this is violated.  Currently a
+subframework cannot have subframeworks, in the future, the mechanism
+may be extended to support this.  The standard frameworks can be found
+in \fB\*(L"/System/Library/Frameworks\*(R"\fR and
+\&\fB\*(L"/Library/Frameworks\*(R"\fR.  An example include looks like
+\&\f(CW\*(C`#include <Framework/header.h>\*(C'\fR, where \fBFramework\fR denotes
+the name of the framework and header.h is found in the
+\&\fB\*(L"PrivateHeaders\*(R"\fR or \fB\*(L"Headers\*(R"\fR directory.
+.IP "\fB\-iframework\fR\fIdir\fR" 4
+.IX Item "-iframeworkdir"
+Like \fB\-F\fR except the directory is a treated as a system
+directory.  The main difference between this \fB\-iframework\fR and
+\&\fB\-F\fR is that with \fB\-iframework\fR the compiler does not
+warn about constructs contained within header files found via
+\&\fIdir\fR.  This option is valid only for the C family of languages.
+.IP "\fB\-gused\fR" 4
+.IX Item "-gused"
+Emit debugging information for symbols that are used.  For \s-1STABS\s0
+debugging format, this enables \fB\-feliminate\-unused\-debug\-symbols\fR.
+This is by default \s-1ON\s0.
+.IP "\fB\-gfull\fR" 4
+.IX Item "-gfull"
+Emit debugging information for all symbols and types.
+.IP "\fB\-mmacosx\-version\-min=\fR\fIversion\fR" 4
+.IX Item "-mmacosx-version-min=version"
+The earliest version of MacOS X that this executable will run on
+is \fIversion\fR.  Typical values of \fIversion\fR include \f(CW10.1\fR,
+\&\f(CW10.2\fR, and \f(CW10.3.9\fR.
+.Sp
+If the compiler was built to use the system's headers by default,
+then the default for this option is the system version on which the
+compiler is running, otherwise the default is to make choices which
+are compatible with as many systems and code bases as possible.
+.IP "\fB\-mkernel\fR" 4
+.IX Item "-mkernel"
+Enable kernel development mode.  The \fB\-mkernel\fR option sets
+\&\fB\-static\fR, \fB\-fno\-common\fR, \fB\-fno\-cxa\-atexit\fR,
+\&\fB\-fno\-exceptions\fR, \fB\-fno\-non\-call\-exceptions\fR,
+\&\fB\-fapple\-kext\fR, \fB\-fno\-weak\fR and \fB\-fno\-rtti\fR where
+applicable.  This mode also sets \fB\-mno\-altivec\fR,
+\&\fB\-msoft\-float\fR, \fB\-fno\-builtin\fR and
+\&\fB\-mlong\-branch\fR for PowerPC targets.
+.IP "\fB\-mone\-byte\-bool\fR" 4
+.IX Item "-mone-byte-bool"
+Override the defaults for \fBbool\fR so that \fBsizeof(bool)==1\fR.
+By default \fBsizeof(bool)\fR is \fB4\fR when compiling for
+Darwin/PowerPC and \fB1\fR when compiling for Darwin/x86, so this
+option has no effect on x86.
+.Sp
+\&\fBWarning:\fR The \fB\-mone\-byte\-bool\fR switch causes \s-1GCC\s0
+to generate code that is not binary compatible with code generated
+without that switch.  Using this switch may require recompiling all
+other modules in a program, including system libraries.  Use this
+switch to conform to a non-default data model.
+.IP "\fB\-mfix\-and\-continue\fR" 4
+.IX Item "-mfix-and-continue"
+.PD 0
+.IP "\fB\-ffix\-and\-continue\fR" 4
+.IX Item "-ffix-and-continue"
+.IP "\fB\-findirect\-data\fR" 4
+.IX Item "-findirect-data"
+.PD
+Generate code suitable for fast turn around development.  Needed to
+enable gdb to dynamically load \f(CW\*(C`.o\*(C'\fR files into already running
+programs.  \fB\-findirect\-data\fR and \fB\-ffix\-and\-continue\fR
+are provided for backwards compatibility.
+.IP "\fB\-all_load\fR" 4
+.IX Item "-all_load"
+Loads all members of static archive libraries.
+See man \fIld\fR\|(1) for more information.
+.IP "\fB\-arch_errors_fatal\fR" 4
+.IX Item "-arch_errors_fatal"
+Cause the errors having to do with files that have the wrong architecture
+to be fatal.
+.IP "\fB\-bind_at_load\fR" 4
+.IX Item "-bind_at_load"
+Causes the output file to be marked such that the dynamic linker will
+bind all undefined references when the file is loaded or launched.
+.IP "\fB\-bundle\fR" 4
+.IX Item "-bundle"
+Produce a Mach-o bundle format file.
+See man \fIld\fR\

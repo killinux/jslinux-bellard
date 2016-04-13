@@ -1,0 +1,2342 @@
+em off.  However, if the extension has
+a significant chance of breaking any real programs or scripts, then it
+is not really upward compatible.  So you should try to redesign its
+interface to make it upward compatible.
+
+   Many GNU programs suppress extensions that conflict with POSIX if the
+environment variable `POSIXLY_CORRECT' is defined (even if it is
+defined with a null value).  Please make your program recognize this
+variable if appropriate.
+
+   When a feature is used only by users (not by programs or command
+files), and it is done poorly in Unix, feel free to replace it
+completely with something totally different and better.  (For example,
+`vi' is replaced with Emacs.)  But it is nice to offer a compatible
+feature as well.  (There is a free `vi' clone, so we offer it.)
+
+   Additional useful features are welcome regardless of whether there
+is any precedent for them.
+
+
+File: standards.info,  Node: Using Extensions,  Next: Standard C,  Prev: Compatibility,  Up: Design Advice
+
+3.3 Using Non-standard Features
+===============================
+
+Many GNU facilities that already exist support a number of convenient
+extensions over the comparable Unix facilities.  Whether to use these
+extensions in implementing your program is a difficult question.
+
+   On the one hand, using the extensions can make a cleaner program.
+On the other hand, people will not be able to build the program unless
+the other GNU tools are available.  This might cause the program to
+work on fewer kinds of machines.
+
+   With some extensions, it might be easy to provide both alternatives.
+For example, you can define functions with a "keyword" `INLINE' and
+define that as a macro to expand into either `inline' or nothing,
+depending on the compiler.
+
+   In general, perhaps it is best not to use the extensions if you can
+straightforwardly do without them, but to use the extensions if they
+are a big improvement.
+
+   An exception to this rule are the large, established programs (such
+as Emacs) which run on a great variety of systems.  Using GNU
+extensions in such programs would make many users unhappy, so we don't
+do that.
+
+   Another exception is for programs that are used as part of
+compilation: anything that must be compiled with other compilers in
+order to bootstrap the GNU compilation facilities.  If these require
+the GNU compiler, then no one can compile them without having them
+installed already.  That would be extremely troublesome in certain
+cases.
+
+
+File: standards.info,  Node: Standard C,  Next: Conditional Compilation,  Prev: Using Extensions,  Up: Design Advice
+
+3.4 Standard C and Pre-Standard C
+=================================
+
+1989 Standard C is widespread enough now that it is ok to use its
+features in new programs.  There is one exception: do not ever use the
+"trigraph" feature of Standard C.
+
+   1999 Standard C is not widespread yet, so please do not require its
+features in programs.  It is ok to use its features if they are present.
+
+   However, it is easy to support pre-standard compilers in most
+programs, so if you know how to do that, feel free.  If a program you
+are maintaining has such support, you should try to keep it working.
+
+   To support pre-standard C, instead of writing function definitions in
+standard prototype form,
+
+     int
+     foo (int x, int y)
+     ...
+
+write the definition in pre-standard style like this,
+
+     int
+     foo (x, y)
+          int x, y;
+     ...
+
+and use a separate declaration to specify the argument prototype:
+
+     int foo (int, int);
+
+   You need such a declaration anyway, in a header file, to get the
+benefit of prototypes in all the files where the function is called.
+And once you have the declaration, you normally lose nothing by writing
+the function definition in the pre-standard style.
+
+   This technique does not work for integer types narrower than `int'.
+If you think of an argument as being of a type narrower than `int',
+declare it as `int' instead.
+
+   There are a few special cases where this technique is hard to use.
+For example, if a function argument needs to hold the system type
+`dev_t', you run into trouble, because `dev_t' is shorter than `int' on
+some machines; but you cannot use `int' instead, because `dev_t' is
+wider than `int' on some machines.  There is no type you can safely use
+on all machines in a non-standard definition.  The only way to support
+non-standard C and pass such an argument is to check the width of
+`dev_t' using Autoconf and choose the argument type accordingly.  This
+may not be worth the trouble.
+
+   In order to support pre-standard compilers that do not recognize
+prototypes, you may want to use a preprocessor macro like this:
+
+     /* Declare the prototype for a general external function.  */
+     #if defined (__STDC__) || defined (WINDOWSNT)
+     #define P_(proto) proto
+     #else
+     #define P_(proto) ()
+     #endif
+
+
+File: standards.info,  Node: Conditional Compilation,  Prev: Standard C,  Up: Design Advice
+
+3.5 Conditional Compilation
+===========================
+
+When supporting configuration options already known when building your
+program we prefer using `if (... )' over conditional compilation, as in
+the former case the compiler is able to perform more extensive checking
+of all possible code paths.
+
+   For example, please write
+
+       if (HAS_FOO)
+         ...
+       else
+         ...
+
+instead of:
+
+       #ifdef HAS_FOO
+         ...
+       #else
+         ...
+       #endif
+
+   A modern compiler such as GCC will generate exactly the same code in
+both cases, and we have been using similar techniques with good success
+in several projects.  Of course, the former method assumes that
+`HAS_FOO' is defined as either 0 or 1.
+
+   While this is not a silver bullet solving all portability problems,
+and is not always appropriate, following this policy would have saved
+GCC developers many hours, or even days, per year.
+
+   In the case of function-like macros like `REVERSIBLE_CC_MODE' in GCC
+which cannot be simply used in `if (...)' statements, there is an easy
+workaround.  Simply introduce another macro `HAS_REVERSIBLE_CC_MODE' as
+in the following example:
+
+       #ifdef REVERSIBLE_CC_MODE
+       #define HAS_REVERSIBLE_CC_MODE 1
+       #else
+       #define HAS_REVERSIBLE_CC_MODE 0
+       #endif
+
+
+File: standards.info,  Node: Program Behavior,  Next: Writing C,  Prev: Design Advice,  Up: Top
+
+4 Program Behavior for All Programs
+***********************************
+
+This chapter describes conventions for writing robust software.  It
+also describes general standards for error messages, the command line
+interface, and how libraries should behave.
+
+* Menu:
+
+* Non-GNU Standards::           We consider standards such as POSIX;
+                                  we don't "obey" them.
+* Semantics::                   Writing robust programs.
+* Libraries::                   Library behavior.
+* Errors::                      Formatting error messages.
+* User Interfaces::             Standards about interfaces generally.
+* Graphical Interfaces::        Standards for graphical interfaces.
+* Command-Line Interfaces::     Standards for command line interfaces.
+* Option Table::                Table of long options.
+* OID Allocations::             Table of OID slots for GNU.
+* Memory Usage::                When and how to care about memory needs.
+* File Usage::                  Which files to use, and where.
+
+
+File: standards.info,  Node: Non-GNU Standards,  Next: Semantics,  Up: Program Behavior
+
+4.1 Non-GNU Standards
+=====================
+
+The GNU Project regards standards published by other organizations as
+suggestions, not orders.  We consider those standards, but we do not
+"obey" them.  In developing a GNU program, you should implement an
+outside standard's specifications when that makes the GNU system better
+overall in an objective sense.  When it doesn't, you shouldn't.
+
+   In most cases, following published standards is convenient for
+users--it means that their programs or scripts will work more portably.
+For instance, GCC implements nearly all the features of Standard C as
+specified by that standard.  C program developers would be unhappy if
+it did not.  And GNU utilities mostly follow specifications of POSIX.2;
+shell script writers and users would be unhappy if our programs were
+incompatible.
+
+   But we do not follow either of these specifications rigidly, and
+there are specific points on which we decided not to follow them, so as
+to make the GNU system better for users.
+
+   For instance, Standard C says that nearly all extensions to C are
+prohibited.  How silly!  GCC implements many extensions, some of which
+were later adopted as part of the standard.  If you want these
+constructs to give an error message as "required" by the standard, you
+must specify `--pedantic', which was implemented only so that we can
+say "GCC is a 100% implementation of the standard," not because there
+is any reason to actually use it.
+
+   POSIX.2 specifies that `df' and `du' must output sizes by default in
+units of 512 bytes.  What users want is units of 1k, so that is what we
+do by default.  If you want the ridiculous behavior "required" by
+POSIX, you must set the environment variable `POSIXLY_CORRECT' (which
+was originally going to be named `POSIX_ME_HARDER').
+
+   GNU utilities also depart from the letter of the POSIX.2
+specification when they support long-named command-line options, and
+intermixing options with ordinary arguments.  This minor
+incompatibility with POSIX is never a problem in practice, and it is
+very useful.
+
+   In particular, don't reject a new feature, or remove an old one,
+merely because a standard says it is "forbidden" or "deprecated."
+
+
+File: standards.info,  Node: Semantics,  Next: Libraries,  Prev: Non-GNU Standards,  Up: Program Behavior
+
+4.2 Writing Robust Programs
+===========================
+
+Avoid arbitrary limits on the length or number of _any_ data structure,
+including file names, lines, files, and symbols, by allocating all data
+structures dynamically.  In most Unix utilities, "long lines are
+silently truncated".  This is not acceptable in a GNU utility.
+
+   Utilities reading files should not drop NUL characters, or any other
+nonprinting characters _including those with codes above 0177_.  The
+only sensible exceptions would be utilities specifically intended for
+interface to certain types of terminals or printers that can't handle
+those characters.  Whenever possible, try to make programs work
+properly with sequences of bytes that represent multibyte characters,
+using encodings such as UTF-8 and others.
+
+   Check every system call for an error return, unless you know you
+wish to ignore errors.  Include the system error text (from `perror' or
+equivalent) in _every_ error message resulting from a failing system
+call, as well as the name of the file if any and the name of the
+utility.  Just "cannot open foo.c" or "stat failed" is not sufficient.
+
+   Check every call to `malloc' or `realloc' to see if it returned
+zero.  Check `realloc' even if you are making the block smaller; in a
+system that rounds block sizes to a power of 2, `realloc' may get a
+different block if you ask for less space.
+
+   In Unix, `realloc' can destroy the storage block if it returns zero.
+GNU `realloc' does not have this bug: if it fails, the original block
+is unchanged.  Feel free to assume the bug is fixed.  If you wish to
+run your program on Unix, and wish to avoid lossage in this case, you
+can use the GNU `malloc'.
+
+   You must expect `free' to alter the contents of the block that was
+freed.  Anything you want to fetch from the block, you must fetch before
+calling `free'.
+
+   If `malloc' fails in a noninteractive program, make that a fatal
+error.  In an interactive program (one that reads commands from the
+user), it is better to abort the command and return to the command
+reader loop.  This allows the user to kill other processes to free up
+virtual memory, and then try the command again.
+
+   Use `getopt_long' to decode arguments, unless the argument syntax
+makes this unreasonable.
+
+   When static storage is to be written in during program execution, use
+explicit C code to initialize it.  Reserve C initialized declarations
+for data that will not be changed.
+
+   Try to avoid low-level interfaces to obscure Unix data structures
+(such as file directories, utmp, or the layout of kernel memory), since
+these are less likely to work compatibly.  If you need to find all the
+files in a directory, use `readdir' or some other high-level interface.
+These are supported compatibly by GNU.
+
+   The preferred signal handling facilities are the BSD variant of
+`signal', and the POSIX `sigaction' function; the alternative USG
+`signal' interface is an inferior design.
+
+   Nowadays, using the POSIX signal functions may be the easiest way to
+make a program portable.  If you use `signal', then on GNU/Linux
+systems running GNU libc version 1, you should include `bsd/signal.h'
+instead of `signal.h', so as to get BSD behavior.  It is up to you
+whether to support systems where `signal' has only the USG behavior, or
+give up on them.
+
+   In error checks that detect "impossible" conditions, just abort.
+There is usually no point in printing any message.  These checks
+indicate the existence of bugs.  Whoever wants to fix the bugs will have
+to read the source code and run a debugger.  So explain the problem with
+comments in the source.  The relevant data will be in variables, which
+are easy to examine with the debugger, so there is no point moving them
+elsewhere.
+
+   Do not use a count of errors as the exit status for a program.
+_That does not work_, because exit status values are limited to 8 bits
+(0 through 255).  A single run of the program might have 256 errors; if
+you try to return 256 as the exit status, the parent process will see 0
+as the status, and it will appear that the program succeeded.
+
+   If you make temporary files, check the `TMPDIR' environment
+variable; if that variable is defined, use the specified directory
+instead of `/tmp'.
+
+   In addition, be aware that there is a possible security problem when
+creating temporary files in world-writable directories.  In C, you can
+avoid this problem by creating temporary files in this manner:
+
+     fd = open (filename, O_WRONLY | O_CREAT | O_EXCL, 0600);
+
+or by using the `mkstemps' function from libiberty.
+
+   In bash, use `set -C' to avoid this problem.
+
+
+File: standards.info,  Node: Libraries,  Next: Errors,  Prev: Semantics,  Up: Program Behavior
+
+4.3 Library Behavior
+====================
+
+Try to make library functions reentrant.  If they need to do dynamic
+storage allocation, at least try to avoid any nonreentrancy aside from
+that of `malloc' itself.
+
+   Here are certain name conventions for libraries, to avoid name
+conflicts.
+
+   Choose a name prefix for the library, more than two characters long.
+All external function and variable names should start with this prefix.
+In addition, there should only be one of these in any given library
+member.  This usually means putting each one in a separate source file.
+
+   An exception can be made when two external symbols are always used
+together, so that no reasonable program could use one without the
+other; then they can both go in the same file.
+
+   External symbols that are not documented entry points for the user
+should have names beginning with `_'.  The `_' should be followed by
+the chosen name prefix for the library, to prevent collisions with
+other libraries.  These can go in the same files with user entry points
+if you like.
+
+   Static functions and variables can be used as you like and need not
+fit any naming convention.
+
+
+File: standards.info,  Node: Errors,  Next: User Interfaces,  Prev: Libraries,  Up: Program Behavior
+
+4.4 Formatting Error Messages
+=============================
+
+Error messages from compilers should look like this:
+
+     SOURCE-FILE-NAME:LINENO: MESSAGE
+
+If you want to mention the column number, use one of these formats:
+
+     SOURCE-FILE-NAME:LINENO:COLUMN: MESSAGE
+     SOURCE-FILE-NAME:LINENO.COLUMN: MESSAGE
+
+Line numbers should start from 1 at the beginning of the file, and
+column numbers should start from 1 at the beginning of the line.  (Both
+of these conventions are chosen for compatibility.)  Calculate column
+numbers assuming that space and all ASCII printing characters have
+equal width, and assuming tab stops every 8 columns.
+
+   The error message can also give both the starting and ending
+positions of the erroneous text.  There are several formats so that you
+can avoid redundant information such as a duplicate line number.  Here
+are the possible formats:
+
+     SOURCE-FILE-NAME:LINENO-1.COLUMN-1-LINENO-2.COLUMN-2: MESSAGE
+     SOURCE-FILE-NAME:LINENO-1.COLUMN-1-COLUMN-2: MESSAGE
+     SOURCE-FILE-NAME:LINENO-1-LINENO-2: MESSAGE
+
+When an error is spread over several files, you can use this format:
+
+     FILE-1:LINENO-1.COLUMN-1-FILE-2:LINENO-2.COLUMN-2: MESSAGE
+
+   Error messages from other noninteractive programs should look like
+this:
+
+     PROGRAM:SOURCE-FILE-NAME:LINENO: MESSAGE
+
+when there is an appropriate source file, or like this:
+
+     PROGRAM: MESSAGE
+
+when there is no relevant source file.
+
+   If you want to mention the column number, use this format:
+
+     PROGRAM:SOURCE-FILE-NAME:LINENO:COLUMN: MESSAGE
+
+   In an interactive program (one that is reading commands from a
+terminal), it is better not to include the program name in an error
+message.  The place to indicate which program is running is in the
+prompt or with the screen layout.  (When the same program runs with
+input from a source other than a terminal, it is not interactive and
+would do best to print error messages using the noninteractive style.)
+
+   The string MESSAGE should not begin with a capital letter when it
+follows a program name and/or file name, because that isn't the
+beginning of a sentence.  (The sentence conceptually starts at the
+beginning of the line.)  Also, it should not end with a period.
+
+   Error messages from interactive programs, and other messages such as
+usage messages, should start with a capital letter.  But they should not
+end with a period.
+
+
+File: standards.info,  Node: User Interfaces,  Next: Graphical Interfaces,  Prev: Errors,  Up: Program Behavior
+
+4.5 Standards for Interfaces Generally
+======================================
+
+Please don't make the behavior of a utility depend on the name used to
+invoke it.  It is useful sometimes to make a link to a utility with a
+different name, and that should not change what it does.
+
+   Instead, use a run time option or a compilation switch or both to
+select among the alternate behaviors.
+
+   Likewise, please don't make the behavior of the program depend on the
+type of output device it is used with.  Device independence is an
+important principle of the system's design; do not compromise it merely
+to save someone from typing an option now and then.  (Variation in error
+message syntax when using a terminal is ok, because that is a side issue
+that people do not depend on.)
+
+   If you think one behavior is most useful when the output is to a
+terminal, and another is most useful when the output is a file or a
+pipe, then it is usually best to make the default behavior the one that
+is useful with output to a terminal, and have an option for the other
+behavior.
+
+   Compatibility requires certain programs to depend on the type of
+output device.  It would be disastrous if `ls' or `sh' did not do so in
+the way all users expect.  In some of these cases, we supplement the
+program with a preferred alternate version that does not depend on the
+output device type.  For example, we provide a `dir' program much like
+`ls' except that its default output format is always multi-column
+format.
+
+
+File: standards.info,  Node: Graphical Interfaces,  Next: Command-Line Interfaces,  Prev: User Interfaces,  Up: Program Behavior
+
+4.6 Standards for Graphical Interfaces
+======================================
+
+When you write a program that provides a graphical user interface,
+please make it work with the X Window System and the GTK+ toolkit
+unless the functionality specifically requires some alternative (for
+example, "displaying jpeg images while in console mode").
+
+   In addition, please provide a command-line interface to control the
+functionality.  (In many cases, the graphical user interface can be a
+separate program which invokes the command-line program.)  This is so
+that the same jobs can be done from scripts.
+
+   Please also consider providing a D-bus interface for use from other
+running programs, such as within GNOME.  (GNOME used to use CORBA for
+this, but that is being phased out.)  In addition, consider providing a
+library interface (for use from C), and perhaps a keyboard-driven
+console interface (for use by users from console mode).  Once you are
+doing the work to provide the functionality and the graphical
+interface, these won't be much extra work.
+
+
+File: standards.info,  Node: Command-Line Interfaces,  Next: Option Table,  Prev: Graphical Interfaces,  Up: Program Behavior
+
+4.7 Standards for Command Line Interfaces
+=========================================
+
+It is a good idea to follow the POSIX guidelines for the command-line
+options of a program.  The easiest way to do this is to use `getopt' to
+parse them.  Note that the GNU version of `getopt' will normally permit
+options anywhere among the arguments unless the special argument `--'
+is used.  This is not what POSIX specifies; it is a GNU extension.
+
+   Please define long-named options that are equivalent to the
+single-letter Unix-style options.  We hope to make GNU more user
+friendly this way.  This is easy to do with the GNU function
+`getopt_long'.
+
+   One of the advantages of long-named options is that they can be
+consistent from program to program.  For example, users should be able
+to expect the "verbose" option of any GNU program which has one, to be
+spelled precisely `--verbose'.  To achieve this uniformity, look at the
+table of common long-option names when you choose the option names for
+your program (*note Option Table::).
+
+   It is usually a good idea for file names given as ordinary arguments
+to be input files only; any output files would be specified using
+options (preferably `-o' or `--output').  Even if you allow an output
+file name as an ordinary argument for compatibility, try to provide an
+option as another way to specify it.  This will lead to more consistency
+among GNU utilities, and fewer idiosyncrasies for users to remember.
+
+   All programs should support two standard options: `--version' and
+`--help'.  CGI programs should accept these as command-line options,
+and also if given as the `PATH_INFO'; for instance, visiting
+`http://example.org/p.cgi/--help' in a browser should output the same
+information as invoking `p.cgi --help' from the command line.
+
+* Menu:
+
+* --version::       The standard output for --version.
+* --help::          The standard output for --help.
+
+
+File: standards.info,  Node: --version,  Next: --help,  Up: Command-Line Interfaces
+
+4.7.1 `--version'
+-----------------
+
+The standard `--version' option should direct the program to print
+information about its name, version, origin and legal status, all on
+standard output, and then exit successfully.  Other options and
+arguments should be ignored once this is seen, and the program should
+not perform its normal function.
+
+   The first line is meant to be easy for a program to parse; the
+version number proper starts after the last space.  In addition, it
+contains the canonical name for this program, in this format:
+
+     GNU Emacs 19.30
+
+The program's name should be a constant string; _don't_ compute it from
+`argv[0]'.  The idea is to state the standard or canonical name for the
+program, not its file name.  There are other ways to find out the
+precise file name where a command is found in `PATH'.
+
+   If the program is a subsidiary part of a larger package, mention the
+package name in parentheses, like this:
+
+     emacsserver (GNU Emacs) 19.30
+
+If the package has a version number which is different from this
+program's version number, you can mention the package version number
+just before the close-parenthesis.
+
+   If you _need_ to mention the version numbers of libraries which are
+distributed separately from the package which contains this program,
+you can do so by printing an additional line of version info for each
+library you want to mention.  Use the same format for these lines as for
+the first line.
+
+   Please do not mention all of the libraries that the program uses
+"just for completeness"--that would produce a lot of unhelpful clutter.
+Please mention library version numbers only if you find in practice that
+they are very important to you in debugging.
+
+   The following line, after the version number line or lines, should
+be a copyright notice.  If more than one copyright notice is called
+for, put each on a separate line.
+
+   Next should follow a line stating the license, preferably using one
+of abbrevations below, and a brief statement that the program is free
+software, and that users are free to copy and change it.  Also mention
+that there is no warranty, to the extent permitted by law.  See
+recommended wording below.
+
+   It is ok to finish the output with a list of the major authors of the
+program, as a way of giving credit.
+
+   Here's an example of output that follows these rules:
+
+     GNU hello 2.3
+     Copyright (C) 2007 Free Software Foundation, Inc.
+     License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+     This is free software: you are free to change and redistribute it.
+     There is NO WARRANTY, to the extent permitted by law.
+
+   You should adapt this to your program, of course, filling in the
+proper year, copyright holder, name of program, and the references to
+distribution terms, and changing the rest of the wording as necessary.
+
+   This copyright notice only needs to mention the most recent year in
+which changes were made--there's no need to list the years for previous
+versions' changes.  You don't have to mention the name of the program in
+these notices, if that is inconvenient, since it appeared in the first
+line.  (The rules are different for copyright notices in source files;
+*note Copyright Notices: (maintain)Copyright Notices.)
+
+   Translations of the above lines must preserve the validity of the
+copyright notices (*note Internationalization::).  If the translation's
+character set supports it, the `(C)' should be replaced with the
+copyright symbol, as follows:
+
+   (the official copyright symbol, which is the letter C in a circle);
+
+   Write the word "Copyright" exactly like that, in English.  Do not
+translate it into another language.  International treaties recognize
+the English word "Copyright"; translations into other languages do not
+have legal significance.
+
+   Finally, here is the table of our suggested license abbreviations.
+Any abbreviation can be followed by `vVERSION[+]', meaning that
+particular version, or later versions with the `+', as shown above.
+
+   In the case of exceptions for extra permissions with the GPL, we use
+`/' for a separator; the version number can follow the license
+abbreviation as usual, as in the examples below.
+
+GPL
+     GNU General Public License, `http://www.gnu.org/licenses/gpl.html'.
+
+LGPL
+     GNU Lesser General Public License,
+     `http://www.gnu.org/licenses/lgpl.html'.
+
+GPL/Ada
+     GNU GPL with the exception for Ada.
+
+Apache
+     The Apache Software Foundation license,
+     `http://www.apache.org/licenses'.
+
+Artistic
+     The Artistic license used for Perl,
+     `http://www.perlfoundation.org/legal'.
+
+Expat
+     The Expat license, `http://www.jclark.com/xml/copying.txt'.
+
+MPL
+     The Mozilla Public License, `http://www.mozilla.org/MPL/'.
+
+OBSD
+     The original (4-clause) BSD license, incompatible with the GNU GPL
+     `http://www.xfree86.org/3.3.6/COPYRIGHT2.html#6'.
+
+PHP
+     The license used for PHP, `http://www.php.net/license/'.
+
+public domain
+     The non-license that is being in the public domain,
+     `http://www.gnu.org/licenses/license-list.html#PublicDomain'.
+
+Python
+     The license for Python, `http://www.python.org/2.0.1/license.html'.
+
+RBSD
+     The revised (3-clause) BSD, compatible with the GNU GPL,
+     `http://www.xfree86.org/3.3.6/COPYRIGHT2.html#5'.
+
+X11
+     The simple non-copyleft license used for most versions of the X
+     Window System, `http://www.xfree86.org/3.3.6/COPYRIGHT2.html#3'.
+
+Zlib
+     The license for Zlib, `http://www.gzip.org/zlib/zlib_license.html'.
+
+
+   More information about these licenses and many more are on the GNU
+licensing web pages, `http://www.gnu.org/licenses/license-list.html'.
+
+
+File: standards.info,  Node: --help,  Prev: --version,  Up: Command-Line Interfaces
+
+4.7.2 `--help'
+--------------
+
+The standard `--help' option should output brief documentation for how
+to invoke the program, on standard output, then exit successfully.
+Other options and arguments should be ignored once this is seen, and
+the program should not perform its normal function.
+
+   Near the end of the `--help' option's output, please place lines
+giving the email address for bug reports, the package's home page
+(normally <http://www.gnu.org/software/PKG>, and the general page for
+help using GNU programs.  The format should be like this:
+
+     Report bugs to: MAILING-ADDRESS
+     PKG home page: <http://www.gnu.org/software/PKG/>
+     General help using GNU software: <http://www.gnu.org/gethelp/>
+
+   It is ok to mention other appropriate mailing lists and web pages.
+
+
+File: standards.info,  Node: Option Table,  Next: OID Allocations,  Prev: Command-Line Interfaces,  Up: Program Behavior
+
+4.8 Table of Long Options
+=========================
+
+Here is a table of long options used by GNU programs.  It is surely
+incomplete, but we aim to list all the options that a new program might
+want to be compatible with.  If you use names not already in the table,
+please send <bug-standards@gnu.org> a list of them, with their
+meanings, so we can update the table.
+
+`after-date'
+     `-N' in `tar'.
+
+`all'
+     `-a' in `du', `ls', `nm', `stty', `uname', and `unexpand'.
+
+`all-text'
+     `-a' in `diff'.
+
+`almost-all'
+     `-A' in `ls'.
+
+`append'
+     `-a' in `etags', `tee', `time'; `-r' in `tar'.
+
+`archive'
+     `-a' in `cp'.
+
+`archive-name'
+     `-n' in `shar'.
+
+`arglength'
+     `-l' in `m4'.
+
+`ascii'
+     `-a' in `diff'.
+
+`assign'
+     `-v' in `gawk'.
+
+`assume-new'
+     `-W' in `make'.
+
+`assume-old'
+     `-o' in `make'.
+
+`auto-check'
+     `-a' in `recode'.
+
+`auto-pager'
+     `-a' in `wdiff'.
+
+`auto-reference'
+     `-A' in `ptx'.
+
+`avoid-wraps'
+     `-n' in `wdiff'.
+
+`background'
+     For server programs, run in the background.
+
+`backward-search'
+     `-B' in `ctags'.
+
+`basename'
+     `-f' in `shar'.
+
+`batch'
+     Used in GDB.
+
+`baud'
+     Used in GDB.
+
+`before'
+     `-b' in `tac'.
+
+`binary'
+     `-b' in `cpio' and `diff'.
+
+`bits-per-code'
+     `-b' in `shar'.
+
+`block-size'
+     Used in `cpio' and `tar'.
+
+`blocks'
+     `-b' in `head' and `tail'.
+
+`break-file'
+     `-b' in `ptx'.
+
+`brief'
+     Used in various programs to make output shorter.
+
+`bytes'
+     `-c' in `head', `split', and `tail'.
+
+`c++'
+     `-C' in `etags'.
+
+`catenate'
+     `-A' in `tar'.
+
+`cd'
+     Used in various programs to specify the directory to use.
+
+`changes'
+     `-c' in `chgrp' and `chown'.
+
+`classify'
+     `-F' in `ls'.
+
+`colons'
+     `-c' in `recode'.
+
+`command'
+     `-c' in `su'; `-x' in GDB.
+
+`compare'
+     `-d' in `tar'.
+
+`compat'
+     Used in `gawk'.
+
+`compress'
+     `-Z' in `tar' and `shar'.
+
+`concatenate'
+     `-A' in `tar'.
+
+`confirmation'
+     `-w' in `tar'.
+
+`context'
+     Used in `diff'.
+
+`copyleft'
+     `-W copyleft' in `gawk'.
+
+`copyright'
+     `-C' in `ptx', `recode', and `wdiff'; `-W copyright' in `gawk'.
+
+`core'
+     Used in GDB.
+
+`count'
+     `-q' in `who'.
+
+`count-links'
+     `-l' in `du'.
+
+`create'
+     Used in `tar' and `cpio'.
+
+`cut-mark'
+     `-c' in `shar'.
+
+`cxref'
+     `-x' in `ctags'.
+
+`date'
+     `-d' in `touch'.
+
+`debug'
+     `-d' in `make' and `m4'; `-t' in Bison.
+
+`define'
+     `-D' in `m4'.
+
+`defines'
+     `-d' in Bison and `ctags'.
+
+`delete'
+     `-D' in `tar'.
+
+`dereference'
+     `-L' in `chgrp', `chown', `cpio', `du', `ls', and `tar'.
+
+`dereference-args'
+     `-D' in `du'.
+
+`device'
+     Specify an I/O device (special file name).
+
+`diacritics'
+     `-d' in `recode'.
+
+`dictionary-order'
+     `-d' in `look'.
+
+`diff'
+     `-d' in `tar'.
+
+`digits'
+     `-n' in `csplit'.
+
+`directory'
+     Specify the directory to use, in various programs.  In `ls', it
+     means to show directories themselves rather than their contents.
+     In `rm' and `ln', it means to not treat links to directories
+     specially.
+
+`discard-all'
+     `-x' in `strip'.
+
+`discard-locals'
+     `-X' in `strip'.
+
+`dry-run'
+     `-n' in `make'.
+
+`ed'
+     `-e' in `diff'.
+
+`elide-empty-files'
+     `-z' in `csplit'.
+
+`end-delete'
+     `-x' in `wdiff'.
+
+`end-insert'
+     `-z' in `wdiff'.
+
+`entire-new-file'
+     `-N' in `diff'.
+
+`environment-overrides'
+     `-e' in `make'.
+
+`eof'
+     `-e' in `xargs'.
+
+`epoch'
+     Used in GDB.
+
+`error-limit'
+     Used in `makeinfo'.
+
+`error-output'
+     `-o' in `m4'.
+
+`escape'
+     `-b' in `ls'.
+
+`exclude-from'
+     `-X' in `tar'.
+
+`exec'
+     Used in GDB.
+
+`exit'
+     `-x' in `xargs'.
+
+`exit-0'
+     `-e' in `unshar'.
+
+`expand-tabs'
+     `-t' in `diff'.
+
+`expression'
+     `-e' in `sed'.
+
+`extern-only'
+     `-g' in `nm'.
+
+`extract'
+     `-i' in `cpio'; `-x' in `tar'.
+
+`faces'
+     `-f' in `finger'.
+
+`fast'
+     `-f' in `su'.
+
+`fatal-warnings'
+     `-E' in `m4'.
+
+`file'
+     `-f' in `gawk', `info', `make', `mt', `sed', and `tar'.
+
+`field-separator'
+     `-F' in `gawk'.
+
+`file-prefix'
+     `-b' in Bison.
+
+`file-type'
+     `-F' in `ls'.
+
+`files-from'
+     `-T' in `tar'.
+
+`fill-column'
+     Used in `makeinfo'.
+
+`flag-truncation'
+     `-F' in `ptx'.
+
+`fixed-output-files'
+     `-y' in Bison.
+
+`follow'
+     `-f' in `tail'.
+
+`footnote-style'
+     Used in `makeinfo'.
+
+`force'
+     `-f' in `cp', `ln', `mv', and `rm'.
+
+`force-prefix'
+     `-F' in `shar'.
+
+`foreground'
+     For server programs, run in the foreground; in other words, don't
+     do anything special to run the server in the background.
+
+`format'
+     Used in `ls', `time', and `ptx'.
+
+`freeze-state'
+     `-F' in `m4'.
+
+`fullname'
+     Used in GDB.
+
+`gap-size'
+     `-g' in `ptx'.
+
+`get'
+     `-x' in `tar'.
+
+`graphic'
+     `-i' in `ul'.
+
+`graphics'
+     `-g' in `recode'.
+
+`group'
+     `-g' in `install'.
+
+`gzip'
+     `-z' in `tar' and `shar'.
+
+`hashsize'
+     `-H' in `m4'.
+
+`header'
+     `-h' in `objdump' and `recode'
+
+`heading'
+     `-H' in `who'.
+
+`help'
+     Used to ask for brief usage information.
+
+`here-delimiter'
+     `-d' in `shar'.
+
+`hide-control-chars'
+     `-q' in `ls'.
+
+`html'
+     In `makeinfo', output HTML.
+
+`idle'
+     `-u' in `who'.
+
+`ifdef'
+     `-D' in `diff'.
+
+`ignore'
+     `-I' in `ls'; `-x' in `recode'.
+
+`ignore-all-space'
+     `-w' in `diff'.
+
+`ignore-backups'
+     `-B' in `ls'.
+
+`ignore-blank-lines'
+     `-B' in `diff'.
+
+`ignore-case'
+     `-f' in `look' and `ptx'; `-i' in `diff' and `wdiff'.
+
+`ignore-errors'
+     `-i' in `make'.
+
+`ignore-file'
+     `-i' in `ptx'.
+
+`ignore-indentation'
+     `-I' in `etags'.
+
+`ignore-init-file'
+     `-f' in Oleo.
+
+`ignore-interrupts'
+     `-i' in `tee'.
+
+`ignore-matching-lines'
+     `-I' in `diff'.
+
+`ignore-space-change'
+     `-b' in `diff'.
+
+`ignore-zeros'
+     `-i' in `tar'.
+
+`include'
+     `-i' in `etags'; `-I' in `m4'.
+
+`include-dir'
+     `-I' in `make'.
+
+`incremental'
+     `-G' in `tar'.
+
+`info'
+     `-i', `-l', and `-m' in Finger.
+
+`init-file'
+     In some programs, specify the name of the file to read as the
+     user's init file.
+
+`initial'
+     `-i' in `expand'.
+
+`initial-tab'
+     `-T' in `diff'.
+
+`inode'
+     `-i' in `ls'.
+
+`interactive'
+     `-i' in `cp', `ln', `mv', `rm'; `-e' in `m4'; `-p' in `xargs';
+     `-w' in `tar'.
+
+`intermix-type'
+     `-p' in `shar'.
+
+`iso-8601'
+     Used in `date'
+
+`jobs'
+     `-j' in `make'.
+
+`just-print'
+     `-n' in `make'.
+
+`keep-going'
+     `-k' in `make'.
+
+`keep-files'
+     `-k' in `csplit'.
+
+`kilobytes'
+     `-k' in `du' and `ls'.
+
+`language'
+     `-l' in `etags'.
+
+`less-mode'
+     `-l' in `wdiff'.
+
+`level-for-gzip'
+     `-g' in `shar'.
+
+`line-bytes'
+     `-C' in `split'.
+
+`lines'
+     Used in `split', `head', and `tail'.
+
+`link'
+     `-l' in `cpio'.
+
+`lint'
+`lint-old'
+     Used in `gawk'.
+
+`list'
+     `-t' in `cpio'; `-l' in `recode'.
+
+`list'
+     `-t' in `tar'.
+
+`literal'
+     `-N' in `ls'.
+
+`load-average'
+     `-l' in `make'.
+
+`login'
+     Used in `su'.
+
+`machine'
+     Used in `uname'.
+
+`macro-name'
+     `-M' in `ptx'.
+
+`mail'
+     `-m' in `hello' and `uname'.
+
+`make-directories'
+     `-d' in `cpio'.
+
+`makefile'
+     `-f' in `make'.
+
+`mapped'
+     Used in GDB.
+
+`max-args'
+     `-n' in `xargs'.
+
+`max-chars'
+     `-n' in `xargs'.
+
+`max-lines'
+     `-l' in `xargs'.
+
+`max-load'
+     `-l' in `make'.
+
+`max-procs'
+     `-P' in `xargs'.
+
+`mesg'
+     `-T' in `who'.
+
+`message'
+     `-T' in `who'.
+
+`minimal'
+     `-d' in `diff'.
+
+`mixed-uuencode'
+     `-M' in `shar'.
+
+`mode'
+     `-m' in `install', `mkdir', and `mkfifo'.
+
+`modification-time'
+     `-m' in `tar'.
+
+`multi-volume'
+     `-M' in `tar'.
+
+`name-prefix'
+     `-a' in Bison.
+
+`nesting-limit'
+     `-L' in `m4'.
+
+`net-headers'
+     `-a' in `shar'.
+
+`new-file'
+     `-W' in `make'.
+
+`no-builtin-rules'
+     `-r' in `make'.
+
+`no-character-count'
+     `-w' in `shar'.
+
+`no-check-existing'
+     `-x' in `shar'.
+
+`no-common'
+     `-3' in `wdiff'.
+
+`no-create'
+     `-c' in `touch'.
+
+`no-defines'
+     `-D' in `etags'.
+
+`no-deleted'
+     `-1' in `wdiff'.
+
+`no-dereference'
+     `-d' in `cp'.
+
+`no-inserted'
+     `-2' in `wdiff'.
+
+`no-keep-going'
+     `-S' in `make'.
+
+`no-lines'
+     `-l' in Bison.
+
+`no-piping'
+     `-P' in `shar'.
+
+`no-prof'
+     `-e' in `gprof'.
+
+`no-regex'
+     `-R' in `etags'.
+
+`no-sort'
+     `-p' in `nm'.
+
+`no-splash'
+     Don't print a startup splash screen.
+
+`no-split'
+     Used in `makeinfo'.
+
+`no-static'
+     `-a' in `gprof'.
+
+`no-time'
+     `-E' in `gprof'.
+
+`no-timestamp'
+     `-m' in `shar'.
+
+`no-validate'
+     Used in `makeinfo'.
+
+`no-wait'
+     Used in `emacsclient'.
+
+`no-warn'
+     Used in various programs to inhibit warnings.
+
+`node'
+     `-n' in `info'.
+
+`nodename'
+     `-n' in `uname'.
+
+`nonmatching'
+     `-f' in `cpio'.
+
+`nstuff'
+     `-n' in `objdump'.
+
+`null'
+     `-0' in `xargs'.
+
+`number'
+     `-n' in `cat'.
+
+`number-nonblank'
+     `-b' in `cat'.
+
+`numeric-sort'
+     `-n' in `nm'.
+
+`numeric-uid-gid'
+     `-n' in `cpio' and `ls'.
+
+`nx'
+     Used in GDB.
+
+`old-archive'
+     `-o' in `tar'.
+
+`old-file'
+     `-o' in `make'.
+
+`one-file-system'
+     `-l' in `tar', `cp', and `du'.
+
+`only-file'
+     `-o' in `ptx'.
+
+`only-prof'
+     `-f' in `gprof'.
+
+`only-time'
+     `-F' in `gprof'.
+
+`options'
+     `-o' in `getopt', `fdlist', `fdmount', `fdmountd', and `fdumount'.
+
+`output'
+     In various programs, specify the output file name.
+
+`output-prefix'
+     `-o' in `shar'.
+
+`override'
+     `-o' in `rm'.
+
+`overwrite'
+     `-c' in `unshar'.
+
+`owner'
+     `-o' in `install'.
+
+`paginate'
+     `-l' in `diff'.
+
+`paragraph-indent'
+     Used in `makeinfo'.
+
+`parents'
+     `-p' in `mkdir' and `rmdir'.
+
+`pass-all'
+     `-p' in `ul'.
+
+`pass-through'
+     `-p' in `cpio'.
+
+`port'
+     `-P' in `finger'.
+
+`portability'
+     `-c' in `cpio' and `tar'.
+
+`posix'
+     Used in `gawk'.
+
+`prefix-builtins'
+     `-P' in `m4'.
+
+`prefix'
+     `-f' in `csplit'.
+
+`preserve'
+     Used in `tar' and `cp'.
+
+`preserve-environment'
+     `-p' in `su'.
+
+`preserve-modification-time'
+     `-m' in `cpio'.
+
+`preserve-order'
+     `-s' in `tar'.
+
+`preserve-permissions'
+     `-p' in `tar'.
+
+`print'
+     `-l' in `diff'.
+
+`print-chars'
+     `-L' in `cmp'.
+
+`print-data-base'
+     `-p' in `make'.
+
+`print-directory'
+     `-w' in `make'.
+
+`print-file-name'
+     `-o' in `nm'.
+
+`print-symdefs'
+     `-s' in `nm'.
+
+`printer'
+     `-p' in `wdiff'.
+
+`prompt'
+     `-p' in `ed'.
+
+`proxy'
+     Specify an HTTP proxy.
+
+`query-user'
+     `-X' in `shar'.
+
+`question'
+     `-q' in `make'.
+
+`quiet'
+     Used in many programs to inhibit the usual output.  Every program
+     accepting `--quiet' should accept `--silent' as a synonym.
+
+`quiet-unshar'
+     `-Q' in `shar'
+
+`quote-name'
+     `-Q' in `ls'.
+
+`rcs'
+     `-n' in `diff'.
+
+`re-interval'
+     Used in `gawk'.
+
+`read-full-blocks'
+     `-B' in `tar'.
+
+`readnow'
+     Used in GDB.
+
+`recon'
+     `-n' in `make'.
+
+`record-number'
+     `-R' in `tar'.
+
+`recursive'
+     Used in `chgrp', `chown', `cp', `ls', `diff', and `rm'.
+
+`reference'
+     `-r' in `touch'.
+
+`references'
+     `-r' in `ptx'.
+
+`regex'
+     `-r' in `tac' and `etags'.
+
+`release'
+     `-r' in `uname'.
+
+`reload-state'
+     `-R' in `m4'.
+
+`relocation'
+     `-r' in `objdump'.
+
+`rename'
+     `-r' in `cpio'.
+
+`replace'
+     `-i' in `xargs'.
+
+`report-identical-files'
+     `-s' in `diff'.
+
+`reset-access-time'
+     `-a' in `cpio'.
+
+`reverse'
+     `-r' in `ls' and `nm'.
+
+`reversed-ed'
+     `-f' in `diff'.
+
+`right-side-defs'
+     `-R' in `ptx'.
+
+`same-order'
+     `-s' in `tar'.
+
+`same-permissions'
+     `-p' in `tar'.
+
+`save'
+     `-g' in `stty'.
+
+`se'
+     Used in GDB.
+
+`sentence-regexp'
+     `-S' in `ptx'.
+
+`separate-dirs'
+     `-S' in `du'.
+
+`separator'
+     `-s' in `tac'.
+
+`sequence'
+     Used by `recode' to chose files or pipes for sequencing passes.
+
+`shell'
+     `-s' in `su'.
+
+`show-all'
+     `-A' in `cat'.
+
+`show-c-function'
+     `-p' in `diff'.
+
+`show-ends'
+     `-E' in `cat'.
+
+`show-function-line'
+     `-F' in `diff'.
+
+`show-tabs'
+     `-T' in `cat'.
+
+`silent'
+     Used in many programs to inhibit the usual output.  Every program
+     accepting `--silent' should accept `--quiet' as a synonym.
+
+`size'
+     `-s' in `ls'.
+
+`socket'
+     Specify a file descriptor for a network server to use for its
+     socket, instead of opening and binding a new socket.  This
+     provides a way to run, in a non-privileged process, a server that
+     normally needs a reserved port number.
+
+`sort'
+     Used in `ls'.
+
+`source'
+     `-W source' in `gawk'.
+
+`sparse'
+     `-S' in `tar'.
+
+`speed-large-files'
+     `-H' in `diff'.
+
+`split-at'
+     `-E' in `unshar'.
+
+`split-size-limit'
+     `-L' in `shar'.
+
+`squeeze-blank'
+     `-s' in `cat'.
+
+`start-delete'
+     `-w' in `wdiff'.
+
+`start-insert'
+     `-y' in `wdiff'.
+
+`starting-file'
+     Used in `tar' and `diff' to specify which file within a directory
+     to start processing with.
+
+`statistics'
+     `-s' in `wdiff'.
+
+`stdin-file-list'
+     `-S' in `shar'.
+
+`stop'
+     `-S' in `make'.
+
+`strict'
+     `-s' in `recode'.
+
+`strip'
+     `-s' in `install'.
+
+`strip-all'
+     `-s' in `strip'.
+
+`strip-debug'
+     `-S' in `strip'.
+
+`submitter'
+     `-s' in `shar'.
+
+`suffix'
+     `-S' in `cp', `ln', `mv'.
+
+`suffix-format'
+     `-b' in `csplit'.
+
+`sum'
+     `-s' in `gprof'.
+
+`summarize'
+     `-s' in `du'.
+
+`symbolic'
+     `-s' in `ln'.
+
+`symbols'
+     Used in GDB and `objdump'.
+
+`synclines'
+     `-s' in `m4'.
+
+`sysname'
+     `-s' in `uname'.
+
+`tabs'
+     `-t' in `expand' and `unexpand'.
+
+`tabsize'
+     `-T' in `ls'.
+
+`terminal'
+     `-T' in `tput' and `ul'.  `-t' in `wdiff'.
+
+`text'
+     `-a' in `diff'.
+
+`text-files'
+     `-T' in `shar'.
+
+`time'
+     Used in `ls' and `touch'.
+
+`timeout'
+     Specify how long to wait before giving up on some operation.
+
+`to-stdout'
+     `-O' in `tar'.
+
+`total'
+     `-c' in `du'.
+
+`touch'
+     `-t' in `make', `ranlib', and `recode'.
+
+`trace'
+     `-t' in `m4'.
+
+`traditional'
+     `-t' in `hello'; `-W traditional' in `gawk'; `-G' in `ed', `m4',
+     and `ptx'.
+
+`tty'
+     Used in GDB.
+
+`typedefs'
+     `-t' in `ctags'.
+
+`typedefs-and-c++'
+     `-T' in `ctags'.
+
+`typeset-mode'
+     `-t' in `ptx'.
+
+`uncompress'
+     `-z' in `tar'.
+
+`unconditional'
+     `-u' in `cpio'.
+
+`undefine'
+     `-U' in `m4'.
+
+`undefined-only'
+     `-u' in `nm'.
+
+`update'
+     `-u' in `cp', `ctags', `mv', `tar'.
+
+`usage'
+     Used in `gawk'; same as `--help'.
+
+`uuencode'
+     `-B' in `shar'.
+
+`vanilla-operation'
+     `-V' in `shar'.
+
+`verbose'
+     Print more information about progress.  Many programs support this.
+
+`verify'
+     `-W' in `tar'.
+
+`version'
+     Print the version number.
+
+`version-control'
+     `-V' in `cp', `ln', `mv'.
+
+`vgrind'
+     `-v' in `ctags'.
+
+`volume'
+     `-V' in `tar'.
+
+`what-if'
+     `-W' in `make'.
+
+`whole-size-limit'
+     `-l' in `shar'.
+
+`width'
+     `-w' in `ls' and `ptx'.
+
+`word-regexp'
+     `-W' in `ptx'.
+
+`writable'
+     `-T' in `who'.
+
+`zeros'
+     `-z' in `gprof'.
+
+
+File: standards.info,  Node: OID Allocations,  Next: Memory Usage,  Prev: Option Table,  Up: Program Behavior
+
+4.9 OID Allocations
+===================
+
+The OID (object identifier) 1.3.6.1.4.1.11591 has been assigned to the
+GNU Project (thanks to Werner Koch).  These are used for SNMP, LDAP,
+X.509 certificates, and so on.  The web site
+`http://www.alvestrand.no/objectid' has a (voluntary) listing of many
+OID assignments.
+
+   If you need a new slot for your GNU package, write
+<maintainers@gnu.org>.  Here is a list of arcs currently assigned:
+
+
+     1.3.6.1.4.1.11591 GNU
+
+     1.3.6.1.4.1.11591.1 GNU Radius
+
+     1.3.6.1.4.1.11591.2 GnuPG
+       1.3.6.1.4.1.11591.2.1   notation
+       1.3.6.1.4.1.11591.2.1.1 pkaAddress
+
+     1.3.6.1.4.1.11591.3 GNU Radar
+
+     1.3.6.1.4.1.11591.4 GNU GSS
+
+     1.3.6.1.4.1.11591.5 GNU Mailutils
+
+     1.3.6.1.4.1.11591.6 GNU Shishi
+
+     1.3.6.1.4.1.11591.7 GNU Radio
+
+     1.3.6.1.4.1.11591.12 digestAlgorithm
+       1.3.6.1.4.1.11591.12.2 TIGER/192
+       1.3.6.1.4.1.11591.13 encryptionAlgorithm
+         1.3.6.1.4.1.11591.13.2 Serpent
+           1.3.6.1.4.1.11591.13.2.1 Serpent-128-ECB
+           1.3.6.1.4.1.11591.13.2.2 Serpent-128-CBC
+           1.3.6.1.4.1.11591.13.2.3 Serpent-128-OFB
+           1.3.6.1.4.1.11591.13.2.4 Serpent-128-CFB
+           1.3.6.1.4.1.11591.13.2.21 Serpent-192-ECB
+           1.3.6.1.4.1.11591.13.2.22 Serpent-192-CBC
+           1.3.6.1.4.1.11591.13.2.23 Serpent-192-OFB
+           1.3.6.1.4.1.11591.13.2.24 Serpent-192-CFB
+           1.3.6.1.4.1.11591.13.2.41 Serpent-256-ECB
+           1.3.6.1.4.1.11591.13.2.42 Serpent-256-CBC
+           1.3.6.1.4.1.11591.13.2.43 Serpent-256-OFB
+           1.3.6.1.4.1.11591.13.2.44 Serpent-256-CFB
+       1.3.6.1.4.1.11591.14 CRC algorithms
+         1.3.6.1.4.1.11591.14.1 CRC 32
+
+
+File: standards.info,  Node: Memory Usage,  Next: File Usage,  Prev: OID Allocations,  Up: Program Behavior
+
+4.10 Memory Usage
+=================
+
+If a program typically uses just a few meg of memory, don't bother
+making any effort to reduce memory usage.  For example, if it is
+impractical for other reasons to operate on files more than a few meg
+long, it is reasonable to read entire input files into memory to
+operate on them.
+
+   However, for programs such as `cat' or `tail', that can usefully
+operate on very large files, it is important to avoid using a technique
+that would artificially limit the size of files it can handle.  If a
+program works by lines and could be applied to arbitrary user-supplied
+input files, it should keep only a line in memory, because this is not
+very hard and users will want to be able to operate on input files that
+are bigger than will fit in memory all at once.
+
+   If your program creates complicated data structures, just make them
+in memory and give a fatal error if `malloc' returns zero.
+
+
+File: standards.info,  Node: File Usage,  Prev: Memory Usage,  Up: Program Behavior
+
+4.11 File Usage
+===============
+
+Programs should be prepared to operate when `/usr' and `/etc' are
+read-only file systems.  Thus, if the program manages log files, lock
+files, backup files, score files, or any other files which are modified
+for internal purposes, these files should not be stored in `/usr' or
+`/etc'.
+
+   There are two exceptions.  `/etc' is used to store system
+configuration information; it is reasonable for a program to modify
+files in `/etc' when its job is to update the system configuration.
+Also, if the user explicitly asks to modify one file in a directory, it
+is reasonable for the program to store other files in the same
+directory.
+
+
+File: standards.info,  Node: Writing C,  Next: Documentation,  Prev: Program Behavior,  Up: Top
+
+5 Making The Best Use of C
+**************************
+
+This chapter provides advice on how best to use the C language when
+writing GNU software.
+
+* Menu:
+
+* Formatting::                  Formatting your source code.
+* Comments::                    Commenting your work.
+* Syntactic Conventions::       Clean use of C constructs.
+* Names::                       Naming variables, functions, and files.
+* System Portability::          Portability among different operating systems.
+* CPU Portability::             Supporting the range of CPU types.
+* System Functions::            Portability and ``standard'' library functions.
+* Internationalization::        Techniques for internationalization.
+* Character Set::               Use ASCII by default.
+* Quote Characters::            Use `...' in the C locale.
+* Mmap::                        How you can safely use `mmap'.
+
+
+File: standards.info,  Node: Formatting,  Next: Comments,  Up: Writing C
+
+5.1 Formatting Your Source Code
+===============================
+
+It is important to put the open-brace that starts the body of a C
+function in column one, so that they will start a defun.  Several tools
+look for open-braces in column one to find the beginnings of C
+functions.  These tools will not work on code not formatted that way.
+
+   Avoid putting open-brace, open-parenthesis or open-bracket in column
+one when they are inside a function, so that they won't start a defun.
+The open-brace that starts a `struct' body can go in column one if you
+find it useful to treat that definition as a defun.
+
+   It is also important for function definitions to start the name of
+the function in column one.  This helps people to search for function
+definitions, and may also help certain tools recognize them.  Thus,
+using Standard C syntax, the format is this:
+
+     static char *
+     concat (char *s1, char *s2)
+     {
+       ...
+     }
+
+or, if you want to use traditional C syntax, format the definition like
+this:
+
+     static char *
+     concat (s1, s2)        /* Name starts in column one here */
+          char *s1, *s2;
+     {                     /* Open brace in column one here */
+       ...
+     }
+
+   In Standard C, if the arguments don't fit nicely on one line, split
+it like this:
+
+     int
+     lots_of_args (int an_integer, long a_long, short a_short,
+                   double a_double, float a_float)
+     ...
+
+   The rest of this section gives our recommendations for other aspects
+of C formatting style, which is also the default style of the `indent'
+program in version 1.2 and newer.  It corresponds to the options
+
+     -nbad -bap -nbc -bbo -bl -bli2 -bls -ncdb -nce -cp1 -cs -di2
+     -ndj -nfc1 -nfca -hnl -i2 -ip5 -lp -pcs -psl -nsc -nsob
+
+   We don't think of these recommendations as requirements, because it
+causes no problems for users if two different programs have different
+formatting styles.
+
+   But whatever style you use, please use it consistently, since a
+mixture of styles within one program tends to look ugly.  If you are
+contributing changes to an existing program, please follow the style of
+that program.
+
+   For the body of the function, our recommended style looks like this:
+
+     if (x < foo (y, z))
+       haha = bar[4] + 5;
+     else
+       {
+         while (z)
+           {
+             haha += foo (z, z);
+             z--;
+           }
+         return ++x + bar ();
+       }
+
+   We find it easier to read a program when it has spaces before the
+open-parentheses and after the commas.  Especially after the commas.
+
+   When you split an expression into multiple lines, split it before an
+operator, not after one.  Here is the right way:
+
+     if (foo_this_is_long && bar > win (x, y, z)
+         && remaining_condition)
+
+   Try to avoid having two operators of different precedence at the same
+level of indentation.  For example, don't write this:
+
+     mode = (inmode[j] == VOIDmode
+             || GET_MODE_SIZE (outmode[j]) > GET_MODE_SIZE (inmode[j])
+             ? outmode[j] : inmode[j]);
+
+   Instead, use extra parentheses so that the indentation shows the
+nesting:
+
+     mode = ((inmode[j] == VOIDmode
+              || (GET_MODE_SIZE (outmode[j]) > GET_MODE_SIZE (inmode[j])))
+             ? outmode[j] : inmode[j]);
+
+   Insert extra parentheses so that Emacs will indent the code properly.
+For example, the following indentation looks nice if you do it by hand,
+
+     v = rup->ru_utime.tv_sec*1000 + rup->ru_utime.tv_usec/1000
+         + rup->ru_stime.tv_sec*1000 + rup->ru_stime.tv_usec/1000;
+
+but Emacs would alter it.  Adding a set of parentheses produces
+something that looks equally nice, and which Emacs will preserve:
+
+     v = (rup->ru_utime.tv_sec*1000 + rup->ru_utime.tv_usec/1000
+          + rup->ru_stime.tv_sec*1000 + rup->ru_stime.tv_usec/1000);
+
+   Format do-while statements like this:
+
+     do
+       {
+         a = foo (a);
+       }
+     while (a > 0);
+
+   Please use formfeed characters (control-L) to divide the program into
+pages at logical places (but not within a function).  It does not matter
+just how long the pages are, since they do not have to fit on a printed
+page.  The formfeeds should appear alone on lines by themselves.
+
+
+File: standards.info,  Node: Comments,  Next: Syntactic Conventions,  Prev: Formatting,  Up: Writing C
+
+5.2 Commenting Your Work
+========================
+
+Every program should start with a comment saying briefly what it is for.
+Example: `fmt - filter for simple filling of text'.  This comment
+should be at the top of the source file containing the `main' function
+of the program.
+
+   Also, please write a brief comment at the start of each source file,
+with the file name and a line or two about the overall purpose of the
+file.
+
+   Please write the comments in a GNU program in English, because
+English is the one language that nearly all programmers in all
+countries can read.  If you do not write English well, please write
+comments in English as well as you can, then ask other people to help
+rewrite them.  If you can't write comments in English, please find
+someone to work with you and translate your comments into English.
+
+   Please put a comment on each function saying what the function does,
+what sorts of arguments it gets, and what the possible values of
+arguments mean and are used for.  It is not necessary to duplicate in
+words the meaning of the C argument declarations, if a C type is being
+used in its customary fashion.  If there is anything nonstandard about
+its use (such as an argument of type `char *' which is really the
+address of the second character of a string, not the first), or any
+possible values that would not work the way one would expect (such as,
+that strings containing newlines are not guaranteed to work), be sure
+to say so.
+
+   Also explain the significance of the return value, if there is one.
+
+   Please put two spaces after the end of a sentence in your comments,
+so that the Emacs sentence commands will work.  Also, please write
+complete sentences and capitalize the first word.  If a lower-case
+identifier comes at the beginning of a sentence, don't capitalize it!
+Changing the spelling makes it a different identifier.  If you don't
+like starting a sentence with a lower case letter, write the sentence
+differently (e.g., "The identifier lower-case is ...").
+
+   The comment on a function is much clearer if you use the argument
+names to speak about the argument values.  The variable name itself
+should be lower case, but write it in upper case when you are speaking
+about the value rather than the variable itself.  Thus, "the inode
+number NODE_NUM" rather than "an inode".
+
+   There is usually no purpose in restating the name of the function in
+the comment before it, because the reader can see that for himself.
+There might be an exception when the comment is so long that the
+function itself would be off the bottom of the screen.
+
+   There should be a comment on each static variable as well, like this:
+
+     /* Nonzero means truncate lines in the display;
+        zero means continue them.  */
+     int truncate_lines;
+
+   Every `#endif' should have a comment, except in the case of short
+conditionals (just a few lines) that are not nested.  The comment should
+state the condition of the conditional that is ending, _including its
+sense_.  `#else' should have a comment describing the condition _and
+sense_ of the code that follows.  For example:
+
+     #ifdef foo
+       ...
+     #else /* not foo */
+       ...
+     #endif /* not foo */
+     #ifdef foo
+       ...
+     #endif /* foo */
+
+but, by contrast, write the comments this way for a `#ifndef':
+
+     #ifndef foo
+       ...
+     #else /* foo */
+       ...
+     #endif /* foo */
+     #ifndef foo
+       ...
+     #endif /* not foo */
+
+
+File: standards.info,  Node: Syntactic Conventions,  Next: Names,  Prev: Comments,  Up: Writing C
+
+5.3 Clean Use of C Constructs
+=============================
+
+Please explicitly declare the types of all objects.  For example, you
+should explicitly declare all arguments to functions, and you should
+declare functions to return `int' rather than omitting the `int'.
+
+   Some programmers like to use the GCC `-Wall' option, and change the
+code whenever it issues a warning.  If you want to do this, then do.
+Other programmers prefer not to use `-Wall', because it gives warnings
+for valid and legitimate code which they do not want to change.  If you
+want to do this, then do.  The compiler should be your servant, not
+your master.
+
+   Declarations of external functions and functions to appear later in
+the source file should all go in one place near the beginning of the
+file (somewhere before the first function definition in the file), or
+else should go in a header file.  Don't put `extern' declarations inside
+functions.
+
+   It used to be common practice to use the same local variables (with
+names like `tem') over and over for different values within one
+function.  Instead of doing this, it is better to declare a separate
+local variable for each distinct purpose, and give it a name which is
+meaningful.  This not only makes programs easier to understand, it also
+facilitates optimization by good compilers.  You can also move the
+declaration of each local variable into the smallest scope that includes
+all its uses.  This makes the program even cleaner.
+
+   Don't use local variables or parameters that shadow global
+identifiers.
+
+   Don't declare multiple variables in one declaration that spans lines.
+Start a new declaration on each line, instead.  For example, instead of
+this:
+
+     int    foo,
+            bar;
+
+write either this:
+
+     int foo, bar;
+
+or this:
+
+     int foo;
+     int bar;
+
+(If they are global variables, each should have a comment preceding it
+anyway.)
+
+   When you have an `if'-`else' statement nested in another `if'
+statement, always put braces around the `if'-`else'.  Thus, never write
+like this:
+
+     if (foo)
+       if (bar)
+         win ();
+       else
+         lose ();
+
+always like this:
+
+     if (foo)
+       {
+         if (bar)
+           win ();
+         else
+           lose ();
+       }
+
+   If you have an `if' statement nested inside of an `else' statement,
+either write `else if' on one line, like this,
+
+     if (foo)
+       ...
+     else if (bar)
+       ...
+
+with its `then'-part indented like the preceding `then'-part, or write
+the nested `if' within braces like this:
+
+     if (foo)
+       ...
+     else
+       {
+         if (bar)
+           ...
+       }
+
+   Don't declare both a structure tag and variables or typedefs in the
+same declaration.  Instead, declare the structure tag separately and
+then use it to declare the variables or typedefs.
+
+   Try to avoid assignments inside `if'-conditions (assignments inside
+`while'-conditions are ok).  For example, don't write this:
+
+     if ((foo = (char *) malloc (sizeof *foo)) == 0)
+       fatal ("virtual memory exhausted");
+
+instead, write this:
+
+     foo = (char *) malloc (sizeof *foo);
+     if (foo == 0)
+       fatal ("virtual memory exhausted");
+
+   Don't make the program ugly to placate `lint'.  Please don't insert
+any casts to `void'.  Zero without a cast is perfectly fine as a null
+pointer constant, except when calling a varargs function.
+
+
+File: standards.info,  Node: Names,  Next: System Portability,  Prev: Syntactic Conventions,  Up: Writing C
+
+5.4 Naming Variables, Functions, and Files
+==========================================
+
+The names of global variables and functions in a program serve as
+comments of a sort.  So don't choose terse names--instead, look for
+names that give useful information about the meaning of the variable or
+function.  In a GNU program, names should be English, like other
+comments.
+
+   Local variable names can be shorter, because they are used only
+within one context, where (presumably) comments explain their purpose.
+
+   Try to limit your use of abbreviations in symbol names.  It is ok to
+make a few abbreviations, explain what they mean, and then use them
+frequently, but don't use lots of obscure abbreviations.
+
+   Please use underscores to separate words in a name, so that the Emacs
+word commands can be useful within them.  Stick to lower case; reserve
+upper case for macros and `enum' constants, and for name-prefixes that
+follow a uniform convention.
+
+   For example, you should use names like `ignore_space_change_flag';
+don't use names like `iCantReadThis'.
+
+   Variables that indicate whether command-line options have been
+specified should be named after the meaning of the option, not after
+the option-letter.  A comment should state both the exact meaning of
+the option and its letter.  For example,
+
+     /* Ignore changes in horizontal whitespace (-b).  */
+     int ignore_space_change_flag;
+
+   When you want to define names with constant integer values, use
+`enum' rather than `#define'.  GDB knows about enumeration constants.
+
+   You might want to make sure that none of the file names would
+conflict if the files were loaded onto an MS-DOS file system which
+shortens the names.  You can use the program `doschk' to test for this.
+
+   Some GNU programs were designed to limit themselves to file names of
+14 characters or less, to avoid file name conflicts if they are read
+into older System V systems.  Please preserve this feature in the
+existing GNU programs that have it, but there is no need to do this in
+new GNU programs.  `doschk' also reports file names longer than 14
+characters.
+
+
+File: standards.info,  Node: System Portability,  Next: CPU Portability,  Prev: Names,  Up: Writing C
+
+5.5 Portability between System Types
+====================================
+
+In the Unix world, "portability" refers to porting to different Unix
+versions.  For a GNU program, this kind of portability is desirable, but
+not paramount.
+
+   The primary purpose of GNU software is to run on top of the GNU
+kernel, compiled with the GNU C compiler, on various types of CPU.  So
+the kinds of portability that are absolutely necessary are quite
+limited.  But it is important to support Linux-based GNU systems, since
+they are the form of GNU that is popular.
+
+   Beyond that, it is good to support the other free operating systems
+(*BSD), and it is nice to support other Unix-like systems if you want
+to.  Supporting a variety of Unix-like systems is desirable, although
+not paramount.  It is usually not too hard, so you may as well do it.
+But you don't have to consider it an obligation, if it does turn out to
+be hard.
+
+   The easiest way to achieve portability to most Unix-like systems is
+to use Autoconf.  It's unlikely that your program needs to know more
+information about the host platform than Autoconf can provide, simply
+because most of the programs that need such knowledge have already been
+written.
+
+   Avoid using the format of semi-internal data bases (e.g.,
+directories) when there is a higher-level alternative (`readdir').
+
+   As for systems that are not like Unix, such as MSDOS, Windows, VMS,
+MVS, and older Macintosh systems, supporting them is often a lot of
+work.  When that is the case, it is better to spend your time adding
+features that will be useful on GNU and GNU/Linux, rather than on
+supporting other incompatible systems.
+
+   If you do support Windows, please do not abbreviate it as "win".  In
+hacker terminology, calling something a "win" is a form of praise.
+You're free to praise Microsoft Windows on your own if you want, but
+please don't do this in GNU packages.  Instead of abbreviating
+"Windows" to "win", you can write it in full or abbreviate it to "woe"
+or "w".  In GNU Emacs, for instance, we use `w32' in file names of
+Windows-specific files, but the macro for Windows conditionals is
+called `WINDOWSNT'.
+
+   It is a good idea to define the "feature test macro" `_GNU_SOURCE'
+when compiling your C files.  When you compile on GNU or GNU/Linux,
+this will enable the declarations of GNU library extension functions,
+and that will usually give you a compiler error message if you define
+the same function names in some other way in your program.  (You don't
+have to actually _use_ these functions, if you prefer to make the
+program more portable to other systems.)
+
+   But whether or not you use these GNU extensions, you should avoid
+using their names for any other meanings.  Doing so would make it hard
+to move your code into other GNU programs.
+
+
+File: standards.info,  Node: CPU Portability,  Next: System Functions,

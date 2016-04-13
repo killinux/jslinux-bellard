@@ -1,0 +1,1472 @@
+s for the
+declared range of possible values.  Specifically, the \f(CW\*(C`enum\*(C'\fR type
+will be equivalent to the smallest integer type which has enough room.
+.Sp
+\&\fBWarning:\fR the \fB\-fshort\-enums\fR switch causes \s-1GCC\s0 to generate
+code that is not binary compatible with code generated without that switch.
+Use it to conform to a non-default application binary interface.
+.IP "\fB\-fshort\-double\fR" 4
+.IX Item "-fshort-double"
+Use the same size for \f(CW\*(C`double\*(C'\fR as for \f(CW\*(C`float\*(C'\fR.
+.Sp
+\&\fBWarning:\fR the \fB\-fshort\-double\fR switch causes \s-1GCC\s0 to generate
+code that is not binary compatible with code generated without that switch.
+Use it to conform to a non-default application binary interface.
+.IP "\fB\-fshort\-wchar\fR" 4
+.IX Item "-fshort-wchar"
+Override the underlying type for \fBwchar_t\fR to be \fBshort
+unsigned int\fR instead of the default for the target.  This option is
+useful for building programs to run under \s-1WINE\s0.
+.Sp
+\&\fBWarning:\fR the \fB\-fshort\-wchar\fR switch causes \s-1GCC\s0 to generate
+code that is not binary compatible with code generated without that switch.
+Use it to conform to a non-default application binary interface.
+.IP "\fB\-fno\-common\fR" 4
+.IX Item "-fno-common"
+In C, allocate even uninitialized global variables in the data section of the
+object file, rather than generating them as common blocks.  This has the
+effect that if the same variable is declared (without \f(CW\*(C`extern\*(C'\fR) in
+two different compilations, you will get an error when you link them.
+The only reason this might be useful is if you wish to verify that the
+program will work on other systems which always work this way.
+.IP "\fB\-fno\-ident\fR" 4
+.IX Item "-fno-ident"
+Ignore the \fB#ident\fR directive.
+.IP "\fB\-finhibit\-size\-directive\fR" 4
+.IX Item "-finhibit-size-directive"
+Don't output a \f(CW\*(C`.size\*(C'\fR assembler directive, or anything else that
+would cause trouble if the function is split in the middle, and the
+two halves are placed at locations far apart in memory.  This option is
+used when compiling \fIcrtstuff.c\fR; you should not need to use it
+for anything else.
+.IP "\fB\-fverbose\-asm\fR" 4
+.IX Item "-fverbose-asm"
+Put extra commentary information in the generated assembly code to
+make it more readable.  This option is generally only of use to those
+who actually need to read the generated assembly code (perhaps while
+debugging the compiler itself).
+.Sp
+\&\fB\-fno\-verbose\-asm\fR, the default, causes the
+extra information to be omitted and is useful when comparing two assembler
+files.
+.IP "\fB\-frecord\-gcc\-switches\fR" 4
+.IX Item "-frecord-gcc-switches"
+This switch causes the command line that was used to invoke the
+compiler to be recorded into the object file that is being created.
+This switch is only implemented on some targets and the exact format
+of the recording is target and binary file format dependent, but it
+usually takes the form of a section containing \s-1ASCII\s0 text.  This
+switch is related to the \fB\-fverbose\-asm\fR switch, but that
+switch only records information in the assembler output file as
+comments, so it never reaches the object file.
+.IP "\fB\-fpic\fR" 4
+.IX Item "-fpic"
+Generate position-independent code (\s-1PIC\s0) suitable for use in a shared
+library, if supported for the target machine.  Such code accesses all
+constant addresses through a global offset table (\s-1GOT\s0).  The dynamic
+loader resolves the \s-1GOT\s0 entries when the program starts (the dynamic
+loader is not part of \s-1GCC\s0; it is part of the operating system).  If
+the \s-1GOT\s0 size for the linked executable exceeds a machine-specific
+maximum size, you get an error message from the linker indicating that
+\&\fB\-fpic\fR does not work; in that case, recompile with \fB\-fPIC\fR
+instead.  (These maximums are 8k on the \s-1SPARC\s0 and 32k
+on the m68k and \s-1RS/6000\s0.  The 386 has no such limit.)
+.Sp
+Position-independent code requires special support, and therefore works
+only on certain machines.  For the 386, \s-1GCC\s0 supports \s-1PIC\s0 for System V
+but not for the Sun 386i.  Code generated for the \s-1IBM\s0 \s-1RS/6000\s0 is always
+position-independent.
+.Sp
+When this flag is set, the macros \f(CW\*(C`_\|_pic_\|_\*(C'\fR and \f(CW\*(C`_\|_PIC_\|_\*(C'\fR
+are defined to 1.
+.IP "\fB\-fPIC\fR" 4
+.IX Item "-fPIC"
+If supported for the target machine, emit position-independent code,
+suitable for dynamic linking and avoiding any limit on the size of the
+global offset table.  This option makes a difference on the m68k,
+PowerPC and \s-1SPARC\s0.
+.Sp
+Position-independent code requires special support, and therefore works
+only on certain machines.
+.Sp
+When this flag is set, the macros \f(CW\*(C`_\|_pic_\|_\*(C'\fR and \f(CW\*(C`_\|_PIC_\|_\*(C'\fR
+are defined to 2.
+.IP "\fB\-fpie\fR" 4
+.IX Item "-fpie"
+.PD 0
+.IP "\fB\-fPIE\fR" 4
+.IX Item "-fPIE"
+.PD
+These options are similar to \fB\-fpic\fR and \fB\-fPIC\fR, but
+generated position independent code can be only linked into executables.
+Usually these options are used when \fB\-pie\fR \s-1GCC\s0 option will be
+used during linking.
+.Sp
+\&\fB\-fpie\fR and \fB\-fPIE\fR both define the macros
+\&\f(CW\*(C`_\|_pie_\|_\*(C'\fR and \f(CW\*(C`_\|_PIE_\|_\*(C'\fR.  The macros have the value 1
+for \fB\-fpie\fR and 2 for \fB\-fPIE\fR.
+.IP "\fB\-fno\-jump\-tables\fR" 4
+.IX Item "-fno-jump-tables"
+Do not use jump tables for switch statements even where it would be
+more efficient than other code generation strategies.  This option is
+of use in conjunction with \fB\-fpic\fR or \fB\-fPIC\fR for
+building code which forms part of a dynamic linker and cannot
+reference the address of a jump table.  On some targets, jump tables
+do not require a \s-1GOT\s0 and this option is not needed.
+.IP "\fB\-ffixed\-\fR\fIreg\fR" 4
+.IX Item "-ffixed-reg"
+Treat the register named \fIreg\fR as a fixed register; generated code
+should never refer to it (except perhaps as a stack pointer, frame
+pointer or in some other fixed role).
+.Sp
+\&\fIreg\fR must be the name of a register.  The register names accepted
+are machine-specific and are defined in the \f(CW\*(C`REGISTER_NAMES\*(C'\fR
+macro in the machine description macro file.
+.Sp
+This flag does not have a negative form, because it specifies a
+three-way choice.
+.IP "\fB\-fcall\-used\-\fR\fIreg\fR" 4
+.IX Item "-fcall-used-reg"
+Treat the register named \fIreg\fR as an allocable register that is
+clobbered by function calls.  It may be allocated for temporaries or
+variables that do not live across a call.  Functions compiled this way
+will not save and restore the register \fIreg\fR.
+.Sp
+It is an error to used this flag with the frame pointer or stack pointer.
+Use of this flag for other registers that have fixed pervasive roles in
+the machine's execution model will produce disastrous results.
+.Sp
+This flag does not have a negative form, because it specifies a
+three-way choice.
+.IP "\fB\-fcall\-saved\-\fR\fIreg\fR" 4
+.IX Item "-fcall-saved-reg"
+Treat the register named \fIreg\fR as an allocable register saved by
+functions.  It may be allocated even for temporaries or variables that
+live across a call.  Functions compiled this way will save and restore
+the register \fIreg\fR if they use it.
+.Sp
+It is an error to used this flag with the frame pointer or stack pointer.
+Use of this flag for other registers that have fixed pervasive roles in
+the machine's execution model will produce disastrous results.
+.Sp
+A different sort of disaster will result from the use of this flag for
+a register in which function values may be returned.
+.Sp
+This flag does not have a negative form, because it specifies a
+three-way choice.
+.IP "\fB\-fpack\-struct[=\fR\fIn\fR\fB]\fR" 4
+.IX Item "-fpack-struct[=n]"
+Without a value specified, pack all structure members together without
+holes.  When a value is specified (which must be a small power of two), pack
+structure members according to this value, representing the maximum
+alignment (that is, objects with default alignment requirements larger than
+this will be output potentially unaligned at the next fitting location.
+.Sp
+\&\fBWarning:\fR the \fB\-fpack\-struct\fR switch causes \s-1GCC\s0 to generate
+code that is not binary compatible with code generated without that switch.
+Additionally, it makes the code suboptimal.
+Use it to conform to a non-default application binary interface.
+.IP "\fB\-finstrument\-functions\fR" 4
+.IX Item "-finstrument-functions"
+Generate instrumentation calls for entry and exit to functions.  Just
+after function entry and just before function exit, the following
+profiling functions will be called with the address of the current
+function and its call site.  (On some platforms,
+\&\f(CW\*(C`_\|_builtin_return_address\*(C'\fR does not work beyond the current
+function, so the call site information may not be available to the
+profiling functions otherwise.)
+.Sp
+.Vb 4
+\&        void _\|_cyg_profile_func_enter (void *this_fn,
+\&                                       void *call_site);
+\&        void _\|_cyg_profile_func_exit  (void *this_fn,
+\&                                       void *call_site);
+.Ve
+.Sp
+The first argument is the address of the start of the current function,
+which may be looked up exactly in the symbol table.
+.Sp
+This instrumentation is also done for functions expanded inline in other
+functions.  The profiling calls will indicate where, conceptually, the
+inline function is entered and exited.  This means that addressable
+versions of such functions must be available.  If all your uses of a
+function are expanded inline, this may mean an additional expansion of
+code size.  If you use \fBextern inline\fR in your C code, an
+addressable version of such functions must be provided.  (This is
+normally the case anyways, but if you get lucky and the optimizer always
+expands the functions inline, you might have gotten away without
+providing static copies.)
+.Sp
+A function may be given the attribute \f(CW\*(C`no_instrument_function\*(C'\fR, in
+which case this instrumentation will not be done.  This can be used, for
+example, for the profiling functions listed above, high-priority
+interrupt routines, and any functions from which the profiling functions
+cannot safely be called (perhaps signal handlers, if the profiling
+routines generate output or allocate memory).
+.IP "\fB\-finstrument\-functions\-exclude\-file\-list=\fR\fIfile\fR\fB,\fR\fIfile\fR\fB,...\fR" 4
+.IX Item "-finstrument-functions-exclude-file-list=file,file,..."
+Set the list of functions that are excluded from instrumentation (see
+the description of \f(CW\*(C`\-finstrument\-functions\*(C'\fR).  If the file that
+contains a function definition matches with one of \fIfile\fR, then
+that function is not instrumented.  The match is done on substrings:
+if the \fIfile\fR parameter is a substring of the file name, it is
+considered to be a match.
+.Sp
+For example,
+\&\f(CW\*(C`\-finstrument\-functions\-exclude\-file\-list=/bits/stl,include/sys\*(C'\fR
+will exclude any inline function defined in files whose pathnames
+contain \f(CW\*(C`/bits/stl\*(C'\fR or \f(CW\*(C`include/sys\*(C'\fR.
+.Sp
+If, for some reason, you want to include letter \f(CW\*(Aq,\*(Aq\fR in one of
+\&\fIsym\fR, write \f(CW\*(Aq,\*(Aq\fR. For example,
+\&\f(CW\*(C`\-finstrument\-functions\-exclude\-file\-list=\*(Aq,,tmp\*(Aq\*(C'\fR
+(note the single quote surrounding the option).
+.IP "\fB\-finstrument\-functions\-exclude\-function\-list=\fR\fIsym\fR\fB,\fR\fIsym\fR\fB,...\fR" 4
+.IX Item "-finstrument-functions-exclude-function-list=sym,sym,..."
+This is similar to \f(CW\*(C`\-finstrument\-functions\-exclude\-file\-list\*(C'\fR,
+but this option sets the list of function names to be excluded from
+instrumentation.  The function name to be matched is its user-visible
+name, such as \f(CW\*(C`vector<int> blah(const vector<int> &)\*(C'\fR, not the
+internal mangled name (e.g., \f(CW\*(C`_Z4blahRSt6vectorIiSaIiEE\*(C'\fR).  The
+match is done on substrings: if the \fIsym\fR parameter is a substring
+of the function name, it is considered to be a match.
+.IP "\fB\-fstack\-check\fR" 4
+.IX Item "-fstack-check"
+Generate code to verify that you do not go beyond the boundary of the
+stack.  You should specify this flag if you are running in an
+environment with multiple threads, but only rarely need to specify it in
+a single-threaded environment since stack overflow is automatically
+detected on nearly all systems if there is only one stack.
+.Sp
+Note that this switch does not actually cause checking to be done; the
+operating system must do that.  The switch causes generation of code
+to ensure that the operating system sees the stack being extended.
+.IP "\fB\-fstack\-limit\-register=\fR\fIreg\fR" 4
+.IX Item "-fstack-limit-register=reg"
+.PD 0
+.IP "\fB\-fstack\-limit\-symbol=\fR\fIsym\fR" 4
+.IX Item "-fstack-limit-symbol=sym"
+.IP "\fB\-fno\-stack\-limit\fR" 4
+.IX Item "-fno-stack-limit"
+.PD
+Generate code to ensure that the stack does not grow beyond a certain value,
+either the value of a register or the address of a symbol.  If the stack
+would grow beyond the value, a signal is raised.  For most targets,
+the signal is raised before the stack overruns the boundary, so
+it is possible to catch the signal without taking special precautions.
+.Sp
+For instance, if the stack starts at absolute address \fB0x80000000\fR
+and grows downwards, you can use the flags
+\&\fB\-fstack\-limit\-symbol=_\|_stack_limit\fR and
+\&\fB\-Wl,\-\-defsym,_\|_stack_limit=0x7ffe0000\fR to enforce a stack limit
+of 128KB.  Note that this may only work with the \s-1GNU\s0 linker.
+.IP "\fB\-fargument\-alias\fR" 4
+.IX Item "-fargument-alias"
+.PD 0
+.IP "\fB\-fargument\-noalias\fR" 4
+.IX Item "-fargument-noalias"
+.IP "\fB\-fargument\-noalias\-global\fR" 4
+.IX Item "-fargument-noalias-global"
+.IP "\fB\-fargument\-noalias\-anything\fR" 4
+.IX Item "-fargument-noalias-anything"
+.PD
+Specify the possible relationships among parameters and between
+parameters and global data.
+.Sp
+\&\fB\-fargument\-alias\fR specifies that arguments (parameters) may
+alias each other and may alias global storage.\fB\-fargument\-noalias\fR specifies that arguments do not alias
+each other, but may alias global storage.\fB\-fargument\-noalias\-global\fR specifies that arguments do not
+alias each other and do not alias global storage.
+\&\fB\-fargument\-noalias\-anything\fR specifies that arguments do not
+alias any other storage.
+.Sp
+Each language will automatically use whatever option is required by
+the language standard.  You should not need to use these options yourself.
+.IP "\fB\-fleading\-underscore\fR" 4
+.IX Item "-fleading-underscore"
+This option and its counterpart, \fB\-fno\-leading\-underscore\fR, forcibly
+change the way C symbols are represented in the object file.  One use
+is to help link with legacy assembly code.
+.Sp
+\&\fBWarning:\fR the \fB\-fleading\-underscore\fR switch causes \s-1GCC\s0 to
+generate code that is not binary compatible with code generated without that
+switch.  Use it to conform to a non-default application binary interface.
+Not all targets provide complete support for this switch.
+.IP "\fB\-ftls\-model=\fR\fImodel\fR" 4
+.IX Item "-ftls-model=model"
+Alter the thread-local storage model to be used.
+The \fImodel\fR argument should be one of \f(CW\*(C`global\-dynamic\*(C'\fR,
+\&\f(CW\*(C`local\-dynamic\*(C'\fR, \f(CW\*(C`initial\-exec\*(C'\fR or \f(CW\*(C`local\-exec\*(C'\fR.
+.Sp
+The default without \fB\-fpic\fR is \f(CW\*(C`initial\-exec\*(C'\fR; with
+\&\fB\-fpic\fR the default is \f(CW\*(C`global\-dynamic\*(C'\fR.
+.IP "\fB\-fvisibility=\fR\fIdefault|internal|hidden|protected\fR" 4
+.IX Item "-fvisibility=default|internal|hidden|protected"
+Set the default \s-1ELF\s0 image symbol visibility to the specified option\-\-\-all
+symbols will be marked with this unless overridden within the code.
+Using this feature can very substantially improve linking and
+load times of shared object libraries, produce more optimized
+code, provide near-perfect \s-1API\s0 export and prevent symbol clashes.
+It is \fBstrongly\fR recommended that you use this in any shared objects
+you distribute.
+.Sp
+Despite the nomenclature, \f(CW\*(C`default\*(C'\fR always means public ie;
+available to be linked against from outside the shared object.
+\&\f(CW\*(C`protected\*(C'\fR and \f(CW\*(C`internal\*(C'\fR are pretty useless in real-world
+usage so the only other commonly used option will be \f(CW\*(C`hidden\*(C'\fR.
+The default if \fB\-fvisibility\fR isn't specified is
+\&\f(CW\*(C`default\*(C'\fR, i.e., make every
+symbol public\-\-\-this causes the same behavior as previous versions of
+\&\s-1GCC\s0.
+.Sp
+A good explanation of the benefits offered by ensuring \s-1ELF\s0
+symbols have the correct visibility is given by \*(L"How To Write
+Shared Libraries\*(R" by Ulrich Drepper (which can be found at
+<\fBhttp://people.redhat.com/~drepper/\fR>)\-\-\-however a superior
+solution made possible by this option to marking things hidden when
+the default is public is to make the default hidden and mark things
+public.  This is the norm with \s-1DLL\s0's on Windows and with \fB\-fvisibility=hidden\fR
+and \f(CW\*(C`_\|_attribute_\|_ ((visibility("default")))\*(C'\fR instead of
+\&\f(CW\*(C`_\|_declspec(dllexport)\*(C'\fR you get almost identical semantics with
+identical syntax.  This is a great boon to those working with
+cross-platform projects.
+.Sp
+For those adding visibility support to existing code, you may find
+\&\fB#pragma \s-1GCC\s0 visibility\fR of use.  This works by you enclosing
+the declarations you wish to set visibility for with (for example)
+\&\fB#pragma \s-1GCC\s0 visibility push(hidden)\fR and
+\&\fB#pragma \s-1GCC\s0 visibility pop\fR.
+Bear in mind that symbol visibility should be viewed \fBas
+part of the \s-1API\s0 interface contract\fR and thus all new code should
+always specify visibility when it is not the default ie; declarations
+only for use within the local \s-1DSO\s0 should \fBalways\fR be marked explicitly
+as hidden as so to avoid \s-1PLT\s0 indirection overheads\-\-\-making this
+abundantly clear also aids readability and self-documentation of the code.
+Note that due to \s-1ISO\s0 \*(C+ specification requirements, operator new and
+operator delete must always be of default visibility.
+.Sp
+Be aware that headers from outside your project, in particular system
+headers and headers from any other library you use, may not be
+expecting to be compiled with visibility other than the default.  You
+may need to explicitly say \fB#pragma \s-1GCC\s0 visibility push(default)\fR
+before including any such headers.
+.Sp
+\&\fBextern\fR declarations are not affected by \fB\-fvisibility\fR, so
+a lot of code can be recompiled with \fB\-fvisibility=hidden\fR with
+no modifications.  However, this means that calls to \fBextern\fR
+functions with no explicit visibility will use the \s-1PLT\s0, so it is more
+effective to use \fB_\|_attribute ((visibility))\fR and/or
+\&\fB#pragma \s-1GCC\s0 visibility\fR to tell the compiler which \fBextern\fR
+declarations should be treated as hidden.
+.Sp
+Note that \fB\-fvisibility\fR does affect \*(C+ vague linkage
+entities. This means that, for instance, an exception class that will
+be thrown between DSOs must be explicitly marked with default
+visibility so that the \fBtype_info\fR nodes will be unified between
+the DSOs.
+.Sp
+An overview of these techniques, their benefits and how to use them
+is at <\fBhttp://gcc.gnu.org/wiki/Visibility\fR>.
+.SH "ENVIRONMENT"
+.IX Header "ENVIRONMENT"
+This section describes several environment variables that affect how \s-1GCC\s0
+operates.  Some of them work by specifying directories or prefixes to use
+when searching for various kinds of files.  Some are used to specify other
+aspects of the compilation environment.
+.PP
+Note that you can also specify places to search using options such as
+\&\fB\-B\fR, \fB\-I\fR and \fB\-L\fR.  These
+take precedence over places specified using environment variables, which
+in turn take precedence over those specified by the configuration of \s-1GCC\s0.
+.IP "\fB\s-1LANG\s0\fR" 4
+.IX Item "LANG"
+.PD 0
+.IP "\fB\s-1LC_CTYPE\s0\fR" 4
+.IX Item "LC_CTYPE"
+.IP "\fB\s-1LC_MESSAGES\s0\fR" 4
+.IX Item "LC_MESSAGES"
+.IP "\fB\s-1LC_ALL\s0\fR" 4
+.IX Item "LC_ALL"
+.PD
+These environment variables control the way that \s-1GCC\s0 uses
+localization information that allow \s-1GCC\s0 to work with different
+national conventions.  \s-1GCC\s0 inspects the locale categories
+\&\fB\s-1LC_CTYPE\s0\fR and \fB\s-1LC_MESSAGES\s0\fR if it has been configured to do
+so.  These locale categories can be set to any value supported by your
+installation.  A typical value is \fBen_GB.UTF\-8\fR for English in the United
+Kingdom encoded in \s-1UTF\-8\s0.
+.Sp
+The \fB\s-1LC_CTYPE\s0\fR environment variable specifies character
+classification.  \s-1GCC\s0 uses it to determine the character boundaries in
+a string; this is needed for some multibyte encodings that contain quote
+and escape characters that would otherwise be interpreted as a string
+end or escape.
+.Sp
+The \fB\s-1LC_MESSAGES\s0\fR environment variable specifies the language to
+use in diagnostic messages.
+.Sp
+If the \fB\s-1LC_ALL\s0\fR environment variable is set, it overrides the value
+of \fB\s-1LC_CTYPE\s0\fR and \fB\s-1LC_MESSAGES\s0\fR; otherwise, \fB\s-1LC_CTYPE\s0\fR
+and \fB\s-1LC_MESSAGES\s0\fR default to the value of the \fB\s-1LANG\s0\fR
+environment variable.  If none of these variables are set, \s-1GCC\s0
+defaults to traditional C English behavior.
+.IP "\fB\s-1TMPDIR\s0\fR" 4
+.IX Item "TMPDIR"
+If \fB\s-1TMPDIR\s0\fR is set, it specifies the directory to use for temporary
+files.  \s-1GCC\s0 uses temporary files to hold the output of one stage of
+compilation which is to be used as input to the next stage: for example,
+the output of the preprocessor, which is the input to the compiler
+proper.
+.IP "\fB\s-1GCC_EXEC_PREFIX\s0\fR" 4
+.IX Item "GCC_EXEC_PREFIX"
+If \fB\s-1GCC_EXEC_PREFIX\s0\fR is set, it specifies a prefix to use in the
+names of the subprograms executed by the compiler.  No slash is added
+when this prefix is combined with the name of a subprogram, but you can
+specify a prefix that ends with a slash if you wish.
+.Sp
+If \fB\s-1GCC_EXEC_PREFIX\s0\fR is not set, \s-1GCC\s0 will attempt to figure out
+an appropriate prefix to use based on the pathname it was invoked with.
+.Sp
+If \s-1GCC\s0 cannot find the subprogram using the specified prefix, it
+tries looking in the usual places for the subprogram.
+.Sp
+The default value of \fB\s-1GCC_EXEC_PREFIX\s0\fR is
+\&\fI\fIprefix\fI/lib/gcc/\fR where \fIprefix\fR is the prefix to
+the installed compiler. In many cases \fIprefix\fR is the value
+of \f(CW\*(C`prefix\*(C'\fR when you ran the \fIconfigure\fR script.
+.Sp
+Other prefixes specified with \fB\-B\fR take precedence over this prefix.
+.Sp
+This prefix is also used for finding files such as \fIcrt0.o\fR that are
+used for linking.
+.Sp
+In addition, the prefix is used in an unusual way in finding the
+directories to search for header files.  For each of the standard
+directories whose name normally begins with \fB/usr/local/lib/gcc\fR
+(more precisely, with the value of \fB\s-1GCC_INCLUDE_DIR\s0\fR), \s-1GCC\s0 tries
+replacing that beginning with the specified prefix to produce an
+alternate directory name.  Thus, with \fB\-Bfoo/\fR, \s-1GCC\s0 will search
+\&\fIfoo/bar\fR where it would normally search \fI/usr/local/lib/bar\fR.
+These alternate directories are searched first; the standard directories
+come next. If a standard directory begins with the configured
+\&\fIprefix\fR then the value of \fIprefix\fR is replaced by
+\&\fB\s-1GCC_EXEC_PREFIX\s0\fR when looking for header files.
+.IP "\fB\s-1COMPILER_PATH\s0\fR" 4
+.IX Item "COMPILER_PATH"
+The value of \fB\s-1COMPILER_PATH\s0\fR is a colon-separated list of
+directories, much like \fB\s-1PATH\s0\fR.  \s-1GCC\s0 tries the directories thus
+specified when searching for subprograms, if it can't find the
+subprograms using \fB\s-1GCC_EXEC_PREFIX\s0\fR.
+.IP "\fB\s-1LIBRARY_PATH\s0\fR" 4
+.IX Item "LIBRARY_PATH"
+The value of \fB\s-1LIBRARY_PATH\s0\fR is a colon-separated list of
+directories, much like \fB\s-1PATH\s0\fR.  When configured as a native compiler,
+\&\s-1GCC\s0 tries the directories thus specified when searching for special
+linker files, if it can't find them using \fB\s-1GCC_EXEC_PREFIX\s0\fR.  Linking
+using \s-1GCC\s0 also uses these directories when searching for ordinary
+libraries for the \fB\-l\fR option (but directories specified with
+\&\fB\-L\fR come first).
+.IP "\fB\s-1LANG\s0\fR" 4
+.IX Item "LANG"
+This variable is used to pass locale information to the compiler.  One way in
+which this information is used is to determine the character set to be used
+when character literals, string literals and comments are parsed in C and \*(C+.
+When the compiler is configured to allow multibyte characters,
+the following values for \fB\s-1LANG\s0\fR are recognized:
+.RS 4
+.IP "\fBC\-JIS\fR" 4
+.IX Item "C-JIS"
+Recognize \s-1JIS\s0 characters.
+.IP "\fBC\-SJIS\fR" 4
+.IX Item "C-SJIS"
+Recognize \s-1SJIS\s0 characters.
+.IP "\fBC\-EUCJP\fR" 4
+.IX Item "C-EUCJP"
+Recognize \s-1EUCJP\s0 characters.
+.RE
+.RS 4
+.Sp
+If \fB\s-1LANG\s0\fR is not defined, or if it has some other value, then the
+compiler will use mblen and mbtowc as defined by the default locale to
+recognize and translate multibyte characters.
+.RE
+.PP
+Some additional environments variables affect the behavior of the
+preprocessor.
+.IP "\fB\s-1CPATH\s0\fR" 4
+.IX Item "CPATH"
+.PD 0
+.IP "\fBC_INCLUDE_PATH\fR" 4
+.IX Item "C_INCLUDE_PATH"
+.IP "\fB\s-1CPLUS_INCLUDE_PATH\s0\fR" 4
+.IX Item "CPLUS_INCLUDE_PATH"
+.IP "\fB\s-1OBJC_INCLUDE_PATH\s0\fR" 4
+.IX Item "OBJC_INCLUDE_PATH"
+.PD
+Each variable's value is a list of directories separated by a special
+character, much like \fB\s-1PATH\s0\fR, in which to look for header files.
+The special character, \f(CW\*(C`PATH_SEPARATOR\*(C'\fR, is target-dependent and
+determined at \s-1GCC\s0 build time.  For Microsoft Windows-based targets it is a
+semicolon, and for almost all other targets it is a colon.
+.Sp
+\&\fB\s-1CPATH\s0\fR specifies a list of directories to be searched as if
+specified with \fB\-I\fR, but after any paths given with \fB\-I\fR
+options on the command line.  This environment variable is used
+regardless of which language is being preprocessed.
+.Sp
+The remaining environment variables apply only when preprocessing the
+particular language indicated.  Each specifies a list of directories
+to be searched as if specified with \fB\-isystem\fR, but after any
+paths given with \fB\-isystem\fR options on the command line.
+.Sp
+In all these variables, an empty element instructs the compiler to
+search its current working directory.  Empty elements can appear at the
+beginning or end of a path.  For instance, if the value of
+\&\fB\s-1CPATH\s0\fR is \f(CW\*(C`:/special/include\*(C'\fR, that has the same
+effect as \fB\-I.\ \-I/special/include\fR.
+.IP "\fB\s-1DEPENDENCIES_OUTPUT\s0\fR" 4
+.IX Item "DEPENDENCIES_OUTPUT"
+If this variable is set, its value specifies how to output
+dependencies for Make based on the non-system header files processed
+by the compiler.  System header files are ignored in the dependency
+output.
+.Sp
+The value of \fB\s-1DEPENDENCIES_OUTPUT\s0\fR can be just a file name, in
+which case the Make rules are written to that file, guessing the target
+name from the source file name.  Or the value can have the form
+\&\fIfile\fR\fB \fR\fItarget\fR, in which case the rules are written to
+file \fIfile\fR using \fItarget\fR as the target name.
+.Sp
+In other words, this environment variable is equivalent to combining
+the options \fB\-MM\fR and \fB\-MF\fR,
+with an optional \fB\-MT\fR switch too.
+.IP "\fB\s-1SUNPRO_DEPENDENCIES\s0\fR" 4
+.IX Item "SUNPRO_DEPENDENCIES"
+This variable is the same as \fB\s-1DEPENDENCIES_OUTPUT\s0\fR (see above),
+except that system header files are not ignored, so it implies
+\&\fB\-M\fR rather than \fB\-MM\fR.  However, the dependence on the
+main input file is omitted.
+.SH "BUGS"
+.IX Header "BUGS"
+For instructions on reporting bugs, see
+<\fBhttp://gcc.gnu.org/bugs.html\fR>.
+.SH "FOOTNOTES"
+.IX Header "FOOTNOTES"
+.IP "1." 4
+On some systems, \fBgcc \-shared\fR
+needs to build supplementary stub code for constructors to work.  On
+multi-libbed systems, \fBgcc \-shared\fR must select the correct support
+libraries to link against.  Failing to supply the correct flags may lead
+to subtle defects.  Supplying them in cases where they are not necessary
+is innocuous.
+.SH "SEE ALSO"
+.IX Header "SEE ALSO"
+\&\fIgpl\fR\|(7), \fIgfdl\fR\|(7), \fIfsf\-funding\fR\|(7),
+\&\fIcpp\fR\|(1), \fIgcov\fR\|(1), \fIas\fR\|(1), \fIld\fR\|(1), \fIgdb\fR\|(1), \fIadb\fR\|(1), \fIdbx\fR\|(1), \fIsdb\fR\|(1)
+and the Info entries for \fIgcc\fR, \fIcpp\fR, \fIas\fR,
+\&\fIld\fR, \fIbinutils\fR and \fIgdb\fR.
+.SH "AUTHOR"
+.IX Header "AUTHOR"
+See the Info entry for \fBgcc\fR, or
+<\fBhttp://gcc.gnu.org/onlinedocs/gcc/Contributors.html\fR>,
+for contributors to \s-1GCC\s0.
+.SH "COPYRIGHT"
+.IX Header "COPYRIGHT"
+Copyright (c) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
+1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+Free Software Foundation, Inc.
+.PP
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the \s-1GNU\s0 Free Documentation License, Version 1.2 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being \*(L"\s-1GNU\s0 General Public License\*(R" and \*(L"Funding
+Free Software\*(R", the Front-Cover texts being (a) (see below), and with
+the Back-Cover Texts being (b) (see below).  A copy of the license is
+included in the \fIgfdl\fR\|(7) man page.
+.PP
+(a) The \s-1FSF\s0's Front-Cover Text is:
+.PP
+.Vb 1
+\&     A GNU Manual
+.Ve
+.PP
+(b) The \s-1FSF\s0's Back-Cover Text is:
+.PP
+.Vb 3
+\&     You have freedom to copy and modify this GNU Manual, like GNU
+\&     software.  Copies published by the Free Software Foundation raise
+\&     funds for GNU development.
+.Ve
+.SH "POD ERRORS"
+.IX Header "POD ERRORS"
+Hey! \fBThe above document had some coding errors, which are explained below:\fR
+.IP "Around line 8201:" 4
+.IX Item "Around line 8201:"
+You can't have =items (as at line 8214) unless the first thing after the =over is an =item
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           .TH MAKE 1 "22 August 1989" "GNU" "LOCAL USER COMMANDS"
+.SH NAME
+make \- GNU make utility to maintain groups of programs
+.SH SYNOPSIS
+.B "make "
+[
+.B \-f
+.I makefile
+] [ options ] ... [ targets ] ...
+.SH WARNING
+This man page is an extract of the documentation of GNU
+.IR make .
+It is updated only occasionally, because the GNU project does not use nroff.
+For complete, current documentation, refer to the Info file
+.B make.info
+which is made from the Texinfo source file
+.BR make.texi .
+.SH DESCRIPTION
+.LP
+The purpose of the
+.I make
+utility is to determine automatically which
+pieces of a large program need to be recompiled, and issue the commands to
+recompile them.
+The manual describes the GNU implementation of
+.IR make ,
+which was written by Richard Stallman and Roland McGrath, and is
+currently maintained by Paul Smith.
+Our examples show C programs, since they are most common, but you can use
+.I make
+with any programming language whose compiler can be run with a
+shell command.
+In fact,
+.I make
+is not limited to programs.
+You can use it to describe any task where some files must be
+updated automatically from others whenever the others change.
+.LP
+To prepare to use
+.IR make ,
+you must write a file called the
+.I makefile
+that describes the relationships among files in your program, and the
+states the commands for updating each file.
+In a program, typically the executable file is updated from object
+files, which are in turn made by compiling source files.
+.LP
+Once a suitable makefile exists, each time you change some source files,
+this simple shell command:
+.sp 1
+.RS
+.B make
+.RE
+.sp 1
+suffices to perform all necessary recompilations.
+The
+.I make
+program uses the makefile data base and the last-modification times
+of the files to decide which of the files need to be updated.
+For each of those files, it issues the commands recorded in the data base.
+.LP
+.I make
+executes commands in the
+.I makefile
+to update
+one or more target
+.IR names ,
+where
+.I name
+is typically a program.
+If no
+.B \-f
+option is present,
+.I make
+will look for the makefiles
+.IR GNUmakefile ,
+.IR makefile ,
+and
+.IR Makefile ,
+in that order.
+.LP
+Normally you should call your makefile either
+.I makefile
+or
+.IR Makefile .
+(We recommend
+.I Makefile
+because it appears prominently near the beginning of a directory
+listing, right near other important files such as
+.IR  README .)
+The first name checked,
+.IR GNUmakefile ,
+is not recommended for most makefiles.
+You should use this name if you have a makefile that is specific to GNU
+.IR make ,
+and will not be understood by other versions of
+.IR make .
+If
+.I makefile
+is `\-', the standard input is read.
+.LP
+.I make
+updates a target if it depends on prerequisite files
+that have been modified since the target was last modified,
+or if the target does not exist.
+.SH OPTIONS
+.sp 1
+.TP 0.5i
+.BR \-b , " \-m"
+These options are ignored for compatibility with other versions of
+.IR make .
+.TP 0.5i
+.BR \-B , " \-\-always\-make"
+Unconditionally make all targets.
+.TP 0.5i
+\fB\-C\fR \fIdir\fR, \fB\-\-directory\fR=\fIdir\fR
+Change to directory
+.I dir
+before reading the makefiles or doing anything else.
+If multiple
+.B \-C
+options are specified, each is interpreted relative to the
+previous one:
+.BR "\-C " /
+.BR "\-C " etc
+is equivalent to
+.BR "\-C " /etc.
+This is typically used with recursive invocations of
+.IR make .
+.TP 0.5i
+.B \-d
+Print debugging information in addition to normal processing.
+The debugging information says which files are being considered for
+remaking, which file-times are being compared and with what results,
+which files actually need to be remade, which implicit rules are
+considered and which are applied---everything interesting about how
+.I make
+decides what to do.
+.TP 0.5i
+.BI \-\-debug "[=FLAGS]"
+Print debugging information in addition to normal processing.
+If the
+.I FLAGS
+are omitted, then the behavior is the same as if
+.B \-d
+was specified.
+.I FLAGS
+may be
+.I a
+for all debugging output (same as using
+.BR \-d ),
+.I b
+for basic debugging,
+.I v
+for more verbose basic debugging,
+.I i
+for showing implicit rules,
+.I j
+for details on invocation of commands, and
+.I m
+for debugging while remaking makefiles.
+.TP 0.5i
+.BR \-e , " \-\-environment\-overrides"
+Give variables taken from the environment precedence
+over variables from makefiles.
+.TP 0.5i
++\fB\-f\fR \fIfile\fR, \fB\-\-file\fR=\fIfile\fR, \fB\-\-makefile\fR=\fIFILE\fR
+Use
+.I file
+as a makefile.
+.TP 0.5i
+.BR \-i , " \-\-ignore\-errors"
+Ignore all errors in commands executed to remake files.
+.TP 0.5i
+\fB\-I\fR \fIdir\fR, \fB\-\-include\-dir\fR=\fIdir\fR
+Specifies a directory
+.I dir
+to search for included makefiles.
+If several
+.B \-I
+options are used to specify several directories, the directories are
+searched in the order specified.
+Unlike the arguments to other flags of
+.IR make ,
+directories given with
+.B \-I
+flags may come directly after the flag:
+.BI \-I dir
+is allowed, as well as
+.BI "\-I " dir.
+This syntax is allowed for compatibility with the C
+preprocessor's
+.B \-I
+flag.
+.TP 0.5i
+\fB\-j\fR [\fIjobs\fR], \fB\-\-jobs\fR[=\fIjobs\fR]
+Specifies the number of
+.I jobs
+(commands) to run simultaneously.
+If there is more than one
+.B \-j
+option, the last one is effective.
+If the
+.B \-j
+option is given without an argument,
+.IR make
+will not limit the number of jobs that can run simultaneously.
+.TP 0.5i
+.BR \-k , " \-\-keep\-going"
+Continue as much as possible after an error.
+While the target that failed, and those that depend on it, cannot
+be remade, the other dependencies of these targets can be processed
+all the same.
+.TP 0.5i
+\fB\-l\fR [\fIload\fR], \fB\-\-load\-average\fR[=\fIload\fR]
+Specifies that no new jobs (commands) should be started if there are
+others jobs running and the load average is at least
+.I load
+(a floating-point number).
+With no argument, removes a previous load limit.
+.TP 0.5i
+.BR \-L , " \-\-check\-symlink\-times"
+Use the latest mtime between symlinks and target.
+.TP 0.5i
+.BR \-n , " \-\-just\-print" , " \-\-dry\-run" , " \-\-recon"
+Print the commands that would be executed, but do not execute them.
+.TP 0.5i
+\fB\-o\fR \fIfile\fR, \fB\-\-old\-file\fR=\fIfile\fR, \fB\-\-assume\-old\fR=\fIfile\fR
+Do not remake the file
+.I file
+even if it is older than its dependencies, and do not remake anything
+on account of changes in
+.IR file .
+Essentially the file is treated as very old and its rules are ignored.
+.TP 0.5i
+.BR \-p , " \-\-print\-data\-base"
+Print the data base (rules and variable values) that results from
+reading the makefiles; then execute as usual or as otherwise
+specified.
+This also prints the version information given by the
+.B \-v
+switch (see below).
+To print the data base without trying to remake any files, use
+.B make
+.B \-p
+.BI \-f /dev/null.
+.TP 0.5i
+.BR \-q , " \-\-question"
+``Question mode''.
+Do not run any commands, or print anything; just return an exit status
+that is zero if the specified targets are already up to date, nonzero
+otherwise.
+.TP 0.5i
+.BR \-r , " \-\-no\-builtin\-rules"
+Eliminate use of the built\-in implicit rules.
+Also clear out the default list of suffixes for suffix rules.
+.TP 0.5i
+.BR \-R , " \-\-no\-builtin\-variables"
+Don't define any built\-in variables.
+.TP 0.5i
+.BR \-s , " \-\-silent" , " \-\-quiet"
+Silent operation; do not print the commands as they are executed.
+.TP 0.5i
+.BR \-S , " \-\-no\-keep\-going" , " \-\-stop"
+Cancel the effect of the
+.B \-k
+option.
+This is never necessary except in a recursive
+.I make
+where
+.B \-k
+might be inherited from the top-level
+.I make
+via MAKEFLAGS or if you set
+.B \-k
+in MAKEFLAGS in your environment.
+.TP 0.5i
+.BR \-t , " \-\-touch"
+Touch files (mark them up to date without really changing them)
+instead of running their commands.
+This is used to pretend that the commands were done, in order to fool
+future invocations of
+.IR make .
+.TP 0.5i
+.BR \-v , " \-\-version"
+Print the version of the
+.I make
+program plus a copyright, a list of authors and a notice that there
+is no warranty.
+.TP 0.5i
+.BR \-w , " \-\-print\-directory"
+Print a message containing the working directory
+before and after other processing.
+This may be useful for tracking down errors from complicated nests of
+recursive
+.I make
+commands.
+.TP 0.5i
+.B \-\-no\-print\-directory
+Turn off
+.BR \-w ,
+even if it was turned on implicitly.
+.TP 0.5i
+\fB\-W\fR \fIfile\fR, \fB\-\-what\-if\fR=\fIfile\fR, \fB\-\-new\-file\fR=\fIfile\fR, \fB\-\-assume\-new\fR=\fIfile\fR
+Pretend that the target
+.I file
+has just been modified.
+When used with the
+.B \-n
+flag, this shows you what would happen if you were to modify that file.
+Without
+.BR \-n ,
+it is almost the same as running a
+.I touch
+command on the given file before running
+.IR make ,
+except that the modification time is changed only in the imagination of
+.IR make .
+.TP 0.5i
+.B \-\-warn\-undefined\-variables
+Warn when an undefined variable is referenced.
+.SH "EXIT STATUS"
+GNU
+.I make
+exits with a status of zero if all makefiles were successfully parsed
+and no targets that were built failed.  A status of one will be returned
+if the
+.B \-q
+flag was used and
+.I make
+determines that a target needs to be rebuilt.  A status of two will be
+returned if any errors were encountered.
+.SH "SEE ALSO"
+.I "The GNU Make Manual"
+.SH BUGS
+See the chapter `Problems and Bugs' in
+.IR "The GNU Make Manual" .
+.SH AUTHOR
+This manual page contributed by Dennis Morse of Stanford University.
+It has been reworked by Roland McGrath.  Further updates contributed by
+Mike Frysinger.
+.SH "COPYRIGHT"
+Copyright (C) 1992, 1993, 1996, 1999 Free Software Foundation, Inc.
+This file is part of GNU
+.IR make .
+.LP
+GNU
+.I make
+is free software; you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free
+Software Foundation; either version 2, or (at your option) any later
+version.
+.LP
+GNU
+.I make
+is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+.LP
+You should have received a copy of the GNU General Public License
+along with GNU
+.IR make ;
+see the file COPYING.  If not, write to the Free Software Foundation,
+Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       .\" Automatically generated by Pod::Man 2.16 (Pod::Simple 3.05)
+.\"
+.\" Standard preamble:
+.\" ========================================================================
+.de Sh \" Subsection heading
+.br
+.if t .Sp
+.ne 5
+.PP
+\fB\\$1\fR
+.PP
+..
+.de Sp \" Vertical space (when we can't use .PP)
+.if t .sp .5v
+.if n .sp
+..
+.de Vb \" Begin verbatim text
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve \" End verbatim text
+.ft R
+.fi
+..
+.\" Set up some character translations and predefined strings.  \*(-- will
+.\" give an unbreakable dash, \*(PI will give pi, \*(L" will give a left
+.\" double quote, and \*(R" will give a right double quote.  \*(C+ will
+.\" give a nicer C++.  Capital omega is used to do unbreakable dashes and
+.\" therefore won't be available.  \*(C` and \*(C' expand to `' in nroff,
+.\" nothing in troff, for use with C<>.
+.tr \(*W-
+.ds C+ C\v'-.1v'\h'-1p'\s-2+\h'-1p'+\s0\v'.1v'\h'-1p'
+.ie n \{\
+.    ds -- \(*W-
+.    ds PI pi
+.    if (\n(.H=4u)&(1m=24u) .ds -- \(*W\h'-12u'\(*W\h'-12u'-\" diablo 10 pitch
+.    if (\n(.H=4u)&(1m=20u) .ds -- \(*W\h'-12u'\(*W\h'-8u'-\"  diablo 12 pitch
+.    ds L" ""
+.    ds R" ""
+.    ds C` ""
+.    ds C' ""
+'br\}
+.el\{\
+.    ds -- \|\(em\|
+.    ds PI \(*p
+.    ds L" ``
+.    ds R" ''
+'br\}
+.\"
+.\" Escape single quotes in literal strings from groff's Unicode transform.
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\"
+.\" If the F register is turned on, we'll generate index entries on stderr for
+.\" titles (.TH), headers (.SH), subsections (.Sh), items (.Ip), and index
+.\" entries marked with X<> in POD.  Of course, you'll have to process the
+.\" output yourself in some meaningful fashion.
+.ie \nF \{\
+.    de IX
+.    tm Index:\\$1\t\\n%\t"\\$2"
+..
+.    nr % 0
+.    rr F
+.\}
+.el \{\
+.    de IX
+..
+.\}
+.\"
+.\" Accent mark definitions (@(#)ms.acc 1.5 88/02/08 SMI; from UCB 4.2).
+.\" Fear.  Run.  Save yourself.  No user-serviceable parts.
+.    \" fudge factors for nroff and troff
+.if n \{\
+.    ds #H 0
+.    ds #V .8m
+.    ds #F .3m
+.    ds #[ \f1
+.    ds #] \fP
+.\}
+.if t \{\
+.    ds #H ((1u-(\\\\n(.fu%2u))*.13m)
+.    ds #V .6m
+.    ds #F 0
+.    ds #[ \&
+.    ds #] \&
+.\}
+.    \" simple accents for nroff and troff
+.if n \{\
+.    ds ' \&
+.    ds ` \&
+.    ds ^ \&
+.    ds , \&
+.    ds ~ ~
+.    ds /
+.\}
+.if t \{\
+.    ds ' \\k:\h'-(\\n(.wu*8/10-\*(#H)'\'\h"|\\n:u"
+.    ds ` \\k:\h'-(\\n(.wu*8/10-\*(#H)'\`\h'|\\n:u'
+.    ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'^\h'|\\n:u'
+.    ds , \\k:\h'-(\\n(.wu*8/10)',\h'|\\n:u'
+.    ds ~ \\k:\h'-(\\n(.wu-\*(#H-.1m)'~\h'|\\n:u'
+.    ds / \\k:\h'-(\\n(.wu*8/10-\*(#H)'\z\(sl\h'|\\n:u'
+.\}
+.    \" troff and (daisy-wheel) nroff accents
+.ds : \\k:\h'-(\\n(.wu*8/10-\*(#H+.1m+\*(#F)'\v'-\*(#V'\z.\h'.2m+\*(#F'.\h'|\\n:u'\v'\*(#V'
+.ds 8 \h'\*(#H'\(*b\h'-\*(#H'
+.ds o \\k:\h'-(\\n(.wu+\w'\(de'u-\*(#H)/2u'\v'-.3n'\*(#[\z\(de\v'.3n'\h'|\\n:u'\*(#]
+.ds d- \h'\*(#H'\(pd\h'-\w'~'u'\v'-.25m'\f2\(hy\fP\v'.25m'\h'-\*(#H'
+.ds D- D\\k:\h'-\w'D'u'\v'-.11m'\z\(hy\v'.11m'\h'|\\n:u'
+.ds th \*(#[\v'.3m'\s+1I\s-1\v'-.3m'\h'-(\w'I'u*2/3)'\s-1o\s+1\*(#]
+.ds Th \*(#[\s+2I\s-2\h'-\w'I'u*3/5'\v'-.3m'o\v'.3m'\*(#]
+.ds ae a\h'-(\w'a'u*4/10)'e
+.ds Ae A\h'-(\w'A'u*4/10)'E
+.    \" corrections for vroff
+.if v .ds ~ \\k:\h'-(\\n(.wu*9/10-\*(#H)'\s-2\u~\d\s+2\h'|\\n:u'
+.if v .ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'\v'-.4m'^\v'.4m'\h'|\\n:u'
+.    \" for low resolution devices (crt and lpr)
+.if \n(.H>23 .if \n(.V>19 \
+\{\
+.    ds : e
+.    ds 8 ss
+.    ds o a
+.    ds d- d\h'-1'\(ga
+.    ds D- D\h'-1'\(hy
+.    ds th \o'bp'
+.    ds Th \o'LP'
+.    ds ae ae
+.    ds Ae AE
+.\}
+.rm #[ #] #H #V #F C
+.\" ========================================================================
+.\"
+.IX Title "GCC 1"
+.TH GCC 1 "2010-05-22" "gcc-4.3.5" "GNU"
+.\" For nroff, turn off justification.  Always turn off hyphenation; it makes
+.\" way too many mistakes in technical documents.
+.if n .ad l
+.nh
+.SH "NAME"
+gcc \- GNU project C and C++ compiler
+.SH "SYNOPSIS"
+.IX Header "SYNOPSIS"
+gcc [\fB\-c\fR|\fB\-S\fR|\fB\-E\fR] [\fB\-std=\fR\fIstandard\fR]
+    [\fB\-g\fR] [\fB\-pg\fR] [\fB\-O\fR\fIlevel\fR]
+    [\fB\-W\fR\fIwarn\fR...] [\fB\-pedantic\fR]
+    [\fB\-I\fR\fIdir\fR...] [\fB\-L\fR\fIdir\fR...]
+    [\fB\-D\fR\fImacro\fR[=\fIdefn\fR]...] [\fB\-U\fR\fImacro\fR]
+    [\fB\-f\fR\fIoption\fR...] [\fB\-m\fR\fImachine-option\fR...]
+    [\fB\-o\fR \fIoutfile\fR] [@\fIfile\fR] \fIinfile\fR...
+.PP
+Only the most useful options are listed here; see below for the
+remainder.  \fBg++\fR accepts mostly the same options as \fBgcc\fR.
+.SH "DESCRIPTION"
+.IX Header "DESCRIPTION"
+When you invoke \s-1GCC\s0, it normally does preprocessing, compilation,
+assembly and linking.  The \*(L"overall options\*(R" allow you to stop this
+process at an intermediate stage.  For example, the \fB\-c\fR option
+says not to run the linker.  Then the output consists of object files
+output by the assembler.
+.PP
+Other options are passed on to one stage of processing.  Some options
+control the preprocessor and others the compiler itself.  Yet other
+options control the assembler and linker; most of these are not
+documented here, since you rarely need to use any of them.
+.PP
+Most of the command line options that you can use with \s-1GCC\s0 are useful
+for C programs; when an option is only useful with another language
+(usually \*(C+), the explanation says so explicitly.  If the description
+for a particular option does not mention a source language, you can use
+that option with all supported languages.
+.PP
+The \fBgcc\fR program accepts options and file names as operands.  Many
+options have multi-letter names; therefore multiple single-letter options
+may \fInot\fR be grouped: \fB\-dr\fR is very different from \fB\-d\ \-r\fR.
+.PP
+You can mix options and other arguments.  For the most part, the order
+you use doesn't matter.  Order does matter when you use several
+options of the same kind; for example, if you specify \fB\-L\fR more
+than once, the directories are searched in the order specified.  Also,
+the placement of the \fB\-l\fR option is significant.
+.PP
+Many options have long names starting with \fB\-f\fR or with
+\&\fB\-W\fR\-\-\-for example,
+\&\fB\-fmove\-loop\-invariants\fR, \fB\-Wformat\fR and so on.  Most of
+these have both positive and negative forms; the negative form of
+\&\fB\-ffoo\fR would be \fB\-fno\-foo\fR.  This manual documents
+only one of these two forms, whichever one is not the default.
+.SH "OPTIONS"
+.IX Header "OPTIONS"
+.Sh "Option Summary"
+.IX Subsection "Option Summary"
+Here is a summary of all the options, grouped by type.  Explanations are
+in the following sections.
+.IP "\fIOverall Options\fR" 4
+.IX Item "Overall Options"
+\&\fB\-c  \-S  \-E  \-o\fR \fIfile\fR  \fB\-combine  \-pipe  \-pass\-exit\-codes  
+\&\-x\fR \fIlanguage\fR  \fB\-v  \-###  \-\-help\fR[\fB=\fR\fIclass\fR]  \fB\-\-target\-help  
+\&\-\-version @\fR\fIfile\fR
+.IP "\fIC Language Options\fR" 4
+.IX Item "C Language Options"
+\&\fB\-ansi  \-std=\fR\fIstandard\fR  \fB\-fgnu89\-inline 
+\&\-aux\-info\fR \fIfilename\fR 
+\&\fB\-fno\-asm  \-fno\-builtin  \-fno\-builtin\-\fR\fIfunction\fR 
+\&\fB\-fhosted  \-ffreestanding \-fopenmp \-fms\-extensions 
+\&\-trigraphs  \-no\-integrated\-cpp  \-traditional  \-traditional\-cpp 
+\&\-fallow\-single\-precision  \-fcond\-mismatch \-flax\-vector\-conversions 
+\&\-fsigned\-bitfields  \-fsigned\-char 
+\&\-funsigned\-bitfields  \-funsigned\-char\fR
+.IP "\fI\*(C+ Language Options\fR" 4
+.IX Item " Language Options"
+\&\fB\-fabi\-version=\fR\fIn\fR  \fB\-fno\-access\-control  \-fcheck\-new 
+\&\-fconserve\-space  \-ffriend\-injection 
+\&\-fno\-elide\-constructors 
+\&\-fno\-enforce\-eh\-specs 
+\&\-ffor\-scope  \-fno\-for\-scope  \-fno\-gnu\-keywords 
+\&\-fno\-implicit\-templates 
+\&\-fno\-implicit\-inline\-templates 
+\&\-fno\-implement\-inlines  \-fms\-extensions 
+\&\-fno\-nonansi\-builtins  \-fno\-operator\-names 
+\&\-fno\-optional\-diags  \-fpermissive 
+\&\-frepo  \-fno\-rtti  \-fstats  \-ftemplate\-depth\-\fR\fIn\fR 
+\&\fB\-fno\-threadsafe\-statics \-fuse\-cxa\-atexit  \-fno\-weak  \-nostdinc++ 
+\&\-fno\-default\-inline  \-fvisibility\-inlines\-hidden 
+\&\-fvisibility\-ms\-compat 
+\&\-Wabi  \-Wctor\-dtor\-privacy 
+\&\-Wnon\-virtual\-dtor  \-Wreorder 
+\&\-Weffc++  \-Wno\-deprecated  \-Wstrict\-null\-sentinel 
+\&\-Wno\-non\-template\-friend  \-Wold\-style\-cast 
+\&\-Woverloaded\-virtual  \-Wno\-pmf\-conversions 
+\&\-Wsign\-promo\fR
+.IP "\fIObjective-C and Objective\-\*(C+ Language Options\fR" 4
+.IX Item "Objective-C and Objective- Language Options"
+\&\fB\-fconstant\-string\-class=\fR\fIclass-name\fR 
+\&\fB\-fgnu\-runtime  \-fnext\-runtime 
+\&\-fno\-nil\-receivers 
+\&\-fobjc\-call\-cxx\-cdtors 
+\&\-fobjc\-direct\-dispatch 
+\&\-fobjc\-exceptions 
+\&\-fobjc\-gc 
+\&\-freplace\-objc\-classes 
+\&\-fzero\-link 
+\&\-gen\-decls 
+\&\-Wassign\-intercept 
+\&\-Wno\-protocol  \-Wselector 
+\&\-Wstrict\-selector\-match 
+\&\-Wundeclared\-selector\fR
+.IP "\fILanguage Independent Options\fR" 4
+.IX Item "Language Independent Options"
+\&\fB\-fmessage\-length=\fR\fIn\fR  
+\&\fB\-fdiagnostics\-show\-location=\fR[\fBonce\fR|\fBevery-line\fR]  
+\&\fB\-fdiagnostics\-show\-option\fR
+.IP "\fIWarning Options\fR" 4
+.IX Item "Warning Options"
+\&\fB\-fsyntax\-only  \-pedantic  \-pedantic\-errors 
+\&\-w  \-Wextra  \-Wall  \-Waddress  \-Waggregate\-return  \-Warray\-bounds 
+\&\-Wno\-attributes \-Wc++\-compat \-Wc++0x\-compat \-Wcast\-align  \-Wcast\-qual  
+\&\-Wchar\-subscripts \-Wclobbered  \-Wcomment 
+\&\-Wconversion  \-Wcoverage\-mismatch  \-Wno\-deprecated\-declarations 
+\&\-Wdisabled\-optimization  \-Wno\-div\-by\-zero  
+\&\-Wempty\-body  \-Wno\-endif\-labels 
+\&\-Werror  \-Werror=* 
+\&\-Wfatal\-errors  \-Wfloat\-equal  \-Wformat  \-Wformat=2 
+\&\-Wno\-format\-extra\-args \-Wformat\-nonliteral 
+\&\-Wformat\-security  \-Wformat\-y2k \-Wignored\-qualifiers 
+\&\-Wimplicit  \-Wimplicit\-function\-declaration  \-Wimplicit\-int 
+\&\-Wimport  \-Wno\-import  \-Winit\-self  \-Winline 
+\&\-Wno\-int\-to\-pointer\-cast \-Wno\-invalid\-offsetof 
+\&\-Winvalid\-pch \-Wlarger\-than\-\fR\fIlen\fR  \fB\-Wunsafe\-loop\-optimizations 
+\&\-Wlogical\-op \-Wlong\-long 
+\&\-Wmain  \-Wmissing\-braces  \-Wmissing\-field\-initializers 
+\&\-Wmissing\-format\-attribute  \-Wmissing\-include\-dirs 
+\&\-Wmissing\-noreturn 
+\&\-Wno\-multichar  \-Wnonnull  \-Wno\-overflow 
+\&\-Woverlength\-strings  \-Wpacked  \-Wpadded 
+\&\-Wparentheses  \-Wpointer\-arith  \-Wno\-pointer\-to\-int\-cast 
+\&\-Wredundant\-decls 
+\&\-Wreturn\-type  \-Wsequence\-point  \-Wshadow 
+\&\-Wsign\-compare  \-Wsign\-conversion  \-Wstack\-protector 
+\&\-Wstrict\-aliasing \-Wstrict\-aliasing=n 
+\&\-Wstrict\-overflow \-Wstrict\-overflow=\fR\fIn\fR 
+\&\fB\-Wswitch  \-Wswitch\-default  \-Wswitch\-enum 
+\&\-Wsystem\-headers  \-Wtrigraphs  \-Wtype\-limits  \-Wundef  \-Wuninitialized 
+\&\-Wunknown\-pragmas  \-Wno\-pragmas \-Wunreachable\-code 
+\&\-Wunused  \-Wunused\-function  \-Wunused\-label  \-Wunused\-parameter 
+\&\-Wunused\-value  \-Wunused\-variable 
+\&\-Wvariadic\-macros \-Wvla 
+\&\-Wvolatile\-register\-var  \-Wwrite\-strings\fR
+.IP "\fIC and Objective-C-only Warning Options\fR" 4
+.IX Item "C and Objective-C-only Warning Options"
+\&\fB\-Wbad\-function\-cast  \-Wmissing\-declarations 
+\&\-Wmissing\-parameter\-type  \-Wmissing\-prototypes  \-Wnested\-externs 
+\&\-Wold\-style\-declaration  \-Wold\-style\-definition 
+\&\-Wstrict\-prototypes  \-Wtraditional  \-Wtraditional\-conversion 
+\&\-Wdeclaration\-after\-statement \-Wpointer\-sign\fR
+.IP "\fIDebugging Options\fR" 4
+.IX Item "Debugging Options"
+\&\fB\-d\fR\fIletters\fR  \fB\-dumpspecs  \-dumpmachine  \-dumpversion 
+\&\-fdbg\-cnt\-list \-fdbg\-cnt=\fR\fIcounter-value-list\fR 
+\&\fB\-fdump\-noaddr \-fdump\-unnumbered  \-fdump\-translation\-unit\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-fdump\-class\-hierarchy\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-fdump\-ipa\-all \-fdump\-ipa\-cgraph \-fdump\-ipa\-inline 
+\&\-fdump\-tree\-all 
+\&\-fdump\-tree\-original\fR[\fB\-\fR\fIn\fR]  
+\&\fB\-fdump\-tree\-optimized\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-fdump\-tree\-cfg \-fdump\-tree\-vcg \-fdump\-tree\-alias 
+\&\-fdump\-tree\-ch 
+\&\-fdump\-tree\-ssa\fR[\fB\-\fR\fIn\fR] \fB\-fdump\-tree\-pre\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-fdump\-tree\-ccp\fR[\fB\-\fR\fIn\fR] \fB\-fdump\-tree\-dce\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-fdump\-tree\-gimple\fR[\fB\-raw\fR] \fB\-fdump\-tree\-mudflap\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-fdump\-tree\-dom\fR[\fB\-\fR\fIn\fR] 
+\&ˆ^  ˜^  ¯^  ˘^  ˙^  ˚^  ¸^  ˝^  ˛^  ˇ^   _  _  _  _  _  _  _  _  _  	_  
+_  _  _  _  _  _  _  _  _  _  _  _  _  _  _  _  _  _  _  _  _  _   _  !_  "_  #_  $_  %_  &_  '_  (_  )_  *_  +_  ,_  -_  ._  /_  0_  1_  2_  3_  4_  5_  6_  7_  8_  9_  :_  ;_  <_  =_  >_  ?_  @_  A_  B_  C_  D_  E_  F_  G_  H_  I_  J_  K_  L_  M_  N_  O_  P_  Q_  R_  S_  T_  U_  V_  W_  X_  Y_  Z_  [_  \_  ]_  ^_  __  `_  a_  b_  c_  d_  e_  f_  g_  h_  i_  j_  k_  l_  m_  n_  o_  p_  q_  r_  s_  t_  u_  v_  w_  x_  y_  z_  {_  |_  }_  ~_  _  Ä_  Å_  Ç_  É_  Ñ_  Ö_  Ü_  á_  à_  â_  ä_  ã_  å_  ç_  é_  è_  ê_  ë_  í_  ì_  î_  ï_  ñ_  ó_  ò_  ô_  ö_  õ_  ú_  ù_  û_  ü_  †_  °_  ¢_  £_  §_  •_  ¶_  ß_  ®_  ©_  ™_  ´_  ¨_  ≠_  Æ_  Ø_  ∞_  ±_  ≤_  ≥_  ¥_  µ_  ∂_  ∑_  ∏_  π_  ∫_  ª_  º_  Ω_  æ_  ø_  ¿_  ¡_  ¬_  √_  ƒ_  ≈_  ∆_  «_  »_  …_   _  À_  Ã_  Õ_  Œ_  œ_  –_  —_  “_  ”_  ‘_  ’_  ÷_  ◊_  ÿ_  Ÿ_  ⁄_  €_  ‹_  ›_  ﬁ_  ﬂ_  ‡_  ·_  ‚_  „_  ‰_  Â_  Ê_  Á_  Ë_  È_  Í_  Î_  Ï_  Ì_  Ó_  Ô_  _  Ò_  Ú_  Û_  Ù_  ı_  \fB\-fdump\-tree\-dse\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-fdump\-tree\-phiopt\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-fdump\-tree\-forwprop\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-fdump\-tree\-copyrename\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-fdump\-tree\-nrv \-fdump\-tree\-vect 
+\&\-fdump\-tree\-sink 
+\&\-fdump\-tree\-sra\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-fdump\-tree\-salias 
+\&\-fdump\-tree\-fre\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-fdump\-tree\-vrp\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-ftree\-vectorizer\-verbose=\fR\fIn\fR 
+\&\fB\-fdump\-tree\-storeccp\fR[\fB\-\fR\fIn\fR] 
+\&\fB\-feliminate\-dwarf2\-dups \-feliminate\-unused\-debug\-types 
+\&\-feliminate\-unused\-debug\-symbols \-femit\-class\-debug\-always 
+\&\-fmem\-report \-fpre\-ipa\-mem\-report \-fpost\-ipa\-mem\-report \-fprofile\-arcs 
+\&\-frandom\-seed=\fR\fIstring\fR \fB\-fsched\-verbose=\fR\fIn\fR 
+\&\fB\-ftest\-coverage  \-ftime\-report \-fvar\-tracking 
+\&\-g  \-g\fR\fIlevel\fR  \fB\-gcoff \-gdwarf\-2 
+\&\-ggdb  \-gstabs  \-gstabs+  \-gvms  \-gxcoff  \-gxcoff+ 
+\&\-fno\-merge\-debug\-strings \-fdebug\-prefix\-map=\fR\fIold\fR\fB=\fR\fInew\fR 
+\&\fB\-femit\-struct\-debug\-baseonly \-femit\-struct\-debug\-reduced 
+\&\-femit\-struct\-debug\-detailed\fR[\fB=\fR\fIspec-list\fR] 
+\&\fB\-p  \-pg  \-print\-file\-name=\fR\fIlibrary\fR  \fB\-print\-libgcc\-file\-name 
+\&\-print\-multi\-directory  \-print\-multi\-lib 
+\&\-print\-prog\-name=\fR\fIprogram\fR  \fB\-print\-search\-dirs  \-Q 
+\&\-print\-sysroot\-headers\-suffix 
+\&\-save\-temps  \-time\fR
+.IP "\fIOptimization Options\fR" 4
+.IX Item "Optimization Options"
+\&\fB\-falign\-functions[=\fR\fIn\fR\fB] \-falign\-jumps[=\fR\fIn\fR\fB] 
+\&\-falign\-labels[=\fR\fIn\fR\fB] \-falign\-loops[=\fR\fIn\fR\fB] \-fassociative\-math 
+\&\-fauto\-inc\-dec \-fbranch\-probabilities \-fbranch\-target\-load\-optimize 
+\&\-fbranch\-target\-load\-optimize2 \-fbtr\-bb\-exclusive \-fcaller\-saves 
+\&\-fcheck\-data\-deps \-fcprop\-registers \-fcrossjumping \-fcse\-follow\-jumps 
+\&\-fcse\-skip\-blocks \-fcx\-limited\-range \-fdata\-sections \-fdce \-fdce 
+\&\-fdelayed\-branch \-fdelete\-null\-pointer\-checks \-fdse \-fdse 
+\&\-fearly\-inlining \-fexpensive\-optimizations \-ffast\-math 
+\&\-ffinite\-math\-only \-ffloat\-store \-fforward\-propagate 
+\&\-ffunction\-sections \-fgcse \-fgcse\-after\-reload \-fgcse\-las \-fgcse\-lm 
+\&\-fgcse\-sm \-fif\-conversion \-fif\-conversion2 \-finline\-functions 
+\&\-finline\-functions\-called\-once \-finline\-limit=\fR\fIn\fR 
+\&\fB\-finline\-small\-functions \-fipa\-cp \-fipa\-matrix\-reorg \-fipa\-pta  
+\&\-fipa\-pure\-const \-fipa\-reference \-fipa\-struct\-reorg 
+\&\-fipa\-type\-escape \-fivopts \-fkeep\-inline\-functions \-fkeep\-static\-consts 
+\&\-fmerge\-all\-constants \-fmerge\-constants \-fmodulo\-sched 
+\&\-fmodulo\-sched\-allow\-regmoves \-fmove\-loop\-invariants \-fmudflap 
+\&\-fmudflapir \-fmudflapth \-fno\-branch\-count\-reg \-fno\-default\-inline 
+\&\-fno\-defer\-pop \-fno\-function\-cse \-fno\-guess\-branch\-probability 
+\&\-fno\-inline \-fno\-math\-errno \-fno\-peephole \-fno\-peephole2 
+\&\-fno\-sched\-interblock \-fno\-sched\-spec \-fno\-signed\-zeros 
+\&\-fno\-toplevel\-reorder \-fno\-trapping\-math \-fno\-zero\-initialized\-in\-bss 
+\&\-fomit\-frame\-pointer \-foptimize\-register\-move \-foptimize\-sibling\-calls 
+\&\-fpeel\-loops \-fpredictive\-commoning \-fprefetch\-loop\-arrays 
+\&\-fprofile\-generate \-fprofile\-use \-fprofile\-values \-freciprocal\-math 
+\&\-fregmove \-frename\-registers \-freorder\-blocks 
+\&\-freorder\-blocks\-and\-partition \-freorder\-functions 
+\&\-frerun\-cse\-after\-loop \-freschedule\-modulo\-scheduled\-loops 
+\&\-frounding\-math \-frtl\-abstract\-sequences \-fsched2\-use\-superblocks 
+\&\-fsched2\-use\-traces \-fsched\-spec\-load \-fsched\-spec\-load\-dangerous 
+\&\-fsched\-stalled\-insns\-dep[=\fR\fIn\fR\fB] \-fsched\-stalled\-insns[=\fR\fIn\fR\fB] 
+\&\-fschedule\-insns \-fschedule\-insns2 \-fsection\-anchors \-fsee 
+\&\-fsignaling\-nans \-fsingle\-precision\-constant \-fsplit\-ivs\-in\-unroller 
+\&\-fsplit\-wide\-types \-fstack\-protector \-fstack\-protector\-all 
+\&\-fstrict\-aliasing \-fstrict\-overflow \-fthread\-jumps \-ftracer \-ftree\-ccp 
+\&\-ftree\-ch \-ftree\-copy\-prop \-ftree\-copyrename \-ftree\-dce 
+\&\-ftree\-dominator\-opts \-ftree\-dse \-ftree\-fre \-ftree\-loop\-im 
+\&\-ftree\-loop\-ivcanon \-ftree\-loop\-linear \-ftree\-loop\-optimize 
+\&\-ftree\-parallelize\-loops=\fR\fIn\fR \fB\-ftree\-pre \-ftree\-reassoc \-ftree\-salias 
+\&\-ftree\-sink \-ftree\-sra \-ftree\-store\-ccp \-ftree\-ter 
+\&\-ftree\-vect\-loop\-version \-ftree\-vectorize \-ftree\-vrp \-funit\-at\-a\-time 
+\&\-funroll\-all\-loops \-funroll\-loops \-funsafe\-loop\-optimizations 
+\&\-funsafe\-math\-optimizations \-funswitch\-loops 
+\&\-fvariable\-expansion\-in\-unroller \-fvect\-cost\-model \-fvpt \-fweb 
+\&\-fwhole\-program 
+\&\-\-param\fR \fIname\fR\fB=\fR\fIvalue\fR
+\&\fB\-O  \-O0  \-O1  \-O2  \-O3  \-Os\fR
+.IP "\fIPreprocessor Options\fR" 4
+.IX Item "Preprocessor Options"
+\&\fB\-A\fR\fIquestion\fR\fB=\fR\fIanswer\fR 
+\&\fB\-A\-\fR\fIquestion\fR[\fB=\fR\fIanswer\fR] 
+\&\fB\-C  \-dD  \-dI  \-dM  \-dN 
+\&\-D\fR\fImacro\fR[\fB=\fR\fIdefn\fR]  \fB\-E  \-H 
+\&\-idirafter\fR \fIdir\fR 
+\&\fB\-include\fR \fIfile\fR  \fB\-imacros\fR \fIfile\fR 
+\&\fB\-iprefix\fR \fIfile\fR  \fB\-iwithprefix\fR \fIdir\fR 
+\&\fB\-iwithprefixbefore\fR \fIdir\fR  \fB\-isystem\fR \fIdir\fR 
+\&\fB\-imultilib\fR \fIdir\fR \fB\-isysroot\fR \fIdir\fR 
+\&\fB\-M  \-MM  \-MF  \-MG  \-MP  \-MQ  \-MT  \-nostdinc  
+\&\-P  \-fworking\-directory  \-remap 
+\&\-trigraphs  \-undef  \-U\fR\fImacro\fR  \fB\-Wp,\fR\fIoption\fR 
+\&\fB\-Xpreprocessor\fR \fIoption\fR
+.IP "\fIAssembler Option\fR" 4
+.IX Item "Assembler Option"
+\&\fB\-Wa,\fR\fIoption\fR  \fB\-Xassembler\fR \fIoption\fR
+.IP "\fILinker Options\fR" 4
+.IX Item "Linker Options"
+\&\fIobject-file-name\fR  \fB\-l\fR\fIlibrary\fR 
+\&\fB\-nostartfiles  \-nodefaultlibs  \-nostdlib \-pie \-rdynamic 
+\&\-s  \-static  \-static\-libgcc  \-shared  \-shared\-libgcc  \-symbolic 
+\&\-Wl,\fR\fIoption\fR  \fB\-Xlinker\fR \fIoption\fR 
+\&\fB\-u\fR \fIsymbol\fR
+.IP "\fIDirectory Options\fR" 4
+.IX Item "Directory Options"
+\&\fB\-B\fR\fIprefix\fR  \fB\-I\fR\fIdir\fR  \fB\-iquote\fR\fIdir\fR  \fB\-L\fR\fIdir\fR
+\&\fB\-specs=\fR\fIfile\fR  \fB\-I\- \-\-sysroot=\fR\fIdir\fR
+.IP "\fITarget Options\fR" 4
+.IX Item "Target Options"
+\&\fB\-V\fR \fIversion\fR  \fB\-b\fR \fImachine\fR
+.IP "\fIMachine Dependent Options\fR" 4
+.IX Item "Machine Dependent Options"
+\&\fI\s-1ARC\s0 Options\fR
+\&\fB\-EB  \-EL 
+\&\-mmangle\-cpu  \-mcpu=\fR\fIcpu\fR  \fB\-mtext=\fR\fItext-section\fR 
+\&\fB\-mdata=\fR\fIdata-section\fR  \fB\-mrodata=\fR\fIreadonly-data-section\fR
+.Sp
+\&\fI\s-1ARM\s0 Options\fR
+\&\fB\-mapcs\-frame  \-mno\-apcs\-frame 
+\&\-mabi=\fR\fIname\fR 
+\&\fB\-mapcs\-stack\-check  \-mno\-apcs\-stack\-check 
+\&\-mapcs\-float  \-mno\-apcs\-float 
+\&\-mapcs\-reentrant  \-mno\-apcs\-reentrant 
+\&\-msched\-prolog  \-mno\-sched\-prolog 
+\&\-mlittle\-endian  \-mbig\-endian  \-mwords\-little\-endian 
+\&\-mfloat\-abi=\fR\fIname\fR  \fB\-msoft\-float  \-mhard\-float  \-mfpe 
+\&\-mthumb\-interwork  \-mno\-thumb\-interwork 
+\&\-mcpu=\fR\fIname\fR  \fB\-march=\fR\fIname\fR  \fB\-mfpu=\fR\fIname\fR  
+\&\fB\-mstructure\-size\-boundary=\fR\fIn\fR 
+\&\fB\-mabort\-on\-noreturn 
+\&\-mlong\-calls  \-mno\-long\-calls 
+\&\-msingle\-pic\-base  \-mno\-single\-pic\-base 
+\&\-mpic\-register=\fR\fIreg\fR 
+\&\fB\-mnop\-fun\-dllimport 
+\&\-mcirrus\-fix\-invalid\-insns \-mno\-cirrus\-fix\-invalid\-insns 
+\&\-mpoke\-function\-name 
+\&\-mthumb  \-marm 
+\&\-mtpcs\-frame  \-mtpcs\-leaf\-frame 
+\&\-mcaller\-super\-interworking  \-mcallee\-super\-interworking 
+\&\-mtp=\fR\fIname\fR
+.Sp
+\&\fI\s-1AVR\s0 Options\fR
+\&\fB\-mmcu=\fR\fImcu\fR  \fB\-msize  \-minit\-stack=\fR\fIn\fR  \fB\-mno\-interrupts 
+\&\-mcall\-prologues  \-mno\-tablejump  \-mtiny\-stack  \-mint8\fR
+.Sp
+\&\fIBlackfin Options\fR
+\&\fB\-mcpu=\fR\fIcpu\fR[\fB\-\fR\fIsirevision\fR] 
+\&\fB\-msim \-momit\-leaf\-frame\-pointer  \-mno\-omit\-leaf\-frame\-pointer 
+\&\-mspecld\-anomaly  \-mno\-specld\-anomaly  \-mcsync\-anomaly  \-mno\-csync\-anomaly 
+\&\-mlow\-64k \-mno\-low64k  \-mstack\-check\-l1  \-mid\-shared\-library 
+\&\-mno\-id\-shared\-library  \-mshared\-library\-id=\fR\fIn\fR 
+\&\fB\-mleaf\-id\-shared\-library  \-mno\-leaf\-id\-shared\-library 
+\&\-msep\-data  \-mno\-sep\-data  \-mlong\-calls  \-mno\-long\-calls 
+\&\-mfast\-fp \-minline\-plt\fR
+.Sp
+\&\fI\s-1CRIS\s0 Options\fR
+\&\fB\-mcpu=\fR\fIcpu\fR  \fB\-march=\fR\fIcpu\fR  \fB\-mtune=\fR\fIcpu\fR 
+\&\fB\-mmax\-stack\-frame=\fR\fIn\fR  \fB\-melinux\-stacksize=\fR\fIn\fR 
+\&\fB\-metrax4  \-metrax100  \-mpdebug  \-mcc\-init  \-mno\-side\-effects 
+\&\-mstack\-align  \-mdata\-align  \-mconst\-align 
+\&\-m32\-bit  \-m16\-bit  \-m8\-bit  \-mno\-prologue\-epilogue  \-mno\-gotplt 
+\&\-melf  \-maout  \-melinux  \-mlinux  \-sim  \-sim2 
+\&\-mmul\-bug\-workaround  \-mno\-mul\-bug\-workaround\fR
+.Sp
+\&\fI\s-1CRX\s0 Options\fR
+\&\fB\-mmac \-mpush\-args\fR
+.Sp
+\&\fIDarwin Options\fR
+\&\fB\-all_load  \-allowable_client  \-arch  \-arch_errors_fatal 
+\&\-arch_only  \-bind_at_load  \-bundle  \-bundle_loader 
+\&\-client_name  \-compatibility_version  \-current_version 
+\&\-dead_strip 
+\&\-dependency\-file  \-dylib_file  \-dylinker_install_name 
+\&\-dynamic  \-dynamiclib  \-exported_symbols_list 
+\&\-filelist  \-flat_namespace  \-force_cpusubtype_ALL 
+\&\-force_flat_namespace  \-headerpad_max_install_names 
+\&\-iframework 
+\&\-image_base  \-init  \-install_name  \-keep_private_externs 
+\&\-multi_module  \-multiply_defined  \-multiply_defined_unused 
+\&\-noall_load   \-no_dead_strip_inits_and_terms 
+\&\-nofixprebinding \-nomultidefs  \-noprebind  \-noseglinkedit 
+\&\-pagezero_size  \-prebind  \-prebind_all_twolevel_modules 
+\&\-private_bundle  \-read_only_relocs  \-sectalign 
+\&\-sectobjectsymbols  \-whyload  \-seg1addr 
+\&\-sectcreate  \-sectobjectsymbols  \-sectorder 
+\&\-segaddr \-segs_read_only_addr \-segs_read_write_addr 
+\&\-seg_addr_table  \-seg_addr_table_filename  \-seglinkedit 
+\&\-segprot  \-segs_read_only_addr  \-segs_read_write_addr 
+\&\-single_module  \-static  \-sub_library  \-sub_umbrella 
+\&\-twolevel_namespace  \-umbrella  \-undefined 
+\&\-unexported_symbols_list  \-weak_reference_mismatches 
+\&\-whats

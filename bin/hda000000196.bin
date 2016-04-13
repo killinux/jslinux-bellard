@@ -1,0 +1,1848 @@
+ if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/*
+ *
+ * Copyright (c) 1994
+ * Hewlett-Packard Company
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Hewlett-Packard Company makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ *
+ *
+ * Copyright (c) 1996
+ * Silicon Graphics Computer Systems, Inc.
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Silicon Graphics makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ */
+
+/** @file ext/algorithm
+ *  This file is a GNU extension to the Standard C++ Library (possibly
+ *  containing extensions from the HP/SGI STL subset).
+ */
+
+#ifndef _EXT_ALGORITHM
+#define _EXT_ALGORITHM 1
+
+#pragma GCC system_header
+
+#include <algorithm>
+
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
+  using std::ptrdiff_t;
+  using std::min;
+  using std::pair;
+  using std::input_iterator_tag;
+  using std::random_access_iterator_tag;
+  using std::iterator_traits;
+
+  //--------------------------------------------------
+  // copy_n (not part of the C++ standard)
+
+  template<typename _InputIterator, typename _Size, typename _OutputIterator>
+    pair<_InputIterator, _OutputIterator>
+    __copy_n(_InputIterator __first, _Size __count,
+	     _OutputIterator __result,
+	     input_iterator_tag)
+    {
+      for ( ; __count > 0; --__count)
+	{
+	  *__result = *__first;
+	  ++__first;
+	  ++__result;
+	}
+      return pair<_InputIterator, _OutputIterator>(__first, __result);
+    }
+
+  template<typename _RAIterator, typename _Size, typename _OutputIterator>
+    inline pair<_RAIterator, _OutputIterator>
+    __copy_n(_RAIterator __first, _Size __count,
+	     _OutputIterator __result,
+	     random_access_iterator_tag)
+    {
+      _RAIterator __last = __first + __count;
+      return pair<_RAIterator, _OutputIterator>(__last, std::copy(__first,
+								  __last,
+								  __result));
+    }
+
+  /**
+   *  @brief Copies the range [first,first+count) into [result,result+count).
+   *  @param  first  An input iterator.
+   *  @param  count  The number of elements to copy.
+   *  @param  result An output iterator.
+   *  @return   A std::pair composed of first+count and result+count.
+   *
+   *  This is an SGI extension.
+   *  This inline function will boil down to a call to @c memmove whenever
+   *  possible.  Failing that, if random access iterators are passed, then the
+   *  loop count will be known (and therefore a candidate for compiler
+   *  optimizations such as unrolling).
+   *  @ingroup SGIextensions
+  */
+  template<typename _InputIterator, typename _Size, typename _OutputIterator>
+    inline pair<_InputIterator, _OutputIterator>
+    copy_n(_InputIterator __first, _Size __count, _OutputIterator __result)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+	    typename iterator_traits<_InputIterator>::value_type>)
+
+      return __copy_n(__first, __count, __result,
+		      std::__iterator_category(__first));
+    }
+
+  template<typename _InputIterator1, typename _InputIterator2>
+    int
+    __lexicographical_compare_3way(_InputIterator1 __first1,
+				   _InputIterator1 __last1,
+				   _InputIterator2 __first2,
+				   _InputIterator2 __last2)
+    {
+      while (__first1 != __last1 && __first2 != __last2)
+	{
+	  if (*__first1 < *__first2)
+	    return -1;
+	  if (*__first2 < *__first1)
+	    return 1;
+	  ++__first1;
+	  ++__first2;
+	}
+      if (__first2 == __last2)
+	return !(__first1 == __last1);
+      else
+	return -1;
+    }
+
+  inline int
+  __lexicographical_compare_3way(const unsigned char* __first1,
+				 const unsigned char* __last1,
+				 const unsigned char* __first2,
+				 const unsigned char* __last2)
+  {
+    const ptrdiff_t __len1 = __last1 - __first1;
+    const ptrdiff_t __len2 = __last2 - __first2;
+    const int __result = __builtin_memcmp(__first1, __first2,
+					  min(__len1, __len2));
+    return __result != 0 ? __result
+			 : (__len1 == __len2 ? 0 : (__len1 < __len2 ? -1 : 1));
+  }
+
+  inline int
+  __lexicographical_compare_3way(const char* __first1, const char* __last1,
+				 const char* __first2, const char* __last2)
+  {
+#if CHAR_MAX == SCHAR_MAX
+    return __lexicographical_compare_3way((const signed char*) __first1,
+					  (const signed char*) __last1,
+					  (const signed char*) __first2,
+					  (const signed char*) __last2);
+#else
+    return __lexicographical_compare_3way((const unsigned char*) __first1,
+					  (const unsigned char*) __last1,
+					  (const unsigned char*) __first2,
+					  (const unsigned char*) __last2);
+#endif
+  }
+
+  /**
+   *  @brief @c memcmp on steroids.
+   *  @param  first1  An input iterator.
+   *  @param  last1   An input iterator.
+   *  @param  first2  An input iterator.
+   *  @param  last2   An input iterator.
+   *  @return   An int, as with @c memcmp.
+   *
+   *  The return value will be less than zero if the first range is
+   *  "lexigraphically less than" the second, greater than zero if the second
+   *  range is "lexigraphically less than" the first, and zero otherwise.
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+  */
+  template<typename _InputIterator1, typename _InputIterator2>
+    int
+    lexicographical_compare_3way(_InputIterator1 __first1,
+				 _InputIterator1 __last1,
+				 _InputIterator2 __first2,
+				 _InputIterator2 __last2)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator1>)
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator2>)
+      __glibcxx_function_requires(_LessThanComparableConcept<
+	    typename iterator_traits<_InputIterator1>::value_type>)
+      __glibcxx_function_requires(_LessThanComparableConcept<
+	    typename iterator_traits<_InputIterator2>::value_type>)
+      __glibcxx_requires_valid_range(__first1, __last1);
+      __glibcxx_requires_valid_range(__first2, __last2);
+
+      return __lexicographical_compare_3way(__first1, __last1, __first2,
+					    __last2);
+    }
+
+  // count and count_if: this version, whose return type is void, was present
+  // in the HP STL, and is retained as an extension for backward compatibility.
+  template<typename _InputIterator, typename _Tp, typename _Size>
+    void
+    count(_InputIterator __first, _InputIterator __last,
+	  const _Tp& __value,
+	  _Size& __n)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator>)
+      __glibcxx_function_requires(_EqualityComparableConcept<
+	    typename iterator_traits<_InputIterator>::value_type >)
+      __glibcxx_function_requires(_EqualityComparableConcept<_Tp>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      for ( ; __first != __last; ++__first)
+	if (*__first == __value)
+	  ++__n;
+    }
+
+  template<typename _InputIterator, typename _Predicate, typename _Size>
+    void
+    count_if(_InputIterator __first, _InputIterator __last,
+	     _Predicate __pred,
+	     _Size& __n)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator>)
+      __glibcxx_function_requires(_UnaryPredicateConcept<_Predicate,
+	    typename iterator_traits<_InputIterator>::value_type>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      for ( ; __first != __last; ++__first)
+	if (__pred(*__first))
+	  ++__n;
+    }
+
+  // random_sample and random_sample_n (extensions, not part of the standard).
+
+  /**
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+   *  @doctodo
+  */
+  template<typename _ForwardIterator, typename _OutputIterator,
+	   typename _Distance>
+    _OutputIterator
+    random_sample_n(_ForwardIterator __first, _ForwardIterator __last,
+                    _OutputIterator __out, const _Distance __n)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_ForwardIteratorConcept<_ForwardIterator>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+		typename iterator_traits<_ForwardIterator>::value_type>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      _Distance __remaining = std::distance(__first, __last);
+      _Distance __m = min(__n, __remaining);
+
+      while (__m > 0)
+	{
+	  if ((std::rand() % __remaining) < __m)
+	    {
+	      *__out = *__first;
+	      ++__out;
+	      --__m;
+	    }
+	  --__remaining;
+	  ++__first;
+	}
+      return __out;
+    }
+
+  /**
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+   *  @doctodo
+  */
+  template<typename _ForwardIterator, typename _OutputIterator,
+	   typename _Distance, typename _RandomNumberGenerator>
+    _OutputIterator
+    random_sample_n(_ForwardIterator __first, _ForwardIterator __last,
+                   _OutputIterator __out, const _Distance __n,
+		   _RandomNumberGenerator& __rand)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_ForwardIteratorConcept<_ForwardIterator>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+		typename iterator_traits<_ForwardIterator>::value_type>)
+      __glibcxx_function_requires(_UnaryFunctionConcept<
+		_RandomNumberGenerator, _Distance, _Distance>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      _Distance __remaining = std::distance(__first, __last);
+      _Distance __m = min(__n, __remaining);
+
+      while (__m > 0)
+	{
+	  if (__rand(__remaining) < __m)
+	    {
+	      *__out = *__first;
+	      ++__out;
+	      --__m;
+	    }
+	  --__remaining;
+	  ++__first;
+	}
+      return __out;
+    }
+
+  template<typename _InputIterator, typename _RandomAccessIterator,
+	   typename _Distance>
+    _RandomAccessIterator
+    __random_sample(_InputIterator __first, _InputIterator __last,
+		    _RandomAccessIterator __out,
+		    const _Distance __n)
+    {
+      _Distance __m = 0;
+      _Distance __t = __n;
+      for ( ; __first != __last && __m < __n; ++__m, ++__first)
+	__out[__m] = *__first;
+
+      while (__first != __last)
+	{
+	  ++__t;
+	  _Distance __M = std::rand() % (__t);
+	  if (__M < __n)
+	    __out[__M] = *__first;
+	  ++__first;
+	}
+      return __out + __m;
+    }
+
+  template<typename _InputIterator, typename _RandomAccessIterator,
+	   typename _RandomNumberGenerator, typename _Distance>
+    _RandomAccessIterator
+    __random_sample(_InputIterator __fi1  1  1  1  1  1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          rst, _InputIterator __last,
+		    _RandomAccessIterator __out,
+		    _RandomNumberGenerator& __rand,
+		    const _Distance __n)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_UnaryFunctionConcept<
+	    _RandomNumberGenerator, _Distance, _Distance>)
+
+      _Distance __m = 0;
+      _Distance __t = __n;
+      for ( ; __first != __last && __m < __n; ++__m, ++__first)
+	__out[__m] = *__first;
+
+      while (__first != __last)
+	{
+	  ++__t;
+	  _Distance __M = __rand(__t);
+	  if (__M < __n)
+	    __out[__M] = *__first;
+	  ++__first;
+	}
+      return __out + __m;
+    }
+
+  /**
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+   *  @doctodo
+  */
+  template<typename _InputIterator, typename _RandomAccessIterator>
+    inline _RandomAccessIterator
+    random_sample(_InputIterator __first, _InputIterator __last,
+		  _RandomAccessIterator __out_first,
+		  _RandomAccessIterator __out_last)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator>)
+      __glibcxx_function_requires(_Mutable_RandomAccessIteratorConcept<
+	    _RandomAccessIterator>)
+      __glibcxx_requires_valid_range(__first, __last);
+      __glibcxx_requires_valid_range(__out_first, __out_last);
+
+      return __random_sample(__first, __last,
+			     __out_first, __out_last - __out_first);
+    }
+
+  /**
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+   *  @doctodo
+  */
+  template<typename _InputIterator, typename _RandomAccessIterator,
+	   typename _RandomNumberGenerator>
+    inline _RandomAccessIterator
+    random_sample(_InputIterator __first, _InputIterator __last,
+		  _RandomAccessIterator __out_first,
+		  _RandomAccessIterator __out_last,
+		  _RandomNumberGenerator& __rand)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator>)
+      __glibcxx_function_requires(_Mutable_RandomAccessIteratorConcept<
+	    _RandomAccessIterator>)
+      __glibcxx_requires_valid_range(__first, __last);
+      __glibcxx_requires_valid_range(__out_first, __out_last);
+
+      return __random_sample(__first, __last,
+			     __out_first, __rand,
+			     __out_last - __out_first);
+    }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  using std::is_heap;
+  using std::is_sorted;
+#else
+  /**
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+   *  @doctodo
+  */
+  template<typename _RandomAccessIterator>
+    inline bool
+    is_heap(_RandomAccessIterator __first, _RandomAccessIterator __last)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_RandomAccessIteratorConcept<
+				  _RandomAccessIterator>)
+      __glibcxx_function_requires(_LessThanComparableConcept<
+	    typename iterator_traits<_RandomAccessIterator>::value_type>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      return std::__is_heap(__first, __last - __first);
+    }
+
+  /**
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+   *  @doctodo
+  */
+  template<typename _RandomAccessIterator, typename _StrictWeakOrdering>
+    inline bool
+    is_heap(_RandomAccessIterator __first, _RandomAccessIterator __last,
+	    _StrictWeakOrdering __comp)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_RandomAccessIteratorConcept<
+				  _RandomAccessIterator>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_StrictWeakOrdering,
+	    typename iterator_traits<_RandomAccessIterator>::value_type,
+	    typename iterator_traits<_RandomAccessIterator>::value_type>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      return std::__is_heap(__first, __comp, __last - __first);
+    }
+
+  // is_sorted, a predicated testing whether a range is sorted in
+  // nondescending order.  This is an extension, not part of the C++
+  // standard.
+
+  /**
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+   *  @doctodo
+  */
+  template<typename _ForwardIterator>
+    bool
+    is_sorted(_ForwardIterator __first, _ForwardIterator __last)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_ForwardIteratorConcept<_ForwardIterator>)
+      __glibcxx_function_requires(_LessThanComparableConcept<
+	    typename iterator_traits<_ForwardIterator>::value_type>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      if (__first == __last)
+	return true;
+
+      _ForwardIterator __next = __first;
+      for (++__next; __next != __last; __first = __next, ++__next)
+	if (*__next < *__first)
+	  return false;
+      return true;
+    }
+
+  /**
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+   *  @doctodo
+  */
+  template<typename _ForwardIterator, typename _StrictWeakOrdering>
+    bool
+    is_sorted(_ForwardIterator __first, _ForwardIterator __last,
+	      _StrictWeakOrdering __comp)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_ForwardIteratorConcept<_ForwardIterator>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_StrictWeakOrdering,
+	    typename iterator_traits<_ForwardIterator>::value_type,
+	    typename iterator_traits<_ForwardIterator>::value_type>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      if (__first == __last)
+	return true;
+
+      _ForwardIterator __next = __first;
+      for (++__next; __next != __last; __first = __next, ++__next)
+	if (__comp(*__next, *__first))
+	  return false;
+      return true;
+    }
+#endif
+
+_GLIBCXX_END_NAMESPACE
+
+#endif /* _EXT_ALGORITHM */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         // array allocator -*- C++ -*-
+
+// Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file ext/array_allocator.h
+ *  This file is a GNU extension to the Standard C++ Library.
+ */
+
+#ifndef _ARRAY_ALLOCATOR_H
+#define _ARRAY_ALLOCATOR_H 1
+
+#include <cstddef>
+#include <new>
+#include <bits/functexcept.h>
+#include <tr1/array>
+#include <bits/stl_move.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
+ using std::size_t;
+ using std::ptrdiff_t;
+
+  /// Base class.
+ template<typename _Tp>
+    class array_allocator_base
+    {
+    public:
+      typedef size_t     	size_type;
+      typedef ptrdiff_t  	difference_type;
+      typedef _Tp*       	pointer;
+      typedef const _Tp* 	const_pointer;
+      typedef _Tp&       	reference;
+      typedef const _Tp&	const_reference;
+      typedef _Tp        	value_type;
+
+      pointer
+      address(reference __x) const { return &__x; }
+
+      const_pointer
+      address(const_reference __x) const { return &__x; }
+
+      void
+      deallocate(pointer, size_type)
+      { 
+	// Does nothing.
+      }
+
+      size_type
+      max_size() const throw() 
+      { return size_t(-1) / sizeof(_Tp); }
+
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 402. wrong new expression in [some_] allocator::construct
+      void 
+      construct(pointer __p, const _Tp& __val) 
+      { ::new((void *)__p) value_type(__val); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... _Args>
+        void
+        construct(pointer __p, _Args&&... __args)
+	{ ::new((void *)__p) _Tp(std::forward<_Args>(__args)...); }
+#endif
+
+      void 
+      destroy(pointer __p) { __p->~_Tp(); }
+    };  
+
+  /**
+   *  @brief  An allocator that uses previously allocated memory.
+   *  This memory can be externally, globally, or otherwise allocated.
+   */
+  template<typename _Tp, typename _Array = std::tr1::array<_Tp, 1> >
+    class array_allocator : public array_allocator_base<_Tp>
+    {
+    public:
+      typedef size_t     	size_type;
+      typedef ptrdiff_t  	difference_type;
+      typedef _Tp*       	pointer;
+      typedef const _Tp* 	const_pointer;
+      typedef _Tp&       	reference;
+      typedef const _Tp& 	const_reference;
+      typedef _Tp        	value_type;
+      typedef _Array		array_type;
+
+    private:
+      array_type* 	_M_array;
+      size_type 	_M_used;
+
+    public:
+     template<typename _Tp1, typename _Array1 = _Array>
+        struct rebind
+        { typedef array_allocator<_Tp1, _Array1> other; };
+
+      array_allocator(array_type* __array = NULL) throw() 
+      : _M_array(__array), _M_used(size_type()) { }
+
+      array_allocator(const array_allocator& __o)  throw() 
+      : _M_array(__o._M_array), _M_used(__o._M_used) { }
+
+      template<typename _Tp1, typename _Array1>
+        array_allocator(const array_allocator<_Tp1, _Array1>&) throw()
+	: _M_array(NULL), _M_used(size_type()) { }
+
+      ~array_allocator() throw() { }
+
+      pointer
+      allocate(size_type __n, const void* = 0)
+      {
+	if (_M_array == 0 || _M_used + __n > _M_array->size())
+	  std::__throw_bad_alloc();
+	pointer __ret = _M_array->begin() + _M_used;
+	_M_used += __n;
+	return __ret;
+      }
+    };
+
+  template<typename _Tp, typename _Array>
+    inline bool
+    operator==(const array_allocator<_Tp, _Array>&,
+	       const array_allocator<_Tp, _Array>&)
+    { return true; }
+  
+  template<typename _Tp, typename _Array>
+    inline bool
+    operator!=(const array_allocator<_Tp, _Array>&, 
+	       const array_allocator<_Tp, _Array>&)
+    { return false; }
+
+_GLIBCXX_END_NAMESPACE
+
+#endif
+                                                                                                                                                                                                                                                                                     // HP/SGI iterator extensions -*- C++ -*-
+
+// Copyright (C) 2001, 2002, 2004, 2005 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/*
+ *
+ * Copyright (c) 1994
+ * Hewlett-Packard Company
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Hewlett-Packard Company makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ *
+ *
+ * Copyright (c) 1996-1998
+ * Silicon Graphics Computer Systems, Inc.
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Silicon Graphics makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ */
+
+/** @file ext/iterator
+ *  This file is a GNU extension to the Standard C++ Library (possibly
+ *  containing extensions from the HP/SGI STL subset).
+ */
+
+#ifndef _EXT_ITERATOR
+#define _EXT_ITERATOR 1
+
+#pragma GCC system_header
+
+#include <bits/concept_check.h>
+#include <iterator>
+
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
+  // There are two signatures for distance.  In addition to the one
+  // taking two iterators and returning a result, there is another
+  // taking two iterators and a reference-to-result variable, and
+  // returning nothing.  The latter seems to be an SGI extension.
+  // -- pedwards
+  template<typename _InputIterator, typename _Distance>
+    inline void
+    __distance(_InputIterator __first, _InputIterator __last,
+	       _Distance& __n, std::input_iterator_tag)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator>)
+      while (__first != __last)
+	{
+	  ++__first;
+	  ++__n;
+	}
+    }
+
+  template<typename _RandomAccessIterator, typename _Distance>
+    inline void
+    __distance(_RandomAccessIterator __first, _RandomAccessIterator __last,
+	       _Distance& __n, std::random_access_iterator_tag)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_RandomAccessIteratorConcept<
+				  _RandomAccessIterator>)
+      __n += __last - __first;
+    }
+
+  /**
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+   *  @doctodo
+  */
+  template<typename _InputIterator, typename _Distance>
+    inline void
+    distance(_InputIterator __first, _InputIterator __last,
+             _Distance& __n)
+    {
+      // concept requirements -- taken care of in __distance
+      __distance(__first, __last, __n, std::__iterator_category(__first));
+    }
+
+_GLIBCXX_END_NAMESPACE
+
+#endif
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                // -*- C++ -*-
+
+// Copyright (C) 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the terms
+// of the GNU General Public License as published by the Free Software
+// Foundation; either version 2, or (at your option) any later
+// version.
+
+// This library is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free
+// software library without restriction.  Specifically, if other files
+// instantiate templates or use macros or inline functions from this
+// file, or you compile this file and link it with other files to
+// produce an executable, this file does not by itself cause the
+// resulting executable to be covered by the GNU General Public
+// License.  This exception does not however invalidate any other
+// reasons why the executable file might be covered by the GNU General
+// Public License.
+
+/** @file ext/numeric_traits.h
+ *  This file is a GNU extension to the Standard C++ Library.
+ */
+
+#ifndef _EXT_NUMERIC_TRAITS
+#define _EXT_NUMERIC_TRAITS 1
+
+#pragma GCC system_header
+
+#include <bits/cpp_type_traits.h>
+#include <ext/type_traits.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
+  // Compile time constants for builtin types.
+  // Sadly std::numeric_limits member functions cannot be used for this.
+#define __glibcxx_signed(_Tp) ((_Tp)(-1) < 0)
+#define __glibcxx_digits(_Tp) \
+  (sizeof(_Tp) * __CHAR_BIT__ - __glibcxx_signed(_Tp))
+
+#define __glibcxx_min(_Tp) \
+  (__glibcxx_signed(_Tp) ? (_Tp)1 << __glibcxx_digits(_Tp) : (_Tp)0)
+
+#define __glibcxx_max(_Tp) \
+  (__glibcxx_signed(_Tp) ? \
+   (((((_Tp)1 << (__glibcxx_digits(_Tp) - 1)) - 1) << 1) + 1) : ~(_Tp)0)
+
+  template<typename _Value>
+    struct __numeric_traits_integer
+    {
+      // Only integers for initialization of member constant.
+      static const _Value __min = __glibcxx_min(_Value);
+      static const _Value __max = __glibcxx_max(_Value);
+
+      // NB: these two also available in std::numeric_limits as compile
+      // time constants, but <limits> is big and we avoid including it.
+      static const bool __is_signed = __glibcxx_signed(_Value);
+      static const int __digits = __glibcxx_digits(_Value);      
+    };
+
+  template<typename _Value>
+    const _Value __numeric_traits_integer<_Value>::__min;
+
+  template<typename _Value>
+    const _Value __numeric_traits_integer<_Value>::__max;
+
+  template<typename _Value>
+    const bool __numeric_traits_integer<_Value>::__is_signed;
+
+  template<typename _Value>
+    const int __numeric_traits_integer<_Value>::__digits;
+
+#undef __glibcxx_signed
+#undef __glibcxx_digits
+#undef __glibcxx_min
+#undef __glibcxx_max
+
+#define __glibcxx_floating(_Tp, _Fval, _Dval, _LDval) \
+  (std::__are_same<_Tp, float>::__value ? _Fval \
+   : std::__are_same<_Tp, double>::__value ? _Dval : _LDval)
+
+#define __glibcxx_max_digits10(_Tp) \
+  (2 + __glibcxx_floating(_Tp, __FLT_MANT_DIG__, __DBL_MANT_DIG__, \
+			  __LDBL_MANT_DIG__) * 3010 / 10000)
+
+#define __glibcxx_digits10(_Tp) \
+  __glibcxx_floating(_Tp, __FLT_DIG__, __DBL_DIG__, __LDBL_DIG__)
+
+#define __glibcxx_max_exponent10(_Tp) \
+  __glibcxx_floating(_Tp, __FLT_MAX_10_EXP__, __DBL_MAX_10_EXP__, \
+		     __LDBL_MAX_10_EXP__)
+
+  template<typename _Value>
+    struct __numeric_traits_floating
+    {
+      // Only floating point types. See N1822. 
+      static const int __max_digits10 = __glibcxx_max_digits10(_Value);
+
+      // See above comment...
+      static const bool __is_signed = true;
+      static const int __digits10 = __glibcxx_digits10(_Value);
+      static const int __max_exponent10 = __glibcxx_max_exponent10(_Value);
+    };
+
+  template<typename _Value>
+    const int __numeric_traits_floating<_Value>::__max_digits10;
+
+  template<typename _Value>
+    const bool __numeric_traits_floating<_Value>::__is_signed;
+
+  template<typename _Value>
+    const int __numeric_traits_floating<_Value>::__digits10;
+
+  template<typename _Value>
+    const int __numeric_traits_floating<_Value>::__max_exponent10;
+
+  template<typename _Value>
+    struct __numeric_traits
+    : public __conditional_type<std::__is_integer<_Value>::__value,
+				__numeric_traits_integer<_Value>,
+				__numeric_traits_floating<_Value> >::__type
+    { };
+
+_GLIBCXX_END_NAMESPACE
+
+#undef __glibcxx_floating
+#undef __glibcxx_max_digits10
+#undef __glibcxx_digits10
+#undef __glibcxx_max_exponent10
+
+#endif 
+                                                                                                                                                                                                                                                                              // Numeric extensions -*- C++ -*-
+
+// Copyright (C) 2002, 2004, 2005 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/*
+ *
+ * Copyright (c) 1994
+ * Hewlett-Packard Company
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Hewlett-Packard Company makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ *
+ *
+ * Copyright (c) 1996
+ * Silicon Graphics Computer Systems, Inc.
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Silicon Graphics makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ */
+
+/** @file ext/numeric
+ *  This file is a GNU extension to the Standard C++ Library (possibly
+ *  containing extensions from the HP/SGI STL subset). 
+ */
+
+#ifndef _EXT_NUMERIC
+#define _EXT_NUMERIC 1
+
+#pragma GCC system_header
+
+#include <bits/concept_check.h>
+#include <numeric>
+
+#include <ext/functional> // For identity_element
+
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
+  // Returns __x ** __n, where __n >= 0.  _Note that "multiplication"
+  // is required to be associative, but not necessarily commutative.
+  template<typename _Tp, typename _Integer, typename _MonoidOperation>
+    _Tp
+    __power(_Tp __x, _Integer __n, _MonoidOperation __monoid_op)
+    {
+      if (__n == 0)
+	return identity_element(__monoid_op);
+      else
+	{
+	  while ((__n & 1) == 0)
+	    {
+	      __n >>= 1;
+	      __x = __monoid_op(__x, __x);
+	    }
+
+	  _Tp __result = __x;
+	  __n >>= 1;
+	  while (__n != 0)
+	    {
+	      __x = __monoid_op(__x, __x);
+	      if ((__n & 1) != 0)
+		__result = __monoid_op(__result, __x);
+	      __n >>= 1;
+	    }
+	  return __result;
+	}
+    }
+
+  template<typename _Tp, typename _Integer>
+    inline _Tp
+    __power(_Tp __x, _Integer __n)
+    { return __power(__x, __n, std::multiplies<_Tp>()); }
+
+  /**
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+   *  @doctodo
+  */
+  // Alias for the internal name __power.  Note that power is an extension,
+  // not part of the C++ standard.
+  template<typename _Tp, typename _Integer, typename _MonoidOperation>
+    inline _Tp
+    power(_Tp __x, _Integer __n, _MonoidOperation __monoid_op)
+    { return __power(__x, __n, __monoid_op); }
+
+  /**
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+   *  @doctodo
+  */
+  template<typename _Tp, typename _Integer>
+    inline _Tp
+    power(_Tp __x, _Integer __n)
+    { return __power(__x, __n); }
+
+  /**
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+   *  @doctodo
+  */
+  // iota is not part of the C++ standard.  It is an extension.
+  template<typename _ForwardIter, typename _Tp>
+    void
+    iota(_ForwardIter __first, _ForwardIter __last, _Tp __value)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_Mutable_ForwardIteratorConcept<_ForwardIter>)
+      __glibcxx_function_requires(_ConvertibleConcept<_Tp,
+	    typename std::iterator_traits<_ForwardIter>::value_type>)
+
+      while (__first != __last)
+	*__first++ = __value++;
+    }
+
+_GLIBCXX_END_NAMESPACE
+
+#endif
+
+                                                                                                                                                                              // Versatile string -*- C++ -*-
+
+// Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file ext/vstring.h
+ *  This file is a GNU extension to the Standard C++ Library.
+ */
+
+#ifndef _VSTRING_H
+#define _VSTRING_H 1
+
+#pragma GCC system_header
+
+#include <ext/vstring_util.h>
+#include <ext/rc_string_base.h>
+#include <ext/sso_string_base.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
+  /**
+   *  @class __versa_string vstring.h
+   *  @brief  Managing sequences of characters and character-like objects.
+   */
+
+  // Template class __versa_string
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    class __versa_string
+    : private _Base<_CharT, _Traits, _Alloc>
+    {
+      typedef _Base<_CharT, _Traits, _Alloc>                __vstring_base;      
+      typedef typename __vstring_base::_CharT_alloc_type    _CharT_alloc_type;
+
+      // Types:
+    public:
+      typedef _Traits					    traits_type;
+      typedef typename _Traits::char_type		    value_type;
+      typedef _Alloc					    allocator_type;
+      typedef typename _CharT_alloc_type::size_type	    size_type;
+      typedef typename _CharT_alloc_type::difference_type   difference_type;
+      typedef typename _CharT_alloc_type::reference	    reference;
+      typedef typename _CharT_alloc_type::const_reference   const_reference;
+      typedef typename _CharT_alloc_type::pointer	    pointer;
+      typedef typename _CharT_alloc_type::const_pointer	    const_pointer;
+      typedef __gnu_cxx::__normal_iterator<pointer, __versa_string>  iterator;
+      typedef __gnu_cxx::__normal_iterator<const_pointer, __versa_string>
+                                                            const_iterator;
+      typedef std::reverse_iterator<const_iterator>	const_reverse_iterator;
+      typedef std::reverse_iterator<iterator>		    reverse_iterator;
+
+      // Data Member (public):
+      ///  Value returned by various member functions when they fail.
+      static const size_type	npos = static_cast<size_type>(-1);
+
+    private:
+      size_type
+      _M_check(size_type __pos, const char* __s) const
+      {
+	if (__pos > this->size())
+	  std::__throw_out_of_range(__N(__s));
+	return __pos;
+      }
+
+      void
+      _M_check_length(size_type __n1, size_type __n2, const char* __s) const
+      {
+	if (this->max_size() - (this->size() - __n1) < __n2)
+	  std::__throw_length_error(__N(__s));
+      }
+
+      // NB: _M_limit doesn't check for a bad __pos value.
+      size_type
+      _M_limit(size_type __pos, size_type __off) const
+      {
+	const bool __testoff =  __off < this->size() - __pos;
+	return __testoff ? __off : this->size() - __pos;
+      }
+
+      // True if _Rep and source do not overlap.
+      bool
+      _M_disjunct(const _CharT* __s) const
+      {
+	return (std::less<const _CharT*>()(__s, this->_M_data())
+		|| std::less<const _CharT*>()(this->_M_data()
+					      + this->size(), __s));
+      }
+
+      // For the internal use we have functions similar to `begin'/`end'
+      // but they do not call _M_leak.
+      iterator
+      _M_ibegin() const
+      { return iterator(this->_M_data()); }
+
+      iterator
+      _M_iend() const
+      { return iterator(this->_M_data() + this->_M_length()); }
+
+    public:
+      // Construct/copy/destroy:
+      // NB: We overload ctors in some cases instead of using default
+      // arguments, per 17.4.4.4 para. 2 item 2.
+
+      /**
+       *  @brief  Default constructor creates an empty string.
+       */
+      __versa_string()
+      : __vstring_base() { }
+      
+      /**
+       *  @brief  Construct an empty string using allocator @a a.
+       */
+      explicit
+      __versa_string(const _Alloc& __a)
+      : __vstring_base(__a) { }
+
+      // NB: per LWG issue 42, semantics different from IS:
+      /**
+       *  @brief  Construct string with copy of value of @a str.
+       *  @param  str  Source string.
+       */
+      __versa_string(const __versa_string& __str)
+      : __vstring_base(__str) { }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  String move constructor.
+       *  @param  str  Source string.
+       *
+       *  The newly-constructed %string contains the exact contents of @a str.
+       *  The contents of @a str are a valid, but unspecified string.
+       */
+      __versa_string(__versa_string&& __str)
+      : __vstring_base(std::forward<__vstring_base>(__str)) { }
+#endif
+
+      /**
+       *  @brief  Construct string as copy of a substring.
+       *  @param  str  Source string.
+       *  @param  pos  Index of first character to copy from.
+       *  @param  n  Number of characters to copy (default remainder).
+       */
+      __versa_string(const __versa_string& __str, size_type __pos,
+		     size_type __n = npos)
+      : __vstring_base(__str._M_data()
+		       + __str._M_check(__pos,
+					"__versa_string::__versa_string"),
+		       __str._M_data() + __str._M_limit(__pos, __n)
+		       + __pos, _Alloc()) { }
+
+      /**
+       *  @brief  Construct string as copy of a substring.
+       *  @param  str  Source string.
+       *  @param  pos  Index of first character to copy from.
+       *  @param  n  Number of characters to copy.
+       *  @param  a  Allocator to use.
+       */
+      __versa_string(const __versa_string& __str, size_type __pos,
+		     size_type __n, const _Alloc& __a)
+      : __vstring_base(__str._M_data()
+		       + __str._M_check(__pos,
+					"__versa_string::__versa_string"),
+		       __str._M_data() + __str._M_limit(__pos, __n)
+		       + __pos, __a) { }
+
+      /**
+       *  @brief  Construct string initialized by a character array.
+       *  @param  s  Source character array.
+       *  @param  n  Number of characters to copy.
+       *  @param  a  Allocator to use (default is default allocator).
+       *
+       *  NB: @a s must have at least @a n characters, '\0' has no special
+       *  meaning.
+       */
+      __versa_string(const _CharT* __s, size_type __n,
+		     const _Alloc& __a = _Alloc())
+      : __vstring_base(__s, __s + __n, __a) { }
+
+      /**
+       *  @brief  Construct string as copy of a C string.
+       *  @param  s  Source C string.
+       *  @param  a  Allocator to use (default is default allocator).
+       */
+      __versa_string(const _CharT* __s, const _Alloc& __a = _Alloc())
+      : __vstring_base(__s, __s ? __s + traits_type::length(__s) :
+		       __s + npos, __a) { }
+
+      /**
+       *  @brief  Construct string as multiple characters.
+       *  @param  n  Number of characters.
+       *  @param  c  Character to use.
+       *  @param  a  Allocator to use (default is default allocator).
+       */
+      __versa_string(size_type __n, _CharT __c, const _Alloc& __a = _Alloc())
+      : __vstring_base(__n, __c, __a) { }
+
+      /**
+       *  @brief  Construct string as copy of a range.
+       *  @param  beg  Start of range.
+       *  @param  end  End of range.
+       *  @param  a  Allocator to use (default is default allocator).
+       */
+      template<class _InputIterator>
+        __versa_string(_InputIterator __beg, _InputIterator __end,
+		       const _Alloc& __a = _Alloc())
+	: __vstring_base(__beg, __end, __a) { }
+
+      /**
+       *  @brief  Destroy the string instance.
+       */
+      ~__versa_string() { }	
+
+      /**
+       *  @brief  Assign the value of @a str to this string.
+       *  @param  str  Source string.
+       */
+      __versa_string&
+      operator=(const __versa_string& __str) 
+      { return this->assign(__str); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  String move assignment operator.
+       *  @param  str  Source string.
+       *
+       *  The contents of @a str are moved into this string (without copying).
+       *  @a str is a valid, but unspecified string.
+       */
+      __versa_string&
+      operator=(__versa_string&& __str)
+      {
+	if (this != &__str)
+	  this->swap(__str);
+	return *this;
+      }
+#endif
+
+      /**
+       *  @brief  Copy contents of @a s into this string.
+       *  @param  s  Source null-terminated string.
+       */
+      __versa_string&
+      operator=(const _CharT* __s) 
+      { return this->assign(__s); }
+
+      /**
+       *  @brief  Set value to string of length 1.
+       *  @param  c  Source character.
+       *
+       *  Assigning to a character makes this string length 1 and
+       *  (*this)[0] == @a c.
+       */
+      __versa_string&
+      operator=(_CharT __c) 
+      { 
+	this->assign(1, __c); 
+	return *this;
+      }
+
+      // Iterators:
+      /**
+       *  Returns a read/write iterator that points to the first character in
+       *  the %string.  Unshares the string.
+       */
+      iterator
+      begin()
+      {
+	this->_M_leak();
+	return iterator(this->_M_data());
+      }
+
+      /**
+       *  Returns a read-only (constant) iterator that points to the first
+       *  character in the %string.
+       */
+      const_iterator
+      begin() const
+      { return const_iterator(this->_M_data()); }
+
+      /**
+       *  Returns a read/write iterator that points one past the last
+       *  character in the %string.  Unshares the string.
+       */
+      iterator
+      end()
+      {
+	this->_M_leak();
+	return iterator(this->_M_data() + this->size());
+      }
+
+      /**
+       *  Returns a read-only (constant) iterator that points one past the
+       *  last character in the %string.
+       */
+      const_iterator
+      end() const
+      { return const_iterator(this->_M_data() + this->size()); }
+
+      /**
+       *  Returns a read/write reverse iterator that points to the last
+       *  character in the %string.  Iteration is done in reverse element
+       *  order.  Unshares the string.
+       */
+      reverse_iterator
+      rbegin()
+      { return reverse_iterator(this->end()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to the last character in the %string.  Iteration is done in
+       *  reverse element order.
+       */
+      const_reverse_iterator
+      rbegin() const
+      { return const_reverse_iterator(this->end()); }
+
+      /**
+       *  Returns a read/write reverse iterator that points to one before the
+       *  first character in the %string.  Iteration is done in reverse
+       *  element order.  Unshares the string.
+       */
+      reverse_iterator
+      rend()
+      { return reverse_iterator(this->begin()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to one before the first character in the %string.  Iteration
+       *  is done in reverse element order.
+       */
+      const_reverse_iterator
+      rend() const
+      { return const_reverse_iterator(this->begin()); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  Returns a read-only (constant) iterator that points to the first
+       *  character in the %string.
+       */
+      const_iterator
+      cbegin() const
+      { return const_iterator(this->_M_data()); }
+
+      /**
+       *  Returns a read-only (constant) iterator that points one past th31  41  51  61  71  81  91  :1  ;1  <1  =1  >1  ?1  @1  A1  B1  C1  D1  E1  F1  G1  H1  I1  J1  K1  L1  M1  N1  O1  P1  Q1  R1  S1  T1  U1  V1  W1  X1  Y1  Z1  [1  \1  ]1  ^1  _1  `1  a1  b1  c1  d1  e1  f1  g1  h1  i1  j1  k1  l1  m1  n1  o1  p1  q1  r1  s1  t1  u1  v1  w1  x1  y1  z1  {1  |1  }1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      e
+       *  last character in the %string.
+       */
+      const_iterator
+      cend() const
+      { return const_iterator(this->_M_data() + this->size()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to the last character in the %string.  Iteration is done in
+       *  reverse element order.
+       */
+      const_reverse_iterator
+      crbegin() const
+      { return const_reverse_iterator(this->end()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to one before the first character in the %string.  Iteration
+       *  is done in reverse element order.
+       */
+      const_reverse_iterator
+      crend() const
+      { return const_reverse_iterator(this->begin()); }
+#endif
+
+    public:
+      // Capacity:
+      ///  Returns the number of characters in the string, not including any
+      ///  null-termination.
+      size_type
+      size() const
+      { return this->_M_length(); }
+
+      ///  Returns the number of characters in the string, not including any
+      ///  null-termination.
+      size_type
+      length() const
+      { return this->_M_length(); }
+
+      /// Returns the size() of the largest possible %string.
+      size_type
+      max_size() const
+      { return this->_M_max_size(); }
+
+      /**
+       *  @brief  Resizes the %string to the specified number of characters.
+       *  @param  n  Number of characters the %string should contain.
+       *  @param  c  Character to fill any new elements.
+       *
+       *  This function will %resize the %string to the specified
+       *  number of characters.  If the number is smaller than the
+       *  %string's current size the %string is truncated, otherwise
+       *  the %string is extended and new elements are set to @a c.
+       */
+      void
+      resize(size_type __n, _CharT __c);
+
+      /**
+       *  @brief  Resizes the %string to the specified number of characters.
+       *  @param  n  Number of characters the %string should contain.
+       *
+       *  This function will resize the %string to the specified length.  If
+       *  the new size is smaller than the %string's current size the %string
+       *  is truncated, otherwise the %string is extended and new characters
+       *  are default-constructed.  For basic types such as char, this means
+       *  setting them to 0.
+       */
+      void
+      resize(size_type __n)
+      { this->resize(__n, _CharT()); }
+
+      /**
+       *  Returns the total number of characters that the %string can hold
+       *  before needing to allocate more memory.
+       */
+      size_type
+      capacity() const
+      { return this->_M_capacity(); }
+
+      /**
+       *  @brief  Attempt to preallocate enough memory for specified number of
+       *          characters.
+       *  @param  res_arg  Number of characters required.
+       *  @throw  std::length_error  If @a res_arg exceeds @c max_size().
+       *
+       *  This function attempts to reserve enough memory for the
+       *  %string to hold the specified number of characters.  If the
+       *  number requested is more than max_size(), length_error is
+       *  thrown.
+       *
+       *  The advantage of this function is that if optimal code is a
+       *  necessity and the user can determine the string length that will be
+       *  required, the user can reserve the memory in %advance, and thus
+       *  prevent a possible reallocation of memory and copying of %string
+       *  data.
+       */
+      void
+      reserve(size_type __res_arg = 0)
+      { this->_M_reserve(__res_arg); }
+
+      /**
+       *  Erases the string, making it empty.
+       */
+      void
+      clear()
+      { this->_M_clear(); }
+
+      /**
+       *  Returns true if the %string is empty.  Equivalent to *this == "".
+       */
+      bool
+      empty() const
+      { return this->size() == 0; }
+
+      // Element access:
+      /**
+       *  @brief  Subscript access to the data contained in the %string.
+       *  @param  pos  The index of the character to access.
+       *  @return  Read-only (constant) reference to the character.
+       *
+       *  This operator allows for easy, array-style, data access.
+       *  Note that data access with this operator is unchecked and
+       *  out_of_range lookups are not defined. (For checked lookups
+       *  see at().)
+       */
+      const_reference
+      operator[] (size_type __pos) const
+      {
+	_GLIBCXX_DEBUG_ASSERT(__pos <= this->size());
+	return this->_M_data()[__pos];
+      }
+
+      /**
+       *  @brief  Subscript access to the data contained in the %string.
+       *  @param  pos  The index of the character to access.
+       *  @return  Read/write reference to the character.
+       *
+       *  This operator allows for easy, array-style, data access.
+       *  Note that data access with this operator is unchecked and
+       *  out_of_range lookups are not defined. (For checked lookups
+       *  see at().)  Unshares the string.
+       */
+      reference
+      operator[](size_type __pos)
+      {
+        // allow pos == size() as v3 extension:
+	_GLIBCXX_DEBUG_ASSERT(__pos <= this->size());
+        // but be strict in pedantic mode:
+	_GLIBCXX_DEBUG_PEDASSERT(__pos < this->size());
+	this->_M_leak();
+	return this->_M_data()[__pos];
+      }
+
+      /**
+       *  @brief  Provides access to the data contained in the %string.
+       *  @param n The index of the character to access.
+       *  @return  Read-only (const) reference to the character.
+       *  @throw  std::out_of_range  If @a n is an invalid index.
+       *
+       *  This function provides for safer data access.  The parameter is
+       *  first checked that it is in the range of the string.  The function
+       *  throws out_of_range if the check fails.
+       */
+      const_reference
+      at(size_type __n) const
+      {
+	if (__n >= this->size())
+	  std::__throw_out_of_range(__N("__versa_string::at"));
+	return this->_M_data()[__n];
+      }
+
+      /**
+       *  @brief  Provides access to the data contained in the %string.
+       *  @param n The index of the character to access.
+       *  @return  Read/write reference to the character.
+       *  @throw  std::out_of_range  If @a n is an invalid index.
+       *
+       *  This function provides for safer data access.  The parameter is
+       *  first checked that it is in the range of the string.  The function
+       *  throws out_of_range if the check fails.  Success results in
+       *  unsharing the string.
+       */
+      reference
+      at(size_type __n)
+      {
+	if (__n >= this->size())
+	  std::__throw_out_of_range(__N("__versa_string::at"));
+	this->_M_leak();
+	return this->_M_data()[__n];
+      }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  Returns a read/write reference to the data at the first
+       *  element of the %string.
+       */
+      reference
+      front()
+      { return *begin(); }
+
+      /**
+       *  Returns a read-only (constant) reference to the data at the first
+       *  element of the %string.
+       */
+      const_reference
+      front() const
+      { return *begin(); }
+
+      /**
+       *  Returns a read/write reference to the data at the last
+       *  element of the %string.
+       */
+      reference
+      back()
+      { return *(end() - 1); }
+
+      /**
+       *  Returns a read-only (constant) reference to the data at the
+       *  last element of the %string.
+       */
+      const_reference
+      back() const
+      { return *(end() - 1); }
+#endif
+
+      // Modifiers:
+      /**
+       *  @brief  Append a string to this string.
+       *  @param str  The string to append.
+       *  @return  Reference to this string.
+       */
+      __versa_string&
+      operator+=(const __versa_string& __str)
+      { return this->append(__str); }
+
+      /**
+       *  @brief  Append a C string.
+       *  @param s  The C string to append.
+       *  @return  Reference to this string.
+       */
+      __versa_string&
+      operator+=(const _CharT* __s)
+      { return this->append(__s); }
+
+      /**
+       *  @brief  Append a character.
+       *  @param c  The character to append.
+       *  @return  Reference to this string.
+       */
+      __versa_string&
+      operator+=(_CharT __c)
+      { 
+	this->push_back(__c);
+	return *this;
+      }
+
+      /**
+       *  @brief  Append a string to this string.
+       *  @param str  The string to append.
+       *  @return  Reference to this string.
+       */
+      __versa_string&
+      append(const __versa_string& __str)
+      { return _M_append(__str._M_data(), __str.size()); }
+
+      /**
+       *  @brief  Append a substring.
+       *  @param str  The string to append.
+       *  @param pos  Index of the first character of str to append.
+       *  @param n  The number of characters to append.
+       *  @return  Reference to this string.
+       *  @throw  std::out_of_range if @a pos is not a valid index.
+       *
+       *  This function appends @a n characters from @a str starting at @a pos
+       *  to this string.  If @a n is is larger than the number of available
+       *  characters in @a str, the remainder of @a str is appended.
+       */
+      __versa_string&
+      append(const __versa_string& __str, size_type __pos, size_type __n)
+      { return _M_append(__str._M_data()
+			 + __str._M_check(__pos, "__versa_string::append"),
+			 __str._M_limit(__pos, __n)); }
+
+      /**
+       *  @brief  Append a C substring.
+       *  @param s  The C string to append.
+       *  @param n  The number of characters to append.
+       *  @return  Reference to this string.
+       */
+      __versa_string&
+      append(const _CharT* __s, size_type __n)
+      {
+	__glibcxx_requires_string_len(__s, __n);
+	_M_check_length(size_type(0), __n, "__versa_string::append");
+	return _M_append(__s, __n);
+      }
+
+      /**
+       *  @brief  Append a C string.
+       *  @param s  The C string to append.
+       *  @return  Reference to this string.
+       */
+      __versa_string&
+      append(const _CharT* __s)
+      {
+	__glibcxx_requires_string(__s);
+	const size_type __n = traits_type::length(__s);
+	_M_check_length(size_type(0), __n, "__versa_string::append");
+	return _M_append(__s, __n);
+      }
+
+      /**
+       *  @brief  Append multiple characters.
+       *  @param n  The number of characters to append.
+       *  @param c  The character to use.
+       *  @return  Reference to this string.
+       *
+       *  Appends n copies of c to this string.
+       */
+      __versa_string&
+      append(size_type __n, _CharT __c)
+      { return _M_replace_aux(this->size(), size_type(0), __n, __c); }
+
+      /**
+       *  @brief  Append a range of characters.
+       *  @param first  Iterator referencing the first character to append.
+       *  @param last  Iterator marking the end of the range.
+       *  @return  Reference to this string.
+       *
+       *  Appends characters in the range [first,last) to this string.
+       */
+      template<class _InputIterator>
+        __versa_string&
+        append(_InputIterator __first, _InputIterator __last)
+        { return this->replace(_M_iend(), _M_iend(), __first, __last); }
+
+      /**
+       *  @brief  Append a single character.
+       *  @param c  Character to append.
+       */
+      void
+      push_back(_CharT __c)
+      { 
+	const size_type __size = this->size();
+	if (__size + 1 > this->capacity() || this->_M_is_shared())
+	  this->_M_mutate(__size, size_type(0), 0, size_type(1));
+	traits_type::assign(this->_M_data()[__size], __c);
+	this->_M_set_length(__size + 1);
+      }
+
+      /**
+       *  @brief  Set value to contents of another string.
+       *  @param  str  Source string to use.
+       *  @return  Reference to this string.
+       */
+      __versa_string&
+      assign(const __versa_string& __str)
+      {
+	this->_M_assign(__str);
+	return *this;
+      }
+
+      /**
+       *  @brief  Set value to a substring of a string.
+       *  @param str  The string to use.
+       *  @param pos  Index of the first character of str.
+       *  @param n  Number of characters to use.
+       *  @return  Reference to this string.
+       *  @throw  std::out_of_range if @a pos is not a valid index.
+       *
+       *  This function sets this string to the substring of @a str consisting
+       *  of @a n characters at @a pos.  If @a n is is larger than the number
+       *  of available characters in @a str, the remainder of @a str is used.
+       */
+      __versa_string&
+      assign(const __versa_string& __str, size_type __pos, size_type __n)
+      { return _M_replace(size_type(0), this->size(), __str._M_data()
+			  + __str._M_check(__pos, "__versa_string::assign"),
+			  __str._M_limit(__pos, __n)); }
+
+      /**
+       *  @brief  Set value to a C substring.
+       *  @param s  The C string to use.
+       *  @param n  Number of characters to use.
+       *  @return  Reference to this string.
+       *
+       *  This function sets the value of this string to the first @a n
+       *  characters of @a s.  If @a n is is larger than the number of
+       *  available characters in @a s, the remainder of @a s is used.
+       */
+      __versa_string&
+      assign(const _CharT* __s, size_type __n)
+      {
+	__glibcxx_requires_string_len(__s, __n);
+	return _M_replace(size_type(0), this->size(), __s, __n);
+      }
+
+      /**
+       *  @brief  Set value to contents of a C string.
+       *  @par

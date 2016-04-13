@@ -1,0 +1,1326 @@
+line\-small\-functions\fR" 4
+.IX Item "-finline-small-functions"
+Integrate functions into their callers when their body is smaller than expected
+function call code (so overall size of program gets smaller).  The compiler
+heuristically decides which functions are simple enough to be worth integrating
+in this way.
+.Sp
+Enabled at level \fB\-O2\fR.
+.IP "\fB\-finline\-functions\fR" 4
+.IX Item "-finline-functions"
+Integrate all simple functions into their callers.  The compiler
+heuristically decides which functions are simple enough to be worth
+integrating in this way.
+.Sp
+If all calls to a given function are integrated, and the function is
+declared \f(CW\*(C`static\*(C'\fR, then the function is normally not output as
+assembler code in its own right.
+.Sp
+Enabled at level \fB\-O3\fR.
+.IP "\fB\-finline\-functions\-called\-once\fR" 4
+.IX Item "-finline-functions-called-once"
+Consider all \f(CW\*(C`static\*(C'\fR functions called once for inlining into their
+caller even if they are not marked \f(CW\*(C`inline\*(C'\fR.  If a call to a given
+function is integrated, then the function is not output as assembler code
+in its own right.
+.Sp
+Enabled if \fB\-funit\-at\-a\-time\fR is enabled.
+.IP "\fB\-fearly\-inlining\fR" 4
+.IX Item "-fearly-inlining"
+Inline functions marked by \f(CW\*(C`always_inline\*(C'\fR and functions whose body seems
+smaller than the function call overhead early before doing
+\&\fB\-fprofile\-generate\fR instrumentation and real inlining pass.  Doing so
+makes profiling significantly cheaper and usually inlining faster on programs
+having large chains of nested wrapper functions.
+.Sp
+Enabled by default.
+.IP "\fB\-finline\-limit=\fR\fIn\fR" 4
+.IX Item "-finline-limit=n"
+By default, \s-1GCC\s0 limits the size of functions that can be inlined.  This flag
+allows coarse control of this limit.  \fIn\fR is the size of functions that
+can be inlined in number of pseudo instructions.
+.Sp
+Inlining is actually controlled by a number of parameters, which may be
+specified individually by using \fB\-\-param\fR \fIname\fR\fB=\fR\fIvalue\fR.
+The \fB\-finline\-limit=\fR\fIn\fR option sets some of these parameters
+as follows:
+.RS 4
+.IP "\fBmax-inline-insns-single\fR" 4
+.IX Item "max-inline-insns-single"
+.Vb 1
+\& is set to I<n>/2.
+.Ve
+.IP "\fBmax-inline-insns-auto\fR" 4
+.IX Item "max-inline-insns-auto"
+.Vb 1
+\& is set to I<n>/2.
+.Ve
+.RE
+.RS 4
+.Sp
+See below for a documentation of the individual
+parameters controlling inlining and for the defaults of these parameters.
+.Sp
+\&\fINote:\fR there may be no value to \fB\-finline\-limit\fR that results
+in default behavior.
+.Sp
+\&\fINote:\fR pseudo instruction represents, in this particular context, an
+abstract measurement of function's size.  In no way does it represent a count
+of assembly instructions and as such its exact meaning might change from one
+release to an another.
+.RE
+.IP "\fB\-fkeep\-inline\-functions\fR" 4
+.IX Item "-fkeep-inline-functions"
+In C, emit \f(CW\*(C`static\*(C'\fR functions that are declared \f(CW\*(C`inline\*(C'\fR
+into the object file, even if the function has been inlined into all
+of its callers.  This switch does not affect functions using the
+\&\f(CW\*(C`extern inline\*(C'\fR extension in \s-1GNU\s0 C89.  In \*(C+, emit any and all
+inline functions into the object file.
+.IP "\fB\-fkeep\-static\-consts\fR" 4
+.IX Item "-fkeep-static-consts"
+Emit variables declared \f(CW\*(C`static const\*(C'\fR when optimization isn't turned
+on, even if the variables aren't referenced.
+.Sp
+\&\s-1GCC\s0 enables this option by default.  If you want to force the compiler to
+check if the variable was referenced, regardless of whether or not
+optimization is turned on, use the \fB\-fno\-keep\-static\-consts\fR option.
+.IP "\fB\-fmerge\-constants\fR" 4
+.IX Item "-fmerge-constants"
+Attempt to merge identical constants (string constants and floating point
+constants) across compilation units.
+.Sp
+This option is the default for optimized compilation if the assembler and
+linker support it.  Use \fB\-fno\-merge\-constants\fR to inhibit this
+behavior.
+.Sp
+Enabled at levels \fB\-O\fR, \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fmerge\-all\-constants\fR" 4
+.IX Item "-fmerge-all-constants"
+Attempt to merge identical constants and identical variables.
+.Sp
+This option implies \fB\-fmerge\-constants\fR.  In addition to
+\&\fB\-fmerge\-constants\fR this considers e.g. even constant initialized
+arrays or initialized constant variables with integral or floating point
+types.  Languages like C or \*(C+ require each variable, including multiple
+instances of the same variable in recursive calls, to have distinct locations,
+so using this option will result in non-conforming
+behavior.
+.IP "\fB\-fmodulo\-sched\fR" 4
+.IX Item "-fmodulo-sched"
+Perform swing modulo scheduling immediately before the first scheduling
+pass.  This pass looks at innermost loops and reorders their
+instructions by overlapping different iterations.
+.IP "\fB\-fmodulo\-sched\-allow\-regmoves\fR" 4
+.IX Item "-fmodulo-sched-allow-regmoves"
+Perform more aggressive \s-1SMS\s0 based modulo scheduling with register moves
+allowed.  By setting this flag certain anti-dependences edges will be
+deleted which will trigger the generation of reg-moves based on the
+life-range analysis.  This option is effective only with
+\&\fB\-fmodulo\-sched\fR enabled.
+.IP "\fB\-fno\-branch\-count\-reg\fR" 4
+.IX Item "-fno-branch-count-reg"
+Do not use \*(L"decrement and branch\*(R" instructions on a count register,
+but instead generate a sequence of instructions that decrement a
+register, compare it against zero, then branch based upon the result.
+This option is only meaningful on architectures that support such
+instructions, which include x86, PowerPC, \s-1IA\-64\s0 and S/390.
+.Sp
+The default is \fB\-fbranch\-count\-reg\fR.
+.IP "\fB\-fno\-function\-cse\fR" 4
+.IX Item "-fno-function-cse"
+Do not put function addresses in registers; make each instruction that
+calls a constant function contain the function's address explicitly.
+.Sp
+This option results in less efficient code, but some strange hacks
+that alter the assembler output may be confused by the optimizations
+performed when this option is not used.
+.Sp
+The default is \fB\-ffunction\-cse\fR
+.IP "\fB\-fno\-zero\-initialized\-in\-bss\fR" 4
+.IX Item "-fno-zero-initialized-in-bss"
+If the target supports a \s-1BSS\s0 section, \s-1GCC\s0 by default puts variables that
+are initialized to zero into \s-1BSS\s0.  This can save space in the resulting
+code.
+.Sp
+This option turns off this behavior because some programs explicitly
+rely on variables going to the data section.  E.g., so that the
+resulting executable can find the beginning of that section and/or make
+assumptions based on that.
+.Sp
+The default is \fB\-fzero\-initialized\-in\-bss\fR.
+.IP "\fB\-fmudflap \-fmudflapth \-fmudflapir\fR" 4
+.IX Item "-fmudflap -fmudflapth -fmudflapir"
+For front-ends that support it (C and \*(C+), instrument all risky
+pointer/array dereferencing operations, some standard library
+string/heap functions, and some other associated constructs with
+range/validity tests.  Modules so instrumented should be immune to
+buffer overflows, invalid heap use, and some other classes of C/\*(C+
+programming errors.  The instrumentation relies on a separate runtime
+library (\fIlibmudflap\fR), which will be linked into a program if
+\&\fB\-fmudflap\fR is given at link time.  Run-time behavior of the
+instrumented program is controlled by the \fB\s-1MUDFLAP_OPTIONS\s0\fR
+environment variable.  See \f(CW\*(C`env MUDFLAP_OPTIONS=\-help a.out\*(C'\fR
+for its options.
+.Sp
+Use \fB\-fmudflapth\fR instead of \fB\-fmudflap\fR to compile and to
+link if your program is multi-threaded.  Use \fB\-fmudflapir\fR, in
+addition to \fB\-fmudflap\fR or \fB\-fmudflapth\fR, if
+instrumentation should ignore pointer reads.  This produces less
+instrumentation (and therefore faster execution) and still provides
+some protection against outright memory corrupting writes, but allows
+erroneously read data to propagate within a program.
+.IP "\fB\-fthread\-jumps\fR" 4
+.IX Item "-fthread-jumps"
+Perform optimizations where we check to see if a jump branches to a
+location where another comparison subsumed by the first is found.  If
+so, the first branch is redirected to either the destination of the
+second branch or a point immediately following it, depending on whether
+the condition is known to be true or false.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fsplit\-wide\-types\fR" 4
+.IX Item "-fsplit-wide-types"
+When using a type that occupies multiple registers, such as \f(CW\*(C`long
+long\*(C'\fR on a 32\-bit system, split the registers apart and allocate them
+independently.  This normally generates better code for those types,
+but may make debugging more difficult.
+.Sp
+Enabled at levels \fB\-O\fR, \fB\-O2\fR, \fB\-O3\fR,
+\&\fB\-Os\fR.
+.IP "\fB\-fcse\-follow\-jumps\fR" 4
+.IX Item "-fcse-follow-jumps"
+In common subexpression elimination (\s-1CSE\s0), scan through jump instructions
+when the target of the jump is not reached by any other path.  For
+example, when \s-1CSE\s0 encounters an \f(CW\*(C`if\*(C'\fR statement with an
+\&\f(CW\*(C`else\*(C'\fR clause, \s-1CSE\s0 will follow the jump when the condition
+tested is false.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fcse\-skip\-blocks\fR" 4
+.IX Item "-fcse-skip-blocks"
+This is similar to \fB\-fcse\-follow\-jumps\fR, but causes \s-1CSE\s0 to
+follow jumps which conditionally skip over blocks.  When \s-1CSE\s0
+encounters a simple \f(CW\*(C`if\*(C'\fR statement with no else clause,
+\&\fB\-fcse\-skip\-blocks\fR causes \s-1CSE\s0 to follow the jump around the
+body of the \f(CW\*(C`if\*(C'\fR.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-frerun\-cse\-after\-loop\fR" 4
+.IX Item "-frerun-cse-after-loop"
+Re-run common subexpression elimination after loop optimizations has been
+performed.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fgcse\fR" 4
+.IX Item "-fgcse"
+Perform a global common subexpression elimination pass.
+This pass also performs global constant and copy propagation.
+.Sp
+\&\fINote:\fR When compiling a program using computed gotos, a \s-1GCC\s0
+extension, you may get better runtime performance if you disable
+the global common subexpression elimination pass by adding
+\&\fB\-fno\-gcse\fR to the command line.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fgcse\-lm\fR" 4
+.IX Item "-fgcse-lm"
+When \fB\-fgcse\-lm\fR is enabled, global common subexpression elimination will
+attempt to move loads which are only killed by stores into themselves.  This
+allows a loop containing a load/store sequence to be changed to a load outside
+the loop, and a copy/store within the loop.
+.Sp
+Enabled by default when gcse is enabled.
+.IP "\fB\-fgcse\-sm\fR" 4
+.IX Item "-fgcse-sm"
+When \fB\-fgcse\-sm\fR is enabled, a store motion pass is run after
+global common subexpression elimination.  This pass will attempt to move
+stores out of loops.  When used in conjunction with \fB\-fgcse\-lm\fR,
+loops containing a load/store sequence can be changed to a load before
+the loop and a store after the loop.
+.Sp
+Not enabled at any optimization level.
+.IP "\fB\-fgcse\-las\fR" 4
+.IX Item "-fgcse-las"
+When \fB\-fgcse\-las\fR is enabled, the global common subexpression
+elimination pass eliminates redundant loads that come after stores to the
+same memory location (both partial and full redundancies).
+.Sp
+Not enabled at any optimization level.
+.IP "\fB\-fgcse\-after\-reload\fR" 4
+.IX Item "-fgcse-after-reload"
+When \fB\-fgcse\-after\-reload\fR is enabled, a redundant load elimination
+pass is performed after reload.  The purpose of this pass is to cleanup
+redundant spilling.
+.IP "\fB\-funsafe\-loop\-optimizations\fR" 4
+.IX Item "-funsafe-loop-optimizations"
+If given, the loop optimizer will assume that loop indices do not
+overflow, and that the loops with nontrivial exit condition are not
+infinite.  This enables a wider range of loop optimizations even if
+the loop optimizer itself cannot prove that these assumptions are valid.
+Using \fB\-Wunsafe\-loop\-optimizations\fR, the compiler will warn you
+if it finds this kind of loop.
+.IP "\fB\-fcrossjumping\fR" 4
+.IX Item "-fcrossjumping"
+Perform cross-jumping transformation.  This transformation unifies equivalent code and save code size.  The
+resulting code may or may not perform better than without cross-jumping.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fauto\-inc\-dec\fR" 4
+.IX Item "-fauto-inc-dec"
+Combine increments or decrements of addresses with memory accesses.
+This pass is always skipped on architectures that do not have
+instructions to support this.  Enabled by default at \fB\-O\fR and
+higher on architectures that support this.
+.IP "\fB\-fdce\fR" 4
+.IX Item "-fdce"
+Perform dead code elimination (\s-1DCE\s0) on \s-1RTL\s0.
+Enabled by default at \fB\-O\fR and higher.
+.IP "\fB\-fdse\fR" 4
+.IX Item "-fdse"
+Perform dead store elimination (\s-1DSE\s0) on \s-1RTL\s0.
+Enabled by default at \fB\-O\fR and higher.
+.IP "\fB\-fif\-conversion\fR" 4
+.IX Item "-fif-conversion"
+Attempt to transform conditional jumps into branch-less equivalents.  This
+include use of conditional moves, min, max, set flags and abs instructions, and
+some tricks doable by standard arithmetics.  The use of conditional execution
+on chips where it is available is controlled by \f(CW\*(C`if\-conversion2\*(C'\fR.
+.Sp
+Enabled at levels \fB\-O\fR, \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fif\-conversion2\fR" 4
+.IX Item "-fif-conversion2"
+Use conditional execution (where available) to transform conditional jumps into
+branch-less equivalents.
+.Sp
+Enabled at levels \fB\-O\fR, \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fdelete\-null\-pointer\-checks\fR" 4
+.IX Item "-fdelete-null-pointer-checks"
+Use global dataflow analysis to identify and eliminate useless checks
+for null pointers.  The compiler assumes that dereferencing a null
+pointer would have halted the program.  If a pointer is checked after
+it has already been dereferenced, it cannot be null.
+.Sp
+In some environments, this assumption is not true, and programs can
+safely dereference null pointers.  Use
+\&\fB\-fno\-delete\-null\-pointer\-checks\fR to disable this optimization
+for programs which depend on that behavior.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fexpensive\-optimizations\fR" 4
+.IX Item "-fexpensive-optimizations"
+Perform a number of minor optimizations that are relatively expensive.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-foptimize\-register\-move\fR" 4
+.IX Item "-foptimize-register-move"
+.PD 0
+.IP "\fB\-fregmove\fR" 4
+.IX Item "-fregmove"
+.PD
+Attempt to reassign register numbers in move instructions and as
+operands of other simple instructions in order to maximize the amount of
+register tying.  This is especially helpful on machines with two-operand
+instructions.
+.Sp
+Note \fB\-fregmove\fR and \fB\-foptimize\-register\-move\fR are the same
+optimization.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fdelayed\-branch\fR" 4
+.IX Item "-fdelayed-branch"
+If supported for the target machine, attempt to reorder instructions
+to exploit instruction slots available after delayed branch
+instructions.
+.Sp
+Enabled at levels \fB\-O\fR, \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fschedule\-insns\fR" 4
+.IX Item "-fschedule-insns"
+If supported for the target machine, attempt to reorder instructions to
+eliminate execution stalls due to required data being unavailable.  This
+helps machines that have slow floating point or memory load instructions
+by allowing other instructions to be issued until the result of the load
+or floating point instruction is required.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fschedule\-insns2\fR" 4
+.IX Item "-fschedule-insns2"
+Similar to \fB\-fschedule\-insns\fR, but requests an additional pass of
+instruction scheduling after register allocation has been done.  This is
+especially useful on machines with a relatively small number of
+registers and where memory load instructions take more than one cycle.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fno\-sched\-interblock\fR" 4
+.IX Item "-fno-sched-interblock"
+Don't schedule instructions across basic blocks.  This is normally
+enabled by default when scheduling before register allocation, i.e.
+with \fB\-fschedule\-insns\fR or at \fB\-O2\fR or higher.
+.IP "\fB\-fno\-sched\-spec\fR" 4
+.IX Item "-fno-sched-spec"
+Don't allow speculative motion of non-load instructions.  This is normally
+enabled by default when scheduling before register allocation, i.e.
+with \fB\-fschedule\-insns\fR or at \fB\-O2\fR or higher.
+.IP "\fB\-fsched\-spec\-load\fR" 4
+.IX Item "-fsched-spec-load"
+Allow speculative motion of some load instructions.  This only makes
+sense when scheduling before register allocation, i.e. with
+\&\fB\-fschedule\-insns\fR or at \fB\-O2\fR or higher.
+.IP "\fB\-fsched\-spec\-load\-dangerous\fR" 4
+.IX Item "-fsched-spec-load-dangerous"
+Allow speculative motion of more load instructions.  This only makes
+sense when scheduling before register allocation, i.e. with
+\&\fB\-fschedule\-insns\fR or at \fB\-O2\fR or higher.
+.IP "\fB\-fsched\-stalled\-insns\fR" 4
+.IX Item "-fsched-stalled-insns"
+.PD 0
+.IP "\fB\-fsched\-stalled\-insns=\fR\fIn\fR" 4
+.IX Item "-fsched-stalled-insns=n"
+.PD
+Define how many insns (if any) can be moved prematurely from the queue
+of stalled insns into the ready list, during the second scheduling pass.
+\&\fB\-fno\-sched\-stalled\-insns\fR means that no insns will be moved
+prematurely, \fB\-fsched\-stalled\-insns=0\fR means there is no limit
+on how many queued insns can be moved prematurely.
+\&\fB\-fsched\-stalled\-insns\fR without a value is equivalent to
+\&\fB\-fsched\-stalled\-insns=1\fR.
+.IP "\fB\-fsched\-stalled\-insns\-dep\fR" 4
+.IX Item "-fsched-stalled-insns-dep"
+.PD 0
+.IP "\fB\-fsched\-stalled\-insns\-dep=\fR\fIn\fR" 4
+.IX Item "-fsched-stalled-insns-dep=n"
+.PD
+Define how many insn groups (cycles) will be examined for a dependency
+on a stalled insn that is candidate for premature removal from the queue
+of stalled insns.  This has an effect only during the second scheduling pass,
+and only if \fB\-fsched\-stalled\-insns\fR is used.
+\&\fB\-fno\-sched\-stalled\-insns\-dep\fR is equivalent to
+\&\fB\-fsched\-stalled\-insns\-dep=0\fR.
+\&\fB\-fsched\-stalled\-insns\-dep\fR without a value is equivalent to
+\&\fB\-fsched\-stalled\-insns\-dep=1\fR.
+.IP "\fB\-fsched2\-use\-superblocks\fR" 4
+.IX Item "-fsched2-use-superblocks"
+When scheduling after register allocation, do use superblock scheduling
+algorithm.  Superblock scheduling allows motion across basic block boundaries
+resulting on faster schedules.  This option is experimental, as not all machine
+descriptions used by \s-1GCC\s0 model the \s-1CPU\s0 closely enough to avoid unreliable
+results from the algorithm.
+.Sp
+This only makes sense when scheduling after register allocation, i.e. with
+\&\fB\-fschedule\-insns2\fR or at \fB\-O2\fR or higher.
+.IP "\fB\-fsched2\-use\-traces\fR" 4
+.IX Item "-fsched2-use-traces"
+Use \fB\-fsched2\-use\-superblocks\fR algorithm when scheduling after register
+allocation and additionally perform code duplication in order to increase the
+size of superblocks using tracer pass.  See \fB\-ftracer\fR for details on
+trace formation.
+.Sp
+This mode should produce faster but significantly longer programs.  Also
+without \fB\-fbranch\-probabilities\fR the traces constructed may not
+match the reality and hurt the performance.  This only makes
+sense when scheduling after register allocation, i.e. with
+\&\fB\-fschedule\-insns2\fR or at \fB\-O2\fR or higher.
+.IP "\fB\-fsee\fR" 4
+.IX Item "-fsee"
+Eliminate redundant sign extension instructions and move the non-redundant
+ones to optimal placement using lazy code motion (\s-1LCM\s0).
+.IP "\fB\-freschedule\-modulo\-scheduled\-loops\fR" 4
+.IX Item "-freschedule-modulo-scheduled-loops"
+The modulo scheduling comes before the traditional scheduling, if a loop
+was modulo scheduled we may want to prevent the later scheduling passes
+from changing its schedule, we use this option to control that.
+.IP "\fB\-fcaller\-saves\fR" 4
+.IX Item "-fcaller-saves"
+Enable values to be allocated in registers that will be clobbered by
+function calls, by emitting extra instructions to save and restore the
+registers around such calls.  Such allocation is done only when it
+seems to result in better code than would otherwise be produced.
+.Sp
+This option is always enabled by default on certain machines, usually
+those which have no call-preserved registers to use instead.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-ftree\-reassoc\fR" 4
+.IX Item "-ftree-reassoc"
+Perform reassociation on trees.  This flag is enabled by default
+at \fB\-O\fR and higher.
+.IP "\fB\-ftree\-pre\fR" 4
+.IX Item "-ftree-pre"
+Perform partial redundancy elimination (\s-1PRE\s0) on trees.  This flag is
+enabled by default at \fB\-O2\fR and \fB\-O3\fR.
+.IP "\fB\-ftree\-fre\fR" 4
+.IX Item "-ftree-fre"
+Perform full redundancy elimination (\s-1FRE\s0) on trees.  The difference
+between \s-1FRE\s0 and \s-1PRE\s0 is that \s-1FRE\s0 only considers expressions
+that are computed on all paths leading to the redundant computation.
+This analysis is faster than \s-1PRE\s0, though it exposes fewer redundancies.
+This flag is enabled by default at \fB\-O\fR and higher.
+.IP "\fB\-ftree\-copy\-prop\fR" 4
+.IX Item "-ftree-copy-prop"
+Perform copy propagation on trees.  This pass eliminates unnecessary
+copy operations.  This flag is enabled by default at \fB\-O\fR and
+higher.
+.IP "\fB\-ftree\-salias\fR" 4
+.IX Item "-ftree-salias"
+Perform structural alias analysis on trees.  This flag
+is enabled by default at \fB\-O\fR and higher.
+.IP "\fB\-fipa\-pure\-const\fR" 4
+.IX Item "-fipa-pure-const"
+Discover which functions are pure or constant.
+Enabled by default at \fB\-O\fR and higher.
+.IP "\fB\-fipa\-reference\fR" 4
+.IX Item "-fipa-reference"
+Discover which static variables do not escape cannot escape the
+compilation unit.
+Enabled by default at \fB\-O\fR and higher.
+.IP "\fB\-fipa\-struct\-reorg\fR" 4
+.IX Item "-fipa-struct-reorg"
+Perform structure reorganization optimization, that change C\-like structures 
+layout in order to better utilize spatial locality.  This transformation is 
+affective for programs containing arrays of structures.  Available in two 
+compilation modes: profile-based (enabled with \fB\-fprofile\-generate\fR)
+or static (which uses built-in heuristics).  Require \fB\-fipa\-type\-escape\fR
+to provide the safety of this transformation.  It works only in whole program
+mode, so it requires \fB\-fwhole\-program\fR and \fB\-combine\fR to be
+enabled.  Structures considered \fBcold\fR by this transformation are not
+affected (see \fB\-\-param struct\-reorg\-cold\-struct\-ratio=\fR\fIvalue\fR).
+.Sp
+With this flag, the program debug info reflects a new structure layout.
+.IP "\fB\-fipa\-pta\fR" 4
+.IX Item "-fipa-pta"
+Perform interprocedural pointer analysis.
+.IP "\fB\-fipa\-cp\fR" 4
+.IX Item "-fipa-cp"
+Perform interprocedural constant propagation.
+This optimization analyzes the program to determine when values passed
+to functions are constants and then optimizes accordingly.  
+This optimization can substantially increase performance
+if the application has constants passed to functions, but
+because this optimization can create multiple copies of functions,
+it may significantly increase code size.
+.IP "\fB\-fipa\-matrix\-reorg\fR" 4
+.IX Item "-fipa-matrix-reorg"
+Perform matrix flattening and transposing.
+Matrix flattening tries to replace a m\-dimensional matrix 
+with its equivalent n\-dimensional matrix, where n < m.
+This reduces the level of indirection needed for accessing the elements
+of the matrix. The second optimization is matrix transposing that
+attemps to change the order of the matrix's dimensions in order to 
+improve cache locality.
+Both optimizations need fwhole-program flag. 
+Transposing is enabled only if profiling information is avaliable.
+.IP "\fB\-ftree\-sink\fR" 4
+.IX Item "-ftree-sink"
+Perform forward store motion  on trees.  This flag is
+enabled by default at \fB\-O\fR and higher.
+.IP "\fB\-ftree\-ccp\fR" 4
+.IX Item "-ftree-ccp"
+Perform sparse conditional constant propagation (\s-1CCP\s0) on trees.  This
+pass only operates on local scalar variables and is enabled by default
+at \fB\-O\fR and higher.
+.IP "\fB\-ftree\-store\-ccp\fR" 4
+.IX Item "-ftree-store-ccp"
+Perform sparse conditional constant propagation (\s-1CCP\s0) on trees.  This
+pass operates on both local scalar variables and memory stores and
+loads (global variables, structures, arrays, etc).  This flag is
+enabled by default at \fB\-O2\fR and higher.
+.IP "\fB\-ftree\-dce\fR" 4
+.IX Item "-ftree-dce"
+Perform dead code elimination (\s-1DCE\s0) on trees.  This flag is enabled by
+default at \fB\-O\fR and higher.
+.IP "\fB\-ftree\-dominator\-opts\fR" 4
+.IX Item "-ftree-dominator-opts"
+Perform a variety of simple scalar cleanups (constant/copy
+propagation, redundancy elimination, range propagation and expression
+simplification) based on a dominator tree traversal.  This also
+performs jump threading (to reduce jumps to jumps). This flag is
+enabled by default at \fB\-O\fR and higher.
+.IP "\fB\-ftree\-dse\fR" 4
+.IX Item "-ftree-dse"
+Perform dead store elimination (\s-1DSE\s0) on trees.  A dead store is a store into
+a memory location which will later be overwritten by another store without
+any intervening loads.  In this case the earlier store can be deleted.  This
+flag is enabled by default at \fB\-O\fR and higher.
+.IP "\fB\-ftree\-ch\fR" 4
+.IX Item "-ftree-ch"
+Perform loop header copying on trees.  This is beneficial since it increases
+effectiveness of code motion optimizations.  It also saves one jump.  This flag
+is enabled by default at \fB\-O\fR and higher.  It is not enabled
+for \fB\-Os\fR, since it usually increases code size.
+.IP "\fB\-ftree\-loop\-optimize\fR" 4
+.IX Item "-ftree-loop-optimize"
+Perform loop optimizations on trees.  This flag is enabled by default
+at \fB\-O\fR and higher.
+.IP "\fB\-ftree\-loop\-linear\fR" 4
+.IX Item "-ftree-loop-linear"
+Perform linear loop transformations on tree.  This flag can improve cache
+performance and allow further loop optimizations to take place.
+.IP "\fB\-fcheck\-data\-deps\fR" 4
+.IX Item "-fcheck-data-deps"
+Compare the results of several data dependence analyzers.  This option
+is used for debugging the data dependence analyzers.
+.IP "\fB\-ftree\-loop\-im\fR" 4
+.IX Item "-ftree-loop-im"
+Perform loop invariant motion on trees.  This pass moves only invariants that
+would be hard to handle at \s-1RTL\s0 level (function calls, operations that expand to
+nontrivial sequences of insns).  With \fB\-funswitch\-loops\fR it also moves
+operands of conditions that are invariant out of the loop, so that we can use
+just trivial invariantness analysis in loop unswitching.  The pass also includes
+store motion.
+.IP "\fB\-ftree\-loop\-ivcanon\fR" 4
+.IX Item "-ftree-loop-ivcanon"
+Create a canonical counter for number of iterations in the loop for that
+determining number of iterations requires complicated analysis.  Later
+optimizations then may determine the number easily.  Useful especially
+in connection with unrolling.
+.IP "\fB\-fivopts\fR" 4
+.IX Item "-fivopts"
+Perform induction variable optimizations (strength reduction, induction
+variable merging and induction variable elimination) on trees.
+.IP "\fB\-ftree\-parallelize\-loops=n\fR" 4
+.IX Item "-ftree-parallelize-loops=n"
+Parallelize loops, i.e., split their iteration space to run in n threads.
+This is only possible for loops whose iterations are independent
+and can be arbitrarily reordered.  The optimization is only
+profitable on multiprocessor machines, for loops that are CPU-intensive,
+rather than constrained e.g. by memory bandwidth.  This option
+implies \fB\-pthread\fR, and thus is only supported on targets
+that have support for \fB\-pthread\fR.
+.IP "\fB\-ftree\-sra\fR" 4
+.IX Item "-ftree-sra"
+Perform scalar replacement of aggregates.  This pass replaces structure
+references with scalars to prevent committing structures to memory too
+early.  This flag is enabled by default at \fB\-O\fR and higher.
+.IP "\fB\-ftree\-copyrename\fR" 4
+.IX Item "-ftree-copyrename"
+Perform copy renaming on trees.  This pass attempts to rename compiler
+temporaries to other variables at copy locations, usually resulting in
+variable names which more closely resemble the original variables.  This flag
+is enabled by default at \fB\-O\fR and higher.
+.IP "\fB\-ftree\-ter\fR" 4
+.IX Item "-ftree-ter"
+Perform temporary expression replacement during the \s-1SSA\-\s0>normal phase.  Single
+use/single def temporaries are replaced at their use location with their
+defining expression.  This results in non-GIMPLE code, but gives the expanders
+much more complex trees to work on resulting in better \s-1RTL\s0 generation.  This is
+enabled by default at \fB\-O\fR and higher.
+.IP "\fB\-ftree\-vectorize\fR" 4
+.IX Item "-ftree-vectorize"
+Perform loop vectorization on trees. This flag is enabled by default at
+\&\fB\-O3\fR.
+.IP "\fB\-ftree\-vect\-loop\-version\fR" 4
+.IX Item "-ftree-vect-loop-version"
+Perform loop versioning when doing loop vectorization on trees.  When a loop
+appears to be vectorizable except that data alignment or data dependence cannot
+be determined at compile time then vectorized and non-vectorized versions of
+the loop are generated along with runtime checks for alignment or dependence
+to control which version is executed.  This option is enabled by default
+except at level \fB\-Os\fR where it is disabled.
+.IP "\fB\-fvect\-cost\-model\fR" 4
+.IX Item "-fvect-cost-model"
+Enable cost model for vectorization.
+.IP "\fB\-ftree\-vrp\fR" 4
+.IX Item "-ftree-vrp"
+Perform Value Range Propagation on trees.  This is similar to the
+constant propagation pass, but instead of values, ranges of values are
+propagated.  This allows the optimizers to remove unnecessary range
+checks like array bound checks and null pointer checks.  This is
+enabled by default at \fB\-O2\fR and higher.  Null pointer check
+elimination is only done if \fB\-fdelete\-null\-pointer\-checks\fR is
+enabled.
+.IP "\fB\-ftracer\fR" 4
+.IX Item "-ftracer"
+Perform tail duplication to enlarge superblock size.  This transformation
+simplifies the control flow of the function allowing other optimizations to do
+better job.
+.IP "\fB\-funroll\-loops\fR" 4
+.IX Item "-funroll-loops"
+Unroll loops whose number of iterations can be determined at compile
+time or upon entry to the loop.  \fB\-funroll\-loops\fR implies
+\&\fB\-frerun\-cse\-after\-loop\fR.  This option makes code larger,
+and may or may not make it run faster.
+.IP "\fB\-funroll\-all\-loops\fR" 4
+.IX Item "-funroll-all-loops"
+Unroll all loops, even if their number of iterations is uncertain when
+the loop is entered.  This usually makes programs run more slowly.
+\&\fB\-funroll\-all\-loops\fR implies the same options as
+\&\fB\-funroll\-loops\fR,
+.IP "\fB\-fsplit\-ivs\-in\-unroller\fR" 4
+.IX Item "-fsplit-ivs-in-unroller"
+Enables expressing of values of induction variables in later iterations
+of the unrolled loop using the value in the first iteration.  This breaks
+long dependency chains, thus improving efficiency of the scheduling passes.
+.Sp
+Combination of \fB\-fweb\fR and \s-1CSE\s0 is often sufficient to obtain the
+same effect.  However in cases the loop body is more complicated than
+a single basic block, this is not reliable.  It also does not work at all
+on some of the architectures due to restrictions in the \s-1CSE\s0 pass.
+.Sp
+This optimization is enabled by default.
+.IP "\fB\-fvariable\-expansion\-in\-unroller\fR" 4
+.IX Item "-fvariable-expansion-in-unroller"
+With this option, the compiler will create multiple copies of some
+local variables when unrolling a loop which can result in superior code.
+.IP "\fB\-fpredictive\-commoning\fR" 4
+.IX Item "-fpredictive-commoning"
+Perform predictive commoning optimization, i.e., reusing computations
+(especially memory loads and stores) performed in previous
+iterations of loops.
+.Sp
+This option is enabled at level \fB\-O3\fR.
+.IP "\fB\-fprefetch\-loop\-arrays\fR" 4
+.IX Item "-fprefetch-loop-arrays"
+If supported by the target machine, generate instructions to prefetch
+memory to improve the performance of loops that access large arrays.
+.Sp
+This option may generate better or worse code; results are highly
+dependent on the structure of loops within the source code.
+.Sp
+Disabled at level \fB\-Os\fR.
+.IP "\fB\-fno\-peephole\fR" 4
+.IX Item "-fno-peephole"
+.PD 0
+.IP "\fB\-fno\-peephole2\fR" 4
+.IX Item "-fno-peephole2"
+.PD
+Disable any machine-specific peephole optimizations.  The difference
+between \fB\-fno\-peephole\fR and \fB\-fno\-peephole2\fR is in how they
+are implemented in the compiler; some targets use one, some use the
+other, a few use both.
+.Sp
+\&\fB\-fpeephole\fR is enabled by default.
+\&\fB\-fpeephole2\fR enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fno\-guess\-branch\-probability\fR" 4
+.IX Item "-fno-guess-branch-probability"
+Do not guess branch probabilities using heuristics.
+.Sp
+\&\s-1GCC\s0 will use heuristics to guess branch probabilities if they are
+not provided by profiling feedback (\fB\-fprofile\-arcs\fR).  These
+heuristics are based on the control flow graph.  If some branch probabilities
+are specified by \fB_\|_builtin_expect\fR, then the heuristics will be
+used to guess branch probabilities for the rest of the control flow graph,
+taking the \fB_\|_builtin_expect\fR info into account.  The interactions
+between the heuristics and \fB_\|_builtin_expect\fR can be complex, and in
+some cases, it may be useful to disable the heuristics so that the effects
+of \fB_\|_builtin_expect\fR are easier to understand.
+.Sp
+The default is \fB\-fguess\-branch\-probability\fR at levels
+\&\fB\-O\fR, \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-freorder\-blocks\fR" 4
+.IX Item "-freorder-blocks"
+Reorder basic blocks in the compiled function in order to reduce number of
+taken branches and improve code locality.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR.
+.IP "\fB\-freorder\-blocks\-and\-partition\fR" 4
+.IX Item "-freorder-blocks-and-partition"
+In addition to reordering basic blocks in the compiled function, in order
+to reduce number of taken branches, partitions hot and cold basic blocks
+into separate sections of the assembly and .o files, to improve
+paging and cache locality performance.
+.Sp
+This optimization is automatically turned off in the presence of
+exception handling, for linkonce sections, for functions with a user-defined
+section attribute and on any architecture that does not support named
+sections.
+.IP "\fB\-freorder\-functions\fR" 4
+.IX Item "-freorder-functions"
+Reorder functions in the object file in order to
+improve code locality.  This is implemented by using special
+subsections \f(CW\*(C`.text.hot\*(C'\fR for most frequently executed functions and
+\&\f(CW\*(C`.text.unlikely\*(C'\fR for unlikely executed functions.  Reordering is done by
+the linker so object file format must support named sections and linker must
+place them in a reasonable way.
+.Sp
+Also profile feedback must be available in to make this option effective.  See
+\&\fB\-fprofile\-arcs\fR for details.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fstrict\-aliasing\fR" 4
+.IX Item "-fstrict-aliasing"
+Allows the compiler to assume the strictest aliasing rules applicable to
+the language being compiled.  For C (and \*(C+), this activates
+optimizations based on the type of expressions.  In particular, an
+object of one type is assumed never to reside at the same address as an
+object of a different type, unless the types are almost the same.  For
+example, an \f(CW\*(C`unsigned int\*(C'\fR can alias an \f(CW\*(C`int\*(C'\fR, but not a
+\&\f(CW\*(C`void*\*(C'\fR or a \f(CW\*(C`double\*(C'\fR.  A character type may alias any other
+type.
+.Sp
+Pay special attention to code like this:
+.Sp
+.Vb 4
+\&        union a_union {
+\&          int i;
+\&          double d;
+\&        };
+\&        
+\&        int f() {
+\&          a_union t;
+\&          t.d = 3.0;
+\&          return t.i;
+\&        }
+.Ve
+.Sp
+The practice of reading from a different union member than the one most
+recently written to (called \*(L"type-punning\*(R") is common.  Even with
+\&\fB\-fstrict\-aliasing\fR, type-punning is allowed, provided the memory
+is accessed through the union type.  So, the code above will work as
+expected.    However, this code might not:
+.Sp
+.Vb 7
+\&        int f() {
+\&          a_union t;
+\&          int* ip;
+\&          t.d = 3.0;
+\&          ip = &t.i;
+\&          return *ip;
+\&        }
+.Ve
+.Sp
+Similarly, access by taking the address, casting the resulting pointer
+and dereferencing the result has undefined behavior, even if the cast
+uses a union type, e.g.:
+.Sp
+.Vb 4
+\&        int f() {
+\&          double d = 3.0;
+\&          return ((union a_union *) &d)\->i;
+\&        }
+.Ve
+.Sp
+The \fB\-fstrict\-aliasing\fR option is enabled at levels
+\&\fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fstrict\-overflow\fR" 4
+.IX Item "-fstrict-overflow"
+Allow the compiler to assume strict signed overflow rules, depending
+on the language being compiled.  For C (and \*(C+) this means that
+overflow when doing arithmetic with signed numbers is undefined, which
+means that the compiler may assume that it will not happen.  This
+permits various optimizations.  For example, the compiler will assume
+that an expression like \f(CW\*(C`i + 10 > i\*(C'\fR will always be true for
+signed \f(CW\*(C`i\*(C'\fR.  This assumption is only valid if signed overflow is
+undefined, as the expression is false if \f(CW\*(C`i + 10\*(C'\fR overflows when
+using twos complement arithmetic.  When this option is in effect any
+attempt to determine whether an operation on signed numbers will
+overflow must be written carefully to not actually involve overflow.
+.Sp
+This option also allows the compiler to assume strict pointer
+semantics: given a pointer to an object, if adding an offset to that
+pointer does not produce a pointer to the same object, the addition is
+undefined.  This permits the compiler to conclude that \f(CW\*(C`p + u >
+p\*(C'\fR is always true for a pointer \f(CW\*(C`p\*(C'\fR and unsigned integer
+\&\f(CW\*(C`u\*(C'\fR.  This assumption is only valid because pointer wraparound is
+undefined, as the expression is false if \f(CW\*(C`p + u\*(C'\fR overflows using
+twos complement arithmetic.
+.Sp
+See also the \fB\-fwrapv\fR option.  Using \fB\-fwrapv\fR means
+that integer signed overflow is fully defined: it wraps.  When
+\&\fB\-fwrapv\fR is used, there is no difference between
+\&\fB\-fstrict\-overflow\fR and \fB\-fno\-strict\-overflow\fR for
+integers.  With \fB\-fwrapv\fR certain types of overflow are
+permitted.  For example, if the compiler gets an overflow when doing
+arithmetic on constants, the overflowed value can still be used with
+\&\fB\-fwrapv\fR, but not otherwise.
+.Sp
+The \fB\-fstrict\-overflow\fR option is enabled at levels
+\&\fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-falign\-functions\fR" 4
+.IX Item "-falign-functions"
+.PD 0
+.IP "\fB\-falign\-functions=\fR\fIn\fR" 4
+.IX Item "-falign-functions=n"
+.PD
+Align the start of functions to the next power-of-two greater than
+\&\fIn\fR, skipping up to \fIn\fR bytes.  For instance,
+\&\fB\-falign\-functions=32\fR aligns functions to the next 32\-byte
+boundary, but \fB\-falign\-functions=24\fR would align to the next
+32\-byte boundary only if this can be done by skipping 23 bytes or less.
+.Sp
+\&\fB\-fno\-align\-functions\fR and \fB\-falign\-functions=1\fR are
+equivalent and mean that functions will not be aligned.
+.Sp
+Some assemblers only support this flag when \fIn\fR is a power of two;
+in that case, it is rounded up.
+.Sp
+If \fIn\fR is not specified or is zero, use a machine-dependent default.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR.
+.IP "\fB\-falign\-labels\fR" 4
+.IX Item "-falign-labels"
+.PD 0
+.IP "\fB\-falign\-labels=\fR\fIn\fR" 4
+.IX Item "-falign-labels=n"
+.PD
+Align all branch targets to a power-of-two boundary, skipping up to
+\&\fIn\fR bytes like \fB\-falign\-functions\fR.  This option can easily
+make code slower, because it must insert dummy operations for when the
+branch target is reached in the usual flow of the code.
+.Sp
+\&\fB\-fno\-align\-labels\fR and \fB\-falign\-labels=1\fR are
+equivalent and mean that labels will not be aligned.
+.Sp
+If \fB\-falign\-loops\fR or \fB\-falign\-jumps\fR are applicable and
+are greater than this value, then their values are used instead.
+.Sp
+If \fIn\fR is not specified or is zero, use a machine-dependent default
+which is very likely to be \fB1\fR, meaning no alignment.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR.
+.IP "\fB\-falign\-loops\fR" 4
+.IX Item "-falign-loops"
+.PD 0
+.IP "\fB\-falign\-loops=\fR\fIn\fR" 4
+.IX Item "-falign-loops=n"
+.PD
+Align loops to a power-of-two boundary, skipping up to \fIn\fR bytes
+like \fB\-falign\-functions\fR.  The hope is that the loop will be
+executed many times, which will make up for any execution of the dummy
+operations.
+.Sp
+\&\fB\-fno\-align\-loops\fR and \fB\-falign\-loops=1\fR are
+equivalent and mean that loops will not be aligned.
+.Sp
+If \fIn\fR is not specified or is zero, use a machine-dependent default.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR.
+.IP "\fB\-falign\-jumps\fR" 4
+.IX Item "-falign-jumps"
+.PD 0
+.IP "\fB\-falign\-jumps=\fR\fIn\fR" 4
+.IX Item "-falign-jumps=n"
+.PD
+Align branch targets to a power-of-two boundary, for branch targets
+where the targets can only be reached by jumping, skipping up to \fIn\fR
+bytes like \fB\-falign\-functions\fR.  In this case, no dummy operations
+need be executed.
+.Sp
+\&\fB\-fno\-align\-jumps\fR and \fB\-falign\-jumps=1\fR are
+equivalent and mean that loops will not be aligned.
+.Sp
+If \fIn\fR is not specified or is zero, use a machine-dependent default.
+.Sp
+Enabled at levels \fB\-O2\fR, \fB\-O3\fR.
+.IP "\fB\-funit\-at\-a\-time\fR" 4
+.IX Item "-funit-at-a-time"
+Parse the whole compilation unit before starting to produce code.
+This allows some extra optimizations to take place but consumes
+more memory (in general).  There are some compatibility issues
+with \fIunit-at-a-time\fR mode:
+.RS 4
+.IP "\(bu" 4
+enabling \fIunit-at-a-time\fR mode may change the order
+in which functions, variables, and top-level \f(CW\*(C`asm\*(C'\fR statements
+are emitted, and will likely break code relying on some particular
+ordering.  The majority of such top-level \f(CW\*(C`asm\*(C'\fR statements,
+though, can be replaced by \f(CW\*(C`section\*(C'\fR attributes.  The
+\&\fBfno-toplevel-reorder\fR option may be used to keep the ordering
+used in the input file, at the cost of some optimizations.
+.IP "\(bu" 4
+\&\fIunit-at-a-time\fR mode removes unreferenced static variables
+and functions.  This may result in undefined references
+when an \f(CW\*(C`asm\*(C'\fR statement refers directly to variables or functions
+that are otherwise unused.  In that case either the variable/function
+shall be listed as an operand of the \f(CW\*(C`asm\*(C'\fR statement operand or,
+in the case of top-level \f(CW\*(C`asm\*(C'\fR statements the attribute \f(CW\*(C`used\*(C'\fR
+shall be used on the declaration.
+.IP "\(bu" 4
+Static functions now can use non-standard passing conventions that
+may break \f(CW\*(C`asm\*(C'\fR statements calling functions directly.  Again,
+attribute \f(CW\*(C`used\*(C'\fR will prevent this behavior.
+.RE
+.RS 4
+.Sp
+As a temporary workaround, \fB\-fno\-unit\-at\-a\-time\fR can be used,
+but this scheme may not be supported by future releases of \s-1GCC\s0.
+.Sp
+Enabled at levels \fB\-O\fR, \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.RE
+.IP "\fB\-fno\-toplevel\-reorder\fR" 4
+.IX Item "-fno-toplevel-reorder"
+Do not reorder top-level functions, variables, and \f(CW\*(C`asm\*(C'\fR
+statements.  Output them in the same order that they appear in the
+input file.  When this option is used, unreferenced static variables
+will not be removed.  This option is intended to support existing code
+which relies on a particular ordering.  For new code, it is better to
+use attributes.
+.IP "\fB\-fweb\fR" 4
+.IX Item "-fweb"
+Constructs webs as commonly used for register allocation purposes and assign
+each web individual pseudo register.  This allows the register allocation pass
+to operate on pseudos directly, but also strengthens several other optimization
+passes, such as \s-1CSE\s0, loop optimizer and trivial dead code remover.  It can,
+however, make debugging impossible, since variables will no longer stay in a
+\&\*(L"home register\*(R".
+.Sp
+Enabled by default with \fB\-funroll\-loops\fR.
+.IP "\fB\-fwhole\-program\fR" 4
+.IX Item "-fwhole-program"
+Assume that the current compilation unit represents whole program being
+compiled.  All public functions and variables with the exception of \f(CW\*(C`main\*(C'\fR
+and those merged by attribute \f(CW\*(C`externally_visible\*(C'\fR become static functions
+and in a affect gets more aggressively optimized by interprocedural optimizers.
+While this option is equivalent to proper use of \f(CW\*(C`static\*(C'\fR keyword for
+programs consisting of single file, in combination with option
+\&\fB\-\-combine\fR this flag can be used to compile most of smaller scale C
+programs since the functions and variables become local for the whole combined
+compilation unit, not for the single source file itself.
+.Sp
+This option is not supported for Fortran programs.
+.IP "\fB\-fcprop\-registers\fR" 4
+.IX Item "-fcprop-registers"
+After register allocation and post-register allocation instruction splitting,
+we perform a copy-propagation pass to try to reduce scheduling dependencies
+and occasionally eliminate the copy.
+.Sp
+Enabled at levels \fB\-O\fR, \fB\-O2\fR, \fB\-O3\fR, \fB\-Os\fR.
+.IP "\fB\-fprofile\-generate\fR" 4
+.IX Item "-fprofile-generate"
+Enable options usually used for instrumenting application to produce
+profile useful for later recompilation with profile feedback based
+optimization.  You must use \fB\-fprofile\-generate\fR both when
+compiling and when linking your program.
+.Sp
+The following options are enabled: \f(CW\*(C`\-fprofile\-arcs\*(C'\fR, \f(CW\*(C`\-fprofile\-values\*(C'\fR, \f(CW\*(C`\-fvpt\*(C'\fR.
+.IP "\fB\-fprofile\-use\fR" 4
+.IX Item "-fprofile-use"
+Enable profile feedback directed optimizations, and optimizations
+generally profitable only with profile feedback available.
+.Sp
+The following options are enabled: \f(CW\*(C`\-fbranch\-probabilities\*(C'\fR, \f(CW\*(C`\-fvpt\*(C'\fR,
+\&\f(CW\*(C`\-funroll\-loops\*(C'\fR, \f(CW\*(C`\-fpeel\-loops\*(C'\fR, \f(CW\*(C`\-ftracer\*(C'\fR
+.Sp
+By default, \s-1GCC\s0 emits an error message if the feedback profiles do not
+match the source code.  This error can be turned into a warning by using
+\&\fB\-Wcoverage\-mismatch\fR.  Note this may result in poorly optimized
+code.
+.PP
+The following options control compiler behavior regarding floating
+point arithmetic.  These options trade off between speed and
+correctness.  All must be specifically enabled.
+.IP "\fB\-ffloat\-store\fR" 4
+.IX Item "-ffloat-store"
+Do not store floating point variables in registers, and inhibit other
+options that might change whether a floating point value is taken from a
+register or memory.
+.Sp
+This option prevents undesirable excess precision on machines such as
+the 68000 where the floating registers (of the 68881) keep more
+precision than a \f(CW\*(C`double\*(C'\fR is supposed to have.  Similarly for the
+x86 architecture.  For most programs, the excess precision does only
+good, but a few programs rely on the precise definition of \s-1IEEE\s0 floating
+point.  Use \fB\-ffloat\-store\fR for such programs, after modifying
+them to store all pertinent intermediate computations into variables.
+.IP "\fB\-ffast\-math\fR" 4
+.IX Item "-ffast-math"
+Sets \fB\-fno\-math\-errno\fR, \fB\-funsafe\-math\-optimizations\fR,
+\&\fB\-ffinite\-math\-only\fR, \fB\-fno\-rounding\-math\fR,
+\&\fB\-fno\-signaling\-nans\fR and \fB\-fcx\-limited\-range\fR.
+.Sp
+This option causes the preprocessor macro \f(CW\*(C`_\|_FAST_MATH_\|_\*(C'\fR to be defined.
+.Sp
+This option is not turned on by any \fB\-O\fR option since
+it can result in incorrect output for programs which depend on
+an exact implementation of \s-1IEEE\s0 or \s-1ISO\s0 rules/specifications for
+math functions. It may, however, yield faster code for programs
+that do not require the guarantees of these specifications.
+.IP "\fB\-fno\-math\-errno\fR" 4
+.IX Item "-fno-math-errno"
+Do not set \s-1ERRNO\s0 after calling math functions that are executed
+with a single instruction, e.g., sqrt.  A program that relies on
+\&\s-1IEEE\s0 exceptions for math error handling may want to use this flag
+for speed while maintaining \s-1IEEE\s0 arithmetic compatibility.
+.Sp
+This option is not turned on by any \fB\-O\fR option since
+it can result in incorrect output for programs which depend on
+an exact implementation of \s-1IEEE\s0 or \s-1ISO\s0 rules/specifications for
+math functions. It may, however, yield faster code for programs
+that do not require the guarantees of these specifications.
+.Sp
+The default is \fB\-fmath\-errno\fR.
+.Sp
+On Darwin systems, the math library never sets \f(CW\*(C`errno\*(C'\fR.  There is
+therefore no reason for the compiler to consider the possibility that
+it might, and \fB\-fno\-math\-errno\fR is the default.
+.IP "\fB\-funsafe\-math\-optimizations\fR" 4
+.IX Item "-funsafe-math-optimizations"
+Allow optimizations for floating-point arithmetic that (a) assume
+that arguments and results are valid and (b) may violate \s-1IEEE\s0 or
+\&\s-1ANSI\s0 standards.  When used at link-time, it may include libraries
+or startup files that change the default \s-1FPU\s0 control word or other
+similar optimizations.
+.Sp
+This option is not turned on by any \fB\-O\fR option since
+it can result in incorrect output for programs which depend on
+an exact implementation of \s-1IEEE\s0 or \s-1ISO\s0 rules/specifications for
+math functions. It may, however, yield faster code for programs
+that do not require the guarantees of these specifications.
+Enables \fB\-fno\-signed\-zeros\fR, \fB\-fno\-trapping\-math\fR,
+\&\fB\-fassociative\-math\fR and \fB\-freciprocal\-math\fR.
+.Sp
+The default is \fB\-fno\-unsafe\-math\-optimizations\fR.
+.IP "\fB\-fassociative\-math\fR" 4
+.IX Item "-fassociative-math"
+Allow re-association of operands in series of floating-point operations.
+This violates the \s-1ISO\s0 C and \*(C+ language standard by possibly changing
+computation result.  \s-1NOTE:\s0 re-ordering may change the sign of zero as
+well as ignore NaNs and inhibit or create underflow or overflow (and
+thus cannot be used on a code which relies on rounding behavior like
+\&\f(CW\*(C`(x + 2**52) \- 2**52)\*(C'\fR.  May also reorder floating-point comparisons
+and thus may not be used when ordered comparisons are required.
+This option requires that both \fB\-fno\-signed\-zeros\fR and
+\&\fB\-fno\-trapping\-math\fR be in effect.  Moreover, it doesn't make
+much sense with \fB\-frounding\-math\fR.
+.Sp
+The default is \fB\-fno\-associative\-math\fR.
+.IP "\fB\-freciprocal\-math\fR" 4
+.IX Item "-freciprocal-math"
+Allow the reciprocal of a value to be used instead of dividing by
+the value if this enables optimizations.  For example \f(CW\*(C`x / y\*(C'\fR
+can be replaced with \f(CW\*(C`x * (1/y)\*(C'\fR which is useful if \f(CW\*(C`(1/y)\*(C'\fR
+is subject to common subexpression elimination.  Note that this loses
+precision and increases the number of flops operating on the value.
+.Sp
+The default is \fB\-fno\-reciprocal\-math\fR.
+.IP "\fB\-ffinite\-math\-only\fR" 4
+.IX Item "-ffinite-math-only"
+Allow optimizations for floating-point arithmetic that assume
+that arguments and results are not NaNs or +\-Infs.
+.Sp
+This option is not turned on by any \fB\-O\fR option since
+it can result in incorrect output for programs which depend on
+an exact implementation of \s-1IEEE\s0 or \s-1ISO\s0 rules/specifications for
+math functions. It may, however, yield faster code for programs
+that do not require the guarantees of these specifications.
+.Sp
+The default is \fB\-fno\-finite\-math\-only\fR.
+.IP "\fB\-fno\-signed\-zeros\fR" 4
+.IX Item "-fno-signed-zeros"
+Allow optimizations for floating point arithmetic that ignore the
+signedness of zero.  \s-1IEEE\s0 arithmetic specifies the behavior of
+distinct +0.0 and \-0.0 values, which then prohibits simplification
+of expressions such as x+0.0 or 0.0*x (even with \fB\-ffinite\-math\-only\fR).
+This option implies that the sign of a zero result isn't significant.
+.Sp
+The default is \fB\-fsigned\-zeros\fR.
+.IP "\fB\-fno\-trapping\-math\fR" 4
+.IX Item "-fno-trapping-math"
+Compile code assuming that floating-point operations cannot generate
+user-visible traps.  These traps include division by zero, overflow,
+underflow, inexact result and invalid operation.  This option requires
+that \fB\-fno\-signaling\-nans\fR be in effect.  Setting this option may
+allow faster code if one relies on \*(L"non-stop\*(R" \s-1IEEE\s0 arithmetic, for example.
+.Sp
+This option should never be turned on by any \fB\-O\fR option since
+it can result in incorrect output for programs which depend on
+an exact implementation of \s-1IEEE\s0 or \s-1ISO\s0 rules/specifications for
+math functions.
+.Sp
+The default is \fB\-ftrapping\-math\fR.
+.IP "\fB\-frounding\-math\fR" 4
+.IX Item "-frounding-math"
+Disable transformations and optimizations that assume default floating
+point rounding behavior.  This is round-to-zero for all floating point
+to integer conversions, and round-to-nearest for all other arithmetic
+truncations.  This option should be specified for programs that change
+the \s-1FP\s0 rounding mode dynamically, or that may be executed with a
+non-default rounding mode.  This option disables constant folding of
+floating point expressions at compile-time (which may be affected by
+rounding mode) and arithmetic transformations that are unsafe in the
+presence of sign-dependent rounding modes.
+.Sp
+The default is \fB\-fno\-rounding\-math\fR.
+.Sp
+This option is experimental and does not currently guarantee to
+disable all \s-1GCC\s0 optimizations that are affected by rounding mode.
+Future versions of \s-1GCC\s0 may provide finer control of this setting
+using C99's \f(CW\*(C`FENV_ACCESS\*(C'\fR pragma.  This command line option
+will be used to specify the default state for \f(CW\*(C`FENV_ACCESS\*(C'\fR.
+.IP "\fB\-frtl\-abstract\-sequences\fR" 4
+.IX Item "-frtl-abstract-sequences"
+It is a size optimization method. This option is to find identical
+sequences of code, which can be turned into pseudo-procedures  and
+then  replace  all  occurrences with  calls to  the  newly created
+subroutine. It is kind of an opposite of \fB\-finline\-functions\fR.
+This optimization runs at \s-1RTL\s0 level.
+.IP "\fB\-fsignaling\-nans\fR" 4
+.IX Item "-fsignaling-nans"
+Compile code assuming that \s-1IEEE\s0 signaling NaNs may generate user-visible
+traps during floating-point operations.  Setting this option disables
+optimizations that may change the number of exceptions visible with
+signaling NaNs.  This option implies \fB\-ftrapping\-math\fR.
+.Sp
+This option causes the preprocessor macro \f(CW\*(C`_\|_SUPPORT_SNAN_\|_\*(C'\fR to
+be defined.
+.Sp
+The default is \fB\-fno\-signaling\-nans\fR.
+.Sp
+This option is experimental and does not curre˜_  »b                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ¯_  ˘_  ˙_  ˚_  ¸_  ˝_  ˛_  ˇ_   `  —a  “a  ”a  ‘a  ’a  ÷a  ◊a  ÿa  Ÿa  ⁄a  €a  ‹a  ›a  ﬁa  ﬂa  ‡a  ·a  ‚a  „a  ‰a  Âa  Êa  Áa  Ëa  Èa  Ía  Îa  Ïa  Ìa  Óa  Ôa  a  Òa  Úa  Ûa  Ùa  ıa  ˆa  ˜a  ¯a  ˘a  ˙a  ˚a  ¸a  ˝a  ˛a  ˇa   b  b  b  b  b  b  b  b  b  	b  
+b  b  b  b  b  b  b  b  b  b  b  b  b  b  b  b  b  b  b  b  b  b   b  !b  "b  #b  $b  %b  &b  'b  (b  )b  *b  +b  ,b  -b  .b  /b  0b  1b  2b  3b  4b  5b  6b  7b  8b  9b  :b  ;b  <b  =b  >b  ?b  @b  Ab  Bb  Cb  Db  Eb  Fb  Gb  Hb  Ib  Jb  Kb  Lb  Mb  Nb  Ob  Pb  Qb  Rb  Sb  Tb  Ub  Vb  Wb  Xb  Yb  Zb  [b  \b  ]b  ^b  _b  `b  ab  bb  cb  db  eb  fb  gb  hb  ib  jb  kb  lb  mb  nb  ob  pb  qb  rb  sb  tb  ub  vb  wb  xb  yb  zb  {b  |b  }b  ~b  b  Äb  Åb  Çb  Éb  Ñb  Öb  Üb  áb  àb  âb  äb  ãb  åb  çb  éb  èb  êb  ëb  íb  ìb  îb  ïb  ñb  ób  òb  ôb  öb  õb  úb  ùb  ûb  üb  †b  °b  ¢b  £b  §b  •b  ¶b  ßb  ®b  ©b  ™b  ´b  ¨b  ≠b  Æb  Øb  ∞b  ±b  ≤b  ≥b  ¥b  µb  ∂b  ∑b  ∏b  πb  ∫b  ªb  ºb  Ωb  æb  øb  ¿b  ¡b  ¬b  √b  ƒb  ≈b  ∆b  «b  ntly guarantee to
+disable all \s-1GCC\s0 optimizations that affect signaling NaN behavior.
+.IP "\fB\-fsingle\-precision\-constant\fR" 4
+.IX Item "-fsingle-precision-constant"
+Treat floating point constant as single precision constant instead of
+implicitly converting it to double precision constant.
+.IP "\fB\-fcx\-limited\-range\fR" 4
+.IX Item "-fcx-limited-range"
+When enabled, this option states that a range reduction step is not
+needed when performing complex division.  The default is
+\&\fB\-fno\-cx\-limited\-range\fR, but is enabled by \fB\-ffast\-math\fR.
+.Sp
+This option controls the default setting of the \s-1ISO\s0 C99
+\&\f(CW\*(C`CX_LIMITED_RANGE\*(C'\fR pragma.  Nevertheless, the option applies to
+all languages.
+.PP
+The following options control optimizations that may improve
+performance, but are not enabled by any \fB\-O\fR options.  This
+section includes experimental options that may produce broken code.
+.IP "\fB\-fbranch\-probabilities\fR" 4
+.IX Item "-fbranch-probabilities"
+After running a program compiled with \fB\-fprofile\-arcs\fR, you can compile it a second time using
+\&\fB\-fbranch\-probabilities\fR, to improve optimizations based on
+the number of times each branch was taken.  When the program
+compiled with \fB\-fprofile\-arcs\fR exits it saves arc execution
+counts to a file called \fI\fIsourcename\fI.gcda\fR for each source
+file.  The information in this data file is very dependent on the
+structure of the generated code, so you must use the same source code
+and the same optimization options for both compilations.
+.Sp
+With \fB\-fbranch\-probabilities\fR, \s-1GCC\s0 puts a
+\&\fB\s-1REG_BR_PROB\s0\fR note on each \fB\s-1JUMP_INSN\s0\fR and \fB\s-1CALL_INSN\s0\fR.
+These can be used to improve optimization.  Currently, they are only
+used in one place: in \fIreorg.c\fR, instead of guessing which path a
+branch is mostly to take, the \fB\s-1REG_BR_PROB\s0\fR values are used to
+exactly determine which path is taken more often.
+.IP "\fB\-fprofile\-values\fR" 4
+.IX Item "-fprofile-values"
+If combined with \fB\-fprofile\-arcs\fR, it adds code so that some
+data about values of expressions in the program is gathered.
+.Sp
+With \fB\-fbranch\-probabilities\fR, it reads back the data gathered
+from profiling values of expressions and adds \fB\s-1REG_VALUE_PROFILE\s0\fR
+notes to instructions for their later usage in optimizations.
+.Sp
+Enabled with \fB\-fprofile\-generate\fR and \fB\-fprofile\-use\fR.
+.IP "\fB\-fvpt\fR" 4
+.IX Item "-fvpt"
+If combined with \fB\-fprofile\-arcs\fR, it instructs the compiler to add
+a code to gather information about values of expressions.
+.Sp
+With \fB\-fbranch\-probabilities\fR, it reads back the data gathered
+and actually performs the optimizations based on them.
+Currently the optimizations include specialization of division operation
+using the knowledge about the value of the denominator.
+.IP "\fB\-frename\-registers\fR" 4
+.IX Item "-frename-registers"
+Attempt to avoid false dependencies in scheduled code by making use
+of registers left over after register allocation.  This optimization
+will most benefit processors with lots of registers.  Depending on the
+debug information format adopted by the target, however, it can
+make debugging impossible, since variables will no longer stay in
+a \*(L"home register\*(R".
+.Sp
+Enabled by default with \fB\-funroll\-loops\fR.
+.IP "\fB\-ftracer\fR" 4
+.IX Item "-ftracer"
+Perform tail duplication to enlarge superblock size.  This transformation
+simplifies the control flow of the function allowing other optimizations to do
+better job.
+.Sp
+Enabled with \fB\-fprofile\-use\fR.
+.IP "\fB\-funroll\-loops\fR" 4
+.IX Item "-funroll-loops"
+Unroll loops whose number of iterations can be determined at compile time or
+upon entry to the loop.  \fB\-funroll\-loops\fR implies
+\&\fB\-frerun\-cse\-after\-loop\fR, \fB\-fweb\fR and \fB\-frename\-registers\fR.
+It also turns on complete loop peeling (i.e. complete removal of loops with
+small constant number of iterations).  This option makes code larger, and may
+or may not make it run faster.
+.Sp
+Enabled with \fB\-fprofile\-use\fR.
+.IP "\fB\-funroll\-all\-loops\fR" 4
+.IX Item "-funroll-all-loops"
+Unroll all loops, even if their number of iterations is uncertain when
+the loop is entered.  This usually makes programs run more slowly.
+\&\fB\-funroll\-all\-loops\fR implies the same options as
+\&\fB\-funroll\-loops\fR.
+.IP "\fB\-fpeel\-loops\fR" 4
+.IX Item "-fpeel-loops"
+Peels the loops for that there is enough information that they do not
+roll much (from profile feedback).  It also turns on complete loop peeling
+(i.e. complete removal of loops with small constant number of iterations).
+.Sp
+Enabled with \fB\-fprofile\-use\fR.
+.IP "\fB\-fmove\-loop\-invariants\fR" 4
+.IX Item "-fmove-loop-invariants"
+Enables the loop invariant motion pass in the \s-1RTL\s0 loop optimizer.  Enabled
+at level \fB\-O1\fR
+.IP "\fB\-funswitch\-loops\fR" 4
+.IX Item "-funswitch-loops"
+Move branches with loop invariant conditions out of the loop, with duplicates
+of the loop on both branches (modified according to result of the condition).
+.IP "\fB\-ffunction\-sections\fR" 4
+.IX Item "-ffunction-sections"
+.PD 0
+.IP "\fB\-fdata\-sections\fR" 4
+.IX Item "-fdata-sections"
+.PD
+Place each function or data item into its own section in the output
+file if the target supports arbitrary sections.  The name of the
+function or the name of the data item determines the section's name
+in the output file.
+.Sp
+Use these options on systems where the linker can perform optimizations
+to improve locality of reference in the instruction space.  Most systems
+using the \s-1ELF\s0 object format and \s-1SPARC\s0 processors running Solaris 2 have
+linkers with such optimizations.  \s-1AIX\s0 may have these optimizations in
+the future.
+.Sp
+Only use these options when there are significant benefits from doing
+so.  When you specify these options, the assembler and linker will
+create larger object and executable files and will also be slower.
+You will not be able to use \f(CW\*(C`gprof\*(C'\fR on all systems if you
+specify this option and you may have problems with debugging if
+you specify both this option and \fB\-g\fR.
+.IP "\fB\-fbranch\-target\-load\-optimize\fR" 4
+.IX Item "-fbranch-target-load-optimize"
+Perform branch target register load optimization before prologue / epilogue
+threading.
+The use of target registers can typically be exposed only during reload,
+thus hoisting loads out of loops and doing inter-block scheduling needs
+a separate optimization pass.
+.IP "\fB\-fbranch\-target\-load\-optimize2\fR" 4
+.IX Item "-fbranch-target-load-optimize2"
+Perform branch target register load optimization after prologue / epilogue
+threading.
+.IP "\fB\-fbtr\-bb\-exclusive\fR" 4
+.IX Item "-fbtr-bb-exclusive"
+When performing branch target register load optimization, don't reuse
+branch target registers in within any basic block.
+.IP "\fB\-fstack\-protector\fR" 4
+.IX Item "-fstack-protector"
+Emit extra code to check for buffer overflows, such as stack smashing
+attacks.  This is done by adding a guard variable to functions with
+vulnerable objects.  This includes functions that call alloca, and
+functions with buffers larger than 8 bytes.  The guards are initialized
+when a function is entered and then checked when the function exits.
+If a guard check fails, an error message is printed and the program exits.
+.IP "\fB\-fstack\-protector\-all\fR" 4
+.IX Item "-fstack-protector-all"
+Like \fB\-fstack\-protector\fR except that all functions are protected.
+.IP "\fB\-fsection\-anchors\fR" 4
+.IX Item "-fsection-anchors"
+Try to reduce the number of symbolic address calculations by using
+shared \*(L"anchor\*(R" symbols to address nearby objects.  This transformation
+can help to reduce the number of \s-1GOT\s0 entries and \s-1GOT\s0 accesses on some
+targets.
+.Sp
+For example, the implementation of the following function \f(CW\*(C`foo\*(C'\fR:
+.Sp
+.Vb 2
+\&        static int a, b, c;
+\&        int foo (void) { return a + b + c; }
+.Ve
+.Sp
+would usually calculate the addresses of all three variables, but if you
+compile it with \fB\-fsection\-anchors\fR, it will access the variables
+from a common anchor point instead.  The effect is similar t

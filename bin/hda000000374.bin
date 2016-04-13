@@ -1,0 +1,1416 @@
+ption
+ftree-vect-loop-version for more information.
+.IP "\fBvect-max-version-for-alias-checks\fR" 4
+.IX Item "vect-max-version-for-alias-checks"
+The maximum number of runtime checks that can be performed when
+doing loop versioning for alias in the vectorizer.  See option
+ftree-vect-loop-version for more information.
+.IP "\fBmax-iterations-to-track\fR" 4
+.IX Item "max-iterations-to-track"
+The maximum number of iterations of a loop the brute force algorithm
+for analysis of # of iterations of the loop tries to evaluate.
+.IP "\fBhot-bb-count-fraction\fR" 4
+.IX Item "hot-bb-count-fraction"
+Select fraction of the maximal count of repetitions of basic block in program
+given basic block needs to have to be considered hot.
+.IP "\fBhot-bb-frequency-fraction\fR" 4
+.IX Item "hot-bb-frequency-fraction"
+Select fraction of the maximal frequency of executions of basic block in
+function given basic block needs to have to be considered hot
+.IP "\fBmax-predicted-iterations\fR" 4
+.IX Item "max-predicted-iterations"
+The maximum number of loop iterations we predict statically.  This is useful
+in cases where function contain single loop with known bound and other loop
+with unknown.  We predict the known number of iterations correctly, while
+the unknown number of iterations average to roughly 10.  This means that the
+loop without bounds would appear artificially cold relative to the other one.
+.IP "\fBalign-threshold\fR" 4
+.IX Item "align-threshold"
+Select fraction of the maximal frequency of executions of basic block in
+function given basic block will get aligned.
+.IP "\fBalign-loop-iterations\fR" 4
+.IX Item "align-loop-iterations"
+A loop expected to iterate at lest the selected number of iterations will get
+aligned.
+.IP "\fBtracer-dynamic-coverage\fR" 4
+.IX Item "tracer-dynamic-coverage"
+.PD 0
+.IP "\fBtracer-dynamic-coverage-feedback\fR" 4
+.IX Item "tracer-dynamic-coverage-feedback"
+.PD
+This value is used to limit superblock formation once the given percentage of
+executed instructions is covered.  This limits unnecessary code size
+expansion.
+.Sp
+The \fBtracer-dynamic-coverage-feedback\fR is used only when profile
+feedback is available.  The real profiles (as opposed to statically estimated
+ones) are much less balanced allowing the threshold to be larger value.
+.IP "\fBtracer-max-code-growth\fR" 4
+.IX Item "tracer-max-code-growth"
+Stop tail duplication once code growth has reached given percentage.  This is
+rather hokey argument, as most of the duplicates will be eliminated later in
+cross jumping, so it may be set to much higher values than is the desired code
+growth.
+.IP "\fBtracer-min-branch-ratio\fR" 4
+.IX Item "tracer-min-branch-ratio"
+Stop reverse growth when the reverse probability of best edge is less than this
+threshold (in percent).
+.IP "\fBtracer-min-branch-ratio\fR" 4
+.IX Item "tracer-min-branch-ratio"
+.PD 0
+.IP "\fBtracer-min-branch-ratio-feedback\fR" 4
+.IX Item "tracer-min-branch-ratio-feedback"
+.PD
+Stop forward growth if the best edge do have probability lower than this
+threshold.
+.Sp
+Similarly to \fBtracer-dynamic-coverage\fR two values are present, one for
+compilation for profile feedback and one for compilation without.  The value
+for compilation with profile feedback needs to be more conservative (higher) in
+order to make tracer effective.
+.IP "\fBmax-cse-path-length\fR" 4
+.IX Item "max-cse-path-length"
+Maximum number of basic blocks on path that cse considers.  The default is 10.
+.IP "\fBmax-cse-insns\fR" 4
+.IX Item "max-cse-insns"
+The maximum instructions \s-1CSE\s0 process before flushing. The default is 1000.
+.IP "\fBmax-aliased-vops\fR" 4
+.IX Item "max-aliased-vops"
+Maximum number of virtual operands per function allowed to represent
+aliases before triggering the alias partitioning heuristic.  Alias
+partitioning reduces compile times and memory consumption needed for
+aliasing at the expense of precision loss in alias information.  The
+default value for this parameter is 100 for \-O1, 500 for \-O2 and 1000
+for \-O3.
+.Sp
+Notice that if a function contains more memory statements than the
+value of this parameter, it is not really possible to achieve this
+reduction.  In this case, the compiler will use the number of memory
+statements as the value for \fBmax-aliased-vops\fR.
+.IP "\fBavg-aliased-vops\fR" 4
+.IX Item "avg-aliased-vops"
+Average number of virtual operands per statement allowed to represent
+aliases before triggering the alias partitioning heuristic.  This
+works in conjunction with \fBmax-aliased-vops\fR.  If a function
+contains more than \fBmax-aliased-vops\fR virtual operators, then
+memory symbols will be grouped into memory partitions until either the
+total number of virtual operators is below \fBmax-aliased-vops\fR
+or the average number of virtual operators per memory statement is
+below \fBavg-aliased-vops\fR.  The default value for this parameter
+is 1 for \-O1 and \-O2, and 3 for \-O3.
+.IP "\fBggc-min-expand\fR" 4
+.IX Item "ggc-min-expand"
+\&\s-1GCC\s0 uses a garbage collector to manage its own memory allocation.  This
+parameter specifies the minimum percentage by which the garbage
+collector's heap should be allowed to expand between collections.
+Tuning this may improve compilation speed; it has no effect on code
+generation.
+.Sp
+The default is 30% + 70% * (\s-1RAM/1GB\s0) with an upper bound of 100% when
+\&\s-1RAM\s0 >= 1GB.  If \f(CW\*(C`getrlimit\*(C'\fR is available, the notion of \*(L"\s-1RAM\s0\*(R" is
+the smallest of actual \s-1RAM\s0 and \f(CW\*(C`RLIMIT_DATA\*(C'\fR or \f(CW\*(C`RLIMIT_AS\*(C'\fR.  If
+\&\s-1GCC\s0 is not able to calculate \s-1RAM\s0 on a particular platform, the lower
+bound of 30% is used.  Setting this parameter and
+\&\fBggc-min-heapsize\fR to zero causes a full collection to occur at
+every opportunity.  This is extremely slow, but can be useful for
+debugging.
+.IP "\fBggc-min-heapsize\fR" 4
+.IX Item "ggc-min-heapsize"
+Minimum size of the garbage collector's heap before it begins bothering
+to collect garbage.  The first collection occurs after the heap expands
+by \fBggc-min-expand\fR% beyond \fBggc-min-heapsize\fR.  Again,
+tuning this may improve compilation speed, and has no effect on code
+generation.
+.Sp
+The default is the smaller of \s-1RAM/8\s0, \s-1RLIMIT_RSS\s0, or a limit which
+tries to ensure that \s-1RLIMIT_DATA\s0 or \s-1RLIMIT_AS\s0 are not exceeded, but
+with a lower bound of 4096 (four megabytes) and an upper bound of
+131072 (128 megabytes).  If \s-1GCC\s0 is not able to calculate \s-1RAM\s0 on a
+particular platform, the lower bound is used.  Setting this parameter
+very large effectively disables garbage collection.  Setting this
+parameter and \fBggc-min-expand\fR to zero causes a full collection
+to occur at every opportunity.
+.IP "\fBmax-reload-search-insns\fR" 4
+.IX Item "max-reload-search-insns"
+The maximum number of instruction reload should look backward for equivalent
+register.  Increasing values mean more aggressive optimization, making the
+compile time increase with probably slightly better performance.  The default
+value is 100.
+.IP "\fBmax-cselib-memory-locations\fR" 4
+.IX Item "max-cselib-memory-locations"
+The maximum number of memory locations cselib should take into account.
+Increasing values mean more aggressive optimization, making the compile time
+increase with probably slightly better performance.  The default value is 500.
+.IP "\fBmax-flow-memory-locations\fR" 4
+.IX Item "max-flow-memory-locations"
+Similar as \fBmax-cselib-memory-locations\fR but for dataflow liveness.
+The default value is 100.
+.IP "\fBreorder-blocks-duplicate\fR" 4
+.IX Item "reorder-blocks-duplicate"
+.PD 0
+.IP "\fBreorder-blocks-duplicate-feedback\fR" 4
+.IX Item "reorder-blocks-duplicate-feedback"
+.PD
+Used by basic block reordering pass to decide whether to use unconditional
+branch or duplicate the code on its destination.  Code is duplicated when its
+estimated size is smaller than this value multiplied by the estimated size of
+unconditional jump in the hot spots of the program.
+.Sp
+The \fBreorder-block-duplicate-feedback\fR is used only when profile
+feedback is available and may be set to higher values than
+\&\fBreorder-block-duplicate\fR since information about the hot spots is more
+accurate.
+.IP "\fBmax-sched-ready-insns\fR" 4
+.IX Item "max-sched-ready-insns"
+The maximum number of instructions ready to be issued the scheduler should
+consider at any given time during the first scheduling pass.  Increasing
+values mean more thorough searches, making the compilation time increase
+with probably little benefit.  The default value is 100.
+.IP "\fBmax-sched-region-blocks\fR" 4
+.IX Item "max-sched-region-blocks"
+The maximum number of blocks in a region to be considered for
+interblock scheduling.  The default value is 10.
+.IP "\fBmax-sched-region-insns\fR" 4
+.IX Item "max-sched-region-insns"
+The maximum number of insns in a region to be considered for
+interblock scheduling.  The default value is 100.
+.IP "\fBmin-spec-prob\fR" 4
+.IX Item "min-spec-prob"
+The minimum probability (in percents) of reaching a source block
+for interblock speculative scheduling.  The default value is 40.
+.IP "\fBmax-sched-extend-regions-iters\fR" 4
+.IX Item "max-sched-extend-regions-iters"
+The maximum number of iterations through \s-1CFG\s0 to extend regions.
+0 \- disable region extension,
+N \- do at most N iterations.
+The default value is 0.
+.IP "\fBmax-sched-insn-conflict-delay\fR" 4
+.IX Item "max-sched-insn-conflict-delay"
+The maximum conflict delay for an insn to be considered for speculative motion.
+The default value is 3.
+.IP "\fBsched-spec-prob-cutoff\fR" 4
+.IX Item "sched-spec-prob-cutoff"
+The minimal probability of speculation success (in percents), so that
+speculative insn will be scheduled.
+The default value is 40.
+.IP "\fBmax-last-value-rtl\fR" 4
+.IX Item "max-last-value-rtl"
+The maximum size measured as number of RTLs that can be recorded in an expression
+in combiner for a pseudo register as last known value of that register.  The default
+is 10000.
+.IP "\fBinteger-share-limit\fR" 4
+.IX Item "integer-share-limit"
+Small integer constants can use a shared data structure, reducing the
+compiler's memory usage and increasing its speed.  This sets the maximum
+value of a shared integer constant.  The default value is 256.
+.IP "\fBmin-virtual-mappings\fR" 4
+.IX Item "min-virtual-mappings"
+Specifies the minimum number of virtual mappings in the incremental
+\&\s-1SSA\s0 updater that should be registered to trigger the virtual mappings
+heuristic defined by virtual-mappings-ratio.  The default value is
+100.
+.IP "\fBvirtual-mappings-ratio\fR" 4
+.IX Item "virtual-mappings-ratio"
+If the number of virtual mappings is virtual-mappings-ratio bigger
+than the number of virtual symbols to be updated, then the incremental
+\&\s-1SSA\s0 updater switches to a full update for those symbols.  The default
+ratio is 3.
+.IP "\fBssp-buffer-size\fR" 4
+.IX Item "ssp-buffer-size"
+The minimum size of buffers (i.e. arrays) that will receive stack smashing
+protection when \fB\-fstack\-protection\fR is used.
+.IP "\fBmax-jump-thread-duplication-stmts\fR" 4
+.IX Item "max-jump-thread-duplication-stmts"
+Maximum number of statements allowed in a block that needs to be
+duplicated when threading jumps.
+.IP "\fBmax-fields-for-field-sensitive\fR" 4
+.IX Item "max-fields-for-field-sensitive"
+Maximum number of fields in a structure we will treat in
+a field sensitive manner during pointer analysis.  The default is zero
+for \-O0, and \-O1 and 100 for \-Os, \-O2, and \-O3.
+.IP "\fBprefetch-latency\fR" 4
+.IX Item "prefetch-latency"
+Estimate on average number of instructions that are executed before
+prefetch finishes.  The distance we prefetch ahead is proportional
+to this constant.  Increasing this number may also lead to less
+streams being prefetched (see \fBsimultaneous-prefetches\fR).
+.IP "\fBsimultaneous-prefetches\fR" 4
+.IX Item "simultaneous-prefetches"
+Maximum number of prefetches that can run at the same time.
+.IP "\fBl1\-cache\-line\-size\fR" 4
+.IX Item "l1-cache-line-size"
+The size of cache line in L1 cache, in bytes.
+.IP "\fBl1\-cache\-size\fR" 4
+.IX Item "l1-cache-size"
+The size of L1 cache, in kilobytes.
+.IP "\fBl2\-cache\-size\fR" 4
+.IX Item "l2-cache-size"
+The size of L2 cache, in kilobytes.
+.IP "\fBuse-canonical-types\fR" 4
+.IX Item "use-canonical-types"
+Whether the compiler should use the \*(L"canonical\*(R" type system.  By
+default, this should always be 1, which uses a more efficient internal
+mechanism for comparing types in \*(C+ and Objective\-\*(C+.  However, if
+bugs in the canonical type system are causing compilation failures,
+set this value to 0 to disable canonical types.
+.IP "\fBmax-partial-antic-length\fR" 4
+.IX Item "max-partial-antic-length"
+Maximum length of the partial antic set computed during the tree
+partial redundancy elimination optimization (\fB\-ftree\-pre\fR) when
+optimizing at \fB\-O3\fR and above.  For some sorts of source code
+the enhanced partial redundancy elimination optimization can run away,
+consuming all of the memory available on the host machine.  This
+parameter sets a limit on the length of the sets that are computed,
+which prevents the runaway behaviour.  Setting a value of 0 for
+this paramter will allow an unlimited set length.
+.IP "\fBsccvn-max-scc-size\fR" 4
+.IX Item "sccvn-max-scc-size"
+Maximum size of a strongly connected component (\s-1SCC\s0) during \s-1SCCVN\s0
+processing.  If this limit is hit, \s-1SCCVN\s0 processing for the whole
+function will not be done and optimizations depending on it will
+be disabled.  The default maximum \s-1SCC\s0 size is 10000.
+.RE
+.RS 4
+.RE
+.Sh "Options Controlling the Preprocessor"
+.IX Subsection "Options Controlling the Preprocessor"
+These options control the C preprocessor, which is run on each C source
+file before actual compilation.
+.PP
+If you use the \fB\-E\fR option, nothing is done except preprocessing.
+Some of these options make sense only together with \fB\-E\fR because
+they cause the preprocessor output to be unsuitable for actual
+compilation.
+.Sp
+.RS 4
+You can use \fB\-Wp,\fR\fIoption\fR to bypass the compiler driver
+and pass \fIoption\fR directly through to the preprocessor.  If
+\&\fIoption\fR contains commas, it is split into multiple options at the
+commas.  However, many options are modified, translated or interpreted
+by the compiler driver before being passed to the preprocessor, and
+\&\fB\-Wp\fR forcibly bypasses this phase.  The preprocessor's direct
+interface is undocumented and subject to change, so whenever possible
+you should avoid using \fB\-Wp\fR and let the driver handle the
+options instead.
+.Sp
+\&\fB\-Xpreprocessor\fR \fIoption\fR
+.Sp
+Pass \fIoption\fR as an option to the preprocessor.  You can use this to
+supply system-specific preprocessor options which \s-1GCC\s0 does not know how to
+recognize.
+.Sp
+If you want to pass an option that takes an argument, you must use
+\&\fB\-Xpreprocessor\fR twice, once for the option and once for the argument.
+.RE
+.IP "\fB\-D\fR \fIname\fR" 4
+.IX Item "-D name"
+Predefine \fIname\fR as a macro, with definition \f(CW1\fR.
+.IP "\fB\-D\fR \fIname\fR\fB=\fR\fIdefinition\fR" 4
+.IX Item "-D name=definition"
+The contents of \fIdefinition\fR are tokenized and processed as if
+they appeared during translation phase three in a \fB#define\fR
+directive.  In particular, the definition will be truncated by
+embedded newline characters.
+.Sp
+If you are invoking the preprocessor from a shell or shell-like
+program you may need to use the shell's quoting syntax to protect
+characters such as spaces that have a meaning in the shell syntax.
+.Sp
+If you wish to define a function-like macro on the command line, write
+its argument list with surrounding parentheses before the equals sign
+(if any).  Parentheses are meaningful to most shells, so you will need
+to quote the option.  With \fBsh\fR and \fBcsh\fR,
+\&\fB\-D'\fR\fIname\fR\fB(\fR\fIargs...\fR\fB)=\fR\fIdefinition\fR\fB'\fR works.
+.Sp
+\&\fB\-D\fR and \fB\-U\fR options are processed in the order they
+are given on the command line.  All \fB\-imacros\fR \fIfile\fR and
+\&\fB\-include\fR \fIfile\fR options are processed after all
+\&\fB\-D\fR and \fB\-U\fR options.
+.IP "\fB\-U\fR \fIname\fR" 4
+.IX Item "-U name"
+Cancel any previous definition of \fIname\fR, either built in or
+provided with a \fB\-D\fR option.
+.IP "\fB\-undef\fR" 4
+.IX Item "-undef"
+Do not predefine any system-specific or GCC-specific macros.  The
+standard predefined macros remain defined.
+.IP "\fB\-I\fR \fIdir\fR" 4
+.IX Item "-I dir"
+Add the directory \fIdir\fR to the list of directories to be searched
+for header files.
+Directories named by \fB\-I\fR are searched before the standard
+system include directories.  If the directory \fIdir\fR is a standard
+system include directory, the option is ignored to ensure that the
+default search order for system directories and the special treatment
+of system headers are not defeated
+\&.
+If \fIdir\fR begins with \f(CW\*(C`=\*(C'\fR, then the \f(CW\*(C`=\*(C'\fR will be replaced
+by the sysroot prefix; see \fB\-\-sysroot\fR and \fB\-isysroot\fR.
+.IP "\fB\-o\fR \fIfile\fR" 4
+.IX Item "-o file"
+Write output to \fIfile\fR.  This is the same as specifying \fIfile\fR
+as the second non-option argument to \fBcpp\fR.  \fBgcc\fR has a
+different interpretation of a second non-option argument, so you must
+use \fB\-o\fR to specify the output file.
+.IP "\fB\-Wall\fR" 4
+.IX Item "-Wall"
+Turns on all optional warnings which are desirable for normal code.
+At present this is \fB\-Wcomment\fR, \fB\-Wtrigraphs\fR,
+\&\fB\-Wmultichar\fR and a warning about integer promotion causing a
+change of sign in \f(CW\*(C`#if\*(C'\fR expressions.  Note that many of the
+preprocessor's warnings are on by default and have no options to
+control them.
+.IP "\fB\-Wcomment\fR" 4
+.IX Item "-Wcomment"
+.PD 0
+.IP "\fB\-Wcomments\fR" 4
+.IX Item "-Wcomments"
+.PD
+Warn whenever a comment-start sequence \fB/*\fR appears in a \fB/*\fR
+comment, or whenever a backslash-newline appears in a \fB//\fR comment.
+(Both forms have the same effect.)
+.IP "\fB\-Wtrigraphs\fR" 4
+.IX Item "-Wtrigraphs"
+Most trigraphs in comments cannot affect the meaning of the program.
+However, a trigraph that would form an escaped newline (\fB??/\fR at
+the end of a line) can, by changing where the comment begins or ends.
+Therefore, only trigraphs that would form escaped newlines produce
+warnings inside a comment.
+.Sp
+This option is implied by \fB\-Wall\fR.  If \fB\-Wall\fR is not
+given, this option is still enabled unless trigraphs are enabled.  To
+get trigraph conversion without warnings, but get the other
+\&\fB\-Wall\fR warnings, use \fB\-trigraphs \-Wall \-Wno\-trigraphs\fR.
+.IP "\fB\-Wtraditional\fR" 4
+.IX Item "-Wtraditional"
+Warn about certain constructs that behave differently in traditional and
+\&\s-1ISO\s0 C.  Also warn about \s-1ISO\s0 C constructs that have no traditional C
+equivalent, and problematic constructs which should be avoided.
+.IP "\fB\-Wimport\fR" 4
+.IX Item "-Wimport"
+Warn the first time \fB#import\fR is used.
+.IP "\fB\-Wundef\fR" 4
+.IX Item "-Wundef"
+Warn whenever an identifier which is not a macro is encountered in an
+\&\fB#if\fR directive, outside of \fBdefined\fR.  Such identifiers are
+replaced with zero.
+.IP "\fB\-Wunused\-macros\fR" 4
+.IX Item "-Wunused-macros"
+Warn about macros defined in the main file that are unused.  A macro
+is \fIused\fR if it is expanded or tested for existence at least once.
+The preprocessor will also warn if the macro has not been used at the
+time it is redefined or undefined.
+.Sp
+Built-in macros, macros defined on the command line, and macros
+defined in include files are not warned about.
+.Sp
+\&\fINote:\fR If a macro is actually used, but only used in skipped
+conditional blocks, then \s-1CPP\s0 will report it as unused.  To avoid the
+warning in such a case, you might improve the scope of the macro's
+definition by, for example, moving it into the first skipped block.
+Alternatively, you could provide a dummy use with something like:
+.Sp
+.Vb 2
+\&        #if defined the_macro_causing_the_warning
+\&        #endif
+.Ve
+.IP "\fB\-Wendif\-labels\fR" 4
+.IX Item "-Wendif-labels"
+Warn whenever an \fB#else\fR or an \fB#endif\fR are followed by text.
+This usually happens in code of the form
+.Sp
+.Vb 5
+\&        #if FOO
+\&        ...
+\&        #else FOO
+\&        ...
+\&        #endif FOO
+.Ve
+.Sp
+The second and third \f(CW\*(C`FOO\*(C'\fR should be in comments, but often are not
+in older programs.  This warning is on by default.
+.IP "\fB\-Werror\fR" 4
+.IX Item "-Werror"
+Make all warnings into hard errors.  Source code which triggers warnings
+will be rejected.
+.IP "\fB\-Wsystem\-headers\fR" 4
+.IX Item "-Wsystem-headers"
+Issue warnings for code in system headers.  These are normally unhelpful
+in finding bugs in your own code, therefore suppressed.  If you are
+responsible for the system library, you may want to see them.
+.IP "\fB\-w\fR" 4
+.IX Item "-w"
+Suppress all warnings, including those which \s-1GNU\s0 \s-1CPP\s0 issues by default.
+.IP "\fB\-pedantic\fR" 4
+.IX Item "-pedantic"
+Issue all the mandatory diagnostics listed in the C standard.  Some of
+them are left out by default, since they trigger frequently on harmless
+code.
+.IP "\fB\-pedantic\-errors\fR" 4
+.IX Item "-pedantic-errors"
+Issue all the mandatory diagnostics, and make all mandatory diagnostics
+into errors.  This includes mandatory diagnostics that \s-1GCC\s0 issues
+without \fB\-pedantic\fR but treats as warnings.
+.IP "\fB\-M\fR" 4
+.IX Item "-M"
+Instead of outputting the result of preprocessing, output a rule
+suitable for \fBmake\fR describing the dependencies of the main
+source file.  The preprocessor outputs one \fBmake\fR rule containing
+the object file name for that source file, a colon, and the names of all
+the included files, including those coming from \fB\-include\fR or
+\&\fB\-imacros\fR command line options.
+.Sp
+Unless specified explicitly (with \fB\-MT\fR or \fB\-MQ\fR), the
+object file name consists of the name of the source file with any
+suffix replaced with object file suffix and with any leading directory
+parts removed.  If there are many included files then the rule is
+split into several lines using \fB\e\fR\-newline.  The rule has no
+commands.
+.Sp
+This option does not suppress the preprocessor's debug output, such as
+\&\fB\-dM\fR.  To avoid mixing such debug output with the dependency
+rules you should explicitly specify the dependency output file with
+\&\fB\-MF\fR, or use an environment variable like
+\&\fB\s-1DEPENDENCIES_OUTPUT\s0\fR.  Debug output
+will still be sent to the regular output stream as normal.
+.Sp
+Passing \fB\-M\fR to the driver implies \fB\-E\fR, and suppresses
+warnings with an implicit \fB\-w\fR.
+.IP "\fB\-MM\fR" 4
+.IX Item "-MM"
+Like \fB\-M\fR but do not mention header files that are found in
+system header directories, nor header files that are included,
+directly or indirectly, from such a header.
+.Sp
+This implies that the choice of angle brackets or double quotes in an
+\&\fB#include\fR directive does not in itself determine whether that
+header will appear in \fB\-MM\fR dependency output.  This is a
+slight change in semantics from \s-1GCC\s0 versions 3.0 and earlier.
+.IP "\fB\-MF\fR \fIfile\fR" 4
+.IX Item "-MF file"
+When used with \fB\-M\fR or \fB\-MM\fR, specifies a
+file to write the dependencies to.  If no \fB\-MF\fR switch is given
+the preprocessor sends the rules to the same place it would have sent
+preprocessed output.
+.Sp
+When used with the driver options \fB\-MD\fR or \fB\-MMD\fR,
+\&\fB\-MF\fR overrides the default dependency output file.
+.IP "\fB\-MG\fR" 4
+.IX Item "-MG"
+In conjunction with an option such as \fB\-M\fR requesting
+dependency generation, \fB\-MG\fR assumes missing header files are
+generated files and adds them to the dependency list without raising
+an error.  The dependency filename is taken directly from the
+\&\f(CW\*(C`#include\*(C'\fR directive without prepending any path.  \fB\-MG\fR
+also suppresses preprocessed output, as a missing header file renders
+this useless.
+.Sp
+This feature is used in automatic updating of makefiles.
+.IP "\fB\-MP\fR" 4
+.IX Item "-MP"
+This option instructs \s-1CPP\s0 to add a phony target for each dependency
+other than the main file, causing each to depend on nothing.  These
+dummy rules work around errors \fBmake\fR gives if you remove header
+files without updating the \fIMakefile\fR to match.
+.Sp
+This is typical output:
+.Sp
+.Vb 1
+\&        test.o: test.c test.h
+\&        
+\&        test.h:
+.Ve
+.IP "\fB\-MT\fR \fItarget\fR" 4
+.IX Item "-MT target"
+Change the target of the rule emitted by dependency generation.  By
+default \s-1CPP\s0 takes the name of the main input file, deletes any
+directory components and any file suffix such as \fB.c\fR, and
+appends the platform's usual object suffix.  The result is the target.
+.Sp
+An \fB\-MT\fR option will set the target to be exactly the string you
+specify.  If you want multiple targets, you can specify them as a single
+argument to \fB\-MT\fR, or use multiple \fB\-MT\fR options.
+.Sp
+For example, \fB\-MT\ '$(objpfx)foo.o'\fR might give
+.Sp
+.Vb 1
+\&        $(objpfx)foo.o: foo.c
+.Ve
+.IP "\fB\-MQ\fR \fItarget\fR" 4
+.IX Item "-MQ target"
+Same as \fB\-MT\fR, but it quotes any characters which are special to
+Make.  \fB\-MQ\ '$(objpfx)foo.o'\fR gives
+.Sp
+.Vb 1
+\&        $$(objpfx)foo.o: foo.c
+.Ve
+.Sp
+The default target is automatically quoted, as if it were given with
+\&\fB\-MQ\fR.
+.IP "\fB\-MD\fR" 4
+.IX Item "-MD"
+\&\fB\-MD\fR is equivalent to \fB\-M \-MF\fR \fIfile\fR, except that
+\&\fB\-E\fR is not implied.  The driver determines \fIfile\fR based on
+whether an \fB\-o\fR option is given.  If it is, the driver uses its
+argument but with a suffix of \fI.d\fR, otherwise it takes the name
+of the input file, removes any directory components and suffix, and
+applies a \fI.d\fR suffix.
+.Sp
+If \fB\-MD\fR is used in conjunction with \fB\-E\fR, any
+\&\fB\-o\fR switch is understood to specify the dependency output file, but if used without \fB\-E\fR, each \fB\-o\fR
+is understood to specify a target object file.
+.Sp
+Since \fB\-E\fR is not implied, \fB\-MD\fR can be used to generate
+a dependency output file as a side-effect of the compilation process.
+.IP "\fB\-MMD\fR" 4
+.IX Item "-MMD"
+Like \fB\-MD\fR except mention only user header files, not system
+header files.
+.IP "\fB\-fpch\-deps\fR" 4
+.IX Item "-fpch-deps"
+When using precompiled headers, this flag
+will cause the dependency-output flags to also list the files from the
+precompiled header's dependencies.  If not specified only the
+precompiled header would be listed and not the files that were used to
+create it because those files are not consulted when a precompiled
+header is used.
+.IP "\fB\-fpch\-preprocess\fR" 4
+.IX Item "-fpch-preprocess"
+This option allows use of a precompiled header together with \fB\-E\fR.  It inserts a special \f(CW\*(C`#pragma\*(C'\fR,
+\&\f(CW\*(C`#pragma GCC pch_preprocess "<filename>"\*(C'\fR in the output to mark
+the place where the precompiled header was found, and its filename.  When
+\&\fB\-fpreprocessed\fR is in use, \s-1GCC\s0 recognizes this \f(CW\*(C`#pragma\*(C'\fR and
+loads the \s-1PCH\s0.
+.Sp
+This option is off by default, because the resulting preprocessed output
+is only really suitable as input to \s-1GCC\s0.  It is switched on by
+\&\fB\-save\-temps\fR.
+.Sp
+You should not write this \f(CW\*(C`#pragma\*(C'\fR in your own code, but it is
+safe to edit the filename if the \s-1PCH\s0 file is available in a different
+location.  The filename may be absolute or it may be relative to \s-1GCC\s0's
+current directory.
+.IP "\fB\-x c\fR" 4
+.IX Item "-x c"
+.PD 0
+.IP "\fB\-x c++\fR" 4
+.IX Item "-x c++"
+.IP "\fB\-x objective-c\fR" 4
+.IX Item "-x objective-c"
+.IP "\fB\-x assembler-with-cpp\fR" 4
+.IX Item "-x assembler-with-cpp"
+.PD
+Specify the source language: C, \*(C+, Objective-C, or assembly.  This has
+nothing to do with standards conformance or extensions; it merely
+selects which base syntax to expect.  If you give none of these options,
+cpp will deduce the language from the extension of the source file:
+\&\fB.c\fR, \fB.cc\fR, \fB.m\fR, or \fB.S\fR.  Some other common
+extensions for \*(C+ and assembly are also recognized.  If cpp does not
+recognize the extension, it will treat the file as C; this is the most
+generic mode.
+.Sp
+\&\fINote:\fR Previous versions of cpp accepted a \fB\-lang\fR option
+which selected both the language and the standards conformance level.
+This option has been removed, because it conflicts with the \fB\-l\fR
+option.
+.IP "\fB\-std=\fR\fIstandard\fR" 4
+.IX Item "-std=standard"
+.PD 0
+.IP "\fB\-ansi\fR" 4
+.IX Item "-ansi"
+.PD
+Specify the standard to which the code should conform.  Currently \s-1CPP\s0
+knows about C and \*(C+ standards; others may be added in the future.
+.Sp
+\&\fIstandard\fR
+may be one of:
+.RS 4
+.ie n .IP """iso9899:1990""" 4
+.el .IP "\f(CWiso9899:1990\fR" 4
+.IX Item "iso9899:1990"
+.PD 0
+.ie n .IP """c89""" 4
+.el .IP "\f(CWc89\fR" 4
+.IX Item "c89"
+.PD
+The \s-1ISO\s0 C standard from 1990.  \fBc89\fR is the customary shorthand for
+this version of the standard.
+.Sp
+The \fB\-ansi\fR option is equivalent to \fB\-std=c89\fR.
+.ie n .IP """iso9899:199409""" 4
+.el .IP "\f(CWiso9899:199409\fR" 4
+.IX Item "iso9899:199409"
+The 1990 C standard, as amended in 1994.
+.ie n .IP """iso9899:1999""" 4
+.el .IP "\f(CWiso9899:1999\fR" 4
+.IX Item "iso9899:1999"
+.PD 0
+.ie n .IP """c99""" 4
+.el .IP "\f(CWc99\fR" 4
+.IX Item "c99"
+.ie n .IP """iso9899:199x""" 4
+.el .IP "\f(CWiso9899:199x\fR" 4
+.IX Item "iso9899:199x"
+.ie n .IP """c9x""" 4
+.el .IP "\f(CWc9x\fR" 4
+.IX Item "c9x"
+.PD
+The revised \s-1ISO\s0 C standard, published in December 1999.  Before
+publication, this was known as C9X.
+.ie n .IP """gnu89""" 4
+.el .IP "\f(CWgnu89\fR" 4
+.IX Item "gnu89"
+The 1990 C standard plus \s-1GNU\s0 extensions.  This is the default.
+.ie n .IP """gnu99""" 4
+.el .IP "\f(CWgnu99\fR" 4
+.IX Item "gnu99"
+.PD 0
+.ie n .IP """gnu9x""" 4
+.el .IP "\f(CWgnu9x\fR" 4
+.IX Item "gnu9x"
+.PD
+The 1999 C standard plus \s-1GNU\s0 extensions.
+.ie n .IP """c++98""" 4
+.el .IP "\f(CWc++98\fR" 4
+.IX Item "c++98"
+The 1998 \s-1ISO\s0 \*(C+ standard plus amendments.
+.ie n .IP """gnu++98""" 4
+.el .IP "\f(CWgnu++98\fR" 4
+.IX Item "gnu++98"
+The same as \fB\-std=c++98\fR plus \s-1GNU\s0 extensions.  This is the
+default for \*(C+ code.
+.RE
+.RS 4
+.RE
+.IP "\fB\-I\-\fR" 4
+.IX Item "-I-"
+Split the include path.  Any directories specified with \fB\-I\fR
+options before \fB\-I\-\fR are searched only for headers requested with
+\&\f(CW\*(C`#include\ "\f(CIfile\f(CW"\*(C'\fR; they are not searched for
+\&\f(CW\*(C`#include\ <\f(CIfile\f(CW>\*(C'\fR.  If additional directories are
+specified with \fB\-I\fR options after the \fB\-I\-\fR, those
+directories are searched for all \fB#include\fR directives.
+.Sp
+In addition, \fB\-I\-\fR inhibits the use of the directory of the current
+file directory as the first search directory for \f(CW\*(C`#include\ "\f(CIfile\f(CW"\*(C'\fR.
+This option has been deprecated.
+.IP "\fB\-nostdinc\fR" 4
+.IX Item "-nostdinc"
+Do not search the standard system directories for header files.
+Only the directories you have specified with \fB\-I\fR options
+(and the directory of the current file, if appropriate) are searched.
+.IP "\fB\-nostdinc++\fR" 4
+.IX Item "-nostdinc++"
+Do not search for header files in the \*(C+\-specific standard directories,
+but do still search the other standard directories.  (This option is
+used when building the \*(C+ library.)
+.IP "\fB\-include\fR \fIfile\fR" 4
+.IX Item "-include file"
+Process \fIfile\fR as if \f(CW\*(C`#include "file"\*(C'\fR appeared as the first
+line of the primary source file.  However, the first directory searched
+for \fIfile\fR is the preprocessor's working directory \fIinstead of\fR
+the directory containing the main source file.  If not found there, it
+is searched for in the remainder of the \f(CW\*(C`#include "..."\*(C'\fR search
+chain as normal.
+.Sp
+If multiple \fB\-include\fR options are given, the files are included
+in the order they appear on the command line.
+.IP "\fB\-imacros\fR \fIfile\fR" 4
+.IX Item "-imacros file"
+Exactly like \fB\-include\fR, except that any output produced by
+scanning \fIfile\fR is thrown away.  Macros it defines remain defined.
+This allows you to acquire all the macros from a header without also
+processing its declarations.
+.Sp
+All files specified by \fB\-imacros\fR are processed before all files
+specified by \fB\-include\fR.
+.IP "\fB\-idirafter\fR \fIdir\fR" 4
+.IX Item "-idirafter dir"
+Search \fIdir\fR for header files, but do it \fIafter\fR all
+directories specified with \fB\-I\fR and the standard system directories
+have been exhausted.  \fIdir\fR is treated as a system include directory.
+If \fIdir\fR begins with \f(CW\*(C`=\*(C'\fR, then the \f(CW\*(C`=\*(C'\fR will be replaced
+by the sysroot prefix; see \fB\-\-sysroot\fR and \fB\-isysroot\fR.
+.IP "\fB\-iprefix\fR \fIprefix\fR" 4
+.IX Item "-iprefix prefix"
+Specify \fIprefix\fR as the prefix for subsequent \fB\-iwithprefix\fR
+options.  If the prefix represents a directory, you should include the
+final \fB/\fR.
+.IP "\fB\-iwithprefix\fR \fIdir\fR" 4
+.IX Item "-iwithprefix dir"
+.PD 0
+.IP "\fB\-iwithprefixbefore\fR \fIdir\fR" 4
+.IX Item "-iwithprefixbefore dir"
+.PD
+Append \fIdir\fR to the prefix specified previously with
+\&\fB\-iprefix\fR, and add the resulting directory to the include search
+path.  \fB\-iwithprefixbefore\fR puts it in the same place \fB\-I\fR
+would; \fB\-iwithprefix\fR puts it where \fB\-idirafter\fR would.
+.IP "\fB\-isysroot\fR \fIdir\fR" 4
+.IX Item "-isysroot dir"
+This option is like the \fB\-\-sysroot\fR option, but applies only to
+header files.  See the \fB\-\-sysroot\fR option for more information.
+.IP "\fB\-imultilib\fR \fIdir\fR" 4
+.IX Item "-imultilib dir"
+Use \fIdir\fR as a subdirectory of the directory containing
+target-specific \*(C+ headers.
+.IP "\fB\-isystem\fR \fIdir\fR" 4
+.IX Item "-isystem dir"
+Search \fIdir\fR for header files, after all directories specified by
+\&\fB\-I\fR but before the standard system directories.  Mark it
+as a system directory, so that it gets the same special treatment as
+is applied to the standard system directories.
+If \fIdir\fR begins with \f(CW\*(C`=\*(C'\fR, then the \f(CW\*(C`=\*(C'\fR will be replaced
+by the sysroot prefix; see \fB\-\-sysroot\fR and \fB\-isysroot\fR.
+.IP "\fB\-iquote\fR \fIdir\fR" 4
+.IX Item "-iquote dir"
+Search \fIdir\fR only for header files requested with
+\&\f(CW\*(C`#include\ "\f(CIfile\f(CW"\*(C'\fR; they are not searched for
+\&\f(CW\*(C`#include\ <\f(CIfile\f(CW>\*(C'\fR, before all directories specified by
+\&\fB\-I\fR and before the standard system directories.
+If \fIdir\fR begins with \f(CW\*(C`=\*(C'\fR, then the \f(CW\*(C`=\*(C'\fR will be replaced
+by the sysroot prefix; see \fB\-\-sysroot\fR and \fB\-isysroot\fR.
+.IP "\fB\-fdirectives\-only\fR" 4
+.IX Item "-fdirectives-only"
+When preprocessing, handle directives, but do not expand macros.
+.Sp
+The option's behavior depends on the \fB\-E\fR and \fB\-fpreprocessed\fR
+options.
+.Sp
+With \fB\-E\fR, preprocessing is limited to the handling of directives
+such as \f(CW\*(C`#define\*(C'\fR, \f(CW\*(C`#ifdef\*(C'\fR, and \f(CW\*(C`#error\*(C'\fR.  Other
+preprocessor operations, such as macro expansion and trigraph
+conversion are not performed.  In addition, the \fB\-dD\fR option is
+implicitly enabled.
+.Sp
+With \fB\-fpreprocessed\fR, predefinition of command line and most
+builtin macros is disabled.  Macros such as \f(CW\*(C`_\|_LINE_\|_\*(C'\fR, which are
+contextually dependent, are handled normally.  This enables compilation of
+files previously preprocessed with \f(CW\*(C`\-E \-fdirectives\-only\*(C'\fR.
+.Sp
+With both \fB\-E\fR and \fB\-fpreprocessed\fR, the rules for
+\&\fB\-fpreprocessed\fR take precedence.  This enables full preprocessing of
+files previously preprocessed with \f(CW\*(C`\-E \-fdirectives\-only\*(C'\fR.
+.IP "\fB\-fdollars\-in\-identifiers\fR" 4
+.IX Item "-fdollars-in-identifiers"
+Accept \fB$\fR in identifiers.
+.IP "\fB\-fextended\-identifiers\fR" 4
+.IX Item "-fextended-identifiers"
+Accept universal character names in identifiers.  This option is
+experimental; in a future version of \s-1GCC\s0, it will be enabled by
+default for C99 and \*(C+.
+.IP "\fB\-fpreprocessed\fR" 4
+.IX Item "-fpreprocessed"
+Indicate to the preprocessor that the input file has already been
+preprocessed.  This suppresses things like macro expansion, trigraph
+conversion, escaped newline splicing, and processing of most directives.
+The preprocessor still recognizes and removes comments, so that you can
+pass a file preprocessed with \fB\-C\fR to the compiler without
+problems.  In this mode the integrated preprocessor is little more than
+a tokenizer for the front ends.
+.Sp
+\&\fB\-fpreprocessed\fR is implicit if the input file has one of the
+extensions \fB.i\fR, \fB.ii\fR or \fB.mi\fR.  These are the
+extensions that \s-1GCC\s0 uses for preprocessed files created by
+\&\fB\-save\-temps\fR.
+.IP "\fB\-ftabstop=\fR\fIwidth\fR" 4
+.IX Item "-ftabstop=width"
+Set the distance between tab stops.  This helps the preprocessor report
+correct column numbers in warnings or errors, even if tabs appear on the
+line.  If the value is less than 1 or greater than 100, the option is
+ignored.  The default is 8.
+.IP "\fB\-fexec\-charset=\fR\fIcharset\fR" 4
+.IX Item "-fexec-charset=charset"
+Set the execution character set, used for string and character
+constants.  The default is \s-1UTF\-8\s0.  \fIcharset\fR can be any encoding
+supported by the system's \f(CW\*(C`iconv\*(C'\fR library routine.
+.IP "\fB\-fwide\-exec\-charset=\fR\fIcharset\fR" 4
+.IX Item "-fwide-exec-charset=charset"
+Set the wide execution character set, used for wide string and
+character constants.  The default is \s-1UTF\-32\s0 or \s-1UTF\-16\s0, whichever
+corresponds to the width of \f(CW\*(C`wchar_t\*(C'\fR.  As with
+\&\fB\-fexec\-charset\fR, \fIcharset\fR can be any encoding supported
+by the system's \f(CW\*(C`iconv\*(C'\fR library routine; however, you will have
+problems with encodings that do not fit exactly in \f(CW\*(C`wchar_t\*(C'\fR.
+.IP "\fB\-finput\-charset=\fR\fIcharset\fR" 4
+.IX Item "-finput-charset=charset"
+Set the input character set, used for translation from the character
+set of the input file to the source character set used by \s-1GCC\s0.  If the
+locale does not specify, or \s-1GCC\s0 cannot get this information from the
+locale, the default is \s-1UTF\-8\s0.  This can be overridden by either the locale
+or this command line option.  Currently the command line option takes
+precedence if there's a conflict.  \fIcharset\fR can be any encoding
+supported by the system's \f(CW\*(C`iconv\*(C'\fR library routine.
+.IP "\fB\-fworking\-directory\fR" 4
+.IX Item "-fworking-directory"
+Enable generation of linemarkers in the preprocessor output that will
+let the compiler know the current working directory at the time of
+preprocessing.  When this option is enabled, the preprocessor will
+emit, after the initial linemarker, a second linemarker with the
+current working directory followed by two slashes.  \s-1GCC\s0 will use this
+directory, when it's present in the preprocessed input, as the
+directory emitted as the current working directory in some debugging
+information formats.  This option is implicitly enabled if debugging
+information is enabled, but this can be inhibited with the negated
+form \fB\-fno\-working\-directory\fR.  If the \fB\-P\fR flag is
+present in the command line, this option has no effect, since no
+\&\f(CW\*(C`#line\*(C'\fR directives are emitted whatsoever.
+.IP "\fB\-fno\-show\-column\fR" 4
+.IX Item "-fno-show-column"
+Do not print column numbers in diagnostics.  This may be necessary if
+diagnostics are being scanned by a program that does not understand the
+column numbers, such as \fBdejagnu\fR.
+.IP "\fB\-A\fR \fIpredicate\fR\fB=\fR\fIanswer\fR" 4
+.IX Item "-A predicate=answer"
+Make an assertion with the predicate \fIpredicate\fR and answer
+\&\fIanswer\fR.  This form is preferred to the older form \fB\-A\fR
+\&\fIpredicate\fR\fB(\fR\fIanswer\fR\fB)\fR, which is still supported, because
+it does not use shell special characters.
+.IP "\fB\-A \-\fR\fIpredicate\fR\fB=\fR\fIanswer\fR" 4
+.IX Item "-A -predicate=answer"
+Cancel an assertion with the predicate \fIpredicate\fR and answer
+\&\fIanswer\fR.
+.IP "\fB\-dCHARS\fR" 4
+.IX Item "-dCHARS"
+\&\fI\s-1CHARS\s0\fR is a sequence of one or more of the following characters,
+and must not be preceded by a space.  Other characters are interpreted
+by the compiler proper, or reserved for future versions of \s-1GCC\s0, and so
+are silently ignored.  If you specify characters whose behavior
+conflicts, the result is undefined.
+.RS 4
+.IP "\fBM\fR" 4
+.IX Item "M"
+Instead of the normal output, generate a list of \fB#define\fR
+directives for all the macros defined during the execution of the
+preprocessor, including predefined macros.  This gives you a way of
+finding out what is predefined in your version of the preprocessor.
+Assuming you have no file \fIfoo.h\fR, the command
+.Sp
+.Vb 1
+\&        touch foo.h; cpp \-dM foo.h
+.Ve
+.Sp
+will show all the predefined macros.
+.Sp
+If you use \fB\-dM\fR without the \fB\-E\fR option, \fB\-dM\fR is
+interpreted as a synonym for \fB\-fdump\-rtl\-mach\fR.
+.IP "\fBD\fR" 4
+.IX Item "D"
+Like \fBM\fR except in two respects: it does \fInot\fR include the
+predefined macros, and it outputs \fIboth\fR the \fB#define\fR
+directives and the result of preprocessing.  Both kinds of output go to
+the standard output file.
+.IP "\fBN\fR" 4
+.IX Item "N"
+Like \fBD\fR, but emit only the macro names, not their expansions.
+.IP "\fBI\fR" 4
+.IX Item "I"
+Output \fB#include\fR directives in addition to the result of
+preprocessing.
+.RE
+.RS 4
+.RE
+.IP "\fB\-P\fR" 4
+.IX Item "-P"
+Inhibit generation of linemarkers in the output from the preprocessor.
+This might be useful when running the preprocessor on something that is
+not C code, and will be sent to a program which might be confused by the
+linemarkers.
+.IP "\fB\-C\fR" 4
+.IX Item "-C"
+Do not discard comments.  All comments are passed through to the output
+file, except for comments in processed directives, which are deleted
+along with the directive.
+.Sp
+You should be prepared for side effects when using \fB\-C\fR; it
+causes the preprocessor to treat comments as tokens in their own right.
+For example, comments appearing at the start of what would be a
+directive line have the effect of turning that line into an ordinary
+source line, since the first token on the line is no longer a \fB#\fR.
+.IP "\fB\-CC\fR" 4
+.IX Item "-CC"
+Do not discard comments, including during macro expansion.  This is
+like \fB\-C\fR, except that comments contained within macros are
+also passed through to the output file where the macro is expanded.
+.Sp
+In addition to the side-effects of the \fB\-C\fR option, the
+\&\fB\-CC\fR option causes all \*(C+\-style comments inside a macro
+to be converted to C\-style comments.  This is to prevent later use
+of that macro from inadvertently commenting out the remainder of
+the source line.
+.Sp
+The \fB\-CC\fR option is generally used to support lint comments.
+.IP "\fB\-traditional\-cpp\fR" 4
+.IX Item "-traditional-cpp"
+Try to imitate the behavior of old-fashioned C preprocessors, as
+opposed to \s-1ISO\s0 C preprocessors.
+.IP "\fB\-trigraphs\fR" 4
+.IX Item "-trigraphs"
+Process trigraph sequences.
+These are three-character sequences, all starting with \fB??\fR, that
+are defined by \s-1ISO\s0 C to stand for single characters.  For example,
+\&\fB??/\fR stands for \fB\e\fR, so \fB'??/n'\fR is a character
+constant for a newline.  By default, \s-1GCC\s0 ignores trigraphs, but in
+standard-conforming modes it converts them.  See the \fB\-std\fR and
+\&\fB\-ansi\fR options.
+.Sp
+The nine trigraphs and their replacements are
+.Sp
+.Vb 2
+\&        Trigraph:       ??(  ??)  ??<  ??>  ??=  ??/  ??\*(Aq  ??!  ??\-
+\&        Replacement:      [    ]    {    }    #    \e    ^    |    ~
+.Ve
+.IP "\fB\-remap\fR" 4
+.IX Item "-remap"
+Enable special code to work around file systems which only permit very
+short file names, such as MS-DOS.
+.IP "\fB\-\-help\fR" 4
+.IX Item "--help"
+.PD 0
+.IP "\fB\-\-target\-help\fR" 4
+.IX Item "--target-help"
+.PD
+Print text describing all the command line options instead of
+preprocessing anything.
+.IP "\fB\-v\fR" 4
+.IX Item "-v"
+Verbose mode.  Print out \s-1GNU\s0 \s-1CPP\s0's version number at the beginning of
+execution, and report the final form of the include path.
+.IP "\fB\-H\fR" 4
+.IX Item "-H"
+Print the name of each header file used, in addition to other normal
+activities.  Each name is indented to show how deep in the
+\&\fB#include\fR stack it is.  Precompiled header files are also
+printed, even if they are found to be invalid; an invalid precompiled
+header file is printed with \fB...x\fR and a valid one with \fB...!\fR .
+.IP "\fB\-version\fR" 4
+.IX Item "-version"
+.PD 0
+.IP "\fB\-\-version\fR" 4
+.IX Item "--version"
+.PD
+Print out \s-1GNU\s0 \s-1CPP\s0's version number.  With one dash, proceed to
+preprocess as normal.  With two dashes, exit immediately.
+.Sh "Passing Options to the Assembler"
+.IX Subsection "Passing Options to the Assembler"
+You can pass options to the assembler.
+.IP "\fB\-Wa,\fR\fIoption\fR" 4
+.IX Item "-Wa,option"
+Pass \fIoption\fR as an option to the assembler.  If \fIoption\fR
+contains commas, it is split into multiple options at the commas.
+.IP "\fB\-Xassembler\fR \fIoption\fR" 4
+.IX Item "-Xassembler option"
+Pass \fIoption\fR as an option to the assembler.  You can use this to
+supply system-specific assembler options which \s-1GCC\s0 does not know how to
+recognize.
+.Sp
+If you want to pass an option that takes an argument, you must use
+\&\fB\-Xassembler\fR twice, once for the option and once for the argument.
+.Sh "Options for Linking"
+.IX Subsection "Options for Linking"
+These options come into play when the compiler links object files into
+an executable output file.  They are meaningless if the compiler is
+not doing a link step.
+.IP "\fIobject-file-name\fR" 4
+.IX Item "object-file-name"
+A file name that does not end in a special recognized suffix is
+considered to name an object file or library.  (Object files are
+distinguished from libraries by the linker according to the file
+contents.)  If linking is done, these object files are used as input
+to the linker.
+.IP "\fB\-c\fR" 4
+.IX Item "-c"
+.PD 0
+.IP "\fB\-S\fR" 4
+.IX Item "-S"
+.IP "\fB\-E\fR" 4
+.IX Item "-E"
+.PD
+If any of these options is used, then the linker is not run, and
+object file names should not be used as arguments.
+.IP "\fB\-l\fR\fIlibrary\fR" 4
+.IX Item "-llibrary"
+.PD 0
+.IP "\fB\-l\fR \fIlibrary\fR" 4
+.IX Item "-l library"
+.PD
+Search the library named \fIlibrary\fR when linking.  (The second
+alternative with the library as a separate argument is only for
+\&\s-1POSIX\s0 compliance and is not recommended.)
+.Sp
+It makes a difference where in the command you write this option; the
+linker searches and processes libraries and object files in the order they
+are specified.  Thus, \fBfoo.o \-lz bar.o\fR searches library \fBz\fR
+after file \fIfoo.o\fR but before \fIbar.o\fR.  If \fIbar.o\fR refers
+to functions in \fBz\fR, those functions may not be loaded.
+.Sp
+The linker searches a standard list of directories for the library,
+which is actually a file named \fIlib\fIlibrary\fI.a\fR.  The linker
+then uses this file as if it had been specified precisely by name.
+.Sp
+The directories searched include several standard system directories
+plus any that you specify with \fB\-L\fR.
+.Sp
+Normally the files found this way are library files\-\-\-archive files
+whose members are object files.  The linker handles an archive file by
+scanning through it for members which define symbols that have so far
+been referenced but not defined.  But if the file that is found is an
+ordinary object file, it is linked in the usual fashion.  The only
+difference between using an \fB\-l\fR option and specifying a file name
+is that \fB\-l\fR surrounds \fIlibrary\fR with \fBlib\fR and \fB.a\fR
+and searches several directories.
+.IP "\fB\-lobjc\fR" 4
+.IX Item "-lobjc"
+You need this special case of the \fB\-l\fR option in order to
+link an Objective-C or Objective\-\*(C+ program.
+.IP "\fB\-nostartfiles\fR" 4
+.IX Item "-nostartfiles"
+Do not use the standard system startup files when linking.
+The standard system libraries are used normally, unless \fB\-nostdlib\fR
+or \fB\-nodefaultlibs\fR is used.
+.IP "\fB\-nodefaultlibs\fR" 4
+.IX Item "-nodefaultlibs"
+Do not use the standard system libraries when linking.
+Only the libraries you specify will be passed to the linker.
+The standard startup files are used normally, unless \fB\-nostartfiles\fR
+is used.  The compiler may generate calls to \f(CW\*(C`memcmp\*(C'\fR,
+\&\f(CW\*(C`memset\*(C'\fR, \f(CW\*(C`memcpy\*(C'\fR and \f(CW\*(C`memmove\*(C'\fR.
+These entries are usually resolved by entries in
+libc.  These entry points should be supplied through some other
+mechanism when this option is specified.
+.IP "\fB\-nostdlib\fR" 4
+.IX Item "-nostdlib"
+Do not use the standard system startup files or libraries when linking.
+No startup files and only the libraries you specify will be passed to
+the linker.  The compiler may generate calls to \f(CW\*(C`memcmp\*(C'\fR, \f(CW\*(C`memset\*(C'\fR,
+\&\f(CW\*(C`memcpy\*(C'\fR and \f(CW\*(C`memmove\*(C'\fR.
+These entries are usually resolved by entries in
+libc.  These entry points should be supplied through some other
+mechanism when this option is specified.
+.Sp
+One of the standard libraries bypassed by \fB\-nostdlib\fR and
+\&\fB\-nodefaultlibs\fR is \fIlibgcc.a\fR, a library of internal subroutines
+that \s-1GCC\s0 uses to overcome shortcomings of particular machines, or special
+needs for some languages.
+.Sp
+In most cases, you need \fIlibgcc.a\fR even when you want to avoid
+other standard libraries.  In other words, when you specify \fB\-nostdlib\fR
+or \fB\-nodefaultlibs\fR you should usually specify \fB\-lgcc\fR as well.
+This ensures that you have no unresolved references to internal \s-1GCC\s0
+library subroutines.  (For example, \fB_\|_main\fR, used to ensure \*(C+
+constructors will be called.)
+.IP "\fB\-pie\fR" 4
+.IX Item "-pie"
+Produce a position independent executable on targets which support it.
+For predictable results, you must also specify the same set of options
+that were used to generate code (\fB\-fpie\fR, \fB\-fPIE\fR,
+or model suboptions) when you specify this option.
+.IP "\fB\-rdynamic\fR" 4
+.IX Item "-rdynamic"
+Pass the flag \fB\-export\-dynamic\fR to the \s-1ELF\s0 linker, on targets
+that support it. This instructs the linker to add all symbols, not
+only used ones, to the dynamic symbol table. This option is needed
+for some uses of \f(CW\*(C`dlopen\*(C'\fR or to allow obtaining backtraces
+from within a program.
+.IP "\fB\-s\fR" 4
+.IX Item "-s"
+Remove all symbol table and relocation information from the executable.
+.IP "\fB\-static\fR" 4
+.IX Item "-static"
+On systems that support dynamic linking, this prevents linking with the shared
+libraries.  On other systems, this option has no effect.
+.IP "\fB\-shared\fR" 4
+.IX Item "-shared"
+Produce a shared object which can then be linked with other objects to
+form an executable.  Not all systems support this option.  For predictable
+results, you must also specify the same set of options that were used to
+generate code (\fB\-fpic\fR, \fB\-fPIC\fR, or model suboptions)
+when you specify this option.[1]
+.IP "\fB\-shared\-libgcc\fR" 4
+.IX Item "-shared-libgcc"
+.PD 0
+.IP "\fB\-static\-libgcc\fR" 4
+.IX Item "-static-libgcc"
+.PD
+On systems that provide \fIlibgcc\fR as a shared library, these options
+force the use of either the shared or static version respectively.
+If no shared version of \fIlibgcc\fR was built when the compiler was
+configured, these options have no effect.
+.Sp
+There are several situations in which an application should use the
+shared \fIlibgcc\fR instead of the static version.  The most common
+of these is when the application wishes to throw and catch exceptions
+across different shared libraries.  In that case, each of the libraries
+as well as the application itself should use the shared \fIlibgcc\fR.
+.Sp
+Therefore, the G++ and \s-1GCJ\s0 drivers automatically add
+\&\fB\-shared\-libgcc\fR whenever you build a shared library or a main
+executable, because \*(C+ and Java programs typically use exceptions, so
+this is the right thing to do.
+.Sp
+If, instead, you use the \s-1GCC\s0 driver to create shared libraries, you may
+find that they will not always be linked with the shared \fIlibgcc\fR.
+If \s-1GCC\s0 finds, at its configuration time, that you have a non-GNU linker
+or a \s-1GNU\s0 linker that does not support option \fB\-\-eh\-frame\-hdr\fR,
+it will link the shared version of \fIlibgcc\fR into shared libraries
+by default.  Otherwise, it will take advantage of the linker and optimize
+away the linking with the shared version of \fIlibgcc\fR, linking with
+the static version of libgcc by default.  This allows exceptions to
+propagate through such shared libraries, without incurring relocation
+costs at library load time.
+.Sp
+However, if a library or main executable is supposed to throw or catch
+exceptions, you must link it using the G++ or \s-1GCJ\s0 driver, as appropriate
+for the languages used in the program, or using the option
+\&\fB\-shared\-libgcc\fR, such that it is linked with the shared
+\&\fIlibgcc\fR.
+.IP "\fB\-symbolic\fR" 4
+.IX Item "-symbolic"
+Bind references to global symbols when building a shared object.  Warn
+about any unresolved references (unless overridden by the link editor
+option \fB\-Xlinker \-z \-Xlinker defs\fR).  Only a few systems support
+this option.
+.IP "\fB\-Xlinker\fR \fIoption\fR" 4
+.IX Item "-Xlinker option"
+Pass \fIoption\fR as an option to the linker.  You can use this to
+supply system-specific linker options which \s-1GCC\s0 does not know how to
+recognize.
+.Sp
+If you want to pass an option that takes an argument, you must use
+\&\fB\-Xlinker\fR twice, once for the option and once for the argument.
+For example, to pass \fB\-assert definitions\fR, you must write
+\&\fB\-Xlinker \-assert \-Xlinker definitions\fR.  It does not work to write
+\&\fB\-Xlinker \*(L"\-assert definitions\*(R"\fR, because this passes the entire
+string as a single argument, which is not what the linker expects.
+.IP "\fB\-Wl,\fR\fIoption\fR" 4
+.IX Item "-Wl,option"
+Pass \fIoption\fR as an option to the linker.  If \fIoption\fR contains
+commas, it is split into multiple options at the commas.
+.IP "\fB\-u\fR \fIsymbol\fR" 4
+.IX Item "-u symbol"
+Pretend the symbol \fIsymbol\fR is undefined, to force linking of
+library modules to define it.  You can use \fB\-u\fR multiple times with
+different symbols to force loading of additional library modules.
+.Sh "Options for Directory Search"
+.IX Subsection "Options for Directory Search"
+These options specify directories to search for header files, for
+libraries and for parts of the compiler:
+.IP "\fB\-I\fR\fIdir\fR" 4
+.IX Item "-Idir"
+Add the directory \fIdir\fR to the head of the list of directories to be
+searched for header files.  This can be used to override a system header
+file, substituting your own version, since these directories are
+searched before the system header file directories.  However, you should
+not use this option to add directories that contain vendor-supplied
+system header files (use \fB\-isystem\fR for that).  If you use more than
+one \fB\-I\fR option, the directories are scanned in left-to-right
+order; the standard system directories come after.
+.Sp
+If a standard system include directory, or a directory specified with
+\&\fB\-isystem\fR, is also specified with \fB\-I\fR, the \fB\-I\fR
+option will be ignored.  The directory will still be searched but as a
+system directory at its normal position in the system include chain.
+This is to ensure that \s-1GCC\s0's procedure to fix buggy system headers and
+the ordering for the include_next directive are not inadvertently changed.
+If you really need to change the search order for system directories,
+use the \fB\-nostdinc\fR and/or \fB\-isystem\fR options.
+.IP "\fB\-iquote\fR\fIdir\fR" 4
+.IX Item "-iquotedir"
+Add the directory \fIdir\fR to the head of the list of directories to
+be searched for header files only for the case of \fB#include
+"\fR\fIfile\fR\fB"\fR; they are not searched for \fB#include <\fR\fIfile\fR\fB>\fR,
+otherwise just like \fB\-I\fR.
+.IP "\fB\-L\fR\fIdir\fR" 4
+.IX Item "-Ldir"
+Add directory \fIdir\fR to the list of directories to be searched
+for \fB\-l\fR.
+.IP "\fB\-B\fR\fIprefix\fR" 4
+.IX Item "-Bprefix"
+This option specifies where to find the executables, libraries,
+include files, and data files of the compiler itself.
+.Sp
+The compiler driver program runs one or more of the subprograms
+\&\fIcpp\fR, \fIcc1\fR, \fIas\fR and \fIld\fR.  It tries
+\&\fIprefix\fR as a prefix for each program it tries to run, both with and
+without \fImachine\fR\fB/\fR\fIversion\fR\fB/\fR.
+.Sp
+For each subprogram to be run, the compiler driver first tries the
+\&\fB\-B\fR prefix, if any.  If that name is not found, or if \fB\-B\fR
+was not specified, the driver tries two standard prefixes, which are
+\&\fI/usr/lib/gcc/\fR and \fI/usr/local/lib/gcc/\fR.  If neither of
+those results in a file name that is found, the unmodified program
+name is searched for using the directories specified in your
+\&\fB\s-1PATH\s0\fR environment variable.
+.Sp
+The compiler will check to see if the path provided by the \fB\-B\fR
+refers to a directory, and if necessary it will add a directory
+separator character at the end of the path.
+.Sp
+\&\fB\-B\fR prefixes that effectively specify directory names also apply
+to libraries in the linker, because the compiler translates these
+options into \fB\-L\fR options for the linker.  They also apply to
+includes files in the preprocessor, because the compiler translates these
+options into \fB\-isystem\fR options for the preprocessor.  In this case,
+the compiler appends \fBinclude\fR to the prefix.
+.Sp
+The run-time support file \fIlibgcc.a\fR can also be searched for using
+the \fB\-B\fR prefix, if needed.  If it is not found there, the two
+standard prefixes above are tried, and that is all.  The file is left
+out of the link if it is not found by those means.
+.Sp
+Another way to specify a prefix much like the \fB\-B\fR prefix is to use
+the environment variable \fB\s-1GCC_EXEC_PREFIX\s0\fR.
+.Sp
+As a special kludge, if the path provided by \fB\-B\fR is
+\&\fI[dir/]stage\fIN\fI/\fR, where \fIN\fR is a number in the range 0 to
+9, then it will be replaced by \fI[dir/]include\fR.  This is to help
+with boot-strapping the compiler.
+.IP "\fB\-specs=\fR\fIfile\fR" 4
+.IX Item "-specs=file"
+Process \fIfile\fR after the compiler reads in the standard \fIspecs\fR
+file, in order to override the defaults that the \fIgcc\fR driver
+program uses when determining what switches to pass to \fIcc1\fR,
+\&\fIcc1plus\fR, \fIas\fR, \fIld\fR, etc.  More than one
+\&\fB\-specs=\fR\fIfile\fR can be specified on the command line, and they
+are processed in order, from left to right.
+.IP "\fB\-\-sysroot=\fR\fIdir\fR" 4
+.IX Item "--sysroot=dir"
+Use \fIdir\fR as the logical root directory for headers and libraries.
+For example, if the compiler would normally search for headers in
+\&\fI/usr/include\fR and libraries in \fI/usr/lib\fR, it will instead
+search \fI\fIdir\fI/usr/include\fR and \fI\fIdir\fI/usr/lib\fR.
+.Sp
+If you use both this option and the \fB\-isysroot\fR option, then
+the \fB\-\-sysroot\fR option will apply to libraries, but the
+\&\fB\-isysroot\fR option will apply to header files.
+.Sp
+The \s-1GNU\s0 linker (beginning with version 2.16) has the necessary support
+for this option.  If your linker does not support this option, the
+header file aspect of \fB\-\-sysroot\fR will still work, but the
+library aspect will not.
+.IP "\fB\-I\-\fR" 4
+.IX Item "-I-"
+This option has been deprecated.  Please use \fB\-iquote\fR instead for
+\&\fB\-I\fR directories before the \fB\-I\-\fR and remove the \fB\-I\-\fR.
+Any directories you specify with \fB\-I\fR options before the \fB\-I\-\fR
+option are searched only for the case of \fB#include "\fR\fIfile\fR\fB"\fR;
+they are not searched for \fB#include <\fR\fIfile\fR\fB>\fR.
+.Sp
+If additional directories are specified with \fB\-I\fR options after
+the \fB\-I\-\fR, these directories are searched for all \fB#include\fR
+directives.  (Ordinarily \fIall\fR \fB\-I\fR directories are used
+this way.)
+.Sp
+In addition, the \fB\-I\-\fR option inhibits the use of the current
+directory (where the current input file came from) as the first search
+directory for \fB#include "\fR\fIfile\fR\fB"\fR.  There is no way to
+override this effect of \fB\-I\-\fR.  With \fB\-I.\fR you can specify
+searching the directory which was current when the compiler was
+invoked.  That is not exactly the same as what the preprocessor does
+by default, but it is often satisfactory.
+.Sp
+\&\fB\-I\-\fR does not inhibit the use of the standard system directories
+for header files.  Thus, \fB\-I\-\fR and \fB\-nostdinc\fR are
+independent.
+.Sh "Specifying Target Machine and Compiler Version"
+.IX Subsection "Specifying Target Machine and Compiler Version"
+The usual way to run \s-1GCC\s0 is to run the executable called \fIgcc\fR, or
+\&\fI<machine>\-gcc\fR when cross-compiling, or
+\&\fI<machine>\-gcc\-<version>\fR to run a version other than the one that
+was installed last.  Sometimes this is inconvenient, so \s-1GCC\s0 provides
+options that will switch to another cross-compiler or version.
+.IP "\fB\-b\fR \fImachine\fR" 4
+.IX Item "-b machine"
+The argument \fImachine\fR specifies the target machine for compilation.
+.Sp
+The value to use for \fImachine\fR is the same as was specified as the
+machine type when configuring \s-1GCC\s0 as a cross-compiler.  For
+example, if a cross-compiler was configured with \fBconfigure
+arm-elf\fR, meaning to compile for an arm processor with elf binaries,
+then you would specify \fB\-b arm-elf\fR to run that cross compiler.
+Because there are other options beginning with \fB\-b\fR, the
+configuration must contain a hyphen.
+.IP "\fB\-V\fR \fIversion\fR" 4
+.IX Item "-V version"
+The argument \fIversion\fR specifies which version of \s-1GCC\s0 to run.
+This is useful when multiple versions are installed.  For example,
+\&\fIversion\fR might be \fB4.0\fR, meaning to run \s-1GCC\s0 version 4.0.
+.PP
+The \fB\-V\fR and \fB\-b\fR options work by running the
+\&\fI<machine>\-gcc\-<version>\fR executable, so there's no real reason to
+use them if you can just run that directly.
+.Sh "Hardware Models and Configurations"
+.IX Subsection "Hardware Models and Configurations"
+Earlier we discussed the standard option \fB\-b\fR which chooses among
+different installed compilers for completely different target
+machines, such as \s-1VAX\s0 vs. 68000 vs. 80386.
+.PP
+In addition, each of these target machine types can have its own
+special options, starting with \fB\-m\fR, to choose among various
+hardware models or configurations\-\-\-for example, 68010 vs 68020,
+floating coprocessor or none.  A single installed version of the
+compiler can compile for any model or configuration, according to the
+options specified.
+.PP
+Some configurations of the compiler also support additional special
+options, usually for compatibility with other compilers on the same
+platform.
+.PP
+\fI\s-1ARC\s0 Options\fR
+.IX Subsection "ARC Options"
+.PP
+These options are defined for \s-1ARC\s0 implementations:
+.IP "\fB\-EL\fR" 4
+.IX Item "-EL"
+Compile code for little endian mode.  This is the default.
+.IP "\fB\-EB\fR" 4
+.IX Item "-EB"
+Compile code for big endian mode.
+.IP "\fB\-mmangle\-cpu\fR" 4
+.IX Item "-mmangle-cpu"
+Prepend the name of the cpu to all public symbol names.
+In multiple-processor systems, there are many \s-1ARC\s0 variants with different
+instruction and register set characteristics.  This flag prevents code
+compiled for one cpu to be linked with code compiled for another.
+No facility exists for handling variants that are \*(L"almost identical\*(R".
+This is an all or nothing option.
+.IP "\fB\-mcpu=\fR\fIcpu\fR" 4
+.IX Item "-mcpu=cpu"
+Compile code for \s-1ARC\s0 variant \fIcpu\fR.
+Which variants are supported depend on the configuration.
+All variants support \fB\-mcpu=base\fR, this is the default.
+.IP "\fB\-mtext=\fR\fItext-section\fR" 4
+.IX Item "-mtext=text-section"
+.PD 0
+.IP "\fB\-mdata=\fR\fIdata-section\fR" 4
+.IX Item "-mdata=data-section"
+.IP "\fB\-mrodata=\fR\fIreadonly-data-section\fR" 4
+.IX Item "-mrodata=readonly-data-section"
+.PD
+Put functions, data, and readonly data in \fItext-section\fR,
+\&\fIdata-section\fR, and \fIreadonly-data-section\fR respectively
+by default.  This can be overridden with the \f(CW\*(C`section\*(C'\fR attribute.
+.PP
+\fI\s-1ARM\s0 Options\fR
+.IX Subsection "ARM Options"
+.PP
+These \fB\-m\fR options are defined for Advanced \s-1RISC\s0 Machines (\s-1ARM\s0)
+architectures:
+.IP "\fB\-mabi=\fR\fIname\fR" 4
+.IX Item "-mabi=name"
+Generate code for the specified \s-1ABI\s0.  Permissible values are: \fBapcs-gnu\fR,
+\&\fBatpcs\fR, \fBaapcs\fR, \fBaapcs-linux\fR and \fBiwmmxt\fR.
+.IP "\fB\-mapcs\-frame\fR" 4
+.IX Item "-mapcs-frame"
+Generate a stack frame that is compliant with the \s-1ARM\s0 Procedure Call
+Standard for all functions, even if this is not strictly necessary for
+correct execution of the code.  Specifying \fB\-fomit\-frame\-pointer\fR
+with this option will cause the stack frames not to be generated for
+leaf functions.  The default is \fB\-mno\-apcs\-frame\fR.
+.IP "\fB\-mapcs\fR" 4
+.IX Item "-mapcs"
+This is a synonym for \fB\-mapcs\-frame\fR.
+.IP "\fB\-mthumb\-interwork\fR" 4
+.IX Item "-mthumb-interwork"
+Generate code which supports calling between the \s-1ARM\s0 and Thumb
+instruction sets.  Without this option the two instruction sets ca

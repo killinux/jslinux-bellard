@@ -1,0 +1,1524 @@
+_\|_symbol\*(C'\fR for
+\&\s-1DATA\s0 imports from DLLs, and create the necessary thunking symbols when
+building the import libraries with those \s-1DATA\s0 exports. Note: Use of the
+\&'auto\-import' extension will cause the text section of the image file
+to be made writable. This does not conform to the PE-COFF format
+specification published by Microsoft.
+.Sp
+Note \- use of the 'auto\-import' extension will also cause read only
+data which would normally be placed into the .rdata section to be
+placed into the .data section instead.  This is in order to work
+around a problem with consts that is described here:
+http://www.cygwin.com/ml/cygwin/2004\-09/msg01101.html
+.Sp
+Using 'auto\-import' generally will 'just work' \*(-- but sometimes you may
+see this message:
+.Sp
+"variable '<var>' can't be auto-imported. Please read the
+documentation for ld's \f(CW\*(C`\-\-enable\-auto\-import\*(C'\fR for details."
+.Sp
+This message occurs when some (sub)expression accesses an address
+ultimately given by the sum of two constants (Win32 import tables only
+allow one).  Instances where this may occur include accesses to member
+fields of struct variables imported from a \s-1DLL\s0, as well as using a
+constant index into an array variable imported from a \s-1DLL\s0.  Any
+multiword variable (arrays, structs, long long, etc) may trigger
+this error condition.  However, regardless of the exact data type
+of the offending exported variable, ld will always detect it, issue
+the warning, and exit.
+.Sp
+There are several ways to address this difficulty, regardless of the
+data type of the exported variable:
+.Sp
+One way is to use \-\-enable\-runtime\-pseudo\-reloc switch. This leaves the task
+of adjusting references in your client code for runtime environment, so
+this method works only when runtime environment supports this feature.
+.Sp
+A second solution is to force one of the 'constants' to be a variable \*(--
+that is, unknown and un-optimizable at compile time.  For arrays,
+there are two possibilities: a) make the indexee (the array's address)
+a variable, or b) make the 'constant' index a variable.  Thus:
+.Sp
+.Vb 3
+\&        extern type extern_array[];
+\&        extern_array[1] \-\->
+\&           { volatile type *t=extern_array; t[1] }
+.Ve
+.Sp
+or
+.Sp
+.Vb 3
+\&        extern type extern_array[];
+\&        extern_array[1] \-\->
+\&           { volatile int t=1; extern_array[t] }
+.Ve
+.Sp
+For structs (and most other multiword data types) the only option
+is to make the struct itself (or the long long, or the ...) variable:
+.Sp
+.Vb 3
+\&        extern struct s extern_struct;
+\&        extern_struct.field \-\->
+\&           { volatile struct s *t=&extern_struct; t\->field }
+.Ve
+.Sp
+or
+.Sp
+.Vb 3
+\&        extern long long extern_ll;
+\&        extern_ll \-\->
+\&          { volatile long long * local_ll=&extern_ll; *local_ll }
+.Ve
+.Sp
+A third method of dealing with this difficulty is to abandon
+\&'auto\-import' for the offending symbol and mark it with
+\&\f(CW\*(C`_\|_declspec(dllimport)\*(C'\fR.  However, in practise that
+requires using compile-time #defines to indicate whether you are
+building a \s-1DLL\s0, building client code that will link to the \s-1DLL\s0, or
+merely building/linking to a static library.   In making the choice
+between the various methods of resolving the 'direct address with
+constant offset' problem, you should consider typical real-world usage:
+.Sp
+Original:
+.Sp
+.Vb 7
+\&        \-\-foo.h
+\&        extern int arr[];
+\&        \-\-foo.c
+\&        #include "foo.h"
+\&        void main(int argc, char **argv){
+\&          printf("%d\en",arr[1]);
+\&        }
+.Ve
+.Sp
+Solution 1:
+.Sp
+.Vb 9
+\&        \-\-foo.h
+\&        extern int arr[];
+\&        \-\-foo.c
+\&        #include "foo.h"
+\&        void main(int argc, char **argv){
+\&          /* This workaround is for win32 and cygwin; do not "optimize" */
+\&          volatile int *parr = arr;
+\&          printf("%d\en",parr[1]);
+\&        }
+.Ve
+.Sp
+Solution 2:
+.Sp
+.Vb 10
+\&        \-\-foo.h
+\&        /* Note: auto\-export is assumed (no _\|_declspec(dllexport)) */
+\&        #if (defined(_WIN32) || defined(_\|_CYGWIN_\|_)) && \e
+\&          !(defined(FOO_BUILD_DLL) || defined(FOO_STATIC))
+\&        #define FOO_IMPORT _\|_declspec(dllimport)
+\&        #else
+\&        #define FOO_IMPORT
+\&        #endif
+\&        extern FOO_IMPORT int arr[];
+\&        \-\-foo.c
+\&        #include "foo.h"
+\&        void main(int argc, char **argv){
+\&          printf("%d\en",arr[1]);
+\&        }
+.Ve
+.Sp
+A fourth way to avoid this problem is to re-code your
+library to use a functional interface rather than a data interface
+for the offending variables (e.g. \fIset_foo()\fR and \fIget_foo()\fR accessor
+functions).
+[This option is specific to the i386 \s-1PE\s0 targeted port of the linker]
+.IP "\fB\-\-disable\-auto\-import\fR" 4
+.IX Item "--disable-auto-import"
+Do not attempt to do sophisticated linking of \f(CW\*(C`_symbol\*(C'\fR to
+\&\f(CW\*(C`_\|_imp_\|_symbol\*(C'\fR for \s-1DATA\s0 imports from DLLs.
+[This option is specific to the i386 \s-1PE\s0 targeted port of the linker]
+.IP "\fB\-\-enable\-runtime\-pseudo\-reloc\fR" 4
+.IX Item "--enable-runtime-pseudo-reloc"
+If your code contains expressions described in \-\-enable\-auto\-import section,
+that is, \s-1DATA\s0 imports from \s-1DLL\s0 with non-zero offset, this switch will create
+a vector of 'runtime pseudo relocations' which can be used by runtime
+environment to adjust references to such data in your client code.
+[This option is specific to the i386 \s-1PE\s0 targeted port of the linker]
+.IP "\fB\-\-disable\-runtime\-pseudo\-reloc\fR" 4
+.IX Item "--disable-runtime-pseudo-reloc"
+Do not create pseudo relocations for non-zero offset \s-1DATA\s0 imports from
+DLLs.  This is the default.
+[This option is specific to the i386 \s-1PE\s0 targeted port of the linker]
+.IP "\fB\-\-enable\-extra\-pe\-debug\fR" 4
+.IX Item "--enable-extra-pe-debug"
+Show additional debug info related to auto-import symbol thunking.
+[This option is specific to the i386 \s-1PE\s0 targeted port of the linker]
+.IP "\fB\-\-section\-alignment\fR" 4
+.IX Item "--section-alignment"
+Sets the section alignment.  Sections in memory will always begin at
+addresses which are a multiple of this number.  Defaults to 0x1000.
+[This option is specific to the i386 \s-1PE\s0 targeted port of the linker]
+.IP "\fB\-\-stack\fR \fIreserve\fR" 4
+.IX Item "--stack reserve"
+.PD 0
+.IP "\fB\-\-stack\fR \fIreserve\fR\fB,\fR\fIcommit\fR" 4
+.IX Item "--stack reserve,commit"
+.PD
+Specify the number of bytes of memory to reserve (and optionally commit)
+to be used as stack for this program.  The default is 2Mb reserved, 4K
+committed.
+[This option is specific to the i386 \s-1PE\s0 targeted port of the linker]
+.IP "\fB\-\-subsystem\fR \fIwhich\fR" 4
+.IX Item "--subsystem which"
+.PD 0
+.IP "\fB\-\-subsystem\fR \fIwhich\fR\fB:\fR\fImajor\fR" 4
+.IX Item "--subsystem which:major"
+.IP "\fB\-\-subsystem\fR \fIwhich\fR\fB:\fR\fImajor\fR\fB.\fR\fIminor\fR" 4
+.IX Item "--subsystem which:major.minor"
+.PD
+Specifies the subsystem under which your program will execute.  The
+legal values for \fIwhich\fR are \f(CW\*(C`native\*(C'\fR, \f(CW\*(C`windows\*(C'\fR,
+\&\f(CW\*(C`console\*(C'\fR, \f(CW\*(C`posix\*(C'\fR, and \f(CW\*(C`xbox\*(C'\fR.  You may optionally set
+the subsystem version also.  Numeric values are also accepted for
+\&\fIwhich\fR.
+[This option is specific to the i386 \s-1PE\s0 targeted port of the linker]
+.Sp
+The following options set flags in the \f(CW\*(C`DllCharacteristics\*(C'\fR field
+of the \s-1PE\s0 file header:
+[These options are specific to \s-1PE\s0 targeted ports of the linker]
+.IP "\fB\-\-dynamicbase\fR" 4
+.IX Item "--dynamicbase"
+The image base address may be relocated using address space layout
+randomization (\s-1ASLR\s0).  This feature was introduced with \s-1MS\s0 Windows
+Vista for i386 \s-1PE\s0 targets.
+.IP "\fB\-\-forceinteg\fR" 4
+.IX Item "--forceinteg"
+Code integrity checks are enforced.
+.IP "\fB\-\-nxcompat\fR" 4
+.IX Item "--nxcompat"
+The image is compatible with the Data Execution Prevention.
+This feature was introduced with \s-1MS\s0 Windows \s-1XP\s0 \s-1SP2\s0 for i386 \s-1PE\s0 targets.
+.IP "\fB\-\-no\-isolation\fR" 4
+.IX Item "--no-isolation"
+Although the image understands isolation, do not isolate the image.
+.IP "\fB\-\-no\-seh\fR" 4
+.IX Item "--no-seh"
+The image does not use \s-1SEH\s0. No \s-1SE\s0 handler may be called from
+this image.
+.IP "\fB\-\-no\-bind\fR" 4
+.IX Item "--no-bind"
+Do not bind this image.
+.IP "\fB\-\-wdmdriver\fR" 4
+.IX Item "--wdmdriver"
+The driver uses the \s-1MS\s0 Windows Driver Model.
+.IP "\fB\-\-tsaware\fR" 4
+.IX Item "--tsaware"
+The image is Terminal Server aware.
+.PP
+The 68HC11 and 68HC12 linkers support specific options to control the
+memory bank switching mapping and trampoline code generation.
+.IP "\fB\-\-no\-trampoline\fR" 4
+.IX Item "--no-trampoline"
+This option disables the generation of trampoline. By default a trampoline
+is generated for each far function which is called using a \f(CW\*(C`jsr\*(C'\fR
+instruction (this happens when a pointer to a far function is taken).
+.IP "\fB\-\-bank\-window\fR \fIname\fR" 4
+.IX Item "--bank-window name"
+This option indicates to the linker the name of the memory region in
+the \fB\s-1MEMORY\s0\fR specification that describes the memory bank window.
+The definition of such region is then used by the linker to compute
+paging and addresses within the memory window.
+.PP
+The following options are supported to control handling of \s-1GOT\s0 generation
+when linking for 68K targets.
+.IP "\fB\-\-got=\fR\fItype\fR" 4
+.IX Item "--got=type"
+This option tells the linker which \s-1GOT\s0 generation scheme to use.
+\&\fItype\fR should be one of \fBsingle\fR, \fBnegative\fR,
+\&\fBmultigot\fR or \fBtarget\fR.  For more information refer to the
+Info entry for \fIld\fR.
+.SH "ENVIRONMENT"
+.IX Header "ENVIRONMENT"
+You can change the behaviour of \fBld\fR with the environment variables
+\&\f(CW\*(C`GNUTARGET\*(C'\fR,
+\&\f(CW\*(C`LDEMULATION\*(C'\fR and \f(CW\*(C`COLLECT_NO_DEMANGLE\*(C'\fR.
+.PP
+\&\f(CW\*(C`GNUTARGET\*(C'\fR determines the input-file object format if you don't
+use \fB\-b\fR (or its synonym \fB\-\-format\fR).  Its value should be one
+of the \s-1BFD\s0 names for an input format.  If there is no
+\&\f(CW\*(C`GNUTARGET\*(C'\fR in the environment, \fBld\fR uses the natural format
+of the target. If \f(CW\*(C`GNUTARGET\*(C'\fR is set to \f(CW\*(C`default\*(C'\fR then \s-1BFD\s0
+attempts to discover the input format by examining binary input files;
+this method often succeeds, but there are potential ambiguities, since
+there is no method of ensuring that the magic number used to specify
+object-file formats is unique.  However, the configuration procedure for
+\&\s-1BFD\s0 on each system places the conventional format for that system first
+in the search-list, so ambiguities are resolved in favor of convention.
+.PP
+\&\f(CW\*(C`LDEMULATION\*(C'\fR determines the default emulation if you don't use the
+\&\fB\-m\fR option.  The emulation can affect various aspects of linker
+behaviour, particularly the default linker script.  You can list the
+available emulations with the \fB\-\-verbose\fR or \fB\-V\fR options.  If
+the \fB\-m\fR option is not used, and the \f(CW\*(C`LDEMULATION\*(C'\fR environment
+variable is not defined, the default emulation depends upon how the
+linker was configured.
+.PP
+Normally, the linker will default to demangling symbols.  However, if
+\&\f(CW\*(C`COLLECT_NO_DEMANGLE\*(C'\fR is set in the environment, then it will
+default to not demangling symbols.  This environment variable is used in
+a similar fashion by the \f(CW\*(C`gcc\*(C'\fR linker wrapper program.  The default
+may be overridden by the \fB\-\-demangle\fR and \fB\-\-no\-demangle\fR
+options.
+.SH "SEE ALSO"
+.IX Header "SEE ALSO"
+\&\fIar\fR\|(1), \fInm\fR\|(1), \fIobjcopy\fR\|(1), \fIobjdump\fR\|(1), \fIreadelf\fR\|(1) and
+the Info entries for \fIbinutils\fR and
+\&\fIld\fR.
+.SH "COPYRIGHT"
+.IX Header "COPYRIGHT"
+Copyright (c) 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
+1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Free
+Software Foundation, Inc.
+.PP
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the \s-1GNU\s0 Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, with no Front-Cover Texts, and with no
+Back-Cover Texts.  A copy of the license is included in the
+section entitled \*(L"\s-1GNU\s0 Free Documentation License\*(R".
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 .\" Automatically generated by Pod::Man 2.16 (Pod::Simple 3.05)
+.\"
+.\" Standard preamble:
+.\" ========================================================================
+.de Sh \" Subsection heading
+.br
+.if t .Sp
+.ne 5
+.PP
+\fB\\$1\fR
+.PP
+..
+.de Sp \" Vertical space (when we can't use .PP)
+.if t .sp .5v
+.if n .sp
+..
+.de Vb \" Begin verbatim text
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve \" End verbatim text
+.ft R
+.fi
+..
+.\" Set up some character translations and predefined strings.  \*(-- will
+.\" give an unbreakable dash, \*(PI will give pi, \*(L" will give a left
+.\" double quote, and \*(R" will give a right double quote.  \*(C+ will
+.\" give a nicer C++.  Capital omega is used to do unbreakable dashes and
+.\" therefore won't be available.  \*(C` and \*(C' expand to `' in nroff,
+.\" nothing in troff, for use with C<>.
+.tr \(*W-
+.ds C+ C\v'-.1v'\h'-1p'\s-2+\h'-1p'+\s0\v'.1v'\h'-1p'
+.ie n \{\
+.    ds -- \(*W-
+.    ds PI pi
+.    if (\n(.H=4u)&(1m=24u) .ds -- \(*W\h'-12u'\(*W\h'-12u'-\" diablo 10 pitch
+.    if (\n(.H=4u)&(1m=20u) .ds -- \(*W\h'-12u'\(*W\h'-8u'-\"  diablo 12 pitch
+.    ds L" ""
+.    ds R" ""
+.    ds C` ""
+.    ds C' ""
+'br\}
+.el\{\
+.    ds -- \|\(em\|
+.    ds PI \(*p
+.    ds L" ``
+.    ds R" ''
+'br\}
+.\"
+.\" Escape single quotes in literal strings from groff's Unicode transform.
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\"
+.\" If the F register is turned on, we'll generate index entries on stderr for
+.\" titles (.TH), headers (.SH), subsections (.Sh), items (.Ip), and index
+.\" entries marked with X<> in POD.  Of course, you'll have to process the
+.\" output yourself in some meaningful fashion.
+.ie \nF \{\
+.    de IX
+.    tm Index:\\$1\t\\n%\t"\\$2"
+..
+.    nr % 0
+.    rr F
+.\}
+.el \{\
+.    de IX
+..
+.\}
+.\"
+.\" Accent mark definitions (@(#)ms.acc 1.5 88/02/08 SMI; from UCB 4.2).
+.\" Fear.  Run.  Save yourself.  No user-serviceable parts.
+.    \" fudge factors for nroff and troff
+.if n \{\
+.    ds #H 0
+.    ds #V .8m
+.    ds #F .3m
+.    ds #[ \f1
+.    ds #] \fP
+.\}
+.if t \{\
+.    ds #H ((1u-(\\\\n(.fu%2u))*.13m)
+.    ds #V .6m
+.    ds #F 0
+.    ds #[ \&
+.    ds #] \&
+.\}
+.    \" simple accents for nroff and troff
+.if n \{\
+.    ds ' \&
+.    ds ` \&
+.    ds ^ \&
+.    ds , \&
+.    ds ~ ~
+.    ds /
+.\}
+.if t \{\
+.    ds ' \\k:\h'-(\\n(.wu*8/10-\*(#H)'\'\h"|\\n:u"
+.    ds ` \\k:\h'-(\\n(.wu*8/10-\*(#H)'\`\h'|\\n:u'
+.    ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'^\h'|\\n:u'
+.    ds , \\k:\h'-(\\n(.wu*8/10)',\h'|\\n:u'
+.    ds ~ \\k:\h'-(\\n(.wu-\*(#H-.1m)'~\h'|\\n:u'
+.    ds / \\k:\h'-(\\n(.wu*8/10-\*(#H)'\z\(sl\h'|\\n:u'
+.\}
+.    \" troff and (daisy-wheel) nroff accents
+.ds : \\k:\h'-(\\n(.wu*8/10-\*(#H+.1m+\*(#F)'\v'-\*(#V'\z.\h'.2m+\*(#F'.\h'|\\n:u'\v'\*(#V'
+.ds 8 \h'\*(#H'\(*b\h'-\*(#H'
+.ds o \\k:\h'-(\\n(.wu+\w'\(de'u-\*(#H)/2u'\v'-.3n'\*(#[\z\(de\v'.3n'\h'|\\n:u'\*(#]
+.ds d- \h'\*(#H'\(pd\h'-\w'~'u'\v'-.25m'\f2\(hy\fP\v'.25m'\h'-\*(#H'
+.ds D- D\\k:\h'-\w'D'u'\v'-.11m'\z\(hy\v'.11m'\h'|\\n:u'
+.ds th \*(#[\v'.3m'\s+1I\s-1\v'-.3m'\h'-(\w'I'u*2/3)'\s-1o\s+1\*(#]
+.ds Th \*(#[\s+2I\s-2\h'-\w'I'u*3/5'\v'-.3m'o\v'.3m'\*(#]
+.ds ae a\h'-(\w'a'u*4/10)'e
+.ds Ae A\h'-(\w'A'u*4/10)'E
+.    \" corrections for vroff
+.if v .ds ~ \\k:\h'-(\\n(.wu*9/10-\*(#H)'\s-2\u~\d\s+2\h'|\\n:u'
+.if v .ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'\v'-.4m'^\v'.4m'\h'|\\n:u'
+.    \" for low resolution devices (crt and lpr)
+.if \n(.H>23 .if \n(.V>19 \
+\{\
+.    ds : e
+.    ds 8 ss
+.    ds o a
+.    ds d- d\h'-1'\(ga
+.    ds D- D\h'-1'\(hy
+.    ds th \o'bp'
+.    ds Th \o'LP'
+.    ds ae ae
+.    ds Ae AE
+.\}
+.rm #[ #] #H #V #F C
+.\" ========================================================================
+.\"
+.IX Title "AR 1"
+.TH AR 1 "2010-12-08" "binutils-2.21" "GNU Development Tools"
+.\" For nroff, turn off justification.  Always turn off hyphenation; it makes
+.\" way too many mistakes in technical documents.
+.if n .ad l
+.nh
+.SH "NAME"
+ar \- create, modify, and extract from archives
+.SH "SYNOPSIS"
+.IX Header "SYNOPSIS"
+ar [\fB\-\-plugin\fR \fIname\fR] [\fB\-X32_64\fR] [\fB\-\fR]\fIp\fR[\fImod\fR [\fIrelpos\fR] [\fIcount\fR]] \fIarchive\fR [\fImember\fR...]
+.SH "DESCRIPTION"
+.IX Header "DESCRIPTION"
+The \s-1GNU\s0 \fBar\fR program creates, modifies, and extracts from
+archives.  An \fIarchive\fR is a single file holding a collection of
+other files in a structure that makes it possible to retrieve
+the original individual files (called \fImembers\fR of the archive).
+.PP
+The original files' contents, mode (permissions), timestamp, owner, and
+group are preserved in the archive, and can be restored on
+extraction.
+.PP
+\&\s-1GNU\s0 \fBar\fR can maintain archives whose members have names of any
+length; however, depending on how \fBar\fR is configured on your
+system, a limit on member-name length may be imposed for compatibility
+with archive formats maintained with other tools.  If it exists, the
+limit is often 15 characters (typical of formats related to a.out) or 16
+characters (typical of formats related to coff).
+.PP
+\&\fBar\fR is considered a binary utility because archives of this sort
+are most often used as \fIlibraries\fR holding commonly needed
+subroutines.
+.PP
+\&\fBar\fR creates an index to the symbols defined in relocatable
+object modules in the archive when you specify the modifier \fBs\fR.
+Once created, this index is updated in the archive whenever \fBar\fR
+makes a change to its contents (save for the \fBq\fR update operation).
+An archive with such an index speeds up linking to the library, and
+allows routines in the library to call each other without regard to
+their placement in the archive.
+.PP
+You may use \fBnm \-s\fR or \fBnm \-\-print\-armap\fR to list this index
+table.  If an archive lacks the table, another form of \fBar\fR called
+\&\fBranlib\fR can be used to add just the table.
+.PP
+\&\s-1GNU\s0 \fBar\fR can optionally create a \fIthin\fR archive,
+which contains a symbol index and references to the original copies
+of the member files of the archives.  Such an archive is useful
+for building libraries for use within a local build, where the
+relocatable objects are expected to remain available, and copying the
+contents of each object would only waste time and space.  Thin archives
+are also \fIflattened\fR, so that adding one or more archives to a
+thin archive will add the elements of the nested archive individually.
+The paths to the elements of the archive are stored relative to the
+archive itself.
+.PP
+\&\s-1GNU\s0 \fBar\fR is designed to be compatible with two different
+facilities.  You can control its activity using command-line options,
+like the different varieties of \fBar\fR on Unix systems; or, if you
+specify the single command-line option \fB\-M\fR, you can control it
+with a script supplied via standard input, like the \s-1MRI\s0 \*(L"librarian\*(R"
+program.
+.SH "OPTIONS"
+.IX Header "OPTIONS"
+\&\s-1GNU\s0 \fBar\fR allows you to mix the operation code \fIp\fR and modifier
+flags \fImod\fR in any order, within the first command-line argument.
+.PP
+If you wish, you may begin the first command-line argument with a
+dash.
+.PP
+The \fIp\fR keyletter specifies what operation to execute; it may be
+any of the following, but you must specify only one of them:
+.IP "\fBd\fR" 4
+.IX Item "d"
+\&\fIDelete\fR modules from the archive.  Specify the names of modules to
+be deleted as \fImember\fR...; the archive is untouched if you
+specify no files to delete.
+.Sp
+If you specify the \fBv\fR modifier, \fBar\fR lists each module
+as it is deleted.
+.IP "\fBm\fR" 4
+.IX Item "m"
+Use this operation to \fImove\fR members in an archive.
+.Sp
+The ordering of members in an archive can make a difference in how
+programs are linked using the library, if a symbol is defined in more
+than one member.
+.Sp
+If no modifiers are used with \f(CW\*(C`m\*(C'\fR, any members you name in the
+\&\fImember\fR arguments are moved to the \fIend\fR of the archive;
+you can use the \fBa\fR, \fBb\fR, or \fBi\fR modifiers to move them to a
+specified place instead.
+.IP "\fBp\fR" 4
+.IX Item "p"
+\&\fIPrint\fR the specified members of the archive, to the standard
+output file.  If the \fBv\fR modifier is specified, show the member
+name before copying its contents to standard output.
+.Sp
+If you specify no \fImember\fR arguments, all the files in the archive are
+printed.
+.IP "\fBq\fR" 4
+.IX Item "q"
+\&\fIQuick append\fR; Historically, add the files \fImember\fR... to the end of
+\&\fIarchive\fR, without checking for replacement.
+.Sp
+The modifiers \fBa\fR, \fBb\fR, and \fBi\fR do \fInot\fR affect this
+operation; new members are always placed at the end of the archive.
+.Sp
+The modifier \fBv\fR makes \fBar\fR list each file as it is appended.
+.Sp
+Since the point of this operation is speed, the archive's symbol table
+index is not updated, even if it already existed; you can use \fBar s\fR or
+\&\fBranlib\fR explicitly to update the symbol table index.
+.Sp
+However, too many different systems assume quick append rebuilds the
+index, so \s-1GNU\s0 \fBar\fR implements \fBq\fR as a synonym for \fBr\fR.
+.IP "\fBr\fR" 4
+.IX Item "r"
+Insert the files \fImember\fR... into \fIarchive\fR (with
+\&\fIreplacement\fR). This operation differs from \fBq\fR in that any
+previously existing members are deleted if their names match those being
+added.
+.Sp
+If one of the files named in \fImember\fR... does not exist, \fBar\fR
+displays an error message, and leaves undisturbed any existing members
+of the archive matching that name.
+.Sp
+By default, new members are added at the end of the file; but you may
+use one of the modifiers \fBa\fR, \fBb\fR, or \fBi\fR to request
+placement relative to some existing member.
+.Sp
+The modifier \fBv\fR used with this operation elicits a line of
+output for each file inserted, along with one of the letters \fBa\fR or
+\&\fBr\fR to indicate whether the file was appended (no old member
+deleted) or replaced.
+.IP "\fBs\fR" 4
+.IX Item "s"
+Add an index to the archive, or update it if it already exists.  Note
+this command is an exception to the rule that there can only be one
+command letter, as it is possible to use it as either a command or a
+modifier.  In either case it does the same thing.
+.IP "\fBt\fR" 4
+.IX Item "t"
+Display a \fItable\fR listing the contents of \fIarchive\fR, or those
+of the files listed in \fImember\fR... that are present in the
+archive.  Normally only the member name is shown; if you also want to
+see the modes (permissions), timestamp, owner, group, and size, you can
+request that by also specifying the \fBv\fR modifier.
+.Sp
+If you do not specify a \fImember\fR, all files in the archive
+are listed.
+.Sp
+If there is more than one file with the same name (say, \fBfie\fR) in
+an archive (say \fBb.a\fR), \fBar t b.a fie\fR lists only the
+first instance; to see them all, you must ask for a complete
+listing\-\-\-in our example, \fBar t b.a\fR.
+.IP "\fBx\fR" 4
+.IX Item "x"
+\&\fIExtract\fR members (named \fImember\fR) from the archive.  You can
+use the \fBv\fR modifier with this operation, to request that
+\&\fBar\fR list each name as it extracts it.
+.Sp
+If you do not specify a \fImember\fR, all files in the archive
+are extracted.
+.Sp
+Files cannot be extracted from a thin archive.
+.PP
+A number of modifiers (\fImod\fR) may immediately follow the \fIp\fR
+keyletter, to specify variations on an operation's behavior:
+.IP "\fBa\fR" 4
+.IX Item "a"
+Add new files \fIafter\fR an existing member of the
+archive.  If you use the modifier \fBa\fR, the name of an existing archive
+member must be present as the \fIrelpos\fR argument, before the
+\&\fIarchive\fR specification.
+.IP "\fBb\fR" 4
+.IX Item "b"
+Add new files \fIbefore\fR an existing member of the
+archive.  If you use the modifier \fBb\fR, the name of an existing archive
+member must be present as the \fIrelpos\fR argument, before the
+\&\fIarchive\fR specification.  (same as \fBi\fR).
+.IP "\fBc\fR" 4
+.IX Item "c"
+\&\fICreate\fR the archive.  The specified \fIarchive\fR is always
+created if it did not exist, when you request an update.  But a warning is
+issued unless you specify in advance that you expect to create it, by
+using this modifier.
+.IP "\fBD\fR" 4
+.IX Item "D"
+Operate in \fIdeterministic\fR mode.  When adding files and the archive
+index use zero for UIDs, GIDs, timestamps, and use consistent file modes
+for all files.  When this option is used, if \fBar\fR is used with
+identical options and identical input filesZ’  [’  \’  ]’  ^’  _’                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          , multiple runs will create
+identical output files regardless of the input files' owners, groups,
+file modes, or modification times.
+.IP "\fBf\fR" 4
+.IX Item "f"
+Truncate names in the archive.  \s-1GNU\s0 \fBar\fR will normally permit file
+names of any length.  This will cause it to create archives which are
+not compatible with the native \fBar\fR program on some systems.  If
+this is a concern, the \fBf\fR modifier may be used to truncate file
+names when putting them in the archive.
+.IP "\fBi\fR" 4
+.IX Item "i"
+Insert new files \fIbefore\fR an existing member of the
+archive.  If you use the modifier \fBi\fR, the name of an existing archive
+member must be present as the \fIrelpos\fR argument, before the
+\&\fIarchive\fR specification.  (same as \fBb\fR).
+.IP "\fBl\fR" 4
+.IX Item "l"
+This modifier is accepted but not used.
+.IP "\fBN\fR" 4
+.IX Item "N"
+Uses the \fIcount\fR parameter.  This is used if there are multiple
+entries in the archive with the same name.  Extract or delete instance
+\&\fIcount\fR of the given name from the archive.
+.IP "\fBo\fR" 4
+.IX Item "o"
+Preserve the \fIoriginal\fR dates of members when extracting them.  If
+you do not specify this modifier, files extracted from the archive
+are stamped with the time of extraction.
+.IP "\fBP\fR" 4
+.IX Item "P"
+Use the full path name when matching names in the archive.  \s-1GNU\s0
+\&\fBar\fR can not create an archive with a full path name (such archives
+are not \s-1POSIX\s0 complaint), but other archive creators can.  This option
+will cause \s-1GNU\s0 \fBar\fR to match file names using a complete path
+name, which can be convenient when extracting a single file from an
+archive created by another tool.
+.IP "\fBs\fR" 4
+.IX Item "s"
+Write an object-file index into the archive, or update an existing one,
+even if no other change is made to the archive.  You may use this modifier
+flag either with any operation, or alone.  Running \fBar s\fR on an
+archive is equivalent to running \fBranlib\fR on it.
+.IP "\fBS\fR" 4
+.IX Item "S"
+Do not generate an archive symbol table.  This can speed up building a
+large library in several steps.  The resulting archive can not be used
+with the linker.  In order to build a symbol table, you must omit the
+\&\fBS\fR modifier on the last execution of \fBar\fR, or you must run
+\&\fBranlib\fR on the archive.
+.IP "\fBT\fR" 4
+.IX Item "T"
+Make the specified \fIarchive\fR a \fIthin\fR archive.  If it already
+exists and is a regular archive, the existing members must be present
+in the same directory as \fIarchive\fR.
+.IP "\fBu\fR" 4
+.IX Item "u"
+Normally, \fBar r\fR... inserts all files
+listed into the archive.  If you would like to insert \fIonly\fR those
+of the files you list that are newer than existing members of the same
+names, use this modifier.  The \fBu\fR modifier is allowed only for the
+operation \fBr\fR (replace).  In particular, the combination \fBqu\fR is
+not allowed, since checking the timestamps would lose any speed
+advantage from the operation \fBq\fR.
+.IP "\fBv\fR" 4
+.IX Item "v"
+This modifier requests the \fIverbose\fR version of an operation.  Many
+operations display additional information, such as filenames processed,
+when the modifier \fBv\fR is appended.
+.IP "\fBV\fR" 4
+.IX Item "V"
+This modifier shows the version number of \fBar\fR.
+.PP
+\&\fBar\fR ignores an initial option spelt \fB\-X32_64\fR, for
+compatibility with \s-1AIX\s0.  The behaviour produced by this option is the
+default for \s-1GNU\s0 \fBar\fR.  \fBar\fR does not support any of the other
+\&\fB\-X\fR options; in particular, it does not support \fB\-X32\fR
+which is the default for \s-1AIX\s0 \fBar\fR.
+.PP
+The optional command line switch \fB\-\-plugin\fR \fIname\fR causes
+\&\fBar\fR to load the plugin called \fIname\fR which adds support
+for more file formats.  This option is only available if the toolchain
+has been built with plugin support enabled.
+.IP "\fB@\fR\fIfile\fR" 4
+.IX Item "@file"
+Read command-line options from \fIfile\fR.  The options read are
+inserted in place of the original @\fIfile\fR option.  If \fIfile\fR
+does not exist, or cannot be read, then the option will be treated
+literally, and not removed.
+.Sp
+Options in \fIfile\fR are separated by whitespace.  A whitespace
+character may be included in an option by surrounding the entire
+option in either single or double quotes.  Any character (including a
+backslash) may be included by prefixing the character to be included
+with a backslash.  The \fIfile\fR may itself contain additional
+@\fIfile\fR options; any such options will be processed recursively.
+.SH "SEE ALSO"
+.IX Header "SEE ALSO"
+\&\fInm\fR\|(1), \fIranlib\fR\|(1), and the Info entries for \fIbinutils\fR.
+.SH "COPYRIGHT"
+.IX Header "COPYRIGHT"
+Copyright (c) 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
+2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+Free Software Foundation, Inc.
+.PP
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the \s-1GNU\s0 Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, with no Front-Cover Texts, and with no
+Back-Cover Texts.  A copy of the license is included in the
+section entitled \*(L"\s-1GNU\s0 Free Documentation License\*(R".
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      .\" Automatically generated by Pod::Man 2.16 (Pod::Simple 3.05)
+.\"
+.\" Standard preamble:
+.\" ========================================================================
+.de Sh \" Subsection heading
+.br
+.if t .Sp
+.ne 5
+.PP
+\fB\\$1\fR
+.PP
+..
+.de Sp \" Vertical space (when we can't use .PP)
+.if t .sp .5v
+.if n .sp
+..
+.de Vb \" Begin verbatim text
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve \" End verbatim text
+.ft R
+.fi
+..
+.\" Set up some character translations and predefined strings.  \*(-- will
+.\" give an unbreakable dash, \*(PI will give pi, \*(L" will give a left
+.\" double quote, and \*(R" will give a right double quote.  \*(C+ will
+.\" give a nicer C++.  Capital omega is used to do unbreakable dashes and
+.\" therefore won't be available.  \*(C` and \*(C' expand to `' in nroff,
+.\" nothing in troff, for use with C<>.
+.tr \(*W-
+.ds C+ C\v'-.1v'\h'-1p'\s-2+\h'-1p'+\s0\v'.1v'\h'-1p'
+.ie n \{\
+.    ds -- \(*W-
+.    ds PI pi
+.    if (\n(.H=4u)&(1m=24u) .ds -- \(*W\h'-12u'\(*W\h'-12u'-\" diablo 10 pitch
+.    if (\n(.H=4u)&(1m=20u) .ds -- \(*W\h'-12u'\(*W\h'-8u'-\"  diablo 12 pitch
+.    ds L" ""
+.    ds R" ""
+.    ds C` ""
+.    ds C' ""
+'br\}
+.el\{\
+.    ds -- \|\(em\|
+.    ds PI \(*p
+.    ds L" ``
+.    ds R" ''
+'br\}
+.\"
+.\" Escape single quotes in literal strings from groff's Unicode transform.
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\"
+.\" If the F register is turned on, we'll generate index entries on stderr for
+.\" titles (.TH), headers (.SH), subsections (.Sh), items (.Ip), and index
+.\" entries marked with X<> in POD.  Of course, you'll have to process the
+.\" output yourself in some meaningful fashion.
+.ie \nF \{\
+.    de IX
+.    tm Index:\\$1\t\\n%\t"\\$2"
+..
+.    nr % 0
+.    rr F
+.\}
+.el \{\
+.    de IX
+..
+.\}
+.\"
+.\" Accent mark definitions (@(#)ms.acc 1.5 88/02/08 SMI; from UCB 4.2).
+.\" Fear.  Run.  Save yourself.  No user-serviceable parts.
+.    \" fudge factors for nroff and troff
+.if n \{\
+.    ds #H 0
+.    ds #V .8m
+.    ds #F .3m
+.    ds #[ \f1
+.    ds #] \fP
+.\}
+.if t \{\
+.    ds #H ((1u-(\\\\n(.fu%2u))*.13m)
+.    ds #V .6m
+.    ds #F 0
+.    ds #[ \&
+.    ds #] \&
+.\}
+.    \" simple accents for nroff and troff
+.if n \{\
+.    ds ' \&
+.    ds ` \&
+.    ds ^ \&
+.    ds , \&
+.    ds ~ ~
+.    ds /
+.\}
+.if t \{\
+.    ds ' \\k:\h'-(\\n(.wu*8/10-\*(#H)'\'\h"|\\n:u"
+.    ds ` \\k:\h'-(\\n(.wu*8/10-\*(#H)'\`\h'|\\n:u'
+.    ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'^\h'|\\n:u'
+.    ds , \\k:\h'-(\\n(.wu*8/10)',\h'|\\n:u'
+.    ds ~ \\k:\h'-(\\n(.wu-\*(#H-.1m)'~\h'|\\n:u'
+.    ds / \\k:\h'-(\\n(.wu*8/10-\*(#H)'\z\(sl\h'|\\n:u'
+.\}
+.    \" troff and (daisy-wheel) nroff accents
+.ds : \\k:\h'-(\\n(.wu*8/10-\*(#H+.1m+\*(#F)'\v'-\*(#V'\z.\h'.2m+\*(#F'.\h'|\\n:u'\v'\*(#V'
+.ds 8 \h'\*(#H'\(*b\h'-\*(#H'
+.ds o \\k:\h'-(\\n(.wu+\w'\(de'u-\*(#H)/2u'\v'-.3n'\*(#[\z\(de\v'.3n'\h'|\\n:u'\*(#]
+.ds d- \h'\*(#H'\(pd\h'-\w'~'u'\v'-.25m'\f2\(hy\fP\v'.25m'\h'-\*(#H'
+.ds D- D\\k:\h'-\w'D'u'\v'-.11m'\z\(hy\v'.11m'\h'|\\n:u'
+.ds th \*(#[\v'.3m'\s+1I\s-1\v'-.3m'\h'-(\w'I'u*2/3)'\s-1o\s+1\*(#]
+.ds Th \*(#[\s+2I\s-2\h'-\w'I'u*3/5'\v'-.3m'o\v'.3m'\*(#]
+.ds ae a\h'-(\w'a'u*4/10)'e
+.ds Ae A\h'-(\w'A'u*4/10)'E
+.    \" corrections for vroff
+.if v .ds ~ \\k:\h'-(\\n(.wu*9/10-\*(#H)'\s-2\u~\d\s+2\h'|\\n:u'
+.if v .ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'\v'-.4m'^\v'.4m'\h'|\\n:u'
+.    \" for low resolution devices (crt and lpr)
+.if \n(.H>23 .if \n(.V>19 \
+\{\
+.    ds : e
+.    ds 8 ss
+.    ds o a
+.    ds d- d\h'-1'\(ga
+.    ds D- D\h'-1'\(hy
+.    ds th \o'bp'
+.    ds Th \o'LP'
+.    ds ae ae
+.    ds Ae AE
+.\}
+.rm #[ #] #H #V #F C
+.\" ========================================================================
+.\"
+.IX Title "GPROF 1"
+.TH GPROF 1 "2010-12-08" "binutils-2.21" "GNU"
+.\" For nroff, turn off justification.  Always turn off hyphenation; it makes
+.\" way too many mistakes in technical documents.
+.if n .ad l
+.nh
+.SH "NAME"
+gprof \- display call graph profile data
+.SH "SYNOPSIS"
+.IX Header "SYNOPSIS"
+gprof [ \-[abcDhilLrsTvwxyz] ] [ \-[ACeEfFJnNOpPqQZ][\fIname\fR] ] 
+ [ \-I \fIdirs\fR ] [ \-d[\fInum\fR] ] [ \-k \fIfrom/to\fR ]
+ [ \-m \fImin-count\fR ] [ \-R \fImap_file\fR ] [ \-t \fItable-length\fR ]
+ [ \-\-[no\-]annotated\-source[=\fIname\fR] ] 
+ [ \-\-[no\-]exec\-counts[=\fIname\fR] ]
+ [ \-\-[no\-]flat\-profile[=\fIname\fR] ] [ \-\-[no\-]graph[=\fIname\fR] ]
+ [ \-\-[no\-]time=\fIname\fR] [ \-\-all\-lines ] [ \-\-brief ] 
+ [ \-\-debug[=\fIlevel\fR] ] [ \-\-function\-ordering ] 
+ [ \-\-file\-ordering \fImap_file\fR ] [ \-\-directory\-path=\fIdirs\fR ]
+ [ \-\-display\-unused\-functions ] [ \-\-file\-format=\fIname\fR ]
+ [ \-\-file\-info ] [ \-\-help ] [ \-\-line ] [ \-\-min\-count=\fIn\fR ]
+ [ \-\-no\-static ] [ \-\-print\-path ] [ \-\-separate\-files ]
+ [ \-\-static\-call\-graph ] [ \-\-sum ] [ \-\-table\-length=\fIlen\fR ]
+ [ \-\-traditional ] [ \-\-version ] [ \-\-width=\fIn\fR ]
+ [ \-\-ignore\-non\-functions ] [ \-\-demangle[=\fI\s-1STYLE\s0\fR] ]
+ [ \-\-no\-demangle ] [\-\-external\-symbol\-table=name] 
+ [ \fIimage-file\fR ] [ \fIprofile-file\fR ... ]
+.SH "DESCRIPTION"
+.IX Header "DESCRIPTION"
+\&\f(CW\*(C`gprof\*(C'\fR produces an execution profile of C, Pascal, or Fortran77 
+programs.  The effect of called routines is incorporated in the profile 
+of each caller.  The profile data is taken from the call graph profile file
+(\fIgmon.out\fR default) which is created by programs
+that are compiled with the \fB\-pg\fR option of
+\&\f(CW\*(C`cc\*(C'\fR, \f(CW\*(C`pc\*(C'\fR, and \f(CW\*(C`f77\*(C'\fR.
+The \fB\-pg\fR option also links in versions of the library routines
+that are compiled for profiling.  \f(CW\*(C`Gprof\*(C'\fR reads the given object 
+file (the default is \f(CW\*(C`a.out\*(C'\fR) and establishes the relation between
+its symbol table and the call graph profile from \fIgmon.out\fR.
+If more than one profile file is specified, the \f(CW\*(C`gprof\*(C'\fR
+output shows the sum of the profile information in the given profile files.
+.PP
+\&\f(CW\*(C`Gprof\*(C'\fR calculates the amount of time spent in each routine.
+Next, these times are propagated along the edges of the call graph.
+Cycles are discovered, and calls into a cycle are made to share the time
+of the cycle.
+.PP
+Several forms of output are available from the analysis.
+.PP
+The \fIflat profile\fR shows how much time your program spent in each function,
+and how many times that function was called.  If you simply want to know
+which functions burn most of the cycles, it is stated concisely here.
+.PP
+The \fIcall graph\fR shows, for each function, which functions called it, which
+other functions it called, and how many times.  There is also an estimate
+of how much time was spent in the subroutines of each function.  This can
+suggest places where you might try to eliminate function calls that use a
+lot of time.
+.PP
+The \fIannotated source\fR listing is a copy of the program's
+source code, labeled with the number of times each line of the
+program was executed.
+.SH "OPTIONS"
+.IX Header "OPTIONS"
+These options specify which of several output formats
+\&\f(CW\*(C`gprof\*(C'\fR should produce.
+.PP
+Many of these options take an optional \fIsymspec\fR to specify
+functions to be included or excluded.  These options can be
+specified multiple times, with different symspecs, to include
+or exclude sets of symbols.
+.PP
+Specifying any of these options overrides the default (\fB\-p \-q\fR),
+which prints a flat profile and call graph analysis
+for all functions.
+.ie n .IP """\-A[\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-A[\f(CIsymspec\f(CW]\fR" 4
+.IX Item "-A[symspec]"
+.PD 0
+.ie n .IP """\-\-annotated\-source[=\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-\-annotated\-source[=\f(CIsymspec\f(CW]\fR" 4
+.IX Item "--annotated-source[=symspec]"
+.PD
+The \fB\-A\fR option causes \f(CW\*(C`gprof\*(C'\fR to print annotated source code.
+If \fIsymspec\fR is specified, print output only for matching symbols.
+.ie n .IP """\-b""" 4
+.el .IP "\f(CW\-b\fR" 4
+.IX Item "-b"
+.PD 0
+.ie n .IP """\-\-brief""" 4
+.el .IP "\f(CW\-\-brief\fR" 4
+.IX Item "--brief"
+.PD
+If the \fB\-b\fR option is given, \f(CW\*(C`gprof\*(C'\fR doesn't print the
+verbose blurbs that try to explain the meaning of all of the fields in
+the tables.  This is useful if you intend to print out the output, or
+are tired of seeing the blurbs.
+.ie n .IP """\-C[\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-C[\f(CIsymspec\f(CW]\fR" 4
+.IX Item "-C[symspec]"
+.PD 0
+.ie n .IP """\-\-exec\-counts[=\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-\-exec\-counts[=\f(CIsymspec\f(CW]\fR" 4
+.IX Item "--exec-counts[=symspec]"
+.PD
+The \fB\-C\fR option causes \f(CW\*(C`gprof\*(C'\fR to
+print a tally of functions and the number of times each was called.
+If \fIsymspec\fR is specified, print tally only for matching symbols.
+.Sp
+If the profile data file contains basic-block count records, specifying
+the \fB\-l\fR option, along with \fB\-C\fR, will cause basic-block
+execution counts to be tallied and displayed.
+.ie n .IP """\-i""" 4
+.el .IP "\f(CW\-i\fR" 4
+.IX Item "-i"
+.PD 0
+.ie n .IP """\-\-file\-info""" 4
+.el .IP "\f(CW\-\-file\-info\fR" 4
+.IX Item "--file-info"
+.PD
+The \fB\-i\fR option causes \f(CW\*(C`gprof\*(C'\fR to display summary information
+about the profile data file(s) and then exit.  The number of histogram,
+call graph, and basic-block count records is displayed.
+.ie n .IP """\-I \f(CIdirs\f(CW""" 4
+.el .IP "\f(CW\-I \f(CIdirs\f(CW\fR" 4
+.IX Item "-I dirs"
+.PD 0
+.ie n .IP """\-\-directory\-path=\f(CIdirs\f(CW""" 4
+.el .IP "\f(CW\-\-directory\-path=\f(CIdirs\f(CW\fR" 4
+.IX Item "--directory-path=dirs"
+.PD
+The \fB\-I\fR option specifies a list of search directories in
+which to find source files.  Environment variable \fI\s-1GPROF_PATH\s0\fR
+can also be used to convey this information.
+Used mostly for annotated source output.
+.ie n .IP """\-J[\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-J[\f(CIsymspec\f(CW]\fR" 4
+.IX Item "-J[symspec]"
+.PD 0
+.ie n .IP """\-\-no\-annotated\-source[=\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-\-no\-annotated\-source[=\f(CIsymspec\f(CW]\fR" 4
+.IX Item "--no-annotated-source[=symspec]"
+.PD
+The \fB\-J\fR option causes \f(CW\*(C`gprof\*(C'\fR not to
+print annotated source code.
+If \fIsymspec\fR is specified, \f(CW\*(C`gprof\*(C'\fR prints annotated source,
+but excludes matching symbols.
+.ie n .IP """\-L""" 4
+.el .IP "\f(CW\-L\fR" 4
+.IX Item "-L"
+.PD 0
+.ie n .IP """\-\-print\-path""" 4
+.el .IP "\f(CW\-\-print\-path\fR" 4
+.IX Item "--print-path"
+.PD
+Normally, source filenames are printed with the path
+component suppressed.  The \fB\-L\fR option causes \f(CW\*(C`gprof\*(C'\fR
+to print the full pathname of
+source filenames, which is determined
+from symbolic debugging information in the image file
+and is relative to the directory in which the compiler
+was invoked.
+.ie n .IP """\-p[\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-p[\f(CIsymspec\f(CW]\fR" 4
+.IX Item "-p[symspec]"
+.PD 0
+.ie n .IP """\-\-flat\-profile[=\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-\-flat\-profile[=\f(CIsymspec\f(CW]\fR" 4
+.IX Item "--flat-profile[=symspec]"
+.PD
+The \fB\-p\fR option causes \f(CW\*(C`gprof\*(C'\fR to print a flat profile.
+If \fIsymspec\fR is specified, print flat profile only for matching symbols.
+.ie n .IP """\-P[\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-P[\f(CIsymspec\f(CW]\fR" 4
+.IX Item "-P[symspec]"
+.PD 0
+.ie n .IP """\-\-no\-flat\-profile[=\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-\-no\-flat\-profile[=\f(CIsymspec\f(CW]\fR" 4
+.IX Item "--no-flat-profile[=symspec]"
+.PD
+The \fB\-P\fR option causes \f(CW\*(C`gprof\*(C'\fR to suppress printing a flat profile.
+If \fIsymspec\fR is specified, \f(CW\*(C`gprof\*(C'\fR prints a flat profile,
+but excludes matching symbols.
+.ie n .IP """\-q[\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-q[\f(CIsymspec\f(CW]\fR" 4
+.IX Item "-q[symspec]"
+.PD 0
+.ie n .IP """\-\-graph[=\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-\-graph[=\f(CIsymspec\f(CW]\fR" 4
+.IX Item "--graph[=symspec]"
+.PD
+The \fB\-q\fR option causes \f(CW\*(C`gprof\*(C'\fR to print the call graph analysis.
+If \fIsymspec\fR is specified, print call graph only for matching symbols
+and their children.
+.ie n .IP """\-Q[\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-Q[\f(CIsymspec\f(CW]\fR" 4
+.IX Item "-Q[symspec]"
+.PD 0
+.ie n .IP """\-\-no\-graph[=\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-\-no\-graph[=\f(CIsymspec\f(CW]\fR" 4
+.IX Item "--no-graph[=symspec]"
+.PD
+The \fB\-Q\fR option causes \f(CW\*(C`gprom’  n’  o’  p’  q’  r’  s’  t’  u’  v’  w’  x’  y’  z’  {’  |’  }’  ~’                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          f\*(C'\fR to suppress printing the
+call graph.
+If \fIsymspec\fR is specified, \f(CW\*(C`gprof\*(C'\fR prints a call graph,
+but excludes matching symbols.
+.ie n .IP """\-t""" 4
+.el .IP "\f(CW\-t\fR" 4
+.IX Item "-t"
+.PD 0
+.ie n .IP """\-\-table\-length=\f(CInum\f(CW""" 4
+.el .IP "\f(CW\-\-table\-length=\f(CInum\f(CW\fR" 4
+.IX Item "--table-length=num"
+.PD
+The \fB\-t\fR option causes the \fInum\fR most active source lines in
+each source file to be listed when source annotation is enabled.  The
+default is 10.
+.ie n .IP """\-y""" 4
+.el .IP "\f(CW\-y\fR" 4
+.IX Item "-y"
+.PD 0
+.ie n .IP """\-\-separate\-files""" 4
+.el .IP "\f(CW\-\-separate\-files\fR" 4
+.IX Item "--separate-files"
+.PD
+This option affects annotated source output only.
+Normally, \f(CW\*(C`gprof\*(C'\fR prints annotated source files
+to standard-output.  If this option is specified,
+annotated source for a file named \fIpath/\fIfilename\fI\fR
+is generated in the file \fI\fIfilename\fI\-ann\fR.  If the underlying
+file system would truncate \fI\fIfilename\fI\-ann\fR so that it
+overwrites the original \fI\fIfilename\fI\fR, \f(CW\*(C`gprof\*(C'\fR generates
+annotated source in the file \fI\fIfilename\fI.ann\fR instead (if the
+original file name has an extension, that extension is \fIreplaced\fR
+with \fI.ann\fR).
+.ie n .IP """\-Z[\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-Z[\f(CIsymspec\f(CW]\fR" 4
+.IX Item "-Z[symspec]"
+.PD 0
+.ie n .IP """\-\-no\-exec\-counts[=\f(CIsymspec\f(CW]""" 4
+.el .IP "\f(CW\-\-no\-exec\-counts[=\f(CIsymspec\f(CW]\fR" 4
+.IX Item "--no-exec-counts[=symspec]"
+.PD
+The \fB\-Z\fR option causes \f(CW\*(C`gprof\*(C'\fR not to
+print a tally of functions and the number of times each was called.
+If \fIsymspec\fR is specified, print tally, but exclude matching symbols.
+.ie n .IP """\-r""" 4
+.el .IP "\f(CW\-r\fR" 4
+.IX Item "-r"
+.PD 0
+.ie n .IP """\-\-function\-ordering""" 4
+.el .IP "\f(CW\-\-function\-ordering\fR" 4
+.IX Item "--function-ordering"
+.PD
+The \fB\-\-function\-ordering\fR option causes \f(CW\*(C`gprof\*(C'\fR to print a
+suggested function ordering for the program based on profiling data.
+This option suggests an ordering which may improve paging, tlb and
+cache behavior for the program on systems which support arbitrary
+ordering of functions in an executable.
+.Sp
+The exact details of how to force the linker to place functions
+in a particular order is system dependent and out of the scope of this
+manual.
+.ie n .IP """\-R \f(CImap_file\f(CW""" 4
+.el .IP "\f(CW\-R \f(CImap_file\f(CW\fR" 4
+.IX Item "-R map_file"
+.PD 0
+.ie n .IP """\-\-file\-ordering \f(CImap_file\f(CW""" 4
+.el .IP "\f(CW\-\-file\-ordering \f(CImap_file\f(CW\fR" 4
+.IX Item "--file-ordering map_file"
+.PD
+The \fB\-\-file\-ordering\fR option causes \f(CW\*(C`gprof\*(C'\fR to print a
+suggested .o link line ordering for the program based on profiling data.
+This option suggests an ordering which may improve paging, tlb and
+cache behavior for the program on systems which do not support arbitrary
+ordering of functions in an executable.
+.Sp
+Use of the \fB\-a\fR argument is highly recommended with this option.
+.Sp
+The \fImap_file\fR argument is a pathname to a file which provides
+function name to object file mappings.  The format of the file is similar to
+the output of the program \f(CW\*(C`nm\*(C'\fR.
+.Sp
+.Vb 8
+\&        c\-parse.o:00000000 T yyparse
+\&        c\-parse.o:00000004 C yyerrflag
+\&        c\-lang.o:00000000 T maybe_objc_method_name
+\&        c\-lang.o:00000000 T print_lang_statistics
+\&        c\-lang.o:00000000 T recognize_objc_keyword
+\&        c\-decl.o:00000000 T print_lang_identifier
+\&        c\-decl.o:00000000 T print_lang_type
+\&        ...
+.Ve
+.Sp
+To create a \fImap_file\fR with \s-1GNU\s0 \f(CW\*(C`nm\*(C'\fR, type a command like
+\&\f(CW\*(C`nm \-\-extern\-only \-\-defined\-only \-v \-\-print\-file\-name program\-name\*(C'\fR.
+.ie n .IP """\-T""" 4
+.el .IP "\f(CW\-T\fR" 4
+.IX Item "-T"
+.PD 0
+.ie n .IP """\-\-traditional""" 4
+.el .IP "\f(CW\-\-traditional\fR" 4
+.IX Item "--traditional"
+.PD
+The \fB\-T\fR option causes \f(CW\*(C`gprof\*(C'\fR to print its output in
+\&\*(L"traditional\*(R" \s-1BSD\s0 style.
+.ie n .IP """\-w \f(CIwidth\f(CW""" 4
+.el .IP "\f(CW\-w \f(CIwidth\f(CW\fR" 4
+.IX Item "-w width"
+.PD 0
+.ie n .IP """\-\-width=\f(CIwidth\f(CW""" 4
+.el .IP "\f(CW\-\-width=\f(CIwidth\f(CW\fR" 4
+.IX Item "--width=width"
+.PD
+Sets width of output lines to \fIwidth\fR.
+Currently only used when printing the function index at the bottom
+of the call graph.
+.ie n .IP """\-x""" 4
+.el .IP "\f(CW\-x\fR" 4
+.IX Item "-x"
+.PD 0
+.ie n .IP """\-\-all\-lines""" 4
+.el .IP "\f(CW\-\-all\-lines\fR" 4
+.IX Item "--all-lines"
+.PD
+This option affects annotated source output only.
+By default, only the lines at the beginning of a basic-block
+are annotated.  If this option is specified, every line in
+a basic-block is annotated by repeating the annotation for the
+first line.  This behavior is similar to \f(CW\*(C`tcov\*(C'\fR's \fB\-a\fR.
+.ie n .IP """\-\-demangle[=\f(CIstyle\f(CW]""" 4
+.el .IP "\f(CW\-\-demangle[=\f(CIstyle\f(CW]\fR" 4
+.IX Item "--demangle[=style]"
+.PD 0
+.ie n .IP """\-\-no\-demangle""" 4
+.el .IP "\f(CW\-\-no\-demangle\fR" 4
+.IX Item "--no-demangle"
+.PD
+These options control whether \*(C+ symbol names should be demangled when
+printing output.  The default is to demangle symbols.  The
+\&\f(CW\*(C`\-\-no\-demangle\*(C'\fR option may be used to turn off demangling. Different 
+compilers have different mangling styles.  The optional demangling style 
+argument can be used to choose an appropriate demangling style for your 
+compiler.
+.Sh "Analysis Options"
+.IX Subsection "Analysis Options"
+.ie n .IP """\-a""" 4
+.el .IP "\f(CW\-a\fR" 4
+.IX Item "-a"
+.PD 0
+.ie n .IP """\-\-no\-static""" 4
+.el .IP "\f(CW\-\-no\-static\fR" 4
+.IX Item "--no-static"
+.PD
+The \fB\-a\fR option causes \f(CW\*(C`gprof\*(C'\fR to suppress the printing of
+statically declared (private) functions.  (These are functions whose
+names are not listed as global, and which are not visible outside the
+file/function/block where they were defined.)  Time spent in these
+functions, calls to/from them, etc., will all be attributed to the
+function that was loaded directly before it in the executable file.
+This option affects both the flat profile and the call graph.
+.ie n .IP """\-c""" 4
+.el .IP "\f(CW\-c\fR" 4
+.IX Item "-c"
+.PD 0
+.ie n .IP """\-\-static\-call\-graph""" 4
+.el .IP "\f(CW\-\-static\-call\-graph\fR" 4
+.IX Item "--static-call-graph"
+.PD
+The \fB\-c\fR option causes the call graph of the program to be
+augmented by a heuristic which examines the text space of the object
+file and identifies function calls in the binary machine code.
+Since normal call graph records are only generated when functions are
+entered, this option identifies children that could have been called,
+but never were.  Calls to functions that were not compiled with
+profiling enabled are also identified, but only if symbol table
+entries are present for them.
+Calls to dynamic library routines are typically \fInot\fR found
+by this option.
+Parents or children identified via this heuristic
+are indicated in the call graph with call counts of \fB0\fR.
+.ie n .IP """\-D""" 4
+.el .IP "\f(CW\-D\fR" 4
+.IX Item "-D"
+.PD 0
+.ie n .IP """\-\-ignore\-non\-functions""" 4
+.el .IP "\f(CW\-\-ignore\-non\-functions\fR" 4
+.IX Item "--ignore-non-functions"
+.PD
+The \fB\-D\fR option causes \f(CW\*(C`gprof\*(C'\fR to ignore symbols which
+are not known to be functions.  This option will give more accurate
+profile data on systems where it is supported (Solaris and \s-1HPUX\s0 for
+example).
+.ie n .IP """\-k \f(CIfrom\f(CW/\f(CIto\f(CW""" 4
+.el .IP "\f(CW\-k \f(CIfrom\f(CW/\f(CIto\f(CW\fR" 4
+.IX Item "-k from/to"
+The \fB\-k\fR option allows you to delete from the call graph any arcs from
+symbols matching symspec \fIfrom\fR to those matching symspec \fIto\fR.
+.ie n .IP """\-l""" 4
+.el .IP "\f(CW\-l\fR" 4
+.IX Item "-l"
+.PD 0
+.ie n .IP """\-\-line""" 4
+.el .IP "\f(CW\-\-line\fR" 4
+.IX Item "--line"
+.PD
+The \fB\-l\fR option enables line-by-line profiling, which causes
+histogram hits to be charged to individual source code lines,
+instead of functions.  This feature only works with programs compiled
+by older versions of the \f(CW\*(C`gcc\*(C'\fR compiler.  Newer versions of
+\&\f(CW\*(C`gcc\*(C'\fR are designed to work with the \f(CW\*(C`gcov\*(C'\fR tool instead.
+.Sp
+If the program was compiled with basic-block counting enabled,
+this option will also identify how many times each line of
+code was executed.
+While line-by-line profiling can help isolate where in a large function
+a program is spending its time, it also significantly increases
+the running time of \f(CW\*(C`gprof\*(C'\fR, and magnifies statistical
+inaccuracies.
+.ie n .IP """\-m \f(CInum\f(CW""" 4
+.el .IP "\f(CW\-m \f(CInum\f(CW\fR" 4
+.IX Item "-m num"
+.PD 0
+.ie n .IP """\-\-min\-count=\f(CInum\f(CW""" 4
+.el .IP "\f(CW\-\-min\-count=\f(CInum\f(CW\fR" 4
+.IX Item "--min-count=num"
+.PD
+This option affects execution count output only.
+Symbols that are executed less than \fInum\fR times are suppressed.
+.ie n .IP """\-n\f(CIsymspec\f(CW""" 4
+.el .IP "\f(CW\-n\f(CIsymspec\f(CW\fR" 4
+.IX Item "-nsymspec"
+.PD 0
+.ie n .IP """\-\-time=\f(CIsymspec\f(CW""" 4
+.el .IP "\f(CW\-\-time=\f(CIsymspec\f(CW\fR" 4
+.IX Item "--time=symspec"
+.PD
+The \fB\-n\fR option causes \f(CW\*(C`gprof\*(C'\fR, in its call graph analysis,
+to only propagate times for symbols matching \fIsymspec\fR.
+.ie n .IP """\-N\f(CIsymspec\f(CW""" 4
+.el .IP "\f(CW\-N\f(CIsymspec\f(CW\fR" 4
+.IX Item "-Nsymspec"
+.PD 0
+.ie n .IP """\-\-no\-time=\f(CIsymspec\f(CW""" 4
+.el .IP "\f(CW\-\-no\-time=\f(CIsymspec\f(CW\fR" 4
+.IX Item "--no-time=symspec"
+.PD
+The \fB\-n\fR option causes \f(CW\*(C`gprof\*(C'\fR, in its call graph analysis,
+not to propagate times for symbols matching \fIsymspec\fR.
+.ie n .IP """\-S\f(CIfilename\f(CW""" 4
+.el .IP "\f(CW\-S\f(CIfilename\f(CW\fR" 4
+.IX Item "-Sfilename"
+.PD 0
+.ie n .IP """\-\-external\-symbol\-table=\f(CIfilename\f(CW""" 4
+.el .IP "\f(CW\-\-external\-symbol\-table=\f(CIfilename\f(CW\fR" 4
+.IX Item "--external-symbol-table=filename"
+.PD
+The \fB\-S\fR option causes \f(CW\*(C`gprof\*(C'\fR to read an external symbol table
+file, such as \fI/proc/kallsyms\fR, rather than read the symbol table 
+from the given object file (the default is \f(CW\*(C`a.out\*(C'\fR). This is useful 
+for profiling kernel modules.
+.ie n .IP """\-z""" 4
+.el .IP "\f(CW\-z\fR" 4
+.IX Item "-z"
+.PD 0
+.ie n .IP """\-\-display\-unused\-functions""" 4
+.el .IP "\f(CW\-\-display\-unused\-functions\fR" 4
+.IX Item "--display-unused-functions"
+.PD
+If you give the \fB\-z\fR option, \f(CW\*(C`gprof\*(C'\fR will mention all
+functions in the flat profile, even those that were never called, and
+that had no time spent in them.  This is useful in conjunction with the
+\&\fB\-c\fR option for discovering which routines were never called.
+.Sh "Miscellaneous Options"
+.IX Subsection "Miscellaneous Options"
+.ie n .IP """\-d[\f(CInum\f(CW]""" 4
+.el .IP "\f(CW\-d[\f(CInum\f(CW]\fR" 4
+.IX Item "-d[num]"
+.PD 0
+.ie n .IP """\-\-debug[=\f(CInum\f(CW]""" 4
+.el .IP "\f(CW\-\-debug[=\f(CInum\f(CW]\fR" 4
+.IX Item "--debug[=num]"
+.PD
+The \fB\-d\fR \fInum\fR option specifies debugging options.
+If \fInum\fR is not specified, enable all debugging.
+.ie n .IP """\-h""" 4
+.el .IP "\f(CW\-h\fR" 4
+.IX Item "-h"
+.PD 0
+.ie n .IP """\-\-help""" 4
+.el .IP "\f(CW\-\-help\fR" 4
+.IX Item "--help"
+.PD
+The \fB\-h\fR option prints command line usage.
+.ie n .IP """\-O\f(CIname\f(CW""" 4
+.el .IP "\f(CW\-O\f(CIname\f(CW\fR" 4
+.IX Item "-Oname"
+.PD 0
+.ie n .IP """\-\-file\-format=\f(CIname\f(CW""" 4
+.el .IP "\f(CW\-\-file\-format=\f(CIname\f(CW\fR" 4
+.IX Item "--file-format=name"
+.PD
+Selects the format of the profile data files.  Recognized formats are
+\&\fBauto\fR (the default), \fBbsd\fR, \fB4.4bsd\fR, \fBmagic\fR, and
+\&\fBprof\fR (not yet supported).
+.ie n .IP """\-s""" 4
+.el .IP "\f(CW\-s\fR" 4
+.IX Item "-s"
+.PD 0
+.ie n .IP """\-\-sum""" 4
+.el .IP "\f(CW\-\-sum\fR" 4
+.IX Item "--sum"
+.PD
+The \fB\-s\fR option causes \f(CW\*(C`gprof\*(C'\fR to summarize the information
+in the profile data files it read in, and write out a profile data
+file called \fIgmon.sum\fR, which contains all the information from
+the profile data files that \f(CW\*(C`gprof\*(C'\fR read in.  The file \fIgmon.sum\fR
+may be one of the specified input files; the effect of this is to
+merge the data in the other input files into \fIgmon.sum\fR.
+.Sp
+Eventually you can run \f(CW\*(C`gprof\*(C'\fR again without \fB\-s\fR to analyze the
+cumulative data in the file \fIgmon.sum\fR.
+.ie n .IP """\-v""" 4
+.el .IP "\f(CW\-v\fR" 4
+.IX Item "-v"
+.PD 0
+.ie n .IP """\-\-version""" 4
+.el .IP "\f(CW\-\-version\fR" 4
+.IX Item "--version"
+.PD
+The \fB\-v\fR flag causes \f(CW\*(C`gprof\*(C'\fR to print the current version
+number, and then exit.
+.Sh "Deprecated Options"
+.IX Subsection "Deprecated Options"
+These options have been replaced with newer versions that use symspecs.
+.ie n .IP """\-e \f(CIfunction_name\f(CW""" 4
+.el .IP "\f(CW\-e \f(CIfunction_name\f(CW\fR" 4
+.IX Item "-e function_name"
+The \fB\-e\fR \fIfunction\fR option tells \f(CW\*(C`gprof\*(C'\fR to not print
+information about the function \fIfunction_name\fR (and its
+children...) in the call graph.  The function will still be listed
+as a child of any functions that call it, but its index number will be
+shown as \fB[not printed]\fR.  More than one \fB\-e\fR option may be
+given; only one \fIfunction_name\fR may be indicated with each \fB\-e\fR
+option.
+.ie n .IP """\-E \f(CIfunction_name\f(CW""" 4
+.el .IP "\f(CW\-E \f(CIfunction_name\f(CW\fR" 4
+.IX Item "-E function_name"
+The \f(CW\*(C`\-E \f(CIfunction\f(CW\*(C'\fR option works like the \f(CW\*(C`\-e\*(C'\fR option, but
+time spent in the function (and children who were not called from
+anywhere else), will not be used to compute the percentages-of-time for
+the call graph.  More than one \fB\-E\fR option may be given; only one
+\&\fIfunction_name\fR may be indicated with each \fB\-E\fR option.
+.ie n .IP """\-f \f(CIfunction_name\f(CW""" 4
+.el .IP "\f(CW\-f \f(CIfunction_name\f(CW\fR" 4
+.IX Item "-f function_name"
+The \fB\-f\fR \fIfunction\fR option causes \f(CW\*(C`gprof\*(C'\fR to limit the
+call graph to the function \fIfunction_name\fR and its children (and
+their children...).  More than one \fB\-f\fR option may be given;
+only one \fIfunction_name\fR may be indicated with each \fB\-f\fR
+option.
+.ie n .IP """\-F \f(CIfunction_name\f(CW""" 4
+.el .IP "\f(CW\-F \f(CIfunction_name\f(CW\fR" 4
+.IX Item "-F function_name"
+The \fB\-F\fR \fIfunction\fR option works like the \f(CW\*(C`\-f\*(C'\fR option, but
+only time spent in the function and its children (and their
+children...) will be used to determine total-time and
+percentages-of-time for the call graph.  More than one \fB\-F\fR option
+may be given; only one \fIfunction_name\fR may be indicated with each
+\&\fB\-F\fR option.  The \fB\-F\fR option overrides the \fB\-E\fR option.
+.SH "FILES"
+.IX Header "FILES"
+.ie n .IP """\f(CIa.out\f(CW""" 4
+.el .IP "\f(CW\f(CIa.out\f(CW\fR" 4
+.IX Item "a.out"
+the namelist and text space.
+.ie n .IP """\f(CIgmon.out\f(CW""" 4
+.el .IP "\f(CW\f(CIgmon.out\f(CW\fR" 4
+.IX Item "gmon.out"
+dynamic call graph and profile.
+.ie n .IP """\f(CIgmon.sum\f(CW""" 4
+.el .IP "\f(CW\f(CIgmon.sum\f(CW\fR" 4
+.IX Item "gmon.sum"
+summarized dynamic call graph and profile.
+.SH "BUGS"
+.IX Header "BUGS"
+The granularity of the sampling is shown, but remains
+statistical at best.
+We assume that the time for each execution of a function
+can be expressed by the total time for the function divided
+by the number of times the function is called.
+Thus the time propagated along the call graph arcs to the function's
+parents is directly proportional to the number of times that
+arc is traversed.
+.PP
+Parents that are not themselves profiled will have the time of
+their profiled children propagated to them, but they will appear
+to be spontaneously invoked in the call graph listing, and will
+not have their time propagated further.
+Similarly, signal catchers, even though profiled, will appear
+to be spontaneous (although for more obscure reasons).
+Any profiled children of signal catchers should have their times
+propagated properly, unless the signal catcher was invoked during
+the execution of the profiling routine, in which case all is lost.
+.PP
+The profiled program must call \f(CW\*(C`exit\*(C'\fR(2)
+or return normally for the profiling information to be saved
+in the \fIgmon.out\fR file.
+.SH "SEE ALSO"
+.IX Header "SEE ALSO"
+\&\fImonitor\fR\|(3), \fIprofil\fR\|(2), \fIcc\fR\|(1), \fIprof\fR\|(1), and the Info entry for \fIgprof\fR.
+.PP
+\&\*(L"An Execution Profiler for Modular Programs\*(R",
+by S. Graham, P. Kessler, M. McKusick;
+Software \- Practice and Experience,
+Vol. 13, pp. 671\-685, 1983.
+.PP
+\&\*(L"gprof: A Call Graph Execution Profiler\*(R",
+by S. Graham, P. Kessler, M. McKusick;
+Proceedings of the \s-1SIGPLAN\s0 '82 Symposium on Compiler Construction,
+\&\s-1SIGPLAN\s0 Notices, Vol. 17, No  6, pp. 120\-126, June 1982.
+.SH "COPYRIGHT"
+.IX Header "COPYRIGHT"
+Copyright (c) 1988, 1992, 1997, 1998, 1999, 2000, 2001, 2003,
+2007, 2008, 2009 Free Software Foundation, Inc.
+.PP
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the \s-1GNU\s0 Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, with no Front-Cover Texts, and with no
+Back-Cover Texts.  A copy of the license is included in the
+section entitled \*(L"\s-1GNU\s0 Free Documentation License\*(R".
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      .\" Automatically generated by Pod::Man 2.16 (Pod::Simple 3.05)
+.\"
+.\" Standard preamble:
+.\" ========================================================================
+.de Sh \" Subsection heading
+.br
+.if t .Sp
+.ne 5
+.PP
+\fB\\$1\fR
+.PP
+..
+.de Sp \" Vertical space (when we can't use .PP)
+.if t .sp .5v
+.if n .sp
+..
+.de Vb \" Begin verbatim text
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve \" End verbatim text
+.ft R
+.fi
+..
+.\" Set up some character translations and predefined strings.  \*(-- will
+.\" give an unbreakable dash, \*(PI will give pi, \*(L" will give a left
+.\" double quote, and \*(R" will give a right double quote.  \*(C+ will
+.\" give a nicer C++.  Capital omega is used to do unbreakable dashes and
+.\" therefore won't be available.  \*(C` and \*(C' expand to `' in nroff,
+.\" nothing in troff, for use with C<>.
+.tr \(*W-
+.ds C+ C\v'-.1v'\h'-1p'\s-2+\h'-1p'+\s0\v'.1v'\h'-1p'
+.ie n \{\
+.    ds -- \(*W-
+.    ds PI pi
+.    if (\n(.H=4u)&(1m=24u) .ds -- \(*W\h'-12u'\(*W\h'-12u'-\" diablo 10 pitch
+.    if (\n(.H=4u)&(1m=

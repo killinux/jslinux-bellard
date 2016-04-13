@@ -1,0 +1,1704 @@
+_RETURN'.
+     But if there are cleanups that need to occur right after the
+     looping body, it will be emitted between `OMP_CONTINUE' and
+     `OMP_RETURN'.
+
+`OMP_ATOMIC'
+     Represents `#pragma omp atomic'.
+
+     Operand 0 is the address at which the atomic operation is to be
+     performed.
+
+     Operand 1 is the expression to evaluate.  The gimplifier tries
+     three alternative code generation strategies.  Whenever possible,
+     an atomic update built-in is used.  If that fails, a
+     compare-and-swap loop is attempted.  If that also fails, a regular
+     critical section around the expression is used.
+
+`OMP_CLAUSE'
+     Represents clauses associated with one of the `OMP_' directives.
+     Clauses are represented by separate sub-codes defined in `tree.h'.
+     Clauses codes can be one of: `OMP_CLAUSE_PRIVATE',
+     `OMP_CLAUSE_SHARED', `OMP_CLAUSE_FIRSTPRIVATE',
+     `OMP_CLAUSE_LASTPRIVATE', `OMP_CLAUSE_COPYIN',
+     `OMP_CLAUSE_COPYPRIVATE', `OMP_CLAUSE_IF',
+     `OMP_CLAUSE_NUM_THREADS', `OMP_CLAUSE_SCHEDULE',
+     `OMP_CLAUSE_NOWAIT', `OMP_CLAUSE_ORDERED', `OMP_CLAUSE_DEFAULT',
+     and `OMP_CLAUSE_REDUCTION'.  Each code represents the
+     corresponding OpenMP clause.
+
+     Clauses associated with the same directive are chained together
+     via `OMP_CLAUSE_CHAIN'. Those clauses that accept a list of
+     variables are restricted to exactly one, accessed with
+     `OMP_CLAUSE_VAR'.  Therefore, multiple variables under the same
+     clause `C' need to be represented as multiple `C' clauses chained
+     together.  This facilitates adding new clauses during compilation.
+
+`VEC_LSHIFT_EXPR'
+
+`VEC_RSHIFT_EXPR'
+     These nodes represent whole vector left and right shifts,
+     respectively.  The first operand is the vector to shift; it will
+     always be of vector type.  The second operand is an expression for
+     the number of bits by which to shift.  Note that the result is
+     undefined if the second operand is larger than or equal to the
+     first operand's type size.
+
+`VEC_WIDEN_MULT_HI_EXPR'
+
+`VEC_WIDEN_MULT_LO_EXPR'
+     These nodes represent widening vector multiplication of the high
+     and low parts of the two input vectors, respectively.  Their
+     operands are vectors that contain the same number of elements
+     (`N') of the same integral type.  The result is a vector that
+     contains half as many elements, of an integral type whose size is
+     twice as wide.  In the case of `VEC_WIDEN_MULT_HI_EXPR' the high
+     `N/2' elements of the two vector are multiplied to produce the
+     vector of `N/2' products. In the case of `VEC_WIDEN_MULT_LO_EXPR'
+     the low `N/2' elements of the two vector are multiplied to produce
+     the vector of `N/2' products.
+
+`VEC_UNPACK_HI_EXPR'
+
+`VEC_UNPACK_LO_EXPR'
+     These nodes represent unpacking of the high and low parts of the
+     input vector, respectively.  The single operand is a vector that
+     contains `N' elements of the same integral or floating point type.
+     The result is a vector that contains half as many elements, of an
+     integral or floating point type whose size is twice as wide.  In
+     the case of `VEC_UNPACK_HI_EXPR' the high `N/2' elements of the
+     vector are extracted and widened (promoted).  In the case of
+     `VEC_UNPACK_LO_EXPR' the low `N/2' elements of the vector are
+     extracted and widened (promoted).
+
+`VEC_UNPACK_FLOAT_HI_EXPR'
+
+`VEC_UNPACK_FLOAT_LO_EXPR'
+     These nodes represent unpacking of the high and low parts of the
+     input vector, where the values are converted from fixed point to
+     floating point.  The single operand is a vector that contains `N'
+     elements of the same integral type.  The result is a vector that
+     contains half as many elements of a floating point type whose size
+     is twice as wide.  In the case of `VEC_UNPACK_HI_EXPR' the high
+     `N/2' elements of the vector are extracted, converted and widened.
+     In the case of `VEC_UNPACK_LO_EXPR' the low `N/2' elements of the
+     vector are extracted, converted and widened.
+
+`VEC_PACK_TRUNC_EXPR'
+     This node represents packing of truncated elements of the two
+     input vectors into the output vector.  Input operands are vectors
+     that contain the same number of elements of the same integral or
+     floating point type.  The result is a vector that contains twice
+     as many elements of an integral or floating point type whose size
+     is half as wide. The elements of the two vectors are demoted and
+     merged (concatenated) to form the output vector.
+
+`VEC_PACK_SAT_EXPR'
+     This node represents packing of elements of the two input vectors
+     into the output vector using saturation.  Input operands are
+     vectors that contain the same number of elements of the same
+     integral type.  The result is a vector that contains twice as many
+     elements of an integral type whose size is half as wide.  The
+     elements of the two vectors are demoted and merged (concatenated)
+     to form the output vector.
+
+`VEC_PACK_FIX_TRUNC_EXPR'
+     This node represents packing of elements of the two input vectors
+     into the output vector, where the values are converted from
+     floating point to fixed point.  Input operands are vectors that
+     contain the same number of elements of a floating point type.  The
+     result is a vector that contains twice as many elements of an
+     integral type whose size is half as wide.  The elements of the two
+     vectors are merged (concatenated) to form the output vector.
+
+`VEC_EXTRACT_EVEN_EXPR'
+
+`VEC_EXTRACT_ODD_EXPR'
+     These nodes represent extracting of the even/odd elements of the
+     two input vectors, respectively. Their operands and result are
+     vectors that contain the same number of elements of the same type.
+
+`VEC_INTERLEAVE_HIGH_EXPR'
+
+`VEC_INTERLEAVE_LOW_EXPR'
+     These nodes represent merging and interleaving of the high/low
+     elements of the two input vectors, respectively. The operands and
+     the result are vectors that contain the same number of elements
+     (`N') of the same type.  In the case of
+     `VEC_INTERLEAVE_HIGH_EXPR', the high `N/2' elements of the first
+     input vector are interleaved with the high `N/2' elements of the
+     second input vector. In the case of `VEC_INTERLEAVE_LOW_EXPR', the
+     low `N/2' elements of the first input vector are interleaved with
+     the low `N/2' elements of the second input vector.
+
+
+
+File: gccint.info,  Node: Tree SSA,  Next: RTL,  Prev: Trees,  Up: Top
+
+10 Analysis and Optimization of GIMPLE Trees
+********************************************
+
+GCC uses three main intermediate languages to represent the program
+during compilation: GENERIC, GIMPLE and RTL.  GENERIC is a
+language-independent representation generated by each front end.  It is
+used to serve as an interface between the parser and optimizer.
+GENERIC is a common representation that is able to represent programs
+written in all the languages supported by GCC.
+
+ GIMPLE and RTL are used to optimize the program.  GIMPLE is used for
+target and language independent optimizations (e.g., inlining, constant
+propagation, tail call elimination, redundancy elimination, etc).  Much
+like GENERIC, GIMPLE is a language independent, tree based
+representation.  However, it differs from GENERIC in that the GIMPLE
+grammar is more restrictive: expressions contain no more than 3
+operands (except function calls), it has no control flow structures and
+expressions with side-effects are only allowed on the right hand side
+of assignments.  See the chapter describing GENERIC and GIMPLE for more
+details.
+
+ This chapter describes the data structures and functions used in the
+GIMPLE optimizers (also known as "tree optimizers" or "middle end").
+In particular, it focuses on all the macros, data structures, functions
+and programming constructs needed to implement optimization passes for
+GIMPLE.
+
+* Menu:
+
+* GENERIC::		A high-level language-independent representation.
+* GIMPLE::              A lower-level factored tree representation.
+* Annotations::		Attributes for statements and variables.
+* Statement Operands::	Variables referenced by GIMPLE statements.
+* SSA::			Static Single Assignment representation.
+* Alias analysis::	Representing aliased loads and stores.
+
+
+File: gccint.info,  Node: GENERIC,  Next: GIMPLE,  Up: Tree SSA
+
+10.1 GENERIC
+============
+
+The purpose of GENERIC is simply to provide a language-independent way
+of representing an entire function in trees.  To this end, it was
+necessary to add a few new tree codes to the back end, but most
+everything was already there.  If you can express it with the codes in
+`gcc/tree.def', it's GENERIC.
+
+ Early on, there was a great deal of debate about how to think about
+statements in a tree IL.  In GENERIC, a statement is defined as any
+expression whose value, if any, is ignored.  A statement will always
+have `TREE_SIDE_EFFECTS' set (or it will be discarded), but a
+non-statement expression may also have side effects.  A `CALL_EXPR',
+for instance.
+
+ It would be possible for some local optimizations to work on the
+GENERIC form of a function; indeed, the adapted tree inliner works fine
+on GENERIC, but the current compiler performs inlining after lowering
+to GIMPLE (a restricted form described in the next section).  Indeed,
+currently the frontends perform this lowering before handing off to
+`tree_rest_of_compilation', but this seems inelegant.
+
+ If necessary, a front end can use some language-dependent tree codes
+in its GENERIC representation, so long as it provides a hook for
+converting them to GIMPLE and doesn't expect them to work with any
+(hypothetical) optimizers that run before the conversion to GIMPLE.
+The intermediate representation used while parsing C and C++ looks very
+little like GENERIC, but the C and C++ gimplifier hooks are perfectly
+happy to take it as input and spit out GIMPLE.
+
+
+File: gccint.info,  Node: GIMPLE,  Next: Annotations,  Prev: GENERIC,  Up: Tree SSA
+
+10.2 GIMPLE
+===========
+
+GIMPLE is a simplified subset of GENERIC for use in optimization.  The
+particular subset chosen (and the name) was heavily influenced by the
+SIMPLE IL used by the McCAT compiler project at McGill University,
+though we have made some different choices.  For one thing, SIMPLE
+doesn't support `goto'; a production compiler can't afford that kind of
+restriction.
+
+ GIMPLE retains much of the structure of the parse trees: lexical
+scopes are represented as containers, rather than markers.  However,
+expressions are broken down into a 3-address form, using temporary
+variables to hold intermediate values.  Also, control structures are
+lowered to gotos.
+
+ In GIMPLE no container node is ever used for its value; if a
+`COND_EXPR' or `BIND_EXPR' has a value, it is stored into a temporary
+within the controlled blocks, and that temporary is used in place of
+the container.
+
+ The compiler pass which lowers GENERIC to GIMPLE is referred to as the
+`gimplifier'.  The gimplifier works recursively, replacing complex
+statements with sequences of simple statements.
+
+* Menu:
+
+* Interfaces::
+* Temporaries::
+* GIMPLE Expressions::
+* Statements::
+* GIMPLE Example::
+* Rough GIMPLE Grammar::
+
+
+File: gccint.info,  Node: Interfaces,  Next: Temporaries,  Up: GIMPLE
+
+10.2.1 Interfaces
+-----------------
+
+The tree representation of a function is stored in `DECL_SAVED_TREE'.
+It is lowered to GIMPLE by a call to `gimplify_function_tree'.
+
+ If a front end wants to include language-specific tree codes in the
+tree representation which it provides to the back end, it must provide a
+definition of `LANG_HOOKS_GIMPLIFY_EXPR' which knows how to convert the
+front end trees to GIMPLE.  Usually such a hook will involve much of
+the same code for expanding front end trees to RTL.  This function can
+return fully lowered GIMPLE, or it can return GENERIC trees and let the
+main gimplifier lower them the rest of the way; this is often simpler.
+GIMPLE that is not fully lowered is known as "high GIMPLE" and consists
+of the IL before the pass `pass_lower_cf'.  High GIMPLE still contains
+lexical scopes and nested expressions, while low GIMPLE exposes all of
+the implicit jumps for control expressions like `COND_EXPR'.
+
+ The C and C++ front ends currently convert directly from front end
+trees to GIMPLE, and hand that off to the back end rather than first
+converting to GENERIC.  Their gimplifier hooks know about all the
+`_STMT' nodes and how to convert them to GENERIC forms.  There was some
+work done on a genericization pass which would run first, but the
+existence of `STMT_EXPR' meant that in order to convert all of the C
+statements into GENERIC equivalents would involve walking the entire
+tree anyway, so it was simpler to lower all the way.  This might change
+in the future if someone writes an optimization pass which would work
+better with higher-level trees, but currently the optimizers all expect
+GIMPLE.
+
+ A front end which wants to use the tree optimizers (and already has
+some sort of whole-function tree representation) only needs to provide
+a definition of `LANG_HOOKS_GIMPLIFY_EXPR', call
+`gimplify_function_tree' to lower to GIMPLE, and then hand off to
+`tree_rest_of_compilation' to compile and output the function.
+
+ You can tell the compiler to dump a C-like representation of the GIMPLE
+form with the flag `-fdump-tree-gimple'.
+
+
+File: gccint.info,  Node: Temporaries,  Next: GIMPLE Expressions,  Prev: Interfaces,  Up: GIMPLE
+
+10.2.2 Temporaries
+------------------
+
+When gimplification encounters a subexpression which is too complex, it
+creates a new temporary variable to hold the value of the subexpression,
+and adds a new statement to initialize it before the current statement.
+These special temporaries are known as `expression temporaries', and are
+allocated using `get_formal_tmp_var'.  The compiler tries to always
+evaluate identical expressions into the same temporary, to simplify
+elimination of redundant calculations.
+
+ We can only use expression temporaries when we know that it will not be
+reevaluated before its value is used, and that it will not be otherwise
+modified(1).  Other temporaries can be allocated using
+`get_initialized_tmp_var' or `create_tmp_var'.
+
+ Currently, an expression like `a = b + 5' is not reduced any further.
+We tried converting it to something like
+       T1 = b + 5;
+       a = T1;
+ but this bloated the representation for minimal benefit.  However, a
+variable which must live in memory cannot appear in an expression; its
+value is explicitly loaded into a temporary first.  Similarly, storing
+the value of an expression to a memory variable goes through a
+temporary.
+
+ ---------- Footnotes ----------
+
+ (1) These restrictions are derived from those in Morgan 4.8.
+
+
+File: gccint.info,  Node: GIMPLE Expressions,  Next: Statements,  Prev: Temporaries,  Up: GIMPLE
+
+10.2.3 Expressions
+------------------
+
+In general, expressions in GIMPLE consist of an operation and the
+appropriate number of simple operands; these operands must either be a
+GIMPLE rvalue (`is_gimple_val'), i.e. a constant or a register
+variable.  More complex operands are factored out into temporaries, so
+that
+       a = b + c + d
+ becomes
+       T1 = b + c;
+       a = T1 + d;
+
+ The same rule holds for arguments to a `CALL_EXPR'.
+
+ The target of an assignment is usually a variable, but can also be an
+`INDIRECT_REF' or a compound lvalue as described below.
+
+* Menu:
+
+* Compound Expressions::
+* Compound Lvalues::
+* Conditional Expressions::
+* Logical Operators::
+
+
+File: gccint.info,  Node: Compound Expressions,  Next: Compound Lvalues,  Up: GIMPLE Expressions
+
+10.2.3.1 Compound Expressions
+.............................
+
+The left-hand side of a C comma expression is simply moved into a
+separate statement.
+
+
+File: gccint.info,  Node: Compound Lvalues,  Next: Conditional Expressions,  Prev: Compound Expressions,  Up: GIMPLE Expressions
+
+10.2.3.2 Compound Lvalues
+.........................
+
+Currently compound lvalues involving array and structure field
+references are not broken down; an expression like `a.b[2] = 42' is not
+reduced any further (though complex array subscripts are).  This
+restriction is a workaround for limitations in later optimizers; if we
+were to convert this to
+
+       T1 = &a.b;
+       T1[2] = 42;
+
+ alias analysis would not remember that the reference to `T1[2]' came
+by way of `a.b', so it would think that the assignment could alias
+another member of `a'; this broke `struct-alias-1.c'.  Future optimizer
+improvements may make this limitation unnecessary.
+
+
+File: gccint.info,  Node: Conditional Expressions,  Next: Logical Operators,  Prev: Compound Lvalues,  Up: GIMPLE Expressions
+
+10.2.3.3 Conditional Expressions
+................................
+
+A C `?:' expression is converted into an `if' statement with each
+branch assigning to the same temporary.  So,
+
+       a = b ? c : d;
+ becomes
+       if (b)
+         T1 = c;
+       else
+         T1 = d;
+       a = T1;
+
+ Tree level if-conversion pass re-introduces `?:' expression, if
+appropriate.  It is used to vectorize loops with conditions using
+vector conditional operations.
+
+ Note that in GIMPLE, `if' statements are also represented using
+`COND_EXPR', as described below.
+
+
+File: gccint.info,  Node: Logical Operators,  Prev: Conditional Expressions,  Up: GIMPLE Expressions
+
+10.2.3.4 Logical Operators
+..........................
+
+Except when they appear in the condition operand of a `COND_EXPR',
+logical `and' and `or' operators are simplified as follows: `a = b &&
+c' becomes
+
+       T1 = (bool)b;
+       if (T1)
+         T1 = (bool)c;
+       a = T1;
+
+ Note that `T1' in this example cannot be an expression temporary,
+because it has two different assignments.
+
+
+File: gccint.info,  Node: Statements,  Next: GIMPLE Example,  Prev: GIMPLE Expressions,  Up: GIMPLE
+
+10.2.4 Statements
+-----------------
+
+Most statements will be assignment statements, represented by
+`MODIFY_EXPR'.  A `CALL_EXPR' whose value is ignored can also be a
+statement.  No other C expressions can appear at statement level; a
+reference to a volatile object is converted into a `MODIFY_EXPR'.  In
+GIMPLE form, type of `MODIFY_EXPR' is not meaningful.  Instead, use type
+of LHS or RHS.
+
+ There are also several varieties of complex statements.
+
+* Menu:
+
+* Blocks::
+* Statement Sequences::
+* Empty Statements::
+* Loops::
+* Selection Statements::
+* Jumps::
+* Cleanups::
+* GIMPLE Exception Handling::
+
+
+File: gccint.info,  Node: Blocks,  Next: Statement Sequences,  Up: Statements
+
+10.2.4.1 Blocks
+...............
+
+Block scopes and the variables they declare in GENERIC and GIMPLE are
+expressed using the `BIND_EXPR' code, which in previous versions of GCC
+was primarily used for the C statement-expression extension.
+
+ Variables in a block are collected into `BIND_EXPR_VARS' in
+declaration order.  Any runtime initialization is moved out of
+`DECL_INITIAL' and into a statement in the controlled block.  When
+gimplifying from C or C++, this initialization replaces the `DECL_STMT'.
+
+ Variable-length arrays (VLAs) complicate this process, as their size
+often refers to variables initialized earlier in the block.  To handle
+this, we currently split the block at that point, and move the VLA into
+a new, inner `BIND_EXPR'.  This strategy may change in the future.
+
+ `DECL_SAVED_TREE' for a GIMPLE function will always be a `BIND_EXPR'
+which contains declarations for the temporary variables used in the
+function.
+
+ A C++ program will usually contain more `BIND_EXPR's than there are
+syntactic blocks in the source code, since several C++ constructs have
+implicit scopes associated with them.  On the other hand, although the
+C++ front end uses pseudo-scopes to handle cleanups for objects with
+destructors, these don't translate into the GIMPLE form; multiple
+declarations at the same level use the same `BIND_EXPR'.
+
+
+File: gccint.info,  Node: Statement Sequences,  Next: Empty Statements,  Prev: Blocks,  Up: Statements
+
+10.2.4.2 Statement Sequences
+............................
+
+Multiple statements at the same nesting level are collected into a
+`STATEMENT_LIST'.  Statement lists are modified and traversed using the
+interface in `tree-iterator.h'.
+
+
+File: gccint.info,  Node: Empty Statements,  Next: Loops,  Prev: Statement Sequences,  Up: Statements
+
+10.2.4.3 Empty Statements
+.........................
+
+Whenever possible, statements with no effect are discarded.  But if they
+are nested within another construct which cannot be discarded for some
+reason, they are instead replaced with an empty statement, generated by
+`build_empty_stmt'.  Initially, all empty statements were shared, after
+the pattern of the Java front end, but this caused a lot of trouble in
+practice.
+
+ An empty statement is represented as `(void)0'.
+
+
+File: gccint.info,  Node: Loops,  Next: Selection Statements,  Prev: Empty Statements,  Up: Statements
+
+10.2.4.4 Loops
+..............
+
+At one time loops were expressed in GIMPLE using `LOOP_EXPR', but now
+they are lowered to explicit gotos.
+
+
+File: gccint.info,  Node: Selection Statements,  Next: Jumps,  Prev: Loops,  Up: Statements
+
+10.2.4.5 Selection Statements
+.............................
+
+A simple selection statement, such as the C `if' statement, is
+expressed in GIMPLE using a void `COND_EXPR'.  If only one branch is
+used, the other is filled with an empty statement.
+
+ Normally, the condition expression is reduced to a simple comparison.
+If it is a shortcut (`&&' or `||') expression, however, we try to break
+up the `if' into multiple `if's so that the implied shortcut is taken
+directly, much like the transformation done by `do_jump' in the RTL
+expander.
+
+ A `SWITCH_EXPR' in GIMPLE contains the condition and a `TREE_VEC' of
+`CASE_LABEL_EXPR's describing the case values and corresponding
+`LABEL_DECL's to jump to.  The body of the `switch' is moved after the
+`SWITCH_EXPR'.
+
+
+File: gccint.info,  Node: Jumps,  Next: Cleanups,  Prev: Selection Statements,  Up: Statements
+
+10.2.4.6 Jumps
+..............
+
+Other jumps are expressed by either `GOTO_EXPR' or `RETURN_EXPR'.
+
+ The operand of a `GOTO_EXPR' must be either a label or a variable
+containing the address to jump to.
+
+ The operand of a `RETURN_EXPR' is either `NULL_TREE', `RESULT_DECL',
+or a `MODIFY_EXPR' which sets the return value.  It would be nice to
+move the `MODIFY_EXPR' into a separate statement, but the special
+return semantics in `expand_return' make that difficult.  It may still
+happen in the future, perhaps by moving most of that logic into
+`expand_assignment'.
+
+
+File: gccint.info,  Node: Cleanups,  Next: GIMPLE Exception Handling,  Prev: Jumps,  Up: Statements
+
+10.2.4.7 Cleanups
+.................
+
+Destructors for local C++ objects and similar dynamic cleanups are
+represented in GIMPLE by a `TRY_FINALLY_EXPR'.  `TRY_FINALLY_EXPR' has
+two operands, both of which are a sequence of statements to execute.
+The first sequence is executed.  When it completes the second sequence
+is executed.
+
+ The first sequence may complete in the following ways:
+
+  1. Execute the last statement in the sequence and fall off the end.
+
+  2. Execute a goto statement (`GOTO_EXPR') to an ordinary label
+     outside the sequence.
+
+  3. Execute a return statement (`RETURN_EXPR').
+
+  4. Throw an exception.  This is currently not explicitly represented
+     in GIMPLE.
+
+
+ The second sequence is not executed if the first sequence completes by
+calling `setjmp' or `exit' or any other function that does not return.
+The second sequence is also not executed if the first sequence
+completes via a non-local goto or a computed goto (in general the
+compiler does not know whether such a goto statement exits the first
+sequence or not, so we assume that it doesn't).
+
+ After the second sequence is executed, if it completes normally by
+falling off the end, execution continues wherever the first sequence
+would have continued, by falling off the end, or doing a goto, etc.
+
+ `TRY_FINALLY_EXPR' complicates the flow graph, since the cleanup needs
+to appear on every edge out of the controlled block; this reduces the
+freedom to move code across these edges.  Therefore, the EH lowering
+pass which runs before most of the optimization passes eliminates these
+expressions by explicitly adding the cleanup to each edge.  Rethrowing
+the exception is represented using `RESX_EXPR'.
+
+
+File: gccint.info,  Node: GIMPLE Exception Handling,  Prev: Cleanups,  Up: Statements
+
+10.2.4.8 Exception Handling
+...........................
+
+Other exception handling constructs are represented using
+`TRY_CATCH_EXPR'.  `TRY_CATCH_EXPR' has two operands.  The first
+operand is a sequence of statements to execute.  If executing these
+statements does not throw an exception, then the second operand is
+ignored.  Otherwise, if an exception is thrown, then the second operand
+of the `TRY_CATCH_EXPR' is checked.  The second operand may have the
+following forms:
+
+  1. A sequence of statements to execute.  When an exception occurs,
+     these statements are executed, and then the exception is rethrown.
+
+  2. A sequence of `CATCH_EXPR' expressions.  Each `CATCH_EXPR' has a
+     list of applicable exception types and handler code.  If the
+     thrown exception matches one of the caught types, the associated
+     handler code is executed.  If the handler code falls off the
+     bottom, execution continues after the original `TRY_CATCH_EXPR'.
+
+  3. An `EH_FILTER_EXPR' expression.  This has a list of permitted
+     exception types, and code to handle a match failure.  If the
+     thrown exception does not match one of the allowed types, the
+     associated match failure code is executed.  If the thrown exception
+     does match, it continues unwinding the stack looking for the next
+     handler.
+
+
+ Currently throwing an exception is not directly represented in GIMPLE,
+since it is implemented by calling a function.  At some point in the
+future we will want to add some way to express that the call will throw
+an exception of a known type.
+
+ Just before running the optimizers, the compiler lowers the high-level
+EH constructs above into a set of `goto's, magic labels, and EH
+regions.  Continuing to unwind at the end of a cleanup is represented
+with a `RESX_EXPR'.
+
+
+File: gccint.info,  Node: GIMPLE Example,  Next: Rough GIMPLE Grammar,  Prev: Statements,  Up: GIMPLE
+
+10.2.5 GIMPLE Example
+---------------------
+
+     struct A { A(); ~A(); };
+
+     int i;
+     int g();
+     void f()
+     {
+       A a;
+       int j = (--i, i ? 0 : 1);
+
+       for (int x = 42; x > 0; --x)
+         {
+           i += g()*4 + 32;
+         }
+     }
+
+ becomes
+
+     void f()
+     {
+       int i.0;
+       int T.1;
+       int iftmp.2;
+       int T.3;
+       int T.4;
+       int T.5;
+       int T.6;
+
+       {
+         struct A a;
+         int j;
+
+         __comp_ctor (&a);
+         try
+           {
+             i.0 = i;
+             T.1 = i.0 - 1;
+             i = T.1;
+             i.0 = i;
+             if (i.0 == 0)
+               iftmp.2 = 1;
+             else
+               iftmp.2 = 0;
+             j = iftmp.2;
+             {
+               int x;
+
+               x = 42;
+               goto test;
+               loop:;
+
+               T.3 = g ();
+               T.4 = T.3 * 4;
+               i.0 = i;
+               T.5 = T.4 + i.0;
+               T.6 = T.5 + 32;
+               i = T.6;
+               x = x - 1;
+
+               test:;
+               if (x > 0)
+                 goto loop;
+               else
+                 goto break_;
+               break_:;
+             }
+           }
+         finally
+           {
+             __comp_dtor (&a);
+           }
+       }
+     }
+
+
+File: gccint.info,  Node: Rough GIMPLE Grammar,  Prev: GIMPLE Example,  Up: GIMPLE
+
+10.2.6 Rough GIMPLE Grammar
+---------------------------
+
+        function     : FUNCTION_DECL
+                             DECL_SAVED_TREE -> compound-stmt
+
+        compound-stmt: STATEMENT_LIST
+                             members -> stmt
+
+        stmt         : block
+                     | if-stmt
+                     | switch-stmt
+                     | goto-stmt
+                     | return-stmt
+                     | resx-stmt
+                     | label-stmt
+                     | try-stmt
+                     | modify-stmt
+                     | call-stmt
+
+        block        : BIND_EXPR
+                             BIND_EXPR_VARS -> chain of DECLs
+                             BIND_EXPR_BLOCK -> BLOCK
+                             BIND_EXPR_BODY -> compound-stmt
+
+        if-stmt      : COND_EXPR
+                             op0 -> condition
+                             op1 -> compound-stmt
+                             op2 -> compound-stmt
+
+        switch-stmt  : SWITCH_EXPR
+                             op0 -> val
+                             op1 -> NULL
+                             op2 -> TREE_VEC of CASE_LABEL_EXPRs
+                                 The CASE_LABEL_EXPRs are sorted by CASE_LOW,
+                                 and default is last.
+
+        goto-stmt    : GOTO_EXPR
+                             op0 -> LABEL_DECL | val
+
+        return-stmt  : RETURN_EXPR
+                             op0 -> return-value
+
+        return-value : NULL
+                     | RESULT_DECL
+                     | MODIFY_EXPR
+                             op0 -> RESULT_DECL
+                             op1 -> lhs
+
+        resx-stmt    : RESX_EXPR
+
+        label-stmt   : LABEL_EXPR
+                             op0 -> LABEL_DECL
+
+        try-stmt     : TRY_CATCH_EXPR
+                             op0 -> compound-stmt
+                             op1 -> handler
+                     | TRY_FINALLY_EXPR
+                             op0 -> compound-stmt
+                             op1 -> compound-stmt
+
+        handler      : catch-seq
+                     | EH_FILTER_EXPR
+                     | compound-stmt
+
+        catch-seq    : STATEMENT_LIST
+                             members -> CATCH_EXPR
+
+        modify-stmt  : MODIFY_EXPR
+                             op0 -> lhs
+                             op1 -> rhs
+
+        call-stmt    : CALL_EXPR
+                             op0 -> val | OBJ_TYPE_REF
+                             op1 -> call-arg-list
+
+        call-arg-list: TREE_LIST
+                             members -> lhs | CONST
+
+        addr-expr-arg: ID
+                     | compref
+
+        addressable  : addr-expr-arg
+                     | indirectref
+
+        with-size-arg: addressable
+                     | call-stmt
+
+        indirectref  : INDIRECT_REF
+                             op0 -> val
+
+        lhs          : addressable
+                     | bitfieldref
+                     | WITH_SIZE_EXPR
+                             op0 -> with-size-arg
+                             op1 -> val
+
+        min-lval     : ID
+                     | indirectref
+
+        bitfieldref  : BIT_FIELD_REF
+                             op0 -> inner-compref
+                             op1 -> CONST
+                             op2 -> val
+
+        compref      : inner-compref
+                     | TARGET_MEM_REF
+                             op0 -> ID
+                             op1 -> val
+                             op2 -> val
+                             op3 -> CONST
+                             op4 -> CONST
+                     | REALPART_EXPR
+                             op0 -> inner-compref
+                     | IMAGPART_EXPR
+                             op0 -> inner-compref
+
+        inner-compref: min-lval
+                     | COMPONENT_REF
+                             op0 -> inner-compref
+                             op1 -> FIELD_DECL
+                             op2 -> val
+                     | ARRAY_REF
+                             op0 -> inner-compref
+                             op1 -> val
+                             op2 -> val
+                             op3 -> val
+                     | ARRAY_RANGE_REF
+                             op0 -> inner-compref
+                             op1 -> val
+                             op2 -> val
+                             op3 -> val
+                     | VIEW_CONVERT_EXPR
+                             op0 -> inner-compref
+
+        condition    : val
+                     | RELOP
+                             op0 -> val
+                             op1 -> val
+
+        val          : ID
+                     | invariant ADDR_EXPR
+                             op0 -> addr-expr-arg
+                     | CONST
+
+        rhs          : lhs
+                     | CONST
+                     | call-stmt
+                     | ADDR_EXPR
+                             op0 -> addr-expr-arg
+                     | UNOP
+                             op0 -> val
+                     | BINOP
+                             op0 -> val
+                             op1 -> val
+                     | RELOP
+                             op0 -> val
+                             op1 -> val
+     		| COND_EXPR
+     			op0 -> condition
+     			op1 -> val
+     			op2 -> val
+
+
+File: gccint.info,  Node: Annotations,  Next: Statement Operands,  Prev: GIMPLE,  Up: Tree SSA
+
+10.3 Annotations
+================
+
+The optimizers need to associate attributes with statements and
+variables during the optimization process.  For instance, we need to
+know what basic block a statement belongs to or whether a variable has
+aliases.  All these attributes are stored in data structures called
+annotations which are then linked to the field `ann' in `struct
+tree_common'.
+
+ Presently, we define annotations for statements (`stmt_ann_t'),
+variables (`var_ann_t') and SSA names (`ssa_name_ann_t').  Annotations
+are defined and documented in `tree-flow.h'.
+
+
+File: gccint.info,  Node: Statement Operands,  Next: SSA,  Prev: Annotations,  Up: Tree SSA
+
+10.4 Statement Operands
+=======================
+
+Almost every GIMPLE statement will contain a reference to a variable or
+memory location.  Since statements come in different shapes and sizes,
+their operands are going to be located at various spots inside the
+statement's tree.  To facilitate access to the statement's operands,
+they are organized into lists associated inside each statement's
+annotation.  Each element in an operand list is a pointer to a
+`VAR_DECL', `PARM_DECL' or `SSA_NAME' tree node.  This provides a very
+convenient way of examining and replacing operands.
+
+ Data flow analysis and optimization is done on all tree nodes
+representing variables.  Any node for which `SSA_VAR_P' returns nonzero
+is considered when scanning statement operands.  However, not all
+`SSA_VAR_P' variables are processed in the same way.  For the purposes
+of optimization, we need to distinguish between references to local
+scalar variables and references to globals, statics, structures,
+arrays, aliased variables, etc.  The reason is simple, the compiler can
+gather complete data flow information for a local scalar.  On the other
+hand, a global variable may be modified by a function call, it may not
+be possible to keep track of all the elements of an array or the fields
+of a structure, etc.
+
+ The operand scanner gathers two kinds of operands: "real" and
+"virtual".  An operand for which `is_gimple_reg' returns true is
+considered real, otherwise it is a virtual operand.  We also
+distinguish between uses and definitions.  An operand is used if its
+value is loaded by the statement (e.g., the operand at the RHS of an
+assignment).  If the statement assigns a new value to the operand, the
+operand is considered a definition (e.g., the operand at the LHS of an
+assignment).
+
+ Virtual and real operands also have very different data flow
+properties.  Real operands are unambiguous references to the full
+object that they represent.  For instance, given
+
+     {
+       int a, b;
+       a = b
+     }
+
+ Since `a' and `b' are non-aliased locals, the statement `a = b' will
+have one real definition and one real use because variable `b' is
+completely modified with the contents of variable `a'.  Real definition
+are also known as "killing definitions".  Similarly, the use of `a'
+reads all its bits.
+
+ In contrast, virtual operands are used with variables that can have a
+partial or ambiguous reference.  This includes structures, arrays,
+globals, and aliased variables.  In these cases, we have two types of
+definitions.  For globals, structures, and arrays, we can determine from
+a statement whether a variable of these types has a killing definition.
+If the variable does, then the statement is marked as having a "must
+definition" of that variable.  However, if a statement is only defining
+a part of the variable (i.e. a field in a structure), or if we know
+that a statement might define the variable but we cannot say for sure,
+then we mark that statement as having a "may definition".  For
+instance, given
+
+     {
+       int a, b, *p;
+
+       if (...)
+         p = &a;
+       else
+         p = &b;
+       *p = 5;
+       return *p;
+     }
+
+ The assignment `*p = 5' may be a definition of `a' or `b'.  If we
+cannot determine statically where `p' is pointing to at the time of the
+store operation, we create virtual definitions to mark that statement
+as a potential definition site for `a' and `b'.  Memory loads are
+similarly marked with virtual use operands.  Virtual operands are shown
+in tree dumps right before the statement that contains them.  To
+request a tree dump with virtual operands, use the `-vops' option to
+`-fdump-tree':
+
+     {
+       int a, b, *p;
+
+       if (...)
+         p = &a;
+       else
+         p = &b;
+       # a = VDEF <a>
+       # b = VDEF <b>
+       *p = 5;
+
+       # VUSE <a>
+       # VUSE <b>
+       return *p;
+     }
+
+ Notice that `VDEF' operands have two copies of the referenced
+variable.  This indicates that this is not a killing definition of that
+variable.  In this case we refer to it as a "may definition" or
+"aliased store".  The presence of the second copy of the variable in
+the `VDEF' operand will become important when the function is converted
+into SSA form.  This will be used to link all the non-killing
+definitions to prevent optimizations from making incorrect assumptions
+about them.
+
+ Operands are updated as soon as the statement is finished via a call
+to `update_stmt'.  If statement elements are changed via `SET_USE' or
+`SET_DEF', then no further action is required (i.e., those macros take
+care of updating the statement).  If changes are made by manipulating
+the statement's tree directly, then a call must be made to
+`update_stmt' when complete.  Calling one of the `bsi_insert' routines
+or `bsi_replace' performs an implicit call to `update_stmt'.
+
+10.4.1 Operand Iterators And Access Routines
+--------------------------------------------
+
+Operands are collected by `tree-ssa-operands.c'.  They are stored
+inside each statement's annotation and can be accessed through either
+the operand iterators or an access routine.
+
+ The following access routines are available for examining operands:
+
+  1. `SINGLE_SSA_{USE,DEF,TREE}_OPERAND': These accessors will return
+     NULL unless there is exactly one operand matching the specified
+     flags.  If there is exactly one operand, the operand is returned
+     as either a `tree', `def_operand_p', or `use_operand_p'.
+
+          tree t = SINGLE_SSA_TREE_OPERAND (stmt, flags);
+          use_operand_p u = SINGLE_SSA_USE_OPERAND (stmt, SSA_ALL_VIRTUAL_USES);
+          def_operand_p d = SINGLE_SSA_DEF_OPERAND (stmt, SSA_OP_ALL_DEFS);
+
+  2. `ZERO_SSA_OPERANDS': This macro returns true if there are no
+     operands matching the specified flags.
+
+          if (ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS))
+            return;
+
+  3. `NUM_SSA_OPERANDS': This macro Returns the number of operands
+     matching 'flags'.  This actually executes a loop to perform the
+     count, so only use this if it is really needed.
+
+          int count = NUM_SSA_OPERANDS (stmt, flags)
+
+ If you wish to iterate over some or all operands, use the
+`FOR_EACH_SSA_{USE,DEF,TREE}_OPERAND' iterator.  For example, to print
+all the operands for a statement:
+
+     void
+     print_ops (tree stmt)
+     {
+       ssa_op_iter;
+       tree var;
+
+       FOR_EACH_SSA_TREE_OPERAND (var, stmt, iter, SSA_OP_ALL_OPERANDS)
+         print_generic_expr (stderr, var, TDF_SLIM);
+     }
+
+ How to choose the appropriate iterator:
+
+  1. Determine whether you are need to see the operand pointers, or
+     just the     trees, and choose the appropriate macro:
+
+          Need            Macro:
+          ----            -------
+          use_operand_p   FOR_EACH_SSA_USE_OPERAND
+          def_operand_p   FOR_EACH_SSA_DEF_OPERAND
+          tree            FOR_EACH_SSA_TREE_OPERAND
+
+  2. You need to declare a variable of the type you are interested
+     in, and an ssa_op_iter structure which serves as the loop
+     controlling variable.
+
+  3. Determine which operands you wish to use, and specify the flags of
+        those you are interested in.  They are documented in
+     `tree-ssa-operands.h':
+
+          #define SSA_OP_USE              0x01    /* Real USE operands.  */
+          #define SSA_OP_DEF              0x02    /* Real DEF operands.  */
+          #define SSA_OP_VUSE             0x04    /* VUSE operands.  */
+          #define SSA_OP_VMAYUSE          0x08    /* USE portion of VDEFS.  */
+          #define SSA_OP_VDEF             0x10    /* DEF portion of VDEFS.  */
+
+          /* These are commonly grouped operand flags.  */
+          #define SSA_OP_VIRTUAL_USES     (SSA_OP_VUSE | SSA_OP_VMAYUSE)
+          #define SSA_OP_VIRTUAL_DEFS     (SSA_OP_VDEF)
+          #define SSA_OP_ALL_USES         (SSA_OP_VIRTUAL_USES | SSA_OP_USE)
+          #define SSA_OP_ALL_DEFS         (SSA_OP_VIRTUAL_DEFS | SSA_OP_DEF)
+          #define SSA_OP_ALL_OPERANDS     (SSA_OP_ALL_USES | SSA_OP_ALL_DEFS)
+
+ So if you want to look at the use pointers for all the `USE' and
+`VUSE' operands, you would do something like:
+
+       use_operand_p use_p;
+       ssa_op_iter iter;
+
+       FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, (SSA_OP_USE | SSA_OP_VUSE))
+         {
+           process_use_ptr (use_p);
+         }
+
+ The `TREE' macro is basically the same as the `USE' and `DEF' macros,
+only with the use or def dereferenced via `USE_FROM_PTR (use_p)' and
+`DEF_FROM_PTR (def_p)'.  Since we aren't using operand pointers, use
+and defs flags can be mixed.
+
+       tree var;
+       ssa_op_iter iter;
+
+       FOR_EACH_SSA_TREE_OPERAND (var, stmt, iter, SSA_OP_VUSE)
+         {
+            print_generic_expr (stderr, var, TDF_SLIM);
+         }
+
+ `VDEF's are broken into two flags, one for the `DEF' portion
+(`SSA_OP_VDEF') and one for the USE portion (`SSA_OP_VMAYUSE').  If all
+you want to look at are the `VDEF's together, there is a fourth
+iterator macro for this, which returns both a def_operand_p and a
+use_operand_p for each `VDEF' in the statement.  Note that you don't
+need any flags for this one.
+
+       use_operand_p use_p;
+       def_operand_p def_p;
+       ssa_op_iter iter;
+
+       FOR_EACH_SSA_MAYDEF_OPERAND (def_p, use_p, stmt, iter)
+         {
+           my_code;
+         }
+
+ There are many examples in the code as well, as well as the
+documentation in `tree-ssa-operands.h'.
+
+ There are also a couple of variants on the stmt iterators regarding PHI
+nodes.
+
+ `FOR_EACH_PHI_ARG' Works exactly like `FOR_EACH_SSA_USE_OPERAND',
+except it works over `PHI' arguments instead of statement operands.
+
+     /* Look at every virtual PHI use.  */
+     FOR_EACH_PHI_ARG (use_p, phi_stmt, iter, SSA_OP_VIRTUAL_USES)
+     {
+        my_code;
+     }
+
+     /* Look at every real PHI use.  */
+     FOR_EACH_PHI_ARG (use_p, phi_stmt, iter, SSA_OP_USES)
+       my_code;
+
+     /* Look at every every PHI use.  */
+     FOR_EACH_PHI_ARG (use_p, phi_stmt, iter, SSA_OP_ALL_USES)
+       my_code;
+
+ `FOR_EACH_PHI_OR_STMT_{USE,DEF}' works exactly like
+`FOR_EACH_SSA_{USE,DEF}_OPERAND', except it will function on either a
+statement or a `PHI' node.  These should be used when it is appropriate
+but they are not quite as efficient as the individual `FOR_EACH_PHI'
+and `FOR_EACH_SSA' routines.
+
+     FOR_EACH_PHI_OR_STMT_USE (use_operand_p, stmt, iter, flags)
+       {
+          my_code;
+       }
+
+     FOR_EACH_PHI_OR_STMT_DEF (def_operand_p, phi, iter, flags)
+       {
+          my_code;
+       }
+
+10.4.2 Immediate Uses
+---------------------
+
+Immediate use information is now always available.  Using the immediate
+use iterators, you may examine every use of any `SSA_NAME'. For
+instance, to change each use of `ssa_var' to `ssa_var2' and call
+fold_stmt on each stmt after that is done:
+
+       use_operand_p imm_use_p;
+       imm_use_iterator iterator;
+       tree ssa_var, stmt;
+
+
+       FOR_EACH_IMM_USE_STMT (stmt, iterator, ssa_var)
+         {
+           FOR_EACH_IMM_USE_ON_STMT (imm_use_p, iterator)
+             SET_USE (imm_use_p, ssa_var_2);
+           fold_stmt (stmt);
+         }
+
+ There are 2 iterators which can be used. `FOR_EACH_IMM_USE_FAST' is
+used when the immediate uses are not changed, i.e., you are looking at
+the uses, but not setting them.
+
+ If they do get changed, then care must be taken that things are not
+changed under the iterators, so use the `FOR_EACH_IMM_USE_STMT' and
+`FOR_EACH_IMM_USE_ON_STMT' iterators.  They attempt to preserve the
+sanity of the use list by moving all the uses for a statement into a
+controlled position, and then iterating over those uses.  Then the
+optimization can manipulate the stmt when all the uses have been
+processed.  This is a little slower than the FAST version since it adds
+a placeholder element and must sort through the list a bit for each
+statement.  This placeholder element must be also be removed if the
+loop is terminated early.  The macro `BREAK_FROM_IMM_USE_SAFE' is
+provided to do this :
+
+       FOR_EACH_IMM_USE_STMT (stmt, iterator, ssa_var)
+         {
+           if (stmt == last_stmt)
+             BREAK_FROM_SAFE_IMM_USE (iter);
+
+           FOR_EACH_IMM_USE_ON_STMT (imm_use_p, iterator)
+             SET_USE (imm_use_p, ssa_var_2);
+           fold_stmt (stmt);
+         }
+
+ There are checks in `verify_ssa' which verify that the immediate use
+list is up to date, as well as checking that an optimization didn't
+break from the loop without using this macro.  It is safe to simply
+'break'; from a `FOR_EACH_IMM_USE_FAST' traverse.
+
+ Some useful functions and macros:
+  1. `has_zero_uses (ssa_var)' : Returns true if there are no uses of
+     `ssa_var'.
+
+  2. `has_single_use (ssa_var)' : Returns true if there is only a
+     single use of `ssa_var'.
+
+  3. `single_imm_use (ssa_var, use_operand_p *ptr, tree *stmt)' :
+     Returns true if there is only a single use of `ssa_var', and also
+     returns the use pointer and statement it occurs in in the second
+     and third parameters.
+
+  4. `num_imm_uses (ssa_var)' : Returns the number of immediate uses of
+     `ssa_var'. It is better not to use this if possible since it simply
+     utilizes a loop to count the uses.
+
+  5. `PHI_ARG_INDEX_FROM_USE (use_p)' : Given a use within a `PHI'
+     node, return the index number for the use.  An assert is triggered
+     if the use isn't located in a `PHI' node.
+
+  6. `USE_STMT (use_p)' : Return the statement a use occurs in.
+
+ Note that uses are not put into an immediate use list until their
+statement is actually inserted into the instruction stream via a
+`bsi_*' routine.
+
+ It is also still possible to utilize lazy updating of statements, but
+this should be used only when absolutely required.  Both alias analysis
+and the dominator optimizations currently do this.
+
+ When lazy updating is being used, the immediate use information is out
+of date and cannot be used reliably.  Lazy updating is achieved by
+simply marking statements modified via calls to `mark_stmt_modified'
+instead of `update_stmt'.  When lazy updating is no longer required,
+all the modified statements must have `update_stmt' called in order to
+bring them up to date.  This must be done before the optimization is
+finished, or `verify_ssa' will trigger an abort.
+
+ This is done with a simple loop over the instruction stream:
+       block_stmt_iterator bsi;
+       basic_block bb;
+       FOR_EACH_BB (bb)
+         {
+           for (bsi = bsi_start (bb); !bsi_end_p (bsi); bsi_next (&bsi))
+             update_stmt_if_modified (bsi_stmt (bsi));
+         }
+
+
+File: gccint.info,  Node: SSA,  Next: Alias analysis,  Prev: Statement Operands,  Up: Tree SSA
+
+10.5 Static Single Assignment
+=============================
+
+Most of the tree optimizers rely on the data flow information provided
+by the Static Single Assignment (SSA) form.  We implement the SSA form
+as described in `R. Cytron, J. Ferrante, B. Rosen, M. Wegman, and K.
+Zadeck.  Efficiently Computing Static Single Assignment Form and the
+Control Dependence Graph.  ACM Transactions on Programming Languages
+and Systems, 13(4):451-490, October 1991'.
+
+ The SSA form is based on the premise that program variables are
+assigned in exactly one location in the program.  Multiple assignments
+to the same variable create new versions of that variable.  Naturally,
+actual programs are seldom in SSA form initially because variables tend
+to be assigned multiple times.  The compiler modifies the program
+representation so that every time a variable is assigned in the code, a
+new version of the variable is created.  Different versions of the same
+variable are distinguished by subscripting the variable name with its
+version number.  Variables used in the right-hand side of expressions
+are renamed so that their version number matches that of the most
+recent assignment.
+
+ We represent variable versions using `SSA_NAME' nodes.  The renaming
+process in `tree-ssa.c' wraps every real and virtual operand with an
+`SSA_NAME' node which contains the version number and the statement
+that created the `SSA_NAME'.  Only definitions and virtual definitions
+may create new `SSA_NAME' nodes.
+
+ Sometimes, flow of control makes it impossible to determine the most
+recent version of a variable.  In these cases, the compiler inserts an
+artificial definition for that variable called "PHI function" or "PHI
+node".  This new definition merges all the incoming versions of the
+variable to create a new name for it.  For instance,
+
+     if (...)
+       a_1 = 5;
+     else if (...)
+       a_2 = 2;
+     else
+       a_3 = 13;
+
+     # a_4 = PHI <a_1, a_2, a_3>
+     return a_4;
+
+ Since it is not possible to determine which of the three branches will
+be taken at runtime, we don't know which of `a_1', `a_2' or `a_3' to
+use at the return statement.  So, the SSA renamer creates a new version
+`a_4' which is assigned the result of "merging" `a_1', `a_2' and `a_3'.
+Hence, PHI nodes mean "one of these operands.  I don't know which".
+
+ The following macros can be used to examine PHI nodes
+
+ -- Macro: PHI_RESULT (PHI)
+     Returns the `SSA_NAME' created by PHI node PHI (i.e., PHI's LHS).
+
+ -- Macro: PHI_NUM_ARGS (PHI)
+     Returns the number of arguments in PHI.  This number is exactly
+     the number of incoming edges to the basic block holding PHI.
+
+ -- Macro: PHI_ARG_ELT (PHI, I)
+     Returns a tuple representing the Ith argument of PHI.  Each
+     element of this tuple contains an `SSA_NAME' VAR and the incoming
+     edge through which VAR flows.
+
+ -- Macro: PHI_ARG_EDGE (PHI, I)
+     Returns the incoming edge for the Ith argument of PHI.
+
+ -- Macro: PHI_ARG_DEF (PHI, I)
+     Returns the `SSA_NAME' for the Ith argument of PHI.
+
+10.5.1 Preserving the SSA form
+------------------------------
+
+Some optimization passes make changes to the function that invalidate
+the SSA property.  This can happen when a pass has added new symbols or
+changed the program so that variables that were previously aliased
+aren't anymore.  Whenever something like this happens, the affected
+symbols must be renamed into SSA form again.  Transformations that emit
+new code or replicate existing statements will also need to update the
+SSA form.
+
+ Since GCC implements two different SSA forms for register and virtual
+variables, keeping the SSA form up to date depends on whether you are
+updating register or virtual names.  In both cases, the general idea
+behind incremental SSA updates is similar: when new SSA names are
+created, they typically are meant to replace other existing names in
+the program.
+
+ For instance, given the following code:
+
+          1	L0:
+          2	x_1 = PHI (0, x_5)
+          3	if (x_1 < 10)
+          4	  if (x_1 > 7)
+          5	    y_2 = 0
+          6	  else
+          7	    y_3 = x_1 + x_7
+          8	  endif
+          9	  x_5 = x_1 + 1
+          10   goto L0;
+          11	endif
+
+ Suppose that we insert new names `x_10' and `x_11' (lines `4' and `8').
+
+          1	L0:
+          2	x_1 = PHI (0, x_5)
+          3	if (x_1 < 10)
+          4	  x_10 = ...
+          5	  if (x_1 > 7)
+          6	    y_2 = 0
+          7	  else
+          8	    x_11 = ...
+          9	    y_3 = x_1 + x_7
+          10	  endif
+          11	  x_5 = x_1 + 1
+          12	  goto L0;
+          13	endif
+
+ We want to replace all the uses of `x_1' with the new definitions of
+`x_10' and `x_11'.  Note that the only uses that should be replaced are
+those at lines `5', `9' and `11'.  Also, the use of `x_7' at line `9'
+should _not_ be replaced (this is why we cannot just mark symbol `x' for
+renaming).
+
+ Additionally, we may need to insert a PHI node at line `11' because
+that is a merge point for `x_10' and `x_11'.  So the use of `x_1' at
+line `11' will be replaced with the new PHI node.  The insertion of PHI
+nodes is optional.  They are not strictly necessary to preserve the SSA
+form, and depending on what the caller inserted, they may not even be
+useful for the optimizers.
+
+ Updating the SSA form is a two step process.  First, the pass has to
+identify which names need to be updated and/or which symbols need to be
+renamed into SSA form for the first time.  When new names are
+introduced to replace existing names in the program, the mapping
+between the old and the new names are registered by calling
+`register_new_name_mapping' (note that if your pass creates new code by
+duplicating basic blocks, the call to `tree_duplicate_bb' will set up
+the necessary mappings automatically).  On the other hand, if your pass
+exposes a new symbol that should be put in SSA form for the first time,
+the new symbol should be registered with `mark_sym_for_renaming'.
+
+ After the replacement mappings have been registered and new symbols
+marked for renaming, a call to `update_ssa' makes the registered
+changes.  This can be done with an explicit call or by creating `TODO'
+flags in the `tree_opt_pass' structure for your pass.  There are
+several `TODO' flags that control the behavior of `update_ssa':
+
+   * `TODO_update_ssa'.  Update the SSA form inserting PHI nodes
+     for newly exposed symbols and virtual names marked for updating.
+         When updating real names, only insert PHI nodes for a real name
+          `O_j' in blocks reached by all the new and old definitions for
+          `O_j'.  If the iterated dominance frontier for `O_j'       is
+     not pruned, we may end up inserting PHI nodes in blocks that
+     have one or more edges with no incoming definition for
+     `O_j'.  This would lead to uninitialized warnings for
+     `O_j''s symbol.
+
+   * `TODO_update_ssa_no_phi'.  Update the SSA form without
+     inserting any new PHI nodes at all.  This is used by passes that
+        have either inserted all the PHI nodes themselves or passes that
+          need only to patch use-def and def-def chains for virtuals
+       (e.g., DCE).
+
+   * `TODO_update_ssa_full_phi'.  Insert PHI nodes everywhere
+     they are needed.  No pruning of the IDF is done.  This is used
+      by passes that need the PHI nodes for `O_j' even if it
+     means that some arguments will come from the default definition
+       of `O_j''s symbol (e.g., `pass_linear_transform').
+
+     WARNING: If you need to use this flag, chances are that your
+     pass may be doing something wrong.  Inserting PHI nodes for an
+      old name where not all edges carry a new replacement may lead to
+         silent codegen errors or spurious uninitialized warnings.
+
+   * `TODO_update_ssa_only_virtuals'.  Passes that update the       SSA
+     form on their own may want to delegate the updating of
+     virtual names to the generic updater.  Since FUD chains are
+     easier to maintain, this simplifies the work they need to do.
+      NOTE: If this flag is used, any OLD->NEW mappings for real names
+         are explicitly destroyed and only the symbols marked for
+     renaming are processed.
+
+10.5.2 Preserving the virtual SSA form
+--------------------------------------
+
+The virtual SSA form is harder to preserve than the non-virtual SSA form
+mainly because the set of virtual operands for a statement may change at
+what some would consider unexpected times.  In general, statement
+modifications should be bracketed between calls to `push_stmt_changes'
+and `pop_stmt_changes'.  For example,
+
+         munge_stmt (tree stmt)
+         {
+            push_stmt_changes (&stmt);
+            ... rewrite STMT ...
+            pop_stmt_changes (&stmt);
+         }
+
+ The call to `push_stmt_changes' saves the current state of the
+statement operands and the call to `pop_stmt_changes' compares the
+saved state with the current one and does the appropriate symbol
+marking for the SSA renamer.
+
+ It is possible to modify several statements at a time, provided that
+`push_stmt_changes' and `pop_stmt_changes' are called in LIFO order, as
+when processing a stack of statements.
+
+ Additionally, if the pass discovers that it did not need to make
+changes to the statement after calling `push_stmt_changes', it can
+simply discard the topmost change buffer by calling
+`discard_stmt_changes'.  This will avoid the expensive operand re-scan
+operation and the buffer comparison that determines if symbols need to
+be marked for renaming.
+
+10.5.3 Examining `SSA_NAME' nodes
+---------------------------------
+
+The following macros can be used to examine `SSA_NAME' nodes
+
+ -- Macro: SSA_NAME_DEF_STMT (VAR)
+     Returns the statement S that creates the `SSA_NAME' VAR.  If S is
+     an empty statement (i.e., `IS_EMPTY_STMT (S)' returns `true'), it
+     means that the first reference to this variable is a USE or a VUSE.
+
+ -- Macro: SSA_NAME_VERSION (VAR)
+     Returns the version number of the `SSA_NAME' object VAR.
+
+10.5.4 Walking use-def chains
+-----------------------------
+
+ -- Tree SSA function: void walk_use_def_chains (VAR, FN, DATA)
+     Walks use-def chains starting at the `SSA_NAME' node VAR.  Calls
+     function FN at each reaching definition found.  Function FN takes
+     three arguments: VAR, its defining statement (DEF_STMT) and a
+     generic pointer to whatever state information that FN may want to
+     maintain (DATA).  Function FN is able to stop the walk by
+     returning `true', otherwise in order to continue the walk, FN
+     should return `false'.
+
+     Note, that if DEF_STMT is a `PHI' node, the semantics are slightly
+     different.  For each argument ARG of the PHI node, this function
+     will:
+
+       1. Walk the use-def chains for ARG.
+
+       2. Call `FN (ARG, PHI, DATA)'.
+
+     Note how the first argument to FN is no longer the original
+     variable VAR, but the PHI argument currently being examined.  If
+     FN wants to get at VAR, it should call `PHI_RESULT' (PHI).
+
+10.5.5 Walking the dominator tree
+---------------------------------
+
+ -- Tree SSA function: void walk_dominator_tree (WALK_DATA, BB)
+     This function walks the dominator tree for the current CFG calling
+     a set of callback functions defined in STRUCT DOM_WALK_DATA in
+     `domwalk.h'.  The call back functions you need to define give you
+     hooks to execute custom code at various points during traversal:
+
+       1. Once to initialize any local data needed while processing
+           BB and its children.  This local data is pushed into an
+          internal stack which is automatically pushed and popped as the
+               walker traverses the dominator tree.
+
+       2. Once before traversing all the statements in the BB.
+
+       3. Once for every statement inside BB.
+
+       4. Once after traversing all the statements and before recursing
+               into BB's dominator children.
+
+       5. It then recurses into all the dominator children of BB.
+
+       6. After recursing into all the dominator children of BB it
+          can, optionally, traverse every statement in BB again
+          (i.e., repeating steps 2 and 3).
+
+       7. Once after walking the statements in BB and BB's
+          dominator children.  At this stage, the block local data stack
+               is popped.
+
+
+File: gccint.info,  Node: Alias analysis,  Prev: SSA,  Up: Tree SSA
+
+10.6 Alias analysis
+===================
+
+Alias analysis proceeds in 4 main phases:
+
+  1. Structural alias analysis.
+
+     This phase walks the types for structure variables, and determines
+     which of the fields can overlap using offset and size of each
+     field.  For each field, a "subvariable" called a "Structure field
+     tag" (SFT) is created, which represents that field as a separate
+     variable.  All accesses that could possibly overlap with a given
+     field will have virtual operands for the SFT of that field.
+
+          struct foo
+          {
+            int a;
+            int b;
+          }
+          struct foo temp;
+          int bar (void)
+          {
+            int tmp1, tmp2, tmp3;
+            SFT.0_2 = VDEF <SFT.0_1>
+            temp.a = 5;
+            SFT.1_4 = VDEF <SFT.1_3>
+            temp.b = 6;
+
+            VUSE <SFT.1_4>
+            tmp1_5 = temp.b;
+            VUSE <SFT.0_2>
+            tmp2_6 = temp.a;
+
+            tmp3_7 = tmp1_5 + tmp2_6;
+            return tmp3_7;
+          }
+
+     If you copy the symbol tag for a variable for some reason, you
+     probably also want to copy the subvariables for that variable.
+
+  2. Points-to and escape analysis.
+
+     This phase walks the use-def chains in the SSA web looking for
+     three things:
+
+
+
+
+        * Assignments of the form `P_i = &VAR'
+
+        * Assignments of the form P_i = malloc()
+
+        * Pointers and ADDR_EXPR that escape the current function.
+
+     The concept of `escaping' is the same one used in the Java world.
+     When a pointer or an ADDR_EXPR escapes, it means that it has been
+     exposed outside of the current function.  So, assignment to global
+     variables, function arguments and returning a pointer are all
+     escape sites.
+
+     This is where we are currently limited.  Since not everything is
+     renamed into SSA, we lose track of escape properties when a
+     pointer is stashed inside a field in a structure, for instance.
+     In those cases, we are assuming that the pointer does escape.
+
+     We use escape analysis to determine whether a variable is
+     call-clobbered.  Simply put, if an ADDR_EXPR escapes, then the
+     variable is call-clobbered.  If a pointer P_i escapes, then all
+     the variables pointed-to by P_i (and its memory tag) also escape.
+
+  3. Compute flow-sensitive aliases
+
+     We have two classes of memory tags.  Memory tags associated with
+     the pointed-to data type of the pointers in the program.  These
+     tags are called "symbol memory tag" (SMT).  The other class are
+     those associated with SSA_NAMEs, called "name memory tag" (NMT).
+     The basic idea is that when adding operands for an INDIRECT_REF
+     *P_i, we will first check whether P_i has a name tag, if it does
+     we use it, because that will have more precise aliasing
+     information.  Otherwise, we use the standard symbol tag.
+
+     In this phase, we go through all the pointers we found in
+     points-to analysis and create alias sets for the name memory tags
+     associated with each pointer P_i.  If P_i escapes, we mark
+     call-clobbered the variables it points to and its tag.
+
+  4. Compute flow-insensitive aliases
+
+     This pass will compare the alias set of every symbol memory tag and
+     every addressable variable found in the program.  Given a symbol
+     memory tag SMT and an addressable variable V.  If the alias sets
+     of SMT and V conflict (as computed by may_alias_p), then V is
+     marked as an alias tag and added to the alias set of SMT.
+
+     Every language that wishes to perform language-specific alias
+     analysis should define a function that computes, given a `tree'
+     node, an alias set for the node.  Nodes in different alias sets
+     are not allowed to alias.  For an example, see the C front-end
+     function `c_get_alias_set'.
+
+ For instance, consider the following function:
+
+     foo (int i)
+     {
+       int *p, *q, a, b;
+
+       if (i > 10)
+         p = &a;
+       else
+         q = &b;
+
+       *p = 3;
+       *q = 5;
+       a = b + 2;
+       return *p;
+     }
+
+ After aliasing analysis has finished, the symbol memory tag for
+pointer `p' will have two aliases, namely variables `a' and `b'.  Every
+time pointer `p' is dereferenced, we want to mark the operation as a
+potential reference to `a' and `b'.
+
+     foo (int i)
+     {
+       int *p, a, b;
+
+       if (i_2 > 10)
+         p_4 = &a;
+       else
+         p_6 = &b;
+       # p_1 = PHI <p_4(1), p_6(2)>;
+
+       # a_7 = VDEF <a_3>;
+       # b_8 = VDEF <b_5>;
+       *p_1 = 3;
+
+       # a_9 = VDEF <a_7>
+       # VUSE <b_8>
+       a_9 = b_8 + 2;
+
+       # VUSE <a_9>;
+       # VUSE <b_8>;
+       return *p_1;
+     }
+
+ In certain cases, the list of may aliases for a pointer may grow too
+large.  This may cause an explosion in the number of virtual operands
+inserted in the code.  Resulting in increased memory consumption and
+compilation time.
+
+ When the number of virtual operands needed to represent aliased loads
+and stor

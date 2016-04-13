@@ -1,0 +1,1403 @@
+motion.  This pass moves only invariants that would
+     be hard to handle on RTL level (function calls, operations that
+     expand to nontrivial sequences of insns).  With `-funswitch-loops'
+     it also moves operands of conditions that are invariant out of the
+     loop, so that we can use just trivial invariantness analysis in
+     loop unswitching.  The pass also includes store motion.  The pass
+     is implemented in `tree-ssa-loop-im.c'.
+
+     Canonical induction variable creation.  This pass creates a simple
+     counter for number of iterations of the loop and replaces the exit
+     condition of the loop using it, in case when a complicated
+     analysis is necessary to determine the number of iterations.
+     Later optimizations then may determine the number easily.  The
+     pass is implemented in `tree-ssa-loop-ivcanon.c'.
+
+     Induction variable optimizations.  This pass performs standard
+     induction variable optimizations, including strength reduction,
+     induction variable merging and induction variable elimination.
+     The pass is implemented in `tree-ssa-loop-ivopts.c'.
+
+     Loop unswitching.  This pass moves the conditional jumps that are
+     invariant out of the loops.  To achieve this, a duplicate of the
+     loop is created for each possible outcome of conditional jump(s).
+     The pass is implemented in `tree-ssa-loop-unswitch.c'.  This pass
+     should eventually replace the RTL level loop unswitching in
+     `loop-unswitch.c', but currently the RTL level pass is not
+     completely redundant yet due to deficiencies in tree level alias
+     analysis.
+
+     The optimizations also use various utility functions contained in
+     `tree-ssa-loop-manip.c', `cfgloop.c', `cfgloopanal.c' and
+     `cfgloopmanip.c'.
+
+     Vectorization.  This pass transforms loops to operate on vector
+     types instead of scalar types.  Data parallelism across loop
+     iterations is exploited to group data elements from consecutive
+     iterations into a vector and operate on them in parallel.
+     Depending on available target support the loop is conceptually
+     unrolled by a factor `VF' (vectorization factor), which is the
+     number of elements operated upon in parallel in each iteration,
+     and the `VF' copies of each scalar operation are fused to form a
+     vector operation.  Additional loop transformations such as peeling
+     and versioning may take place to align the number of iterations,
+     and to align the memory accesses in the loop.  The pass is
+     implemented in `tree-vectorizer.c' (the main driver and general
+     utilities), `tree-vect-analyze.c' and `tree-vect-transform.c'.
+     Analysis of data references is in `tree-data-ref.c'.
+
+     Autoparallelization.  This pass splits the loop iteration space to
+     run into several threads.  The pass is implemented in
+     `tree-parloops.c'.
+
+   * Tree level if-conversion for vectorizer
+
+     This pass applies if-conversion to simple loops to help vectorizer.
+     We identify if convertible loops, if-convert statements and merge
+     basic blocks in one big block.  The idea is to present loop in such
+     form so that vectorizer can have one to one mapping between
+     statements and available vector operations.  This patch
+     re-introduces COND_EXPR at GIMPLE level.  This pass is located in
+     `tree-if-conv.c' and is described by `pass_if_conversion'.
+
+   * Conditional constant propagation
+
+     This pass relaxes a lattice of values in order to identify those
+     that must be constant even in the presence of conditional branches.
+     The pass is located in `tree-ssa-ccp.c' and is described by
+     `pass_ccp'.
+
+     A related pass that works on memory loads and stores, and not just
+     register values, is located in `tree-ssa-ccp.c' and described by
+     `pass_store_ccp'.
+
+   * Conditional copy propagation
+
+     This is similar to constant propagation but the lattice of values
+     is the "copy-of" relation.  It eliminates redundant copies from the
+     code.  The pass is located in `tree-ssa-copy.c' and described by
+     `pass_copy_prop'.
+
+     A related pass that works on memory copies, and not just register
+     copies, is located in `tree-ssa-copy.c' and described by
+     `pass_store_copy_prop'.
+
+   * Value range propagation
+
+     This transformation is similar to constant propagation but instead
+     of propagating single constant values, it propagates known value
+     ranges.  The implementation is based on Patterson's range
+     propagation algorithm (Accurate Static Branch Prediction by Value
+     Range Propagation, J. R. C. Patterson, PLDI '95).  In contrast to
+     Patterson's algorithm, this implementation does not propagate
+     branch probabilities nor it uses more than a single range per SSA
+     name. This means that the current implementation cannot be used
+     for branch prediction (though adapting it would not be difficult).
+     The pass is located in `tree-vrp.c' and is described by `pass_vrp'.
+
+   * Folding built-in functions
+
+     This pass simplifies built-in functions, as applicable, with
+     constant arguments or with inferable string lengths.  It is
+     located in `tree-ssa-ccp.c' and is described by
+     `pass_fold_builtins'.
+
+   * Split critical edges
+
+     This pass identifies critical edges and inserts empty basic blocks
+     such that the edge is no longer critical.  The pass is located in
+     `tree-cfg.c' and is described by `pass_split_crit_edges'.
+
+   * Control dependence dead code elimination
+
+     This pass is a stronger form of dead code elimination that can
+     eliminate unnecessary control flow statements.   It is located in
+     `tree-ssa-dce.c' and is described by `pass_cd_dce'.
+
+   * Tail call elimination
+
+     This pass identifies function calls that may be rewritten into
+     jumps.  No code transformation is actually applied here, but the
+     data and control flow problem is solved.  The code transformation
+     requires target support, and so is delayed until RTL.  In the
+     meantime `CALL_EXPR_TAILCALL' is set indicating the possibility.
+     The pass is located in `tree-tailcall.c' and is described by
+     `pass_tail_calls'.  The RTL transformation is handled by
+     `fixup_tail_calls' in `calls.c'.
+
+   * Warn for function return without value
+
+     For non-void functions, this pass locates return statements that do
+     not specify a value and issues a warning.  Such a statement may
+     have been injected by falling off the end of the function.  This
+     pass is run last so that we have as much time as possible to prove
+     that the statement is not reachable.  It is located in
+     `tree-cfg.c' and is described by `pass_warn_function_return'.
+
+   * Mudflap statement annotation
+
+     If mudflap is enabled, we rewrite some memory accesses with code to
+     validate that the memory access is correct.  In particular,
+     expressions involving pointer dereferences (`INDIRECT_REF',
+     `ARRAY_REF', etc.) are replaced by code that checks the selected
+     address range against the mudflap runtime's database of valid
+     regions.  This check includes an inline lookup into a
+     direct-mapped cache, based on shift/mask operations of the pointer
+     value, with a fallback function call into the runtime.  The pass
+     is located in `tree-mudflap.c' and is described by
+     `pass_mudflap_2'.
+
+   * Leave static single assignment form
+
+     This pass rewrites the function such that it is in normal form.  At
+     the same time, we eliminate as many single-use temporaries as
+     possible, so the intermediate language is no longer GIMPLE, but
+     GENERIC.  The pass is located in `tree-outof-ssa.c' and is
+     described by `pass_del_ssa'.
+
+   * Merge PHI nodes that feed into one another
+
+     This is part of the CFG cleanup passes.  It attempts to join PHI
+     nodes from a forwarder CFG block into another block with PHI
+     nodes.  The pass is located in `tree-cfgcleanup.c' and is
+     described by `pass_merge_phi'.
+
+   * Return value optimization
+
+     If a function always returns the same local variable, and that
+     local variable is an aggregate type, then the variable is replaced
+     with the return value for the function (i.e., the function's
+     DECL_RESULT).  This is equivalent to the C++ named return value
+     optimization applied to GIMPLE.  The pass is located in
+     `tree-nrv.c' and is described by `pass_nrv'.
+
+   * Return slot optimization
+
+     If a function returns a memory object and is called as `var =
+     foo()', this pass tries to change the call so that the address of
+     `var' is sent to the caller to avoid an extra memory copy.  This
+     pass is located in `tree-nrv.c' and is described by
+     `pass_return_slot'.
+
+   * Optimize calls to `__builtin_object_size'
+
+     This is a propagation pass similar to CCP that tries to remove
+     calls to `__builtin_object_size' when the size of the object can be
+     computed at compile-time.  This pass is located in
+     `tree-object-size.c' and is described by `pass_object_sizes'.
+
+   * Loop invariant motion
+
+     This pass removes expensive loop-invariant computations out of
+     loops.  The pass is located in `tree-ssa-loop.c' and described by
+     `pass_lim'.
+
+   * Loop nest optimizations
+
+     This is a family of loop transformations that works on loop nests.
+     It includes loop interchange, scaling, skewing and reversal and
+     they are all geared to the optimization of data locality in array
+     traversals and the removal of dependencies that hamper
+     optimizations such as loop parallelization and vectorization.  The
+     pass is located in `tree-loop-linear.c' and described by
+     `pass_linear_transform'.
+
+   * Removal of empty loops
+
+     This pass removes loops with no code in them.  The pass is located
+     in `tree-ssa-loop-ivcanon.c' and described by `pass_empty_loop'.
+
+   * Unrolling of small loops
+
+     This pass completely unrolls loops with few iterations.  The pass
+     is located in `tree-ssa-loop-ivcanon.c' and described by
+     `pass_complete_unroll'.
+
+   * Predictive commoning
+
+     This pass makes the code reuse the computations from the previous
+     iterations of the loops, especially loads and stores to memory.
+     It does so by storing the values of these computations to a bank
+     of temporary variables that are rotated at the end of loop.  To
+     avoid the need for this rotation, the loop is then unrolled and
+     the copies of the loop body are rewritten to use the appropriate
+     version of the temporary variable.  This pass is located in
+     `tree-predcom.c' and described by `pass_predcom'.
+
+   * Array prefetching
+
+     This pass issues prefetch instructions for array references inside
+     loops.  The pass is located in `tree-ssa-loop-prefetch.c' and
+     described by `pass_loop_prefetch'.
+
+   * Reassociation
+
+     This pass rewrites arithmetic expressions to enable optimizations
+     that operate on them, like redundancy elimination and
+     vectorization.  The pass is located in `tree-ssa-reassoc.c' and
+     described by `pass_reassoc'.
+
+   * Optimization of `stdarg' functions
+
+     This pass tries to avoid the saving of register arguments into the
+     stack on entry to `stdarg' functions.  If the function doesn't use
+     any `va_start' macros, no registers need to be saved.  If
+     `va_start' macros are used, the `va_list' variables don't escape
+     the function, it is only necessary to save registers that will be
+     used in `va_arg' macros.  For instance, if `va_arg' is only used
+     with integral types in the function, floating point registers
+     don't need to be saved.  This pass is located in `tree-stdarg.c'
+     and described by `pass_stdarg'.
+
+
+
+File: gccint.info,  Node: RTL passes,  Prev: Tree SSA passes,  Up: Passes
+
+8.5 RTL passes
+==============
+
+The following briefly describes the RTL generation and optimization
+passes that are run after the Tree optimization passes.
+
+   * RTL generation
+
+     The source files for RTL generation include `stmt.c', `calls.c',
+     `expr.c', `explow.c', `expmed.c', `function.c', `optabs.c' and
+     `emit-rtl.c'.  Also, the file `insn-emit.c', generated from the
+     machine description by the program `genemit', is used in this
+     pass.  The header file `expr.h' is used for communication within
+     this pass.
+
+     The header files `insn-flags.h' and `insn-codes.h', generated from
+     the machine description by the programs `genflags' and `gencodes',
+     tell this pass which standard names are available for use and
+     which patterns correspond to them.
+
+   * Generation of exception landing pads
+
+     This pass generates the glue that handles communication between the
+     exception handling library routines and the exception handlers
+     within the function.  Entry points in the function that are
+     invoked by the exception handling library are called "landing
+     pads".  The code for this pass is located in `except.c'.
+
+   * Control flow graph cleanup
+
+     This pass removes unreachable code, simplifies jumps to next,
+     jumps to jump, jumps across jumps, etc.  The pass is run multiple
+     times.  For historical reasons, it is occasionally referred to as
+     the "jump optimization pass".  The bulk of the code for this pass
+     is in `cfgcleanup.c', and there are support routines in `cfgrtl.c'
+     and `jump.c'.
+
+   * Forward propagation of single-def values
+
+     This pass attempts to remove redundant computation by substituting
+     variables that come from a single definition, and seeing if the
+     result can be simplified.  It performs copy propagation and
+     addressing mode selection.  The pass is run twice, with values
+     being propagated into loops only on the second run.  The code is
+     located in `fwprop.c'.
+
+   * Common subexpression elimination
+
+     This pass removes redundant computation within basic blocks, and
+     optimizes addressing modes based on cost.  The pass is run twice.
+     The code for this pass is located in `cse.c'.
+
+   * Global common subexpression elimination
+
+     This pass performs two different types of GCSE  depending on
+     whether you are optimizing for size or not (LCM based GCSE tends
+     to increase code size for a gain in speed, while Morel-Renvoise
+     based GCSE does not).  When optimizing for size, GCSE is done
+     using Morel-Renvoise Partial Redundancy Elimination, with the
+     exception that it does not try to move invariants out of
+     loops--that is left to  the loop optimization pass.  If MR PRE
+     GCSE is done, code hoisting (aka unification) is also done, as
+     well as load motion.  If you are optimizing for speed, LCM (lazy
+     code motion) based GCSE is done.  LCM is based on the work of
+     Knoop, Ruthing, and Steffen.  LCM based GCSE also does loop
+     invariant code motion.  We also perform load and store motion when
+     optimizing for speed.  Regardless of which type of GCSE is used,
+     the GCSE pass also performs global constant and  copy propagation.
+     The source file for this pass is `gcse.c', and the LCM routines
+     are in `lcm.c'.
+
+   * Loop optimization
+
+     This pass performs several loop related optimizations.  The source
+     files `cfgloopanal.c' and `cfgloopmanip.c' contain generic loop
+     analysis and manipulation code.  Initialization and finalization
+     of loop structures is handled by `loop-init.c'.  A loop invariant
+     motion pass is implemented in `loop-invariant.c'.  Basic block
+     level optimizations--unrolling, peeling and unswitching loops--
+     are implemented in `loop-unswitch.c' and `loop-unroll.c'.
+     Replacing of the exit condition of loops by special
+     machine-dependent instructions is handled by `loop-doloop.c'.
+
+   * Jump bypassing
+
+     This pass is an aggressive form of GCSE that transforms the control
+     flow graph of a function by propagating constants into conditional
+     branch instructions.  The source file for this pass is `gcse.c'.
+
+   * If conversion
+
+     This pass attempts to replace conditional branches and surrounding
+     assignments with arithmetic, boolean value producing comparison
+     instructions, and conditional move instructions.  In the very last
+     invocation after reload, it will generate predicated instructions
+     when supported by the target.  The code is located in `ifcvt.c'.
+
+   * Web construction
+
+     This pass splits independent uses of each pseudo-register.  This
+     can improve effect of the other transformation, such as CSE or
+     register allocation.  The code for this pass is located in `web.c'.
+
+   * Instruction combination
+
+     This pass attempts to combine groups of two or three instructions
+     that are related by data flow into single instructions.  It
+     combines the RTL expressions for the instructions by substitution,
+     simplifies the result using algebra, and then attempts to match
+     the result against the machine description.  The code is located
+     in `combine.c'.
+
+   * Register movement
+
+     This pass looks for cases where matching constraints would force an
+     instruction to need a reload, and this reload would be a
+     register-to-register move.  It then attempts to change the
+     registers used by the instruction to avoid the move instruction.
+     The code is located in `regmove.c'.
+
+   * Mode switching optimization
+
+     This pass looks for instructions that require the processor to be
+     in a specific "mode" and minimizes the number of mode changes
+     required to satisfy all users.  What these modes are, and what
+     they apply to are completely target-specific.  The code for this
+     pass is located in `mode-switching.c'.
+
+   * Modulo scheduling
+
+     This pass looks at innermost loops and reorders their instructions
+     by overlapping different iterations.  Modulo scheduling is
+     performed immediately before instruction scheduling.  The code for
+     this pass is located in `modulo-sched.c'.
+
+   * Instruction scheduling
+
+     This pass looks for instructions whose output will not be
+     available by the time that it is used in subsequent instructions.
+     Memory loads and floating point instructions often have this
+     behavior on RISC machines.  It re-orders instructions within a
+     basic block to try to separate the definition and use of items
+     that otherwise would cause pipeline stalls.  This pass is
+     performed twice, before a§  •  ¶  ß  ®  ©  ™                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      §  §  §  §  §  §  §  §  §  §  §  §   §  !§  "§  #§  $§  %§  &§  '§  (§  )§  *§  +§  ,§  -§  .§  /§  0§  1§  2§  3§  4§  5§  6§  7§  8§  9§  :§  ;§  <§  =§  >§  ?§  @§  A§  B§  C§  D§  E§  F§  G§  H§  I§  J§  K§  L§  M§  N§  O§  P§  Q§  R§  S§  T§  U§  V§  W§  X§  Y§  Z§  [§  \§  ]§  ^§  _§  `§  a§  b§  c§  d§  e§  f§  g§  h§  i§  j§  k§  l§  m§  n§  o§  p§  q§  r§  s§  t§  u§  v§  w§  x§  y§  z§  {§  |§  }§  ~§  §  Ä§  Å§  Ç§  É§  Ñ§  Ö§  Ü§  á§  à§  â§  ä§  ã§  å§  ç§  é§  è§  ê§  ë§  í§  ì§  î§  ï§  ñ§  ó§  ò§  ô§  ö§  õ§  ú§  ù§  û§  ü§  †§  °§  ¢§  £§  §§  •§  ¶§  ß§  ®§  ©§  ™§  ´§  ¨§  ≠§  Æ§  Ø§  ∞§  ±§  ≤§  ≥§  ¥§  µ§  ∂§  ∑§  ∏§  π§  ∫§  ª§  º§  Ω§  æ§  ø§  ¿§  ¡§  ¬§  √§  ƒ§  ≈§  ∆§  «§  »§  …§   §  À§  Ã§  Õ§  Œ§  œ§  –§  —§  “§  ”§  ‘§  ’§  ÷§  ◊§  ÿ§  Ÿ§  ⁄§  €§  ‹§  ›§  ﬁ§  ﬂ§  ‡§  ·§  ‚§  „§  ‰§  Â§  Ê§  Á§  Ë§  È§  Í§  Î§  Ï§  Ì§  Ó§  Ô§  §  Ò§  Ú§  Û§  Ù§  ı§  ˆ§  ˜§  ¯§  ˘§  ˙§  ˚§  ¸§  ˝§  ˛§  ˇ§   •  •  •  •  •  •  •  •  •  	•  
+•  •  •  •  •  •  •  •  •  •  nd after register allocation.  The code
+     for this pass is located in `haifa-sched.c', `sched-deps.c',
+     `sched-ebb.c', `sched-rgn.c' and `sched-vis.c'.
+
+   * Register allocation
+
+     These passes make sure that all occurrences of pseudo registers are
+     eliminated, either by allocating them to a hard register, replacing
+     them by an equivalent expression (e.g. a constant) or by placing
+     them on the stack.  This is done in several subpasses:
+
+        * Register class preferencing.  The RTL code is scanned to find
+          out which register class is best for each pseudo register.
+          The source file is `regclass.c'.
+
+        * Local register allocation.  This pass allocates hard
+          registers to pseudo registers that are used only within one
+          basic block.  Because the basic block is linear, it can use
+          fast and powerful techniques to do a decent job.  The source
+          is located in `local-alloc.c'.
+
+        * Global register allocation.  This pass allocates hard
+          registers for the remaining pseudo registers (those whose
+          life spans are not contained in one basic block).  The pass
+          is located in `global.c'.
+
+        * Reloading.  This pass renumbers pseudo registers with the
+          hardware registers numbers they were allocated.  Pseudo
+          registers that did not get hard registers are replaced with
+          stack slots.  Then it finds instructions that are invalid
+          because a value has failed to end up in a register, or has
+          ended up in a register of the wrong kind.  It fixes up these
+          instructions by reloading the problematical values
+          temporarily into registers.  Additional instructions are
+          generated to do the copying.
+
+          The reload pass also optionally eliminates the frame pointer
+          and inserts instructions to save and restore call-clobbered
+          registers around calls.
+
+          Source files are `reload.c' and `reload1.c', plus the header
+          `reload.h' used for communication between them.
+
+   * Basic block reordering
+
+     This pass implements profile guided code positioning.  If profile
+     information is not available, various types of static analysis are
+     performed to make the predictions normally coming from the profile
+     feedback (IE execution frequency, branch probability, etc).  It is
+     implemented in the file `bb-reorder.c', and the various prediction
+     routines are in `predict.c'.
+
+   * Variable tracking
+
+     This pass computes where the variables are stored at each position
+     in code and generates notes describing the variable locations to
+     RTL code.  The location lists are then generated according to these
+     notes to debug information if the debugging information format
+     supports location lists.  The code is located in `var-tracking.c'.
+
+   * Delayed branch scheduling
+
+     This optional pass attempts to find instructions that can go into
+     the delay slots of other instructions, usually jumps and calls.
+     The code for this pass is located in `reorg.c'.
+
+   * Branch shortening
+
+     On many RISC machines, branch instructions have a limited range.
+     Thus, longer sequences of instructions must be used for long
+     branches.  In this pass, the compiler figures out what how far
+     each instruction will be from each other instruction, and
+     therefore whether the usual instructions, or the longer sequences,
+     must be used for each branch.  The code for this pass is located
+     in `final.c'.
+
+   * Register-to-stack conversion
+
+     Conversion from usage of some hard registers to usage of a register
+     stack may be done at this point.  Currently, this is supported only
+     for the floating-point registers of the Intel 80387 coprocessor.
+     The code for this pass is located in `reg-stack.c'.
+
+   * Final
+
+     This pass outputs the assembler code for the function.  The source
+     files are `final.c' plus `insn-output.c'; the latter is generated
+     automatically from the machine description by the tool `genoutput'.
+     The header file `conditions.h' is used for communication between
+     these files.  If mudflap is enabled, the queue of deferred
+     declarations and any addressed constants (e.g., string literals)
+     is processed by `mudflap_finish_file' into a synthetic constructor
+     function containing calls into the mudflap runtime.
+
+   * Debugging information output
+
+     This is run after final because it must output the stack slot
+     offsets for pseudo registers that did not get hard registers.
+     Source files are `dbxout.c' for DBX symbol table format,
+     `sdbout.c' for SDB symbol table format, `dwarfout.c' for DWARF
+     symbol table format, files `dwarf2out.c' and `dwarf2asm.c' for
+     DWARF2 symbol table format, and `vmsdbgout.c' for VMS debug symbol
+     table format.
+
+
+
+File: gccint.info,  Node: Trees,  Next: Tree SSA,  Prev: Passes,  Up: Top
+
+9 Trees: The intermediate representation used by the C and C++ front ends
+*************************************************************************
+
+This chapter documents the internal representation used by GCC to
+represent C and C++ source programs.  When presented with a C or C++
+source program, GCC parses the program, performs semantic analysis
+(including the generation of error messages), and then produces the
+internal representation described here.  This representation contains a
+complete representation for the entire translation unit provided as
+input to the front end.  This representation is then typically processed
+by a code-generator in order to produce machine code, but could also be
+used in the creation of source browsers, intelligent editors, automatic
+documentation generators, interpreters, and any other programs needing
+the ability to process C or C++ code.
+
+ This chapter explains the internal representation.  In particular, it
+documents the internal representation for C and C++ source constructs,
+and the macros, functions, and variables that can be used to access
+these constructs.  The C++ representation is largely a superset of the
+representation used in the C front end.  There is only one construct
+used in C that does not appear in the C++ front end and that is the GNU
+"nested function" extension.  Many of the macros documented here do not
+apply in C because the corresponding language constructs do not appear
+in C.
+
+ If you are developing a "back end", be it is a code-generator or some
+other tool, that uses this representation, you may occasionally find
+that you need to ask questions not easily answered by the functions and
+macros available here.  If that situation occurs, it is quite likely
+that GCC already supports the functionality you desire, but that the
+interface is simply not documented here.  In that case, you should ask
+the GCC maintainers (via mail to <gcc@gcc.gnu.org>) about documenting
+the functionality you require.  Similarly, if you find yourself writing
+functions that do not deal directly with your back end, but instead
+might be useful to other people using the GCC front end, you should
+submit your patches for inclusion in GCC.
+
+* Menu:
+
+* Deficiencies::        Topics net yet covered in this document.
+* Tree overview::       All about `tree's.
+* Types::               Fundamental and aggregate types.
+* Scopes::              Namespaces and classes.
+* Functions::           Overloading, function bodies, and linkage.
+* Declarations::        Type declarations and variables.
+* Attributes::          Declaration and type attributes.
+* Expression trees::    From `typeid' to `throw'.
+
+
+File: gccint.info,  Node: Deficiencies,  Next: Tree overview,  Up: Trees
+
+9.1 Deficiencies
+================
+
+There are many places in which this document is incomplet and incorrekt.
+It is, as of yet, only _preliminary_ documentation.
+
+
+File: gccint.info,  Node: Tree overview,  Next: Types,  Prev: Deficiencies,  Up: Trees
+
+9.2 Overview
+============
+
+The central data structure used by the internal representation is the
+`tree'.  These nodes, while all of the C type `tree', are of many
+varieties.  A `tree' is a pointer type, but the object to which it
+points may be of a variety of types.  From this point forward, we will
+refer to trees in ordinary type, rather than in `this font', except
+when talking about the actual C type `tree'.
+
+ You can tell what kind of node a particular tree is by using the
+`TREE_CODE' macro.  Many, many macros take trees as input and return
+trees as output.  However, most macros require a certain kind of tree
+node as input.  In other words, there is a type-system for trees, but
+it is not reflected in the C type-system.
+
+ For safety, it is useful to configure GCC with `--enable-checking'.
+Although this results in a significant performance penalty (since all
+tree types are checked at run-time), and is therefore inappropriate in a
+release version, it is extremely helpful during the development process.
+
+ Many macros behave as predicates.  Many, although not all, of these
+predicates end in `_P'.  Do not rely on the result type of these macros
+being of any particular type.  You may, however, rely on the fact that
+the type can be compared to `0', so that statements like
+     if (TEST_P (t) && !TEST_P (y))
+       x = 1;
+ and
+     int i = (TEST_P (t) != 0);
+ are legal.  Macros that return `int' values now may be changed to
+return `tree' values, or other pointers in the future.  Even those that
+continue to return `int' may return multiple nonzero codes where
+previously they returned only zero and one.  Therefore, you should not
+write code like
+     if (TEST_P (t) == 1)
+ as this code is not guaranteed to work correctly in the future.
+
+ You should not take the address of values returned by the macros or
+functions described here.  In particular, no guarantee is given that the
+values are lvalues.
+
+ In general, the names of macros are all in uppercase, while the names
+of functions are entirely in lowercase.  There are rare exceptions to
+this rule.  You should assume that any macro or function whose name is
+made up entirely of uppercase letters may evaluate its arguments more
+than once.  You may assume that a macro or function whose name is made
+up entirely of lowercase letters will evaluate its arguments only once.
+
+ The `error_mark_node' is a special tree.  Its tree code is
+`ERROR_MARK', but since there is only ever one node with that code, the
+usual practice is to compare the tree against `error_mark_node'.  (This
+test is just a test for pointer equality.)  If an error has occurred
+during front-end processing the flag `errorcount' will be set.  If the
+front end has encountered code it cannot handle, it will issue a
+message to the user and set `sorrycount'.  When these flags are set,
+any macro or function which normally returns a tree of a particular
+kind may instead return the `error_mark_node'.  Thus, if you intend to
+do any processing of erroneous code, you must be prepared to deal with
+the `error_mark_node'.
+
+ Occasionally, a particular tree slot (like an operand to an expression,
+or a particular field in a declaration) will be referred to as
+"reserved for the back end".  These slots are used to store RTL when
+the tree is converted to RTL for use by the GCC back end.  However, if
+that process is not taking place (e.g., if the front end is being hooked
+up to an intelligent editor), then those slots may be used by the back
+end presently in use.
+
+ If you encounter situations that do not match this documentation, such
+as tree nodes of types not mentioned here, or macros documented to
+return entities of a particular kind that instead return entities of
+some different kind, you have found a bug, either in the front end or in
+the documentation.  Please report these bugs as you would any other bug.
+
+* Menu:
+
+* Macros and Functions::Macros and functions that can be used with all trees.
+* Identifiers::         The names of things.
+* Containers::          Lists and vectors.
+
+
+File: gccint.info,  Node: Macros and Functions,  Next: Identifiers,  Up: Tree overview
+
+9.2.1 Trees
+-----------
+
+This section is not here yet.
+
+
+File: gccint.info,  Node: Identifiers,  Next: Containers,  Prev: Macros and Functions,  Up: Tree overview
+
+9.2.2 Identifiers
+-----------------
+
+An `IDENTIFIER_NODE' represents a slightly more general concept that
+the standard C or C++ concept of identifier.  In particular, an
+`IDENTIFIER_NODE' may contain a `$', or other extraordinary characters.
+
+ There are never two distinct `IDENTIFIER_NODE's representing the same
+identifier.  Therefore, you may use pointer equality to compare
+`IDENTIFIER_NODE's, rather than using a routine like `strcmp'.
+
+ You can use the following macros to access identifiers:
+`IDENTIFIER_POINTER'
+     The string represented by the identifier, represented as a
+     `char*'.  This string is always `NUL'-terminated, and contains no
+     embedded `NUL' characters.
+
+`IDENTIFIER_LENGTH'
+     The length of the string returned by `IDENTIFIER_POINTER', not
+     including the trailing `NUL'.  This value of `IDENTIFIER_LENGTH
+     (x)' is always the same as `strlen (IDENTIFIER_POINTER (x))'.
+
+`IDENTIFIER_OPNAME_P'
+     This predicate holds if the identifier represents the name of an
+     overloaded operator.  In this case, you should not depend on the
+     contents of either the `IDENTIFIER_POINTER' or the
+     `IDENTIFIER_LENGTH'.
+
+`IDENTIFIER_TYPENAME_P'
+     This predicate holds if the identifier represents the name of a
+     user-defined conversion operator.  In this case, the `TREE_TYPE' of
+     the `IDENTIFIER_NODE' holds the type to which the conversion
+     operator converts.
+
+
+
+File: gccint.info,  Node: Containers,  Prev: Identifiers,  Up: Tree overview
+
+9.2.3 Containers
+----------------
+
+Two common container data structures can be represented directly with
+tree nodes.  A `TREE_LIST' is a singly linked list containing two trees
+per node.  These are the `TREE_PURPOSE' and `TREE_VALUE' of each node.
+(Often, the `TREE_PURPOSE' contains some kind of tag, or additional
+information, while the `TREE_VALUE' contains the majority of the
+payload.  In other cases, the `TREE_PURPOSE' is simply `NULL_TREE',
+while in still others both the `TREE_PURPOSE' and `TREE_VALUE' are of
+equal stature.)  Given one `TREE_LIST' node, the next node is found by
+following the `TREE_CHAIN'.  If the `TREE_CHAIN' is `NULL_TREE', then
+you have reached the end of the list.
+
+ A `TREE_VEC' is a simple vector.  The `TREE_VEC_LENGTH' is an integer
+(not a tree) giving the number of nodes in the vector.  The nodes
+themselves are accessed using the `TREE_VEC_ELT' macro, which takes two
+arguments.  The first is the `TREE_VEC' in question; the second is an
+integer indicating which element in the vector is desired.  The
+elements are indexed from zero.
+
+
+File: gccint.info,  Node: Types,  Next: Scopes,  Prev: Tree overview,  Up: Trees
+
+9.3 Types
+=========
+
+All types have corresponding tree nodes.  However, you should not assume
+that there is exactly one tree node corresponding to each type.  There
+are often multiple nodes corresponding to the same type.
+
+ For the most part, different kinds of types have different tree codes.
+(For example, pointer types use a `POINTER_TYPE' code while arrays use
+an `ARRAY_TYPE' code.)  However, pointers to member functions use the
+`RECORD_TYPE' code.  Therefore, when writing a `switch' statement that
+depends on the code associated with a particular type, you should take
+care to handle pointers to member functions under the `RECORD_TYPE'
+case label.
+
+ In C++, an array type is not qualified; rather the type of the array
+elements is qualified.  This situation is reflected in the intermediate
+representation.  The macros described here will always examine the
+qualification of the underlying element type when applied to an array
+type.  (If the element type is itself an array, then the recursion
+continues until a non-array type is found, and the qualification of this
+type is examined.)  So, for example, `CP_TYPE_CONST_P' will hold of the
+type `const int ()[7]', denoting an array of seven `int's.
+
+ The following functions and macros deal with cv-qualification of types:
+`CP_TYPE_QUALS'
+     This macro returns the set of type qualifiers applied to this type.
+     This value is `TYPE_UNQUALIFIED' if no qualifiers have been
+     applied.  The `TYPE_QUAL_CONST' bit is set if the type is
+     `const'-qualified.  The `TYPE_QUAL_VOLATILE' bit is set if the
+     type is `volatile'-qualified.  The `TYPE_QUAL_RESTRICT' bit is set
+     if the type is `restrict'-qualified.
+
+`CP_TYPE_CONST_P'
+     This macro holds if the type is `const'-qualified.
+
+`CP_TYPE_VOLATILE_P'
+     This macro holds if the type is `volatile'-qualified.
+
+`CP_TYPE_RESTRICT_P'
+     This macro holds if the type is `restrict'-qualified.
+
+`CP_TYPE_CONST_NON_VOLATILE_P'
+     This predicate holds for a type that is `const'-qualified, but
+     _not_ `volatile'-qualified; other cv-qualifiers are ignored as
+     well: only the `const'-ness is tested.
+
+`TYPE_MAIN_VARIANT'
+     This macro returns the unqualified version of a type.  It may be
+     applied to an unqualified type, but it is not always the identity
+     function in that case.
+
+ A few other macros and functions are usable with all types:
+`TYPE_SIZE'
+     The number of bits required to represent the type, represented as
+     an `INTEGER_CST'.  For an incomplete type, `TYPE_SIZE' will be
+     `NULL_TREE'.
+
+`TYPE_ALIGN'
+     The alignment of the type, in bits, represented as an `int'.
+
+`TYPE_NAME'
+     This macro returns a declaration (in the form of a `TYPE_DECL') for
+     the type.  (Note this macro does _not_ return a `IDENTIFIER_NODE',
+     as you might expect, given its name!)  You can look at the
+     `DECL_NAME' of the `TYPE_DECL' to obtain the actual name of the
+     type.  The `TYPE_NAME' will be `NULL_TREE' for a type that is not
+     a built-in type, the result of a typedef, or a named class type.
+
+`CP_INTEGRAL_TYPE'
+     This predicate holds if the type is an integral type.  Notice that
+     in C++, enumerations are _not_ integral types.
+
+`ARITHMETIC_TYPE_P'
+     This predicate holds if the type is an integral type (in the C++
+     sense) or a floating point type.
+
+`CLASS_TYPE_P'
+     This predicate holds for a class-type.
+
+`TYPE_BUILT_IN'
+     This predicate holds for a built-in type.
+
+`TYPE_PTRMEM_P'
+     This predicate holds if the type is a pointer to data member.
+
+`TYPE_PTR_P'
+     This predicate holds if the type is a pointer type, and the
+     pointee is not a data member.
+
+`TYPE_PTRFN_P'
+     This predicate holds for a pointer to function type.
+
+`TYPE_PTROB_P'
+     This predicate holds for a pointer to object type.  Note however
+     that it does not hold for the generic pointer to object type `void
+     *'.  You may use `TYPE_PTROBV_P' to test for a pointer to object
+     type as well as `void *'.
+
+`TYPE_CANONICAL'
+     This macro returns the "canonical" type for the given type node.
+     Canonical types are used to improve performance in the C++ and
+     Objective-C++ front ends by allowing efficient comparison between
+     two type nodes in `same_type_p': if the `TYPE_CANONICAL' values of
+     the types are equal, the types are equivalent; otherwise, the types
+     are not equivalent. The notion of equivalence for canonical types
+     is the same as the notion of type equivalence in the language
+     itself. For instance,
+
+     When `TYPE_CANONICAL' is `NULL_TREE', there is no canonical type
+     for the given type node. In this case, comparison between this
+     type and any other type requires the compiler to perform a deep,
+     "structural" comparison to see if the two type nodes have the same
+     form and properties.
+
+     The canonical type for a node is always the most fundamental type
+     in the equivalence class of types. For instance, `int' is its own
+     canonical type. A typedef `I' of `int' will have `int' as its
+     canonical type. Similarly, `I*' and a typedef `IP' (defined to
+     `I*') will has `int*' as their canonical type. When building a new
+     type node, be sure to set `TYPE_CANONICAL' to the appropriate
+     canonical type. If the new type is a compound type (built from
+     other types), and any of those other types require structural
+     equality, use `SET_TYPE_STRUCTURAL_EQUALITY' to ensure that the
+     new type also requires structural equality. Finally, if for some
+     reason you cannot guarantee that `TYPE_CANONICAL' will point to
+     the canonical type, use `SET_TYPE_STRUCTURAL_EQUALITY' to make
+     sure that the new type-and any type constructed based on
+     it-requires structural equality. If you suspect that the canonical
+     type system is miscomparing types, pass `--param
+     verify-canonical-types=1' to the compiler or configure with
+     `--enable-checking' to force the compiler to verify its
+     canonical-type comparisons against the structural comparisons; the
+     compiler will then print any warnings if the canonical types
+     miscompare.
+
+`TYPE_STRUCTURAL_EQUALITY_P'
+     This predicate holds when the node requires structural equality
+     checks, e.g., when `TYPE_CANONICAL' is `NULL_TREE'.
+
+`SET_TYPE_STRUCTURAL_EQUALITY'
+     This macro states that the type node it is given requires
+     structural equality checks, e.g., it sets `TYPE_CANONICAL' to
+     `NULL_TREE'.
+
+`same_type_p'
+     This predicate takes two types as input, and holds if they are the
+     same type.  For example, if one type is a `typedef' for the other,
+     or both are `typedef's for the same type.  This predicate also
+     holds if the two trees given as input are simply copies of one
+     another; i.e., there is no difference between them at the source
+     level, but, for whatever reason, a duplicate has been made in the
+     representation.  You should never use `==' (pointer equality) to
+     compare types; always use `same_type_p' instead.
+
+ Detailed below are the various kinds of types, and the macros that can
+be used to access them.  Although other kinds of types are used
+elsewhere in G++, the types described here are the only ones that you
+will encounter while examining the intermediate representation.
+
+`VOID_TYPE'
+     Used to represent the `void' type.
+
+`INTEGER_TYPE'
+     Used to represent the various integral types, including `char',
+     `short', `int', `long', and `long long'.  This code is not used
+     for enumeration types, nor for the `bool' type.  The
+     `TYPE_PRECISION' is the number of bits used in the representation,
+     represented as an `unsigned int'.  (Note that in the general case
+     this is not the same value as `TYPE_SIZE'; suppose that there were
+     a 24-bit integer type, but that alignment requirements for the ABI
+     required 32-bit alignment.  Then, `TYPE_SIZE' would be an
+     `INTEGER_CST' for 32, while `TYPE_PRECISION' would be 24.)  The
+     integer type is unsigned if `TYPE_UNSIGNED' holds; otherwise, it
+     is signed.
+
+     The `TYPE_MIN_VALUE' is an `INTEGER_CST' for the smallest integer
+     that may be represented by this type.  Similarly, the
+     `TYPE_MAX_VALUE' is an `INTEGER_CST' for the largest integer that
+     may be represented by this type.
+
+`REAL_TYPE'
+     Used to represent the `float', `double', and `long double' types.
+     The number of bits in the floating-point representation is given
+     by `TYPE_PRECISION', as in the `INTEGER_TYPE' case.
+
+`FIXED_POINT_TYPE'
+     Used to represent the `short _Fract', `_Fract', `long _Fract',
+     `long long _Fract', `short _Accum', `_Accum', `long _Accum', and
+     `long long _Accum' types.  The number of bits in the fixed-point
+     representation is given by `TYPE_PRECISION', as in the
+     `INTEGER_TYPE' case.  There may be padding bits, fractional bits
+     and integral bits.  The number of fractional bits is given by
+     `TYPE_FBIT', and the number of integral bits is given by
+     `TYPE_IBIT'.  The fixed-point type is unsigned if `TYPE_UNSIGNED'
+     holds; otherwise, it is signed.  The fixed-point type is
+     saturating if `TYPE_SATURATING' holds; otherwise, it is not
+     saturating.
+
+`COMPLEX_TYPE'
+     Used to represent GCC built-in `__complex__' data types.  The
+     `TREE_TYPE' is the type of the real and imaginary parts.
+
+`ENUMERAL_TYPE'
+     Used to represent an enumeration type.  The `TYPE_PRECISION' gives
+     (as an `int'), the number of bits used to represent the type.  If
+     there are no negative enumeration constants, `TYPE_UNSIGNED' will
+     hold.  The minimum and maximum enumeration constants may be
+     obtained with `TYPE_MIN_VALUE' and `TYPE_MAX_VALUE', respectively;
+     each of these macros returns an `INTEGER_CST'.
+
+     The actual enumeration constants themselves may be obtained by
+     looking at the `TYPE_VALUES'.  This macro will return a
+     `TREE_LIST', containing the constants.  The `TREE_PURPOSE' of each
+     node will be an `IDENTIFIER_NODE' giving the name of the constant;
+     the `TREE_VALUE' will be an `INTEGER_CST' giving the value
+     assigned to that constant.  These constants will appear in the
+     order in which they were declared.  The `TREE_TYPE' of each of
+     these constants will be the type of enumeration type itself.
+
+`BOOLEAN_TYPE'
+     Used to represent the `bool' type.
+
+`POINTER_TYPE'
+     Used to represent pointer types, and pointer to data member types.
+     The `TREE_TYPE' gives the type to which this type points.  If the
+     type is a pointer to data member type, then `TYPE_PTRMEM_P' will
+     hold.  For a pointer to data member type of the form `T X::*',
+     `TYPE_PTRMEM_CLASS_TYPE' will be the type `X', while
+     `TYPE_PTRMEM_POINTED_TO_TYPE' will be the type `T'.
+
+`REFERENCE_TYPE'
+     Used to represent reference types.  The `TREE_TYPE' gives the type
+     to which this type refers.
+
+`FUNCTION_TYPE'
+     Used to represent the type of non-member functions and of static
+     member functions.  The `TREE_TYPE' gives the return type of the
+     function.  The `TYPE_ARG_TYPES' are a `TREE_LIST' of the argument
+     types.  The `TREE_VALUE' of each node in this list is the type of
+     the corresponding argument; the `TREE_PURPOSE' is an expression
+     for the default argument value, if any.  If the last node in the
+     list is `void_list_node' (a `TREE_LIST' node whose `TREE_VALUE' is
+     the `void_type_node'), then functions of this type do not take
+     variable arguments.  Otherwise, they do take a variable number of
+     arguments.
+
+     Note that in C (but not in C++) a function declared like `void f()'
+     is an unprototyped function taking a variable number of arguments;
+     the `TYPE_ARG_TYPES' of such a function will be `NULL'.
+
+`METHOD_TYPE'
+     Used to represent the type of a non-static member function.  Like a
+     `FUNCTION_TYPE', the return type is given by the `TREE_TYPE'.  The
+     type of `*this', i.e., the class of which functions of this type
+     are a member, is given by the `TYPE_METHOD_BASETYPE'.  The
+     `TYPE_ARG_TYPES' is the parameter list, as for a `FUNCTION_TYPE',
+     and includes the `this' argument.
+
+`ARRAY_TYPE'
+     Used to represent array types.  The `TREE_TYPE' gives the type of
+     the elements in the array.  If the array-bound is present in the
+     type, the `TYPE_DOMAIN' is an `INTEGER_TYPE' whose
+     `TYPE_MIN_VALUE' and `TYPE_MAX_VALUE' will be the lower and upper
+     bounds of the array, respectively.  The `TYPE_MIN_VALUE' will
+     always be an `INTEGER_CST' for zero, while the `TYPE_MAX_VALUE'
+     will be one less than the number of elements in the array, i.e.,
+     the highest value which may be used to index an element in the
+     array.
+
+`RECORD_TYPE'
+     Used to represent `struct' and `class' types, as well as pointers
+     to member functions and similar constructs in other languages.
+     `TYPE_FIELDS' contains the items contained in this type, each of
+     which can be a `FIELD_DECL', `VAR_DECL', `CONST_DECL', or
+     `TYPE_DECL'.  You may not make any assumptions about the ordering
+     of the fields in the type or whether one or more of them overlap.
+     If `TYPE_PTRMEMFUNC_P' holds, then this type is a pointer-to-member
+     type.  In that case, the `TYPE_PTRMEMFUNC_FN_TYPE' is a
+     `POINTER_TYPE' pointing to a `METHOD_TYPE'.  The `METHOD_TYPE' is
+     the type of a function pointed to by the pointer-to-member
+     function.  If `TYPE_PTRMEMFUNC_P' does not hold, this type is a
+     class type.  For more information, see *note Classes::.
+
+`UNION_TYPE'
+     Used to represent `union' types.  Similar to `RECORD_TYPE' except
+     that all `FIELD_DECL' nodes in `TYPE_FIELD' start at bit position
+     zero.
+
+`QUAL_UNION_TYPE'
+     Used to represent part of a variant record in Ada.  Similar to
+     `UNION_TYPE' except that each `FIELD_DECL' has a `DECL_QUALIFIER'
+     field, which contains a boolean expression that indicates whether
+     the field is present in the object.  The type will only have one
+     field, so each field's `DECL_QUALIFIER' is only evaluated if none
+     of the expressions in the previous fields in `TYPE_FIELDS' are
+     nonzero.  Normally these expressions will reference a field in the
+     outer object using a `PLACEHOLDER_EXPR'.
+
+`UNKNOWN_TYPE'
+     This node is used to represent a type the knowledge of which is
+     insufficient for a sound processing.
+
+`OFFSET_TYPE'
+     This node is used to represent a pointer-to-data member.  For a
+     data member `X::m' the `TYPE_OFFSET_BASETYPE' is `X' and the
+     `TREE_TYPE' is the type of `m'.
+
+`TYPENAME_TYPE'
+     Used to represent a construct of the form `typename T::A'.  The
+     `TYPE_CONTEXT' is `T'; the `TYPE_NAME' is an `IDENTIFIER_NODE' for
+     `A'.  If the type is specified via a template-id, then
+     `TYPENAME_TYPE_FULLNAME' yields a `TEMPLATE_ID_EXPR'.  The
+     `TREE_TYPE' is non-`NULL' if the node is implicitly generated in
+     support for the implicit typename extension; in which case the
+     `TREE_TYPE' is a type node for the base-class.
+
+`TYPEOF_TYPE'
+     Used to represent the `__typeof__' extension.  The `TYPE_FIELDS'
+     is the expression the type of which is being represented.
+
+ There are variables whose values represent some of the basic types.
+These include:
+`void_type_node'
+     A node for `void'.
+
+`integer_type_node'
+     A node for `int'.
+
+`unsigned_type_node.'
+     A node for `unsigned int'.
+
+`char_type_node.'
+     A node for `char'.
+ It may sometimes be useful to compare one of these variables with a
+type in hand, using `same_type_p'.
+
+
+File: gccint.info,  Node: Scopes,  Next: Functions,  Prev: Types,  Up: Trees
+
+9.4 Scopes
+==========
+
+The root of the entire intermediate representation is the variable
+`global_namespace'.  This is the namespace specified with `::' in C++
+source code.  All other namespaces, types, variables, functions, and so
+forth can be found starting with this namespace.
+
+ Besides namespaces, the other high-level scoping construct in C++ is
+the class.  (Throughout this manual the term "class" is used to mean the
+types referred to in the ANSI/ISO C++ Standard as classes; these include
+types defined with the `class', `struct', and `union' keywords.)
+
+* Menu:
+
+* Namespaces::          Member functions, types, etc.
+* Classes::             Members, bases, friends, etc.
+
+
+File: gccint.info,  Node: Namespaces,  Next: Classes,  Up: Scopes
+
+9.4.1 Namespaces
+----------------
+
+A namespace is represented by a `NAMESPACE_DECL' node.
+
+ However, except for the fact that it is distinguished as the root of
+the representation, the global namespace is no different from any other
+namespace.  Thus, in what follows, we describe namespaces generally,
+rather than the global namespace in particular.
+
+ The following macros and functions can be used on a `NAMESPACE_DECL':
+
+`DECL_NAME'
+     This macro is used to obtain the `IDENTIFIER_NODE' corresponding to
+     the unqualified name of the name of the namespace (*note
+     Identifiers::).  The name of the global namespace is `::', even
+     though in C++ the global namespace is unnamed.  However, you
+     should use comparison with `global_namespace', rather than
+     `DECL_NAME' to determine whether or not a namespace is the global
+     one.  An unnamed namespace will have a `DECL_NAME' equal to
+     `anonymous_namespace_name'.  Within a single translation unit, all
+     unnamed namespaces will have the same name.
+
+`DECL_CONTEXT'
+     This macro returns the enclosing namespace.  The `DECL_CONTEXT' for
+     the `global_namespace' is `NULL_TREE'.
+
+`DECL_NAMESPACE_ALIAS'
+     If this declaration is for a namespace alias, then
+     `DECL_NAMESPACE_ALIAS' is the namespace for which this one is an
+     alias.
+
+     Do not attempt to use `cp_namespace_decls' for a namespace which is
+     an alias.  Instead, follow `DECL_NAMESPACE_ALIAS' links until you
+     reach an ordinary, non-alias, namespace, and call
+     `cp_namespace_decls' there.
+
+`DECL_NAMESPACE_STD_P'
+     This predicate holds if the namespace is the special `::std'
+     namespace.
+
+`cp_namespace_decls'
+     This function will return the declarations contained in the
+     namespace, including types, overloaded functions, other
+     namespaces, and so forth.  If there are no declarations, this
+     function will return `NULL_TREE'.  The declarations are connected
+     through their `TREE_CHAIN' fields.
+
+     Although most entries on this list will be declarations,
+     `TREE_LIST' nodes may also appear.  In this case, the `TREE_VALUE'
+     will be an `OVERLOAD'.  The value of the `TREE_PURPOSE' is
+     unspecified; back ends should ignore this value.  As with the
+     other kinds of declarations returned by `cp_namespace_decls', the
+     `TREE_CHAIN' will point to the next declaration in this list.
+
+     For more information on the kinds of declarations that can occur
+     on this list, *Note Declarations::.  Some declarations will not
+     appear on this list.  In particular, no `FIELD_DECL',
+     `LABEL_DECL', or `PARM_DECL' nodes will appear here.
+
+     This function cannot be used with namespaces that have
+     `DECL_NAMESPACE_ALIAS' set.
+
+
+
+File: gccint.info,  Node: Classes,  Prev: Namespaces,  Up: Scopes
+
+9.4.2 Classes
+-------------
+
+A class type is represented by either a `RECORD_TYPE' or a
+`UNION_TYPE'.  A class declared with the `union' tag is represented by
+a `UNION_TYPE', while classes declared with either the `struct' or the
+`class' tag are represented by `RECORD_TYPE's.  You can use the
+`CLASSTYPE_DECLARED_CLASS' macro to discern whether or not a particular
+type is a `class' as opposed to a `struct'.  This macro will be true
+only for classes declared with the `class' tag.
+
+ Almost all non-function members are available on the `TYPE_FIELDS'
+list.  Given one member, the next can be found by following the
+`TREE_CHAIN'.  You should not depend in any way on the order in which
+fields appear on this list.  All nodes on this list will be `DECL'
+nodes.  A `FIELD_DECL' is used to represent a non-static data member, a
+`VAR_DECL' is used to represent a static data member, and a `TYPE_DECL'
+is used to represent a type.  Note that the `CONST_DECL' for an
+enumeration constant will appear on this list, if the enumeration type
+was declared in the class.  (Of course, the `TYPE_DECL' for the
+enumeration type will appear here as well.)  There are no entries for
+base classes on this list.  In particular, there is no `FIELD_DECL' for
+the "base-class portion" of an object.
+
+ The `TYPE_VFIELD' is a compiler-generated field used to point to
+virtual function tables.  It may or may not appear on the `TYPE_FIELDS'
+list.  However, back ends should handle the `TYPE_VFIELD' just like all
+the entries on the `TYPE_FIELDS' list.
+
+ The function members are available on the `TYPE_METHODS' list.  Again,
+subsequent members are found by following the `TREE_CHAIN' field.  If a
+function is overloaded, each of the overloaded functions appears; no
+`OVERLOAD' nodes appear on the `TYPE_METHODS' list.  Implicitly
+declared functions (including default constructors, copy constructors,
+assignment operators, and destructors) will appear on this list as well.
+
+ Every class has an associated "binfo", which can be obtained with
+`TYPE_BINFO'.  Binfos are used to represent base-classes.  The binfo
+given by `TYPE_BINFO' is the degenerate case, whereby every class is
+considered to be its own base-class.  The base binfos for a particular
+binfo are held in a vector, whose length is obtained with
+`BINFO_N_BASE_BINFOS'.  The base binfos themselves are obtained with
+`BINFO_BASE_BINFO' and `BINFO_BASE_ITERATE'.  To add a new binfo, use
+`BINFO_BASE_APPEND'.  The vector of base binfos can be obtained with
+`BINFO_BASE_BINFOS', but normally you do not need to use that.  The
+class type associated with a binfo is given by `BINFO_TYPE'.  It is not
+always the case that `BINFO_TYPE (TYPE_BINFO (x))', because of typedefs
+and qualified types.  Neither is it the case that `TYPE_BINFO
+(BINFO_TYPE (y))' is the same binfo as `y'.  The reason is that if `y'
+is a binfo representing a base-class `B' of a derived class `D', then
+`BINFO_TYPE (y)' will be `B', and `TYPE_BINFO (BINFO_TYPE (y))' will be
+`B' as its own base-class, rather than as a base-class of `D'.
+
+ The access to a base type can be found with `BINFO_BASE_ACCESS'.  This
+will produce `access_public_node', `access_private_node' or
+`access_protected_node'.  If bases are always public,
+`BINFO_BASE_ACCESSES' may be `NULL'.
+
+ `BINFO_VIRTUAL_P' is used to specify whether the binfo is inherited
+virtually or not.  The other flags, `BINFO_MARKED_P' and `BINFO_FLAG_1'
+to `BINFO_FLAG_6' can be used for language specific use.
+
+ The following macros can be used on a tree node representing a
+class-type.
+
+`LOCAL_CLASS_P'
+     This predicate holds if the class is local class _i.e._ declared
+     inside a function body.
+
+`TYPE_POLYMORPHIC_P'
+     This predicate holds if the class has at least one virtual function
+     (declared or inherited).
+
+`TYPE_HAS_DEFAULT_CONSTRUCTOR'
+     This predicate holds whenever its argument represents a class-type
+     with default constructor.
+
+`CLASSTYPE_HAS_MUTABLE'
+`TYPE_HAS_MUTABLE_P'
+     These predicates hold for a class-type having a mutable data
+     member.
+
+`CLASSTYPE_NON_POD_P'
+     This predicate holds only for class-types that are not PODs.
+
+`TYPE_HAS_NEW_OPERATOR'
+     This predicate holds for a class-type that defines `operator new'.
+
+`TYPE_HAS_ARRAY_NEW_OPERATOR'
+     This predicate holds for a class-type for which `operator new[]'
+     is defined.
+
+`TYPE_OVERLOADS_CALL_EXPR'
+     This predicate holds for class-type for which the function call
+     `operator()' is overloaded.
+
+`TYPE_OVERLOADS_ARRAY_REF'
+     This predicate holds for a class-type that overloads `operator[]'
+
+`TYPE_OVERLOADS_ARROW'
+     This predicate holds for a class-type for which `operator->' is
+     overloaded.
+
+
+
+File: gccint.info,  Node: Declarations,  Next: Attributes,  Prev: Functions,  Up: Trees
+
+9.5 Declarations
+================
+
+This section covers the various kinds of declarations that appear in the
+internal representation, except for declarations of functions
+(represented by `FUNCTION_DECL' nodes), which are described in *note
+Functions::.
+
+* Menu:
+
+* Working with declarations::  Macros and functions that work on
+declarations.
+* Internal structure:: How declaration nodes are represented.
+
+
+File: gccint.info,  Node: Working with declarations,  Next: Internal structure,  Up: Declarations
+
+9.5.1 Working with declarations
+-------------------------------
+
+Some macros can be used with any kind of declaration.  These include:
+`DECL_NAME'
+     This macro returns an `IDENTIFIER_NODE' giving the name of the
+     entity.
+
+`TREE_TYPE'
+     This macro returns the type of the entity declared.
+
+`TREE_FILENAME'
+     This macro returns the name of the file in which the entity was
+     declared, as a `char*'.  For an entity declared implicitly by the
+     compiler (like `__builtin_memcpy'), this will be the string
+     `"<internal>"'.
+
+`TREE_LINENO'
+     This macro returns the line number at which the entity was
+     declared, as an `int'.
+
+`DECL_ARTIFICIAL'
+     This predicate holds if the declaration was implicitly generated
+     by the compiler.  For example, this predicate will hold of an
+     implicitly declared member function, or of the `TYPE_DECL'
+     implicitly generated for a class type.  Recall that in C++ code
+     like:
+          struct S {};
+     is roughly equivalent to C code like:
+          struct S {};
+          typedef struct S S;
+     The implicitly generated `typedef' declaration is represented by a
+     `TYPE_DECL' for which `DECL_ARTIFICIAL' holds.
+
+`DECL_NAMESPACE_SCOPE_P'
+     This predicate holds if the entity was declared at a namespace
+     scope.
+
+`DECL_CLASS_SCOPE_P'
+     This predicate holds if the entity was declared at a class scope.
+
+`DECL_FUNCTION_SCOPE_P'
+     This predicate holds if the entity was declared inside a function
+     body.
+
+
+ The various kinds of declarations include:
+`LABEL_DECL'
+     These nodes are used to represent labels in function bodies.  For
+     more information, see *note Functions::.  These nodes only appear
+     in block scopes.
+
+`CONST_DECL'
+     These nodes are used to represent enumeration constants.  The
+     value of the constant is given by `DECL_INITIAL' which will be an
+     `INTEGER_CST' with the same type as the `TREE_TYPE' of the
+     `CONST_DECL', i.e., an `ENUMERAL_TYPE'.
+
+`RESULT_DECL'
+     These nodes represent the value returned by a function.  When a
+     value is assigned to a `RESULT_DECL', that indicates that the
+     value should be returned, via bitwise copy, by the function.  You
+     can use `DECL_SIZE' and `DECL_ALIGN' on a `RESULT_DECL', just as
+     with a `VAR_DECL'.
+
+`TYPE_DECL'
+     These nodes represent `typedef' declarations.  The `TREE_TYPE' is
+     the type declared to have the name given by `DECL_NAME'.  In some
+     cases, there is no associated name.
+
+`VAR_DECL'
+     These nodes represent variables with namespace or block scope, as
+     well as static data members.  The `DECL_SIZE' and `DECL_ALIGN' are
+     analogous to `TYPE_SIZE' and `TYPE_ALIGN'.  For a declaration, you
+     should always use the `DECL_SIZE' and `DECL_ALIGN' rather than the
+     `TYPE_SIZE' and `TYPE_ALIGN' given by the `TREE_TYPE', since
+     special attributes may have been applied to the variable to give
+     it a particular size and alignment.  You may use the predicates
+     `DECL_THIS_STATIC' or `DECL_THIS_EXTERN' to test whether the
+     storage class specifiers `static' or `extern' were used to declare
+     a variable.
+
+     If this variable is initialized (but does not require a
+     constructor), the `DECL_INITIAL' will be an expression for the
+     initializer.  The initializer should be evaluated, and a bitwise
+     copy into the variable performed.  If the `DECL_INITIAL' is the
+     `error_mark_node', there is an initializer, but it is given by an
+     explicit statement later in the code; no bitwise copy is required.
+
+     GCC provides an extension that allows either automatic variables,
+     or global variables, to be placed in particular registers.  This
+     extension is being used for a particular `VAR_DECL' if
+     `DECL_REGISTER' holds for the `VAR_DECL', and if
+     `DECL_ASSEMBLER_NAME' is not equal to `DECL_NAME'.  In that case,
+     `DECL_ASSEMBLER_NAME' is the name of the register into which the
+     variable will be placed.
+
+`PARM_DECL'
+     Used to represent a parameter to a function.  Treat these nodes
+     similarly to `VAR_DECL' nodes.  These nodes only appear in the
+     `DECL_ARGUMENTS' for a `FUNCTION_DECL'.
+
+     The `DECL_ARG_TYPE' for a `PARM_DECL' is the type that will
+     actually be used when a value is passed to this function.  It may
+     be a wider type than the `TREE_TYPE' of the parameter; for
+     example, the ordinary type might be `short' while the
+     `DECL_ARG_TYPE' is `int'.
+
+`FIELD_DECL'
+     These nodes represent non-static data members.  The `DECL_SIZE' and
+     `DECL_ALIGN' behave as for `VAR_DECL' nodes.  The position of the
+     field within the parent record is specified by a combination of
+     three attributes.  `DECL_FIELD_OFFSET' is the position, counting
+     in bytes, of the `DECL_OFFSET_ALIGN'-bit sized word containing the
+     bit of the field closest to the beginning of the structure.
+     `DECL_FIELD_BIT_OFFSET' is the bit offset of the first bit of the
+     field within this word; this may be nonzero even for fields that
+     are not bit-fields, since `DECL_OFFSET_ALIGN' may be greater than
+     the natural alignment of the field's type.
+
+     If `DECL_C_BIT_FIELD' holds, this field is a bit-field.  In a
+     bit-field, `DECL_BIT_FIELD_TYPE' also contains the type that was
+     originally specified for it, while DECL_TYPE may be a modified
+     type with lesser precision, according to the size of the bit field.
+
+`NAMESPACE_DECL'
+     *Note Namespaces::.
+
+`TEMPLATE_DECL'
+     These nodes are used to represent class, function, and variable
+     (static data member) te

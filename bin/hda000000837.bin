@@ -1,0 +1,2120 @@
+/*
+ * lucas - perform a Lucas primality test on h*2^n-1
+ *
+ * Copyright (C) 1999  Landon Curt Noll
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: lucas.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/lucas.cal,v $
+ *
+ * Under source code control:	1990/05/03 16:49:51
+ * File existed as early as:	1990
+ *
+ * chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+/*
+ * NOTE: This is a standard calc resource file.  For information on calc see:
+ *
+ *	http://www.isthe.com/chongo/tech/comp/calc/index.html
+ *
+ * To obtain your own copy of calc, see:
+ *
+ *	http://www.isthe.com/chongo/tech/comp/calc/calc-download.html
+ */
+
+/*
+ * HISTORICAL NOTE:
+ *
+ * On 6 August 1989 at 00:53 PDT, the 'Amdahl 6', a team consisting of
+ * John Brown, Landon Curt Noll, Bodo Parady, Gene Smith, Joel Smith and
+ * Sergio Zarantonello proved the following 65087 digit number to be prime:
+ *
+ *				  216193
+ *			391581 * 2	-1
+ *
+ * At the time of discovery, this number was the largest known prime.
+ * The primality was demonstrated by a program implementing the test
+ * found in these routines.  An Amdahl 1200 takes 1987 seconds to test
+ * the primality of this number.  A Cray 2 took several hours to
+ * confirm this prime.	As of 31 Dec 1995, this prime was the 3rd
+ * largest known prime and the largest known non-Mersenne prime.
+ *
+ * The same team also discovered the following twin prime pair:
+ *
+ *			   11235		   11235
+ *		1706595 * 2	-1	1706595 * 2	+1
+ *
+ * At the time of discovery, this was the largest known twin prime pair.
+ *
+ * See:
+ *
+ *	http://www.isthe.com/chongo/tech/math/prime/amdahl6.html
+ *
+ * for more information on the Amdahl 6 group.
+ *
+ * NOTE: Both largest known and largest known twin prime records have been
+ *	 broken.  Rather than update this file each time, I'll just
+ *	 congratulate the finders and encourage others to try for
+ *	 larger finds.	Records were made to be broken afterall!
+ */
+
+/* ON GAINING A WORLD RECORD:
+ *
+ * The routines in calc were designed to be portable, and to work on
+ * numbers of 'sane' size.  The Amdahl 6 team used a 'ultra-high speed
+ * multi-precision' package that a machine dependent collection of routines
+ * tuned for a long trace vector processor to work with very large numbers.
+ * The heart of the package was a multiplication and square routine that
+ * was based on the PFA Fast Fourier Transform and on Winograd's radix FFTs.
+ *
+ * Having a fast computer, and a good multi-precision package are
+ * critical, but one also needs to know where to look in order to have
+ * a good chance at a record.  Knowing what to test is beyond the scope
+ * of this routine.  However the following observations are noted:
+ *
+ *	test numbers of the form h*2^n-1
+ *	fix a value of n and vary the value h
+ *	n mod 2^x == 0  for some value of x, say > 7 or more
+ *	h*2^n-1 is not divisible by any small prime < 2^40
+ *	0 < h < 2^39
+ *	h*2^n+1 is not divisible by any small prime < 2^40
+ *
+ * The Mersenne test for '2^n-1' is the fastest known primality test
+ * for a given large numbers.  However, it is faster to search for
+ * primes of the form 'h*2^n-1'.  When n is around 200000, one can find
+ * a prime of the form 'h*2^n-1' in about 1/2 the time.
+ *
+ * Critical to understanding why 'h*2^n-1' is to observe that primes of
+ * the form '2^n-1' seem to bunch around "islands".  Such "islands"
+ * seem to be getting fewer and farther in-between, forcing the time
+ * for each test to grow longer and longer (worse then O(n^2 log n)).
+ * On the other hand, when one tests 'h*2^n-1', fixes 'n' and varies
+ * 'h', the time to test each number remains relatively constant.
+ *
+ * It is clearly a win to eliminate potential test candidates by
+ * rejecting numbers that that are divisible by 'small' primes.	 We
+ * (the "Amdahl 6") rejected all numbers that were divisible by primes
+ * less than '2^40'.  We stopped looking for small factors at '2^40'
+ * when the rate of candidates being eliminated was slowed down to
+ * just a trickle.
+ *
+ * The 'n mod 128 == 0' restriction allows one to test for divisibility
+ * of small primes more quickly.  To test of 'q' is a factor of 'k*2^n-1',
+ * one check to see if 'k*2^n mod q' == 1, which is the same a checking
+ * if 'h*(2^n mod q) mod q' == 1.  One can compute '2^n mod q' by making
+ * use of the following:
+ *
+ *	if
+ *		y = 2^x mod q
+ *	then
+ *		2^(2x) mod q   == y^2 mod q		0 bit
+ *		2^(2x+1) mod q == 2*y^2 mod q		1 bit
+ *
+ * The choice of which expression depends on the binary pattern of 'n'.
+ * Since '1' bits require an extra step (multiply by 2), one should
+ * select value of 'n' that contain mostly '0' bits.  The restriction
+ * of 'n mod 128 == 0' ensures that the bottom 7 bits of 'n' are 0.
+ *
+ * By limiting 'h' to '2^39' and eliminating all values divisible by
+ * small primes < twice the 'h' limit (2^40), one knows that all
+ * remaining candidates are relatively prime.  Thus, when a candidate
+ * is proven to be composite (not prime) by the big test, one knows
+ * that the factors for that number (whatever they may be) will not
+ * be the factors of another candidate.
+ *
+ * Finally, one should eliminate all values of 'h*2^n-1' where
+ * 'h*2^n+1' is divisible by a small primes.  The ideas behind this
+ * point is beyond the scope of this program.
+ */
+
+
+global pprod256;	/* product of  "primes up to 256" / "primes up to 46" */
+
+/*
+ * lucas - lucas primality test on h*2^n-1
+ *
+ * ABOUT THE TEST:
+ *
+ * This routine will perform a primality test on h*2^n-1 based on
+ * the mathematics of Lucas, Lehmer and Riesel.	 One should read
+ * the following article:
+ *
+ * Ref1:
+ *	"Lucasian Criteria for the Primality of N=h*2^n-1", by Hans Riesel,
+ *	Mathematics of Computation, Vol 23 #108, pp. 869-875, Oct 1969
+ *
+ * The following book is also useful:
+ *
+ * Ref2:
+ *	"Prime numbers and Computer Methods for Factorization", by Hans Riesel,
+ *	Birkhauser, 1985, pp 131-134, 278-285, 438-444
+ *
+ * A few useful Legendre identities may be found in:
+ *
+ * Ref3:
+ *	"Introduction to Analytic Number Theory", by Tom A. Apostol,
+ *	Springer-Verlag, 1984, p 188.
+ *
+ * This test is performed as follows:	(see Ref1, Theorem 5)
+ *
+ *	a) generate u(0)		(see the function gen_u0() below)
+ *
+ *	b) generate u(n-2) according to the rule:
+ *
+ *		u(i+1) = u(i)^2-2 mod h*2^n-1
+ *
+ *	c) h*2^n-1 is prime if and only if u(n-2) == 0		Q.E.D. :-)
+ *
+ * Now the following conditions must be true for the test to work:
+ *
+ *	n >= 2
+ *	h >= 1
+ *	h < 2^n
+ *	h mod 2 == 1
+ *
+ * A few misc notes:
+ *
+ * In order to reduce the number of tests, as attempt to eliminate
+ * any number that is divisible by a prime less than 257.  Valid prime
+ * candidates less than 257 are declared prime as a special case.
+ *
+ * In real life, you would eliminate candidates by checking for
+ * divisibility by a prime much larger than 257 (perhaps as high
+ * as 2^39).
+ *
+ * The condition 'h mod 2 == 1' is not a problem.  Say one is testing
+ * 'j*2^m-1', where j is even.	If we note that:
+ *
+ *	j mod 2^x == 0 for x>0	 implies   j*2^m-1 == ((j/2^x)*2^(m+x))-1,
+ *
+ * then we can let h=j/2^x and n=m+x and test 'h*2^n-1' which is the value.
+ * We need only consider odd values of h because we can rewrite our numbers
+ * do make this so.
+ *
+ * input:
+ *	h    the h as in h*2^n-1
+ *	n    the n as in h*2^n-1
+ *
+ * returns:
+ *	1 => h*2^n-1 is prime
+ *	0 => h*2^n-1 is not prime
+ *     -1 => a test could not be formed, or h >= 2^n, h <= 0, n <= 0
+ */
+define
+lucas(h, n)
+{
+	local testval;		/* h*2^n-1 */
+	local shiftdown;	/* the power of 2 that divides h */
+	local u;		/* the u(i) sequence value */
+	local v1;		/* the v(1) generator of u(0) */
+	local i;		/* u sequence cycle number */
+	local oldh;		/* pre-reduced h */
+	local oldn;		/* pre-reduced n */
+	local bits;		/* highbit of h*2^n-1 */
+
+	/*
+	 * check arg types
+	 */
+	if (!isint(h)) {
+		ldebug("lucas", "h is non-int");
+		quit "FATAL: bad args: h must be an integer";
+	}
+	if (!isint(n)) {
+		ldebug("lucas", "n is non-int");
+		quit "FATAL: bad args: n must be an integer";
+	}
+
+	/*
+	 * reduce h if even
+	 *
+	 * we will force h to be odd by moving powers of two over to 2^n
+	 */
+	oldh = h;
+	oldn = n;
+	shiftdown = fcnt(h,2);	/* h % 2^shiftdown == 0, max shiftdown */
+	if (shiftdown > 0) {
+		h >>= shiftdown;
+		n += shiftdown;
+	}
+
+	/*
+	 * enforce the 0 < h < 2^n rule
+	 */
+	if (h <= 0 || n <= 0) {
+		print "ERROR: reduced args violate the rule: 0 < h < 2^n";
+		print "	   ERROR: h=":oldh, "n=":oldn, "reduced h=":h, "n=":n;
+		ldebug("lucas", "unknown: h <= 0 || n <= 0");
+		return -1;
+	}
+	if (highbit(h) >= n) {
+		print "ERROR: reduced args violate the rule: h < 2^n";
+		print "	   ERROR: h=":oldh, "n=":oldn, "reduced h=":h, "n=":n;
+		ldebug("lucas", "unknown: highbit(h) >= n");
+		return -1;
+	}
+
+	/*
+	 * catch the degenerate case of h*2^n-1 == 1
+	 */
+	if (h == 1 && n == 1) {
+		ldebug("lucas", "not prime: h == 1 && n == 1");
+		return 0;	/* 1*2^1-1 == 1 is not prime */
+	}
+
+	/*
+	 * catch the degenerate case of n==2
+	 *
+	 * n==2 and 0<h<2^n  ==>  0<h<4
+	 *
+	 * Since h is now odd  ==>  h==1 or h==3
+	 */
+	if (h == 1 && n == 2) {
+		ldebug("lucas", "prime: h == 1 && n == 2");
+		return 1;	/* 1*2^2-1 == 3 is prime */
+	}
+	if (h == 3 && n == 2) {
+		ldebug("lucas", "prime: h == 3 && n == 2");
+		return 1;	/* 3*2^2-1 == 11 is prime */
+	}
+
+	/*
+	 * catch small primes < 257
+	 *
+	 * We check for only a few primes because the other primes < 257
+	 * violate the checks above.
+	 */
+	if (h == 1) {
+		if (n == 3 || n == 5 || n == 7) {
+			ldebug("lucas", "prime: 3, 7, 31, 127 are prime");
+			return 1;	/* 3, 7, 31, 127 are prime */
+		}
+	}
+	if (h == 3) {
+		if (n == 2 || n == 3 || n == 4 || n == 6) {
+			ldebug("lucas", "prime: 11, 23, 47, 191 are prime");
+			return 1;	/* 11, 23, 47, 191 are prime */
+		}
+	}
+	if (h == 5 && n == 4) {
+		ldebug("lucas", "prime: 79 is prime");
+		return 1;		/* 79 is prime */
+	}
+	if (h == 7 && n == 5) {
+		ldebug("lucas", "prime: 223 is prime");
+		return 1;		/* 223 is prime */
+	}
+	if (h == 15 && n == 4) {
+		ldebug("lucas", "prime: 239 is prime");
+		return 1;		/* 239 is prime */
+	}
+
+	/*
+	 * Avoid any numbers divisible by small primes
+	 */
+	/*
+	 * check for 3 <= prime factors < 29
+	 * pfact(28)/2 = 111546435
+	 */
+	testval = h*2^n - 1;
+	if (gcd(testval, 111546435) > 1) {
+		/* a small 3 <= prime < 29 divides h*2^n-1 */
+		ldebug("lucas","not-prime: 3<=prime<29 divides h*2^n-1");
+		return 0;
+	}
+	/*
+	 * check for 29 <= prime factors < 47
+	 * pfact(46)/pfact(28) = 5864229
+	 */
+	if (gcd(testval, 58642669) > 1) {
+		/* a small 29 <= prime < 47 divides h*2^n-1 */
+		ldebug("lucas","not-prime: 29<=prime<47 divides h*2^n-1");
+		return 0;
+	}
+	/*
+	 * check for prime 47 <= factors < 257, if h*2^n-1 is large
+	 * 2^282 > pfact(256)/pfact(46) > 2^281
+	 */
+	bits = highbit(testval);
+	if (bits >= 281) {
+		if (pprod256 <= 0) {
+			pprod256 = pfact(256)/pfact(46);
+		}
+		if (gcd(testval, pprod256) > 1) {
+			/* a small 47 <= prime < 257 divides h*2^n-1 */
+			ldebug("lucas",\
+			    "not-prime: 47<=prime<257 divides h*2^n-1");
+			return 0;
+		}
+	}
+
+	/*
+	 * try to compute u(0)
+	 *
+	 * We will use gen_v1() to give us a v(1) using the values
+	 * of 'h' and 'n'.  We will then use gen_u0() to convert
+	 * the v(1) into u(0).
+	 *
+	 * If gen_v1() returns a negative value, then we failed to
+	 * generate a test for h*2^n-1.	 This is because h mod 3 == 0
+	 * is hard to do, and in rare cases, exceed the tables found
+	 * in this program.  We will generate an message and assume
+	 * the number is not prime, even though if we had a larger
+	 * taMÑ  NÑ  OÑ  PÑ  QÑ  RÑ  SÑ  TÑ  UÑ  VÑ  WÑ  XÑ  YÑ  ZÑ  [Ñ  \Ñ  ]Ñ                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ble, we might have been able to show that it is prime.
+	 */
+	v1 = gen_v1(h, n);
+	if (v1 < 0) {
+		/* failure to test number */
+		print "unable to compute v(1) for", h : "*2^" : n : "-1";
+		ldebug("lucas", "unknown: no v(1)");
+		return -1;
+	}
+	u = gen_u0(h, n, v1);
+
+	/*
+	 * compute u(n-2)
+	 */
+	for (i=3; i <= n; ++i) {
+		/* u = (u^2 - 2) % testval; */
+		u = hnrmod(u^2 - 2, h, n, -1);
+	}
+
+	/*
+	 * return 1 if prime, 0 is not prime
+	 */
+	if (u == 0) {
+		ldebug("lucas", "prime: end of test");
+		return 1;
+	} else {
+		ldebug("lucas", "not-prime: end of test");
+		return 0;
+	}
+}
+
+/*
+ * gen_u0 - determine the initial Lucas sequence for h*2^n-1
+ *
+ * According to Ref1, Theorem 5:
+ *
+ *	u(0) = alpha^h + alpha^(-h)
+ *
+ * Now:
+ *
+ *	v(x) = alpha^x + alpha^(-x)	(Ref1, bottom of page 872)
+ *
+ * Therefore:
+ *
+ *	u(0) = v(h)
+ *
+ * We calculate v(h) as follows:	(Ref1, top of page 873)
+ *
+ *	v(0) = alpha^0 + alpha^(-0) = 2
+ *	v(1) = alpha^1 + alpha^(-1) = gen_v1(h,n)
+ *	v(n+2) = v(1)*v(n+1) - v(n)
+ *
+ * This function does not concern itself with the value of 'alpha'.
+ * The gen_v1() function is used to compute v(1), and identity
+ * functions take it from there.
+ *
+ * It can be shown that the following are true:
+ *
+ *	v(2*n) = v(n)^2 - 2
+ *	v(2*n+1) = v(n+1)*v(n) - v(1)
+ *
+ * To prevent v(x) from growing too large, one may replace v(x) with
+ * `v(x) mod h*2^n-1' at any time.
+ *
+ * See the function gen_v1() for details on the value of v(1).
+ *
+ * input:
+ *	h	- h as in h*2^n-1	(h mod 2 != 0)
+ *	n	- n as in h*2^n-1
+ *	v1	- gen_v1(h,n)		(see function below)
+ *
+ * returns:
+ *	u(0)	- initial value for Lucas test on h*2^n-1
+ *	-1	- failed to generate u(0)
+ */
+define
+gen_u0(h, n, v1)
+{
+	local shiftdown;	/* the power of 2 that divides h */
+	local r;		/* low value: v(n) */
+	local s;		/* high value: v(n+1) */
+	local hbits;		/* highest bit set in h */
+	local i;
+
+	/*
+	 * check arg types
+	 */
+	if (!isint(h)) {
+		quit "bad args: h must be an integer";
+	}
+	if (!isint(n)) {
+		quit "bad args: n must be an integer";
+	}
+	if (!isint(v1)) {
+		quit "bad args: v1 must be an integer";
+	}
+	if (v1 <= 0) {
+		quit "bogus arg: v1 is <= 0";
+	}
+
+	/*
+	 * enforce the h mod rules
+	 */
+	if (h%2 == 0) {
+		quit "h must not be even";
+	}
+
+	/*
+	 * enforce the h > 0 and n >= 2 rules
+	 */
+	if (h <= 0 || n < 1) {
+		quit "reduced args violate the rule: 0 < h < 2^n";
+	}
+	hbits = highbit(h);
+	if (hbits >= n) {
+		quit "reduced args violate the rule: 0 < h < 2^n";
+	}
+
+	/*
+	 * build up u2 based on the reversed bits of h
+	 */
+	/* setup for bit loop */
+	r = v1;
+	s = (r^2 - 2);
+
+	/*
+	 * deal with small h as a special case
+	 *
+	 * The h value is odd > 0, and it needs to be
+	 * at least 2 bits long for the loop below to work.
+	 */
+	if (h == 1) {
+		ldebug("gen_u0", "quick h == 1 case");
+		/* return r%(h*2^n-1); */
+		return hnrmod(r, h, n, -1);
+	}
+
+	/* cycle from second highest bit to second lowest bit of h */
+	for (i=hbits-1; i > 0; --i) {
+
+		/* bit(i) is 1 */
+		if (bit(h,i)) {
+
+			/* compute v(2n+1) = v(r+1)*v(r)-v1 */
+			/* r = (r*s - v1) % (h*2^n-1); */
+			r = hnrmod((r*s - v1), h, n, -1);
+
+			/* compute v(2n+2) = v(r+1)^2-2 */
+			/* s = (s^2 - 2) % (h*2^n-1); */
+			s = hnrmod((s^2 - 2), h, n, -1);
+
+		/* bit(i) is 0 */
+		} else {
+
+			/* compute v(2n+1) = v(r+1)*v(r)-v1 */
+			/* s = (r*s - v1) % (h*2^n-1); */
+			s = hnrmod((r*s - v1), h, n, -1);
+
+			/* compute v(2n) = v(r)^-2 */
+			/* r = (r^2 - 2) % (h*2^n-1); */
+			r = hnrmod((r^2 - 2), h, n, -1);
+		}
+	}
+
+	/* we know that h is odd, so the final bit(0) is 1 */
+	/* r = (r*s - v1) % (h*2^n-1); */
+	r = hnrmod((r*s - v1), h, n, -1);
+
+	/* compute the final u2 return value */
+	return r;
+}
+
+/*
+ * Trial tables used by gen_v1()
+ *
+ * When h mod 3 == 0, one needs particular values of D, a and b (see gen_v1
+ * documentation) in order to find a value of v(1).
+ *
+ * This table defines 'quickmax' possible tests to be taken in ascending
+ * order.  The v1_qval[x] refers to a v(1) value from Ref1, Table 1.  A
+ * related D value is found in d_qval[x].  All D values expect d_qval[1]
+ * are also taken from Ref1, Table 1.  The case of D == 21 as listed in
+ * Ref1, Table 1 can be changed to D == 7 for the sake of the test because
+ * of {note 6}.
+ *
+ * It should be noted that the D values all satisfy the selection values
+ * as outlined in the gen_v1() function comments.  That is:
+ *
+ *	   D == P*(2^f)*(3^g)
+ *
+ * where f == 0 and g == 0, P == D.  So we simply need to check that
+ * one of the following two cases are true:
+ *
+ *	   P mod 4 ==  1  and  J(h*2^n-1 mod P, P) == -1
+ *	   P mod 4 == -1  and  J(h*2^n-1 mod P, P) ==  1
+ *
+ * In all cases, the value of r is:
+ *
+ *	   r == Q*(2^j)*(3^k)*(z^2)
+ *
+ * where Q == 1.  No further processing is needed to compute v(1) when r
+ * is of this form.
+ */
+quickmax = 8;
+mat d_qval[quickmax];
+mat v1_qval[quickmax];
+d_qval[0] = 5;		v1_qval[0] = 3;		/* a=1	 b=1  r=4  */
+d_qval[1] = 7;		v1_qval[1] = 5;		/* a=3	 b=1  r=12  D=21 */
+d_qval[2] = 13;		v1_qval[2] = 11;	/* a=3	 b=1  r=4  */
+d_qval[3] = 11;		v1_qval[3] = 20;	/* a=3	 b=1  r=2  */
+d_qval[4] = 29;		v1_qval[4] = 27;	/* a=5	 b=1  r=4  */
+d_qval[5] = 53;		v1_qval[5] = 51;	/* a=53	 b=1  r=4  */
+d_qval[6] = 17;		v1_qval[6] = 66;	/* a=17	 b=1  r=1  */
+d_qval[7] = 19;		v1_qval[7] = 74;	/* a=38	 b=1  r=2  */
+
+/*
+ * gen_v1 - compute the v(1) for a given h*2^n-1 if we can
+ *
+ * This function assumes:
+ *
+ *	n > 2			(n==2 has already been eliminated)
+ *	h mod 2 == 1
+ *	h < 2^n
+ *	h*2^n-1 mod 3 != 0	(h*2^n-1 has no small factors, such as 3)
+ *
+ * The generation of v(1) depends on the value of h.  There are two cases
+ * to consider, h mod 3 != 0, and h mod 3 == 0.
+ *
+ ***
+ *
+ * Case 1:	(h mod 3 != 0)
+ *
+ * This case is easy and always finds v(1).
+ *
+ * In Ref1, page 869, one finds that if:	(or see Ref2, page 131-132)
+ *
+ *	h mod 6 == +/-1
+ *	h*2^n-1 mod 3 != 0
+ *
+ * which translates, gives the functions assumptions, into the condition:
+ *
+ *	h mod 3 != 0
+ *
+ * If this case condition is true, then:
+ *
+ *	u(0) = (2+sqrt(3))^h + (2-sqrt(3))^h		(see Ref1, page 869)
+ *	     = (2+sqrt(3))^h + (2+sqrt(3))^(-h)
+ *
+ * and since Ref1, Theorem 5 states:
+ *
+ *	u(0) = alpha^h + alpha^(-h)
+ *	r = abs(2^2 - 1^2*3) = 1
+ *
+ * and the bottom of Ref1, page 872 states:
+ *
+ *	v(x) = alpha^x + alpha^(-x)
+ *
+ * If we let:
+ *
+ *	alpha = (2+sqrt(3))
+ *
+ * then
+ *
+ *	u(0) = v(h)
+ *
+ * so we simply return
+ *
+ *	v(1) = alpha^1 + alpha^(-1)
+ *	     = (2+sqrt(3)) + (2-sqrt(3))
+ *	     = 4
+ *
+ ***
+ *
+ * Case 2:	(h mod 3 == 0)
+ *
+ * This case is not so easy and finds v(1) in most all cases.  In this
+ * version of this program, we will simply return -1 (failure) if we
+ * hit one of the cases that fall thru the cracks.  This does not happen
+ * often, so this is not too bad.
+ *
+ * Ref1, Theorem 5 contains the following definitions:
+ *
+ *	    r = abs(a^2 - b^2*D)
+ *	    alpha = (a + b*sqrt(D))^2/r
+ *
+ * where D is 'square free', and 'alpha = epsilon^s' (for some s>0) are units
+ * in the quadratic field K(sqrt(D)).
+ *
+ * One can find possible values for a, b and D in Ref1, Table 1 (page 872).
+ * (see the file lucas_tbl.cal)
+ *
+ * Now Ref1, Theorem 5 states that if:
+ *
+ *	L(D, h*2^n-1) = -1				[condition 1]
+ *	L(r, h*2^n-1) * (a^2 - b^2*D)/r = -1		[condition 2]
+ *
+ * where L(x,y) is the Legendre symbol (see below), then:
+ *
+ *	u(0) = alpha^h + alpha^(-h)
+ *
+ * The bottom of Ref1, page 872 states:
+ *
+ *	v(x) = alpha^x + alpha^(-x)
+ *
+ * thus since:
+ *
+ *	u(0) = v(h)
+ *
+ * so we want to return:
+ *
+ *	v(1) = alpha^1 + alpha^(-1)
+ *
+ * Therefore we need to take a given (D,a,b), determine if the two conditions
+ * are true, and return the related v(1).
+ *
+ * Before we address the two conditions, we need some background information
+ * on two symbols, Legendre and Jacobi.	 In Ref 2, pp 278, 284-285, we find
+ * the following definitions of J(a,p) and L(a,n):
+ *
+ * The Legendre symbol L(a,p) takes the value:
+ *
+ *	L(a,p) == 1	=> a is a quadratic residue of p
+ *	L(a,p) == -1	=> a is NOT a quadratic residue of p
+ *
+ * when
+ *
+ *	p is prime
+ *	p mod 2 == 1
+ *	gcd(a,p) == 1
+ *
+ * The value x is a quadratic residue of y if there exists some integer z
+ * such that:
+ *
+ *	z^2 mod y == x
+ *
+ * The Jacobi symbol J(x,y) takes the value:
+ *
+ *	J(x,y) == 1	=> y is not prime, or x is a quadratic residue of y
+ *	J(x,y) == -1	=> x is NOT a quadratic residue of y
+ *
+ * when
+ *
+ *	y mod 2 == 1
+ *	gcd(x,y) == 1
+ *
+ * In the following comments on Legendre and Jacobi identities, we shall
+ * assume that the arguments to the symbolic are valid over the symbol
+ * definitions as stated above.
+ *
+ * In Ref2, pp 280-284, we find that:
+ *
+ *	L(a,p)*L(b,p) == L(a*b,p)				{A3.5}
+ *	J(x,y)*J(z,y) == J(x*z,y)				{A3.14}
+ *	L(a,p) == L(p,a) * (-1)^((a-1)*(p-1)/4)			{A3.8}
+ *	J(x,y) == J(y,x) * (-1)^((x-1)*(y-1)/4)			{A3.17}
+ *
+ * The equality L(a,p) == J(a,p) when:				{note 0}
+ *
+ *	p is prime
+ *	p mod 2 == 1
+ *	gcd(a,p) == 1
+ *
+ * It can be shown that (see Ref3):
+ *
+ *	L(a,p) == L(a mod p, p)					{note 1}
+ *	L(z^2, p) == 1						{note 2}
+ *
+ * From Ref2, table 32:
+ *
+ *	p mod 8 == +/-1	  implies  L(2,p) == 1			{note 3}
+ *	p mod 12 == +/-1  implies  L(3,p) == 1			{note 4}
+ *
+ * Since h*2^n-1 mod 8 == -1, for n>2, note 3 implies:
+ *
+ *	L(2, h*2^n-1) == 1			(n>2)		{note 5}
+ *
+ * Since h=3*A, h*2^n-1 mod 12 == -1, for A>0, note 4 implies:
+ *
+ *	L(3, h*2^n-1) == 1					{note 6}
+ *
+ * By use of {A3.5}, {note 2}, {note 5} and {note 6}, one can show:
+ *
+ *	L((2^g)*(3^l)*(z^2), h*2^n-1) == 1  (g>=0,l>=0,z>0,n>2) {note 7}
+ *
+ * Returning to the testing of conditions, take condition 1:
+ *
+ *	L(D, h*2^n-1) == -1			[condition 1]
+ *
+ * In order for J(D, h*2^n-1) to be defined, we must ensure that D
+ * is not a factor of h*2^n-1.	This is done by pre-screening h*2^n-1 to
+ * not have small factors and selecting D less than that factor check limit.
+ *
+ * By use of {note 7}, we can show that when we choose D to be:
+ *
+ *	D is square free
+ *	D = P*(2^f)*(3^g)			(P is prime>2)
+ *
+ * The square free condition implies f = 0 or 1, g = 0 or 1.  If f and g
+ * are both 1, P must be a prime > 3.
+ *
+ * So given such a D value:
+ *
+ *	L(D, h*2^n-1) == L(P*(2^g)*(3^l), h*2^n-1)
+ *		      == L(P, h*2^n-1) * L((2^g)*(3^l), h*2^n-1)       {A3.5}
+ *		      == L(P, h*2^n-1) * 1			       {note 7}
+ *		      == L(h*2^n-1, P)*(-1)^((h*2^n-2)*(P-1)/4)	       {A3.8}
+ *		      == L(h*2^n-1 mod P, P)*(-1)^((h*2^n-2)*(P-1)/4)  {note 1}
+ *		      == J(h*2^n-1 mod P, P)*(-1)^((h*2^n-2)*(P-1)/4)  {note 0}
+ *
+ * When does J(h*2^n-1 mod P, P)*(-1)^((h*2^n-2)*(P-1)/4) take the value of -1,
+ * thus satisfy [condition 1]?	The answer depends on P.  Now P is a prime>2,
+ * thus P mod 4 == 1 or -1.
+ *
+ * Take P mod 4 == 1:
+ *
+ *	P mod 4 == 1  implies  (-1)^((h*2^n-2)*(P-1)/4) == 1
+ *
+ * Thus:
+ *
+ *	L(D, h*2^n-1) == L(h*2^n-1 mod P, P) * (-1)^((h*2^n-2)*(P-1)/4)
+ *		      == L(h*2^n-1 mod P, P)
+ *		      == J(h*2^n-1 mod P, P)
+ *
+ * Take P mod 4 == -1:
+ *
+ *	P mod 4 == -1  implies	(-1)^((h*2^n-2)*(P-1)/4) == -1
+ *
+ * Thus:
+ *
+ *	L(D, h*2^n-1) == L(h*2^n-1 mod P, P) * (-1)^((h*2^n-2)*(P-1)/4)
+ *		      == L(h*2^n-1 mod P, P) * -1
+ *		      == -J(h*2^n-1 mod P, P)
+ *
+ * Therefore [condition 1] is met if, and only if, one of the following
+ * to cases are true:
+ *
+ *	P mod 4 ==  1  and  J(h*2^n-1 mod P, P) == -1
+ *	P mod 4 == -1  and  J(h*2^n-1 mod P, P) ==  1
+ *
+ * Now consider [condition 2]:
+ *
+ *	L(r, h*2^n-1) * (a^2 - b^2*D)/r == -1	[condition 2]
+ *
+ * We select only a, b, r and D values where:
+ *
+ *	(a^2 - b^2*D)/r == -1
+ *
+ * Therefore in order for [condition 2] to be met, we must show that:
+ *
+ *	L(r, h*2^n-1) == 1
+ *
+ * If we select r to be of the form:
+ *
+ *	r == Q*(2^j)*(3^k)*(z^2)		(Q == 1, j>=0, k>=0, z>0)
+ *
+ * then by use of {note 7}:
+ *
+ *	L(r, h*2^n-1) == L(Q*(2^j)*(3^k)*(z^2), h*2^n-1)
+ *		      == L((2^j)*(3^k)*(z^2), h*2^n-1)
+ *		      == 1					       {note 2}
+ *
+ * and thus, [condition 2] is met.
+ *
+ * If we select r to be of the form:
+ *
+ *	r == Q*(2^j)*(3^k)*(z^2)		(Q is prime>2, j>=0, k>=0, z>0)
+ *
+ * then by use of {note 7}:
+ *
+ *	L(r, h*2^n-1) == L(Q*(2^j)*(3^k)*(z^2), h*2^n-1)
+ *		      == L(Q, h*2^n-1) * L((2^j)*(3^k)*(z^2), h*2^n-1) {A3.5}
+ *		      == L(Q, h*2^n-1) * 1			       {note 2}
+ *		      == L(h*2^n-1, Q) * (-1)^((h*2^n-2)*(Q-1)/4)      {A3.8}
+ *		      == L(h*2^n-1 mod Q, Q)*(-1)^((h*2^n-2)*(Q-1)/4)  {note 1}
+ *		      == J(h*2^n-1 mod Q, Q)*(-1)^((h*2^n-2)*(Q-1)/4)  {note 0}
+ *
+ * When does J(h*2^n-1 mod Q, Q)*(-1)^((h*2^n-2)*(Q-1)/4) take the value of 1,
+ * thus satisfy [condition 2]?	The answer depends on Q.  Now Q is a prime>2,
+ * thus Q mod 4 == 1 or -1.
+ *
+ * Take Q mod 4 == 1:
+ *
+ *	Q mod 4 == 1  implies  (-1)^((h*2^n-2)*(Q-1)/4) == 1
+ *
+ * Thus:
+ *
+ *	L(D, h*2^n-1) == L(h*2^n-1 mod Q, Q) * (-1)^((h*2^n-2)*(Q-1)/4)
+ *		      == L(h*2^n-1 mod Q, Q)
+ *		      == J(h*2^n-1 mod Q, Q)
+ *
+ * Take Q mod 4 == -1:
+ *
+ *	Q mod 4 == -1  implies	(-1)^((h*2^n-2)*(Q-1)/4) == -1
+ *
+ * Thus:
+ *
+ *	L(D, h*2^n-1) == L(h*2^n-1 mod Q, Q) * (-1)^((h*2^n-2)*(Q-1)/4)
+ *		      == L(h*2^n-1 mod Q, Q) * -1
+ *		      == -J(h*2^n-1 mod Q, Q)
+ *
+ * Therefore [condition 2] is met by selecting	D = Q*(2^j)*(3^k)*(z^2),
+ * where Q is prime>2, j>=0, k>=0, z>0; if and only if one of the following
+ * to cases are true:
+ *
+ *	Q mod 4 ==  1  and  J(h*2^n-1 mod Q, Q) == 1
+ *	Q mod 4 == -1  and  J(h*2^n-1 mod Q, Q) == -1
+ *
+ ***
+ *
+ * In conclusion, we can compute v(1) by attempting to do the following:
+ *
+ * h mod 3 != 0
+ *
+ *     we return:
+ *
+ *	   v(1) == 4
+ *
+ * h mod 3 == 0
+ *
+ *     define:
+ *
+ *	   r == abs(a^2 - b^2*D)
+ *	   alpha == (a + b*sqrt(D))^2/r
+ *
+ *     we return:
+ *
+ *	   v(1) = alpha^1 + alpha^(-1)
+ *
+ *     if and only if we can find a given a, b, D that obey all the
+ *     following selection rules:
+ *
+ *	   D is square free
+ *
+ *	   D == P*(2^f)*(3^g)		(P is prime>2, f,g == 0 or 1)
+ *
+ *	   (a^2 - b^2*D)/r == -1
+ *
+ *	   r == Q*(2^j)*(3^k)*(z^2)	(Q==1 or Q is prime>2, j>=0, k>=0, z>0)
+ *
+ *	   one of the following is true:
+ *	       P mod 4 ==  1  and  J(h*2^n-1 mod P, P) == -1
+ *	       P mod 4 == -1  and  J(h*2^n-1 mod P, P) ==  1
+ *
+ *	   if Q is prime, then one of the following is true:
+ *	       Q mod 4 ==  1  and  J(h*2^n-1 mod Q, Q) == 1
+ *	       Q mod 4 == -1  and  J(h*2^n-1 mod Q, Q) == -1
+ *
+ *     If we cannot find a v(1) quickly enough, then we will give up
+ *     testing h*2^n-1.	 This does not happen too often, so this hack
+ *     is not too bad.
+ *
+ ***
+ *
+ * input:
+ *	h	h as in h*2^n-1
+ *	n	n as in h*2^n-1
+ *
+ * output:
+ *	returns v(1), or -1 is there is no quick way
+ */
+define
+gen_v1(h, n)
+{
+	local d;	/* the 'D' value to try */
+	local val_mod;	/* h*2^n-1 mod 'D' */
+	local i;
+
+	/*
+	 * check for case 1
+	 */
+	if (h % 3 != 0) {
+		/* v(1) is easy to compute */
+		return 4;
+	}
+
+	/*
+	 * We will try all 'D' values until we find a proper v(1)
+	 * or run out of 'D' values.
+	 */
+	for (i=0; i < quickmax; ++i) {
+
+		/* grab our 'D' value */
+		d = d_qval[i];
+
+		/* compute h*2^n-1 mod 'D' quickly */
+		val_mod = (h*pmod(2,n%(d-1),d)-1) % d;
+
+		/*
+		 * if 'D' mod 4 == 1, then
+		 *	(h*2^n-1) mod 'D' can not be a quadratic residue of 'D'
+		 * else
+		 *	(h*2^n-1) mod 'D' must be a quadratic residue of 'D'
+		 */
+		if (d%4 == 1) {
+			/* D mod 4 == 1, so check for J(D, h*2^n-1) == -1 */
+			if (jacobi(val_mod, d) == -1) {
+				/* it worked, return the related v(1) value */
+				return v1_qval[i];
+			}
+		} else {
+			/* D mod 4 == -1, so check for J(D, h*2^n-1) == 1 */
+			if (jacobi(val_mod, d) == 1) {
+				/* it worked, return the related v(1) value */
+				return v1_qval[i];
+			}
+		}
+	}
+
+	/*
+	 * This is an example of a more complex proof construction.
+	 * The code above will not be able to find the v(1) for:
+	 *
+	 *			81*2^81-1
+	 *
+	 * We will check with:
+	 *
+	 *	v(1)=81	     D=6557	 a=79	   b=1	    r=316
+	 *
+	 * Now, D==79*83 and r=79*2^2.	If we show that:
+	 *
+	 *	J(h*2^n-1 mod 79, 79) == -1
+	 *	J(h*2^n-1 mod 83, 83) == 1
+	 *
+	 * then we will satisfy [condition 1].	Observe:
+	 *
+	 *	79 mod 4 == -1	implies	 (-1)^((h*2^n-2)*(79-1)/4) == -1
+	 *	83 mod 4 == -1	implies	 (-1)^((h*2^n-2)*(83-1)/4) == -1
+	 *
+	 *	J(D, h*2^n-1) == J(83, h*2^n-1) * J(79, h*2^n-1)
+	 *		      == J(h*2^n-1, 83) * (-1)^((h*2^n-2)*(83-1)/4) *
+	 *			 J(h*2^n-1, 79) * (-1)^((h*2^n-2)*(79-1)/4)
+	 *		      == J(h*2^n-1 mod 83, 83) * -1 *
+	 *			 J(h*2^n-1 mod 79, 79) * -1
+	 *		      ==  1 * -1 *
+	 *			 -1 * -1
+	 *		      == -1
+	 *
+	 * We will also satisfy [condition 2].	Observe:
+	 *
+	 *	(a^2 - b^2*D)/r == (79^2 - 1^1*6557)/316
+	 *			== -1
+	 *
+	 *	L(r, h*2^n-1) == L(Q*(2^j)*(3^k)*(z^2), h*2^n-1)
+	 *		      == L(79, h*2^n-1) * L(2^2, h*2^n-1)
+	 *		      == L(79, h*2^n-1) * 1
+	 *		      == L(h*2^n-1, 79) * (-1)^((h*2^n-2)*(79-1)/4)
+	 *		      == L(h*2^n-1, 79) * -1
+	 *		      == L(h*2^n-1 mod 79, 79) * -1
+	 *		      == J(h*2^n-1 mod 79, 79) * -1
+	 *		      == -1 * -1
+	 *		      == 1
+	 */
+	if (jacobi( ((h*pmod(2,n%(79-1),79)-1)%79), 79 ) == -1 &&
+	    jacobi( ((h*pmod(2,n%(83-1),83)-1)%83), 83 ) == 1) {
+		/* return the associated v(1)=81 */
+		return 81;
+	}
+
+	/* no quick and dirty v(1), so return -1 */
+	return -1;
+}
+
+/*
+ * ldebug - print a debug statement
+ *
+ * input:
+ *	funct	name of calling function
+ *	str	string to print
+ */
+define
+ldebug(funct, str)
+{
+	if (config("resource_debug") & 8) {
+		print "DEBUG:", funct:":", str;
+	}
+	return;
+}
+                                                                                                                                                                          /*
+ * screen - ANSI control sequences
+ *
+ * This file was created by Ernest Bowen <ebowen at une dot edu dot au>.
+ *
+ * This code has been placed in the public domain.  Please do not
+ * copyright this code.
+ *
+ * ERNEST BOWEN DISCLAIMS ALL WARRANTIES WITH  REGARD  TO
+ * THIS	 SOFTWARE,  INCLUDING  ALL IMPLIED WARRANTIES OF MER-
+ * CHANTABILITY AND FITNESS.  IN NO EVENT SHALL	 LANDON	 CURT
+ * NOLL	 BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM  LOSS  OF
+ * USE,	 DATA  OR  PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+ * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR  IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ * @(#) $Revision: 30.2 $
+ * @(#) $Id: screen.cal,v 30.2 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/screen.cal,v $
+ *
+ * This file is not covered under version 2.1 of the GNU LGPL.
+ *
+ * Under source code control:	2006/03/08 05:54:09
+ * File existed as early as:	2006
+ */
+
+up = CUU ="\e[A";
+down = CUD = "\e[B}";
+forward = CUF = "\e[C";
+back = CUB = "\e[D";
+save = SCP = "\e[s";
+restore = RCP = "\e[u";
+cls = "\e[2J";
+home = "\e[F";
+eraseline = "\e[K";
+off = "\e[0m";
+bold = "\e[1m";
+faint = "\e[2m";
+italic = "\e[3m";
+blink = "\e[5m";
+rapidblink = "\e[6m";
+reverse = "\e[7m";
+concealed = "\e[8m";
+/* Lowercase indicates foreground, uppercase background" */
+black = "\e[30m";
+red = "\e[31m";
+green = "\e[32m";
+yellow = "\e[33m";
+blue = "\e[34m";
+magenta = "\e[35m";
+cyan = "\e[36m";
+white = "\e[37m";
+Black = "\e[40m";
+Red = "\e[41m";
+Green = "\e[42m";
+Yellow = "\e[43m";
+Blue = "\e[44m";
+Magenta = "\e[45m";
+Cyan = "\e[46m";
+White = "\e[47m";
+                                                                                                                                                                                                                                                                                                                                                                          /*
+ * bigprime - a prime test, base a, on p*2^x+1 for even x>m
+ *
+ * Copyright (C) 1999  David I. Bell
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: bigprime.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/bigprime.cal,v $
+ *
+ * Under source code control:	1991/05/22 21:56:32
+ * File existed as early as:	1991
+ *
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+
+define bigprime(a, m, p)
+{
+	local n1, n;
+
+	n1 = 2^m * p;
+	for (;;) {
+		m++;
+		n1 += n1;
+		n = n1 + 1;
+		if (isodd(m))
+			continue;
+		print m;
+		if (pmod(a, n1 / 2, n) != n1)
+			continue;
+		if (pmod(a, n1 / p, n) == 1)
+			continue;
+		print " " : n;
+	}
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      /*
+ * test8500 - 8500 series of the regress.cal test suite
+ *
+ * Copyright (C) 1999  Ernest Bowen and Landon Curt Noll
+ *
+ * Primary author:  Ernest Bowen
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: test8500.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/test8500.cal,v $
+ *
+ * Under source code control:	1999/11/12 20:59:59
+ * File existed as early as:	1999
+ *
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+/*
+ * Tests of // and % operators
+ */
+
+
+global err_8500;	/* divmod_8500 error count */
+global L_8500;		/* list of problem values */
+global ver_8500;	/* test verbosity - see setting comment near bottom */
+global old_seed_8500;	/* old srand() seed */
+
+/*
+ * save the config state so that we can change it and restore later
+ */
+global cfg_8500 = config("all");
+
+
+/*
+ * onetest_8500 - perform one division / remainder test
+ *
+ * Returns:
+ *	0 = test was successful
+ *	>0 = test error indicator
+ */
+define onetest_8500(a,b,rnd) {
+	local q, r, s, S;
+
+	/*
+	 * set a random rounding mode
+	 */
+	config("quo", rnd), config("mod", rnd);
+
+	/*
+	 * perform the division and mod
+	 */
+	q = a // b;
+	r = a % b;
+
+	/*
+	 * verify the fundamental math
+	 */
+	if (a != q * b + r)
+		return 1;
+
+	/*
+	 * determine if the rounding worked
+	 */
+	if (b) {
+		if (rnd & 16)
+			s = sgn(abs(r) - abs(b)/2);
+		else
+			s = sgn(abs(r) - abs(b));
+
+		if (s < 0 || r == 0)
+			return 0;
+
+		if (s > 0)
+			return 2;
+
+		if (((rnd & 16) && s == 0) || !(rnd & 16)) {
+
+			S = sgn(r) * sgn(b);   /* This is sgn(a/b) - a//b */
+			switch (rnd & 15) {
+				case 0: return (S < 0) ? 3 : 0;
+				case 1: return (S > 0) ? 4 : 0;
+				case 2: return (S != sgn(a)*sgn(b)) ? 5 : 0;
+				case 3: return (S != -sgn(a)*sgn(b)) ? 6 : 0;
+					break;
+				case 4: return (S != sgn(b)) ? 7 : 0;
+				case 5: return (S != -sgn(b)) ? 8 : 0;
+				case 6: return (S != sgn(a)) ? 9 : 0;
+				case 7: return (S != -sgn(a)) ? 10 : 0;
+				case 8: return (isodd(q)) ? 11 : 0;
+				case 9: return (iseven(q)) ? 12 : 0;
+				case 10: return (iseven(q) != (a/b > 0)) ? 13:0;
+				case 11: return (isodd(q) != (a/b > 0)) ? 14:0;
+				case 12: return (iseven(q) != (b > 0)) ? 15 : 0;
+				case 13: return (isodd(q) != (b > 0)) ? 16 : 0;
+				case 14: return (iseven(q) != (a > 0)) ? 17 : 0;
+				case 15: return (isodd(q) != (a > 0)) ? 18 : 0;
+			}
+		}
+	}
+
+	/*
+	 * all is well
+	 */
+	return 0;
+}
+
+
+/*
+ * divmod_8500 - perform a bunch of pseudo-random // and % test
+ *
+ * divmod_8500(N, M1, M2) will perform N tests with randomly chosen integers
+ * a, b with abs(a) < M1, abs(b) < M2, which with 50% probability are
+ * converted to a = (2 * a + 1) * b,  b = 2 * b (to give case where
+ * a / b is an integer + 1/2).
+ *
+ * N defaults to 10, M1 to 2^128, M2 to 2^64
+ *
+ * The testnum, if > 0, is used while printing a failure or success.
+ *
+ * The rounding parameter is randomly chosen.
+ *
+ * After a run of divmod_8500 the a, b, rnd values which gave failure are
+ * stored in the list L_8500.  L_8500[0], L_8500[1], L_8500[2] are a, b, rnd for the first
+ * test, etc.
+ */
+define divmod_8500(N = 10, M1 = 2^128, M2 = 2^64, testnum = 0)
+{
+	local a, b, i, v, rnd;
+	local errmsg;		/* error message to display */
+
+	/*
+	 * firewall
+	 */
+	if (!isint(M1) || M1 < 2)
+		quit "Bad second arg for dtest";
+
+	if (!isint(M2) || M2 < 2)
+		quit "Bad third arg for dtest";
+
+	/*
+	 * test setup
+	 */
+	err_8500 = 0;
+	L_8500 = list();
+
+	/*
+	 * perform the random results
+	 */
+	for (i = 0; i < N; i++) {
+
+		/*
+		 * randomly select two values in the range controlled by M1,M2
+		 */
+		a = rand(-M1+1, M1);
+		b = rand(-M2+1, M2);
+		if (rand(2)) {
+			a = (2 * a + 1) * b;
+			b *= 2;
+		}
+
+		/*
+		 * seelect one of the 32 rounding modes at random
+		 */
+		rnd = rand(32);
+
+		/*
+		 * ver_8500 pre-test reporting
+		 */
+		if (ver_8500 > 1)
+			printf("Test %d: a = %d, b = %d, rnd = %d\n",
+					 i, a, b, rnd);
+
+		/*
+		 * perform the actual test
+		 */
+		v = onetest_8500(a, b, rnd);
+
+		/*
+		 * individual test analysis
+		 */
+		if (v != 0) {
+			err_8500++;
+			if (ver_8500 != 0) {
+				if (testnum > 0) {
+					errmsg = strprintf(
+						"Failure %d on test %d", v, i);
+					prob(errmsg);
+				} else {
+					printf("Failure %d on test %d", v, i);
+				}
+			}
+			append(L_8500, a, b, rnd);
+		}
+	}
+
+	/*
+	 * report in the results
+	 */
+	if (err_8500) {
+		if (testnum > 0) {
+			errmsg = strprintf(
+			    "%d: divmod_8500(%d,,,%d): %d failures",
+			    testnum, N, testnum, err_8500);
+			prob(errmsg);
+		} else {
+			printf("%s failure%s", err_8500,
+			       (err_8500 > 1) ? "s" : "");
+		}
+	} else {
+		if (testnum > 0) {
+			errmsg = strprintf("%d: divmod_8500(%d,,,%d)",
+			    testnum, N, testnum);
+			vrfy(err_8500 == 0, errmsg);
+		} else {
+			print "No failure";
+		}
+	}
+}
+
+/*
+ * ver_8500 != 0 displays failures; ver_8500 > 1 displays all numbers tested
+ */
+ver_8500 = 0;
+print '8501: ver_8500 = 0';
+old_seed_8500 = srand(31^61);
+print '8502: old_seed_8500 = srand(31^61)';
+
+/*
+ * do the tests
+ */
+divmod_8500(250, 2^128, 2^1, 8503);
+divmod_8500(250, 2^128, 2^64, 8504);
+divmod_8500(250, 2^256, 2^64, 8505);
+divmod_8500(250, 2^1024, 2^64, 8506);
+divmod_8500(250, 2^1024, 2^128, 8507);
+divmod_8500(250, 2^16384, 2^1024, 8508);
+divmod_8500(1000, 2^128, 2^64, 8509);
+
+/*
+ * restore state
+ */
+config("all", cfg_8500),;
+print '8510: config("all", cfg_8500),';
+srand(old_seed_8500),;
+print '8511: srand(old_seed_8500),';
+
+/*
+ * finished with 8500 tests
+ */
+print '8512: Ending test_divmod';
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              /*
+ * sumtimes - runtimes evaluating sums & squares of large lists and mats
+ *
+ * Copyright (C) 2006  Ernest Bowen
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: sumtimes.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/sumtimes.cal,v $
+ *
+ * Under source code control:	2006/06/22 17:29
+ * File existed as early as:	2006
+ *
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+
+global sumtimes_t0, sumtimes_t1, sumtimes_t2, sumtimes_t3;
+global sumtimes_A, sumtimes_B;
+config("tilde", 0),;
+
+define timematsum(N) {
+    local n, s, p, ptop;
+
+    sumtimes_A = mat[N];
+
+    for (n = 0; n < N; n++) sumtimes_A[n] = rand(N);
+
+    ptop = &sumtimes_A[n-1];
+    sumtimes_t0 = usertime();
+    for (s = n = 0; n < N; n++) s += sumtimes_A[n];
+    sumtimes_t1 = usertime();
+    for (s = 0, p = &sumtimes_A[0]; p <= ptop; p++) s += *p;
+    sumtimes_t2 = usertime();
+    s = matsum(sumtimes_A);
+    sumtimes_t3 = usertime();
+
+    print "Matrix sum runtimes";
+    printf('\tStandard "for" loop:\t\t%.4f\n', sumtimes_t1 - sumtimes_t0);
+    printf('\t"For" loop using pointers:\t\t%.4f\n', sumtimes_t2 - sumtimes_t1);
+    printf('\tUsing builtin "matsum":\t\t%.4f\n', sumtimes_t3 - sumtimes_t2);
+}
+
+define timelistsum(N) {
+    local n, s;
+
+    sumtimes_A = makelist(N);
+    for (n = 0; n < N; n++) sumtimes_A[n] = rand(N);
+
+    sumtimes_t0 = usertime();
+    for (s = n = 0; n < N; n++) s += sumtimes_A[n];
+    sumtimes_t1 = usertime();
+    s = sum(sumtimes_A);
+    sumtimes_t2 = usertime();
+    print "List sum runtimes";
+    printf('\tStandard "for" loop:\t\t%.4f\n', sumtimes_t1 - sumtimes_t0);
+    printf('\tUsing builtin "sum":\t\t%.4f\n', sumtimes_t2 - sumtimes_t1);
+}
+
+
+define timematsort(N) {
+    local n;
+
+    sumtimes_A = mat[N];
+    for (n = 0; n < N; n++) sumtimes_A[n] = rand(N);
+    sumtimes_t0 = usertime();
+    sort(sumtimes_A);
+    sumtimes_t1 = usertime();
+    printf('\tMatrix sort runtime:\t\t%.4f\n', sumtimes_t1 - sumtimes_t0);
+}
+
+
+define timelistsort(N) {
+    local n;
+
+    sumtimes_A = makelist(N);
+    for (n = 0; n < N; n++) sumtimes_A[n] = rand(N);
+    sumtimes_t0 = usertime();
+    sort(sumtimes_A);
+    sumtimes_t1 = usertime();
+    printf('\tList sort runtime:\t\t%.4f\n', sumtimes_t1 - sumtimes_t0);
+}
+
+define timematreverse(N) {
+    local n;
+
+    sumtimes_A = mat[N];
+    for (n = 0; n < N; n++) sumtimes_A[n] = rand(N);
+    sumtimes_t0 = usertime();
+    reverse(sumtimes_A);
+    sumtimes_t1 = usertime();
+    printf('\tMatrix reverse runtime        %.4f\n', sumtimes_t1 - sumtimes_t0);
+}
+
+define timelistreverse(N) {
+    local n;
+
+    sumtimes_A = makelist(N);
+    for (n = 0; n < N; n++) sumtimes_A[n] = rand(N);
+    sumtimes_t0 = usertime();
+    reverse(sumtimes_A);
+    sumtimes_t1 = usertime();
+    printf('\tList reverse runtime:\t\t%.4f\n', sumtimes_t1 - sumtimes_t0);
+}
+
+define timematssq(N) {
+    local n, s, p, ptop;
+
+    sumtimes_A = mat[N];
+
+    for (n = 0; n < N; n++) sumtimes_A[n] = rand(N);
+
+    ptop = &sumtimes_A[n-1];
+    sumtimes_t0 = usertime();
+    for (s = n = 0; n < N; n++) s += sumtimes_A[n]^2;
+    sumtimes_t1 = usertime();
+    for (s = 0, p = &sumtimes_A[0]; p <= ptop; p++) s += (*p)^2;
+    sumtimes_t2 = usertime();
+
+    print "Matrix sum of squares runtimes";
+    printf('\tStandard "for" loop:\t\t%.4f\n', sumtimes_t1 - sumtimes_t0);
+    printf('\t"For" loop using pointers:\t\t%.4f\n', sumtimes_t2 - sumtimes_t1);
+}
+
+define timelistssq(N) {
+    local n, s;
+
+    sumtimes_A = makelist(N);
+    for (n = 0; n < N; n++) sumtimes_A[n] = rand(N);
+
+    sumtimes_t0 = usertime();
+    for (s = n = 0; n < N; n++) s += sumtimes_A[n]^2;
+    sumtimes_t1 = usertime();
+    s = ssq(sumtimes_A);
+    sumtimes_t2 = usertime();
+    print "List sum of squares runtimes";
+    printf('\tStandard "for" loop:\t\t%.4f\n', sumtimes_t1 - sumtimes_t0);
+    printf('\tUsing builtin "ssq":\t\t%.4f\n', sumtimes_t2 - sumtimes_t1);
+}
+
+define timehmean(N, M = 10) {
+    local n, s, v1, v2;
+
+    sumtimes_A = makelist(N);
+    for (n = 0; n < N; n++) sumtimes_A[n] = rand(1, M);
+
+    sumtimes_t0 = usertime();
+    for (s = n = 0; n < N; n++) s += 1/sumtimes_A[n];
+    v1 = N/s;
+    sumtimes_t1 = usertime();
+    v2 = hmean(sumtimes_A);
+    sumtimes_t2 = usertime();
+    print v1, v2;
+    print "List harmonic meanruntimes";
+    printf('\tStandard "for" loop:\t\t%.4f\n', sumtimes_t1 - sumtimes_t0);
+    printf('\tUsing builtin "hmean":\t\t%.4f\n', sumtimes_t2 - sumtimes_t1);
+}
+
+define doalltimes(N) {
+    timematsum(N);
+    print;
+    timelistsum(N);
+    print;
+    timematssq(N);
+    print;
+    timelistssq(N);
+    print;
+    timematsort(N);
+    timelistsort(N);
+    timematreverse(N);
+    timelistreverse(N);
+    print;
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      /*
+ * randbitrun - check rand bit run lengths of the a55 generator
+ *
+ * Copyright (C) 1999  Landon Curt Noll
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: randbitrun.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/randbitrun.cal,v $
+ *
+ * Under source code control:	1995/02/13 03:43:11
+ * File existed as early as:	1995
+ *
+ * chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+/*
+ * We will use randbit(1) to generate a stream if single bits.
+ * The odds that we will have n bits the same in a row is 1/2^n.
+ */
+
+
+define randbitrun(run_cnt)
+{
+    local i;			/* index */
+    local max_run;		/* longest run */
+    local long_run_cnt;		/* number of runs longer than MAX_RUN */
+    local run;			/* current run length */
+    local tally_sum;		/* sum of all tally values */
+    local last;			/* last random number */
+    local current;		/* current random number */
+    local MAX_RUN = 18;		/* max run we will keep track of */
+    local mat tally[1:MAX_RUN]; /* tally of length of a rise run of 'x' */
+    local mat prob[1:MAX_RUN];	/* prob[x] = probability of 'x' length run */
+
+    /*
+     * parse args
+     */
+    if (param(0) == 0) {
+	run_cnt = 65536;
+    }
+
+    /*
+     * run setup
+     */
+    max_run = 0;		/* no runs yet */
+    long_run_cnt = 0;		/* no long runs set */
+    current = randbit(1);	/* our first number */
+    run = 1;
+
+    /*
+     * compute the run length probabilities
+     *
+     * A bit run length of 'r' occurs with a probability of:
+     *
+     *			1/2^n;
+     */
+    for (i=1; i <= MAX_RUN; ++i) {
+	prob[i] = 1.0/(1<<i);
+    }
+
+    /*
+     * look at a number of random number trials
+     */
+    for (i=0; i < run_cnt; ++i) {
+
+	/* get our current number */
+	last = current;
+	current = randbit(1);
+
+	/* look for a run break */
+	if (current != last) {
+
+	    /*	record the stats */
+	    if (run > max_run) {
+		max_run = run;
+	    }
+	    if (run > MAX_RUN) {
+		++long_run_cnt;
+	    } else {
+		++tally[run];
+	    }
+
+	    /* start a new run */
+	    current = randbit(1);
+	    run = 1;
+
+	/* note the continuing run */
+	} else {
+	    ++run;
+	}
+    }
+    /* determine the number of runs found */
+    tally_sum = matsum(tally) + long_run_cnt;
+
+    /*
+     * print the stats
+     */
+    printf("rand runbit test used %d values to produce %d runs\n",
+      run_cnt, tally_sum);
+    for (i=1; i <= MAX_RUN; ++i) {
+	printf("length=%d\tprob=%9.7f\texpect=%d \tcount=%d \terr=%9.7f\n",
+	  i, prob[i], round(tally_sum*prob[i]), tally[i],
+	  (tally[i] - round(tally_sum*prob[i]))/tally_sum);
+    }
+    printf("length>%d\t\t\t\t\tcount=%d\n", MAX_RUN, long_run_cnt);
+    printf("max length=%d\n", max_run);
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        /*
+ * ellip - attempt to factor numbers using elliptic functions
+ *
+ * Copyright (C) 1999  David I. Bell
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: ellip.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/ellip.cal,v $
+ *
+ * Under source code control:	1990/02/15 01:50:33
+ * File existed as early as:	before 1990
+ *
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+/*
+ * Attempt to factor numbers using elliptic functions:
+ *
+ *	y^2 = x^3 + a*x + b   (mod ellip_N).
+ *
+ * Many points (x,y) (mod ellip_N) are found that solve the above equation,
+ * starting from a trivial solution and 'multiplying' that point together
+ * to generate high powers of the point, looking for such a point whose
+ * order contains a common factor with ellip_N.  The order of the group of
+ * points varies almost randomly within a certain interval for each choice of
+ * a and b, and thus each choice provides an independent opportunity to
+ * factor ellip_N.  To generate a trivial solution, a is chosen and then b is
+ * selected so that (1,1) is a solution.  The multiplication is done using
+ * the basic fact that the equation is a cubic, and so if a line hits the
+ * curve in two rational points, then the third intersection point must
+ * also be rational.  Thus by drawing lines between known rational points
+ * the number of rational solutions can be made very large.  When modular
+ * arithmetic is used, solving for the third point requires the taking of a
+ * modular inverse (instead of division), and if this fails, then the GCD
+ * of the failing value and ellip_N provides a factor of ellip_N.
+ * This description is only an approximation, read "A Course in Number
+ * Theory and Cryptography" by Neal Koblitz for a good explanation.
+ *
+ * efactor(iN, ia, B, force)
+ *	iN is the number to be factored.
+ *	ia is the initial value of a in the equation, and each successive
+ *	value of a is an independent attempt at factoring (default 1).
+ *	B is the limit of the primes that make up the high power that the
+ *	point is raised to for each factoring attempt (default 100).
+ *	force is a flag to attempt to factor numbers even if they are
+ *	thought to already be prime (default FALSE).
+ *
+ * Making B larger makes the power the point being raised to contain more
+ * prime factors, thus increasing the chance that the order of the point
+ * will be made up of those factors.  The higher B is then, the greater
+ * the chance that any individual attempt will find a factor.  However,
+ * a higher B also slows down the number of independent functions being
+ * examined.  The order of the point for any particular function might
+ * contain a large prime and so won't succeed even for a really large B,
+ * whereas the next function might have an order which is quickly found.
+ * So you want to trade off the depth of a particular search with the
+ * number of searches made.  For example, for factoring 30 digits, I make
+ * B be about 1000 (probably still too small).
+ *
+ * If you have lots of machines available, then you can run parallel
+ * factoring attempts for the same number by giving different starting
+ * values of ia for each machine (e.g. 1000, 2000, 3000).
+ *
+ * The output as the function is running is (occasionally) the value of a
+ * when a new function is started, the prime that is being included in the
+ * high power being calculated, and the current point which is the result
+ * of the powers so far.
+ *
+ * If a factor is found, it is returned and is also saved in the global
+ * variable f.	The number being factored is also saved in the global
+ * variable ellip_N.
+ */
+
+
+obj point {x, y};
+global	ellip_N;		/* number to factor */
+global	ellip_a;		/* first coefficient */
+global	ellip_b;		/* second coefficient */
+global	ellip_f;		/* found factor */
+
+
+define efactor(iN, ia, B, force)
+{
+	local	C, x, p;
+
+	if (!force && ptest(iN, 50))
+		return 1;
+	if (isnull(B))
+		B = 100;
+	if (isnull(ia))
+		ia = 1;
+	obj point x;
+	ellip_a = ia;
+	ellip_b = -ia;
+	ellip_N = iN;
+	C = isqrt(ellip_N);
+	C = 2 * C + 2 * isqrt(C) + 1;
+	ellip_f = 0;
+	while (ellip_f == 0) {
+		print "A =", ellip_a;
+		x.x = 1;
+		x.y = 1;
+		print 2, x;
+		x = x ^ (2 ^ (highbit(C) + 1));
+		for (p = 3; ((p < B) && (ellip_f == 0)); p += 2) {
+			if (!ptest(p, 1))
+				continue;
+			print p, x;
+			x = x ^ (p ^ ((highbit(C) // highbit(p)) + 1));
+		}
+		ellip_a++;
+		ellip_b--;
+	}
+	return ellip_f;
+}
+
+
+define point_print(p)
+{
+	print "(" : p.x : "," : p.y : ")" :;
+}
+
+
+define point_mul(p1, p2)
+{
+	local	r, m;
+
+	if (p2 == 1)
+		return p1;
+	if (p1 == p2)
+		return point_square(`p1);
+	obj point r;
+	m = (minv(p2.x - p1.x, ellip_N) * (p2.y - p1.y)) % ellip_N;
+	if (m == 0) {
+		if (ellip_f == 0)
+			ellip_f = gcd(p2.x - p1.x, ellip_N);
+		r.x = 1;
+		r.y = 1;
+		return r;
+	}
+	r.x = (m^2 - p1.x - p2.x) % ellip_N;
+	r.y = ((m * (p1.x - r.x)) - p1.y) % ellip_N;
+	return r;
+}
+
+
+define point_square(p)
+{
+	local	r, m;
+
+	obj point r;
+	m = ((3 * p.x^2 + ellip_a) * minv(p.y << 1, ellip_N)) % ellip_N;
+	if (m == 0) {
+		if (ellip_f == 0)
+			ellip_f = gcd(p.y << 1, ellip_N);
+		r.x = 1;
+		r.y = 1;
+		return r;
+	}
+	r.x = (m^2 - p.x - p.x) % ellip_N;
+	r.y = ((m * (p.x - r.x)) - p.y) % ellip_N;
+	return r;
+}
+
+
+define point_pow(p, pow)
+{
+	local bit, r, t;
+
+	r = 1;
+	if (isodd(pow))
+		r = p;
+	t = p;
+	for (bit = 2; ((bit <= pow) && (ellip_f == 0)); bit <<= 1) {
+		t = point_square(`t);
+		if (bit & pow)
+			r = point_mul(`t, `r);
+	}
+	return r;
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            /*
+ * qtime - Display time as English sentence
+ *
+ * Copyright (C) 1999  Klaus Alexander Seistrup and Landon Curt Noll
+ *
+ * Written by: Klaus Alexander Seistrup <kseis@magnetic-ink.dk>
+ * With mods by: Landon Curt Noll <http://www.isthe.com/chongo/>
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: qtime.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/qtime.cal,v $
+ *
+ * Under source code control:	1999/10/13 04:10:33
+ * File existed as early as:	1999
+ *
+ * chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+/*
+ * usage:
+ *	qtime(utc_hr_offset)
+ *
+ *	utc_hr_offset	Offset from UTC in hours.
+ *
+ * See:
+ *	http://www.magnetic-ink.dk/download/qtime.html
+ *
+ * for examples of qtime() written on other languages.
+ */
+
+
+/*
+ * qtime - Display time as English sentence
+ */
+define qtime(utc_hr_offset)
+{
+	static mat hr[12] = {
+	  "twelve", "one", "two", "three", "four", "five",
+	  "six", "seven", "eight", "nine", "ten", "eleven"
+	};
+	static mat mn[7] = {
+	  "", "five ", "ten ", "a quarter ", "twenty ", "twenty-five ", "half "
+	};
+	static mat ny[5] = {
+	  "nearly ", "almost ", "", "just after ", "after "
+	};
+	static mat up[3] = {
+	  "to ", "", "past "
+	};
+	local adj_mins = (((time() + utc_hr_offset*3600) % 86400) + 30)//60+27;
+	local hours = (adj_mins // 60) % 12;
+	local minutes = adj_mins % 60;
+	local almost =	minutes % 5;
+	local divisions = (minutes // 5) - 5;
+	local to_past_idx =	 divisions > 0 ? 1 : 0;
+
+	if (divisions < 0) {
+		divisions = -divisions;
+		to_past_idx = -1;
+	}
+	++to_past_idx;
+
+	/*
+	 * Print the English sentence
+	 *
+	 * We avoid forward and back quotes just to show that the char()
+	 * builtin function can be used in conjunction with a printf.
+	 */
+	printf("It%cs %s%s%s%s",
+	       char(0x27), ny[almost], mn[divisions],
+	       up[to_past_idx], hr[hours]);
+	if (divisions == 0)
+		printf(" o%cclock", char(0x27));
+	print ".";
+}
+                                                                                                                                                                                                                                                                                                                                                                             /*
+ * test2700 - 2700 series of the regress.cal test suite
+ *
+ * Copyright (C) 1999  Ernest Bowen and Landon Curt Noll
+ *
+ * Primary author:  Ernest Bowen
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: test2700.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/test2700.cal,v $
+ *
+ * Under source code control:	1995/11/01 22:52:25
+ * File existed as early as:	1995
+ *
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+/*
+ * The following resource file gives a severe test of sqrt(x,y,z) for
+ * all 128 values of z, randomly produced real and complex x, and randomly
+ * produced nonzero values for y.  After loading it, testcsqrt(n) will
+ * test n combinations of x and y;  testcsqrt(str,n,2) will print 1 2 3 ...
+ * indicating work in process; testcsqrt(str,n,3) will give information about
+ * errors detected and will print values of x and y used.
+ * I've also defined a function iscomsq(x) which does for complex as well
+ * as real x what issq(x) currently does for real x.
+ */
+
+
+defaultverbose = 1;
+
+define mknonnegreal() {
+	switch(rand(8)) {
+		case 0: return rand(20);
+		case 1: return rand(20,1000);
+		case 2: return rand(1,10000)/rand(1,100);
+		case 3: return scale(mkposreal(), rand(1,100));
+		case 4: return scale(mkposreal(), -rand(1,100));
+		case 5: return rand(1, 1000) + scale(mkfrac(),-rand(1,100));
+		case 6: return mkposreal()^2;
+		case 7: return mkposreal() * (1+scale(mkfrac(),-rand(1,100)));
+	}
+}
+
+define mkposreal() {
+	local x;
+
+	x = mknonnegreal();
+	while (x == 0)
+		x = mknonnegreal();
+	return x;
+}
+
+define mkreal_2700() = rand(2) ? mknonnegreal() : -mknonnegreal();
+
+define mknonzeroreal() = rand(2) ? mkposreal() : -mkposreal();
+
+/* Number > 0 and < 1, almost uniformly distributed */
+define mkposfrac() {
+	local x,y;
+
+	x = rand(1,1000);
+	do
+		y = rand(1,1000);
+	while (y == x);
+	if (x > y)
+		swap(x,y);
+	return x/y;
+}
+
+/* Nonzero > -1 and < 1 */
+define mkfrac() = rand(2) ? mkposfrac() : -mkposfrac();
+
+define mksquarereal() = mknonnegreal()^2;
+
+/*
+ * We might be able to do better than the following.  For nonsquare
+ * positive integer less than 1e6, could use:
+ *		 x = rand(1, 1000);
+ *		 return rand(x^2 + 1, (x + 1)^2);
+ * Maybe could do:
+ *		do
+ *			x = mkreal_2700();
+ *		while
+ *			(issq(x));
+ * This would of course not be satisfactory for t

@@ -1,0 +1,1803 @@
+ = operator is more general:
+
+		(a = 3) = 4		(same as a = 3; a = 4)
+		(a += 3) *= 4		(same as a += 3; a *= 4)
+		matfill(B = A, 4)	(same as B = A; matfill(B, 4);)
+
+    Also^3 thanks to ernie, the ++ and -- operators are more general.
+
+		a = 3
+		++(b = a)		(a == 3, b == 4)
+		++++a			(a == 5)
+		(++a)++ == 6		(a == 7)
+		(++a) *= b		(a == 32, b == 4)
+
+    Fixed a bug related to calling epsilon(variable) thanks to ernie.
+
+    Removed trailing whitespace from source and help files.
+
+    Some compilers do not support the const type.  The file have_const.h,
+    which is built from have_const.c will determine if we can or should
+    use const.	See the Makefile for details.
+
+    Some systems do not have uid_t.  The file have_uid_t.h, which is
+    built from have_uid_t.c will determine if we can or should depend
+    on uid_t being typefed by the system include files.	 See the Makefile
+    for details.
+
+    Some systems do not have memcpy(), memset() and strchr().  The
+    file have_newstr.h, which is built from have_newstr.c will
+    determine if we can or should depend libc providing these
+    functions.	See the Makefile for details.
+
+    The Makefile symbol DONT_HAVE_VSPRINTF is now called HAVE_VSPRINTF.
+    The file have_vs.h, which is built from have_vs.c will determine if
+    we can or should depend libc providing vsprintf().	See the Makefile
+    for details.
+
+    Removed UID_T and OLD_BSD symbols from the Makefile.
+
+    A make all of the upper level Makefile will cause the all rule
+    of the lib and help subdirs to be made as well.
+
+    Fixed bug where reserved keyword used as symbol name caused a core dump.
+
+
+The following are the changes from calc version 2.9.3t7 to 2.9.3t7:
+
+    The 'show' command by itself will issue an error message
+    that will remind one of the possible show arguments.
+    (thanks to Ha S. Lam <hl at kuhep4 dot phsx dot ukans dot edu>)
+
+    Fixed an ANSI-C related problem with the use of stringindex()
+    by the show command.  ANSI-C interprets "bar\0foo..." as if
+    it were "bar\017oo...".
+
+    Added a cd command to change the current directory.
+    (thanks to Ha S. Lam <hl at kuhep4 dot phsx dot ukans dot edu>)
+
+    Calc will not output the initial version string, startup
+    message and command prompt if stdin is not a tty.  Thus
+    the shell command:
+
+	echo "fact(100)" | calc
+
+    only prints the result.  (thanks to Ha S. Lam <hl at kuhep4 dot phsx
+    dot ukans dot edu>)
+
+    The zmath.h macro zisbig() macro was replaced with zlt16b(),
+    zge24b(), zge31b(), zge32b() and zgtmaxfull() which are
+    independent of word size.
+
+    The 'too large' limit for factorial operations (e.g., fact, pfact,
+    lcmfact, perm and comb) is now 2^24.  Previously it depended on the
+    word size which in the case of 64 bit systems was way too large.
+
+    The 'too large' limit for exponentiation, bit position (isset,
+    digit, ), matrix operations (size, index, creation), scaling,
+    shifting, rounding and computing a Fibonacci number is 2^31.
+    For example, one cannot raise a number by a power >= 2^31.
+    One cannot test for a bit position >= 2^31.	 One cannot round
+    a value to 2^31 decimal digit places.  One cannot compute
+    the Fibonacci number F(2^31).
+
+    Andy Fingerhut <jaf at dworkin dot wustl dot edu> (thanks!) supplied
+    a fix to a subtle bug in the code generation routines.  The basic
+    problem was that addop() is sometimes used to add a label to
+    the opcode table of a function.  The addop() function did some
+    optimization tricks, and if one of these labels happens to be an
+    opcode that triggers optimization, incorrect opcodes were generated.
+
+    Added utoz(), ztou() to zmath.c, and utoq(), qtou() to qmath.c
+    in preparation for 2.9.3t9 mods.
+
+
+The following are the changes from calc version 2.9.2 to 2.9.3t7:
+
+    Calc can now compile on OSF/1, SGI and IBM RS6000 systems.
+
+    A number of systems that have both <varargs.h> and <stdarg.h> do
+    not correctly implement both types.	 On some System V, MIPS and DEC
+    systems, vsprintf() and <stdarg.h> do not mix.  While calc will
+    pass the regression test, use of undefined variables will cause
+    problems.  The Makefile has been modified to look for this problem
+    and work around it.
+
+    Added randmprime.cal which find a prime of the form h*2^n-1 >= 2^x
+    for some given x.  The initial search points for 'h' and 'n'
+    are selected by a cryptographic pseudo-random generator.
+
+    The library script nextprim.cal is now a link to nextprime.cal.
+    The lib/Makefile will take care of this link and install.
+
+    The show command now takes singular forms.	For example, the
+    command 'show builtin' does the same as 'show builtins'.  This
+    allows show to match the historic singular names used in
+    the help system.
+
+    Synced 'show builtin' output with 'help builtin' output.
+
+    Fixed the ilog2() builtin.	Previously ilog2(2^-20) returned
+    -21 instead of -20.
+
+    The internal function qprecision() has been fixed.	The changes
+    ensure that for any e for which 0 < e <= 1:
+
+	1/4 < sup(abs(appr(x,e) - x))/e	 <= 1/2.
+
+    Here 'sup' denotes the least upper bound over values of x (supremum).
+    Previously calc did: 1/4 <= sup(abs(appr(x,e) - x))/e  < 1.
+
+    Certain 64 bit processors such as the Alpha are now supported.
+
+    Added -once to the READ command.  The command:
+
+	read -once filename
+
+    like the regular READ expect that it will ignore filename if
+    is has been previously read.
+
+    Improved the makefile.  One now can select the compiler type.  The
+    make dependency lines are now simple foo.o: bar.h lines.  While
+    this makes for a longer list, it is easier to maintain and will
+    make future Makefile patches smaller.  Added special options for
+    gcc version 1 & 2, and for cc on RS6000 systems.
+
+    Calc compiles cleanly under the watchful eye of gcc version 2.4.5
+    with the exception of warnings about 'aggregate has a partly
+    bracketed initializer'.  (gcc v2 should allow you to disable
+    this type of warning with using -Wall)
+
+    Fixed a longjmp bug that clobbered a local variable in main().
+
+    Fixed a number of cases where local variables or malloced storage was
+    being used before being set.
+
+    Fixed a number of fence post errors resulting in reads or writes
+    just outside of malloced storage.
+
+    A certain parallel processor optimizer would give up on
+    code in cases where math_error() was called.  The obscure
+    work-a-rounds involved initializing or making static, certain
+    local variables.
+
+    The cryrand.cal library has been improved.	Due to the way
+    the initial quadratic residues are selected, the random numbers
+    produced differ from previous versions.
+
+    The printing of a leading '~' on rounded values is now a config
+    option.  By default, tilde is still printed.  See help/config for
+    details.
+
+    The builtin function base() may be used to set the output mode or
+    base.  Calling base(16) is a convenient shorthand for typing
+    config("mode","hex").  See help/builtin.
+
+    The printing of a leading tab is now a config option.  This does not
+    alter the format of functions such as print or printf.  By default,
+    a tab is printed.  See help/config for details.
+
+    The value atan2(0,0) now returns 0 value in conformance with
+    the 4.3BSD ANSI/IEEE 754-1985 math library.
+
+    For all values of x, x^0 yields 1.	The major change here is
+    that 0^0 yields 1 instead of an error.
+
+    Fixed gcd() bug that caused gcd(2,3,1/2) to ignore the 1/2 arg.
+
+    Fixed ltol() rounding so that exact results are returned, similar
+    to the way sqrt() and hypot() round, when they exist.
+
+    Fixed a bug involving ilog2().
+
+    Fixed quomod(a,b,c,d) to give correct value for d when a is between
+    0 and -b.
+
+    Fixed hmean() to perform the necessary multiplication by the number of
+    arguments.
+
+    The file help/full is now being built.
+
+    The man page is not installed by default.  One may install either
+    the man page source or the cat (formatted man) page.  See the
+    Makefile for details.
+
+    Added a quit binding.  The file lib/bindings2 shows how this new
+    binding may be used.
+
+    One can now do a 'make check' to run the calc regression test
+    within in the source tree.
+
+    The regression test code is now more extensive.
+
+    Updated the help/todo list.	 A BUGS file was added.	 Volunteers are
+    welcome to send in patches!
+
+
+The following are the changes from calc version 2.9.1 to 2.9.1:
+
+    Fixed floor() for values -1 < x < 0.
+
+    Fixed ceil() for values -1 < x < 0.
+
+    Fixed frac() for values < 0 so that int(x) + frac(x) == x.
+
+    Fixed wild fetch bug in zdiv, zquo and zmod code.
+
+    Fixed bug which caused regression test #719 to fail on some machines.
+
+    Added more regression test code.
+
+
+The following are the changes from calc version 2.9.0 to 2.9.0:
+
+    A major bug was fixed in subtracting two numbers when the first
+    number was zero.  The problem caused wrong answers and core dumps.
+
+
+The following are the changes from calc version 1.27.0 to 2.8.0:
+
+    Full prototypes have been provided for all C functions, and are used
+    if calc is compiled with an ANSI compiler.
+
+    Newly defined variables are now initialized to the value of zero instead
+    of to the null value.  The elements of new objects are also initialized
+    to the value of zero instead of null.
+
+    The gcd, lcm, and ismult functions now work for fractional values.
+
+    A major bug in the // division for fractions with a negative divisor
+    was fixed.
+
+    A major bug in the calculation of ln for small values was fixed.
+
+    A major bug in the calculation of the ln and power functions for complex
+    numbers was fixed.
+
+    A major lack of precision for sin and tan for small values was fixed.
+
+    A major lack of precision for complex square roots was fixed.
+
+    The "static" keyword has been implemented for variables.  So permanent
+    variables can be defined to have either file scope or function scope.
+
+    Initialization of variables during their declaration are now allowed.
+    This is most convenient for the initialization of static variables.
+
+    The matrix definition statement can now be used within a declaration
+    statement, to immediately define a variable as a matrix.
+
+    Initializations of the elements of matrices are now allowed.  One-
+    dimensional matrices may have implicit bounds when initialization is
+    used.
+
+    The obj definition statement can now be used within a declaration
+    statement, to immediately define a variable as an object.
+
+    Object definitions can be repeated as long as they are exactly the same
+    as the previous definition.	 This allows the rereading of files which
+    happen to define objects.
+
+    The integer, rational, and complex routines have been made into a
+    'libcalc.a' library so that they can be used in other programs besides
+    the calculator.  The "math.h" include file has been split into three
+    include files: "zmath.h", "qmath.h", and "cmath.h".
+
+Following is a list of visible changes to calc from version 1.26.4 to 1.26.4:
+
+    Added an assoc function to return a new type of value called an
+    association.  Such values are indexed by one or more arbitrary values.
+    They are stored in a hash table for quick access.
+
+    Added a hash() function which accepts one or more values and returns
+    a quickly calculated small non-negative hash value for those values.
+
+Following is a list of visible changes to calc from version 1.26.2 to 1.26.4:
+
+    Misc fixes to Makefiles.
+
+    Misc lint fixes.
+
+    Misc portability fixes.
+
+    Misc typo and working fixes to comments, help files and the man page.
+
+Following is a list of visible changes to calc from version 1.24.7 to 1.26.1:
+
+    There is a new emacs-like command line editing and edit history
+    feature.  The old history mechanism has been removed.  The key
+    bindings for the new editing commands are slightly configurable
+    since they are read in from an initialization file.	 This file is
+    usually called /usr/lib/calc/bindings, but can be changed by the
+    CALCBINDINGS environment variable.	All editing code is
+    self-contained in the new files hist.c and hist.h, which can be
+    easily extracted and used in other programs.
+
+    Two new library files have been added: chrem.cal and cryrand.cal.
+    The first of these solves the Chinese remainder problem for a set
+    of modulo's and remainders.	The second of these implements several
+    very good random number generators for large numbers.
+
+    A small bug which allowed division by zero was fixed.
+
+    A major bug in the mattrans function was fixed.
+
+    A major bug in the acos function for negative arguments was fixed.
+
+    A major bug in the strprintf function when objects were being printed
+    was fixed.
+
+    A small bug in the library file regress.cal was fixed.
+
+## Copyright (C) 2001  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.21 $
+## @(#) $Id: CHANGES,v 30.21 2010/09/02 09:50:19 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/RCS/CHANGES,v $
+##
+## Under source code control:	1993/06/02 18:12:57
+## File existed as early as:	1989
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                           NAME
+    fputc - write a character to a file
+
+SYNOPSIS
+    fputc(fd, data)
+
+TYPES
+    fd		file
+    data	str
+
+    return	nil
+
+DESCRIPTION
+    This function writes the first character in data to the file
+    associated with fd.
+
+EXAMPLE
+    ; fd = fopen("/tmp/newfile", "w")
+    ; fputc(fd, "c")
+    ; fd2 = fopen("/tmp/newfile", "r")
+    ; fgetc(fd2)
+	    "c"
+
+LIMITS
+    fd must be associated with an open file
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    errno, fclose, feof, ferror, fflush, fgetc, fgetline, fgets, files, fopen,
+    fprintf, fputc, fputs, fseek, fsize, ftell, isfile, printf, prompt
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: fputc,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/fputc,v $
+##
+## Under source code control:	1995/03/04 11:33:20
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                         Guidelines for adding custom functions
+--------------------------------------
+
+Step 0: Determine if is should it be done?
+
+    The main focus for calc is to provide a portable platform for
+    multi-precision calculations in a C-like environment.  You should
+    consider implementing algorithms in the calc language as a first
+    choice.  Sometimes an algorithm requires use of special hardware, a
+    non-portable OS or pre-compiled C library.	In these cases a custom
+    interface may be needed.
+
+    The custom function interface is intended to make is easy for
+    programmers to add functionality that would be otherwise
+    un-suitable for general distribution.  Functions that are
+    non-portable (machine, hardware or OS dependent) or highly
+    specialized are possible candidates for custom functions.
+
+    So before you go to step 1, ask yourself:
+
+	+ Can I implement this as a calc resource file or calc shell script?
+
+	    If Yes, write the shell script or resource file and be done with it.
+	    If No, continue to the next question ...
+
+	+ Does it require the use of non-portable features,
+	  OS specific support or special hardware?
+
+	    If No, write it as a regular builtin function.
+	    If Yes, continue to step 1 ...
+
+
+Step 1: Do some background work
+
+    First ... read this file ALL THE WAY THROUGH before implementing
+    anything in Steps 2 and beyond!
+
+    If you are not familiar with calc internals, we recommend that
+    you look at some examples of custom functions.  Look at the
+    the following source files:
+
+	custom.c
+	custom.h
+	custom/custtbl.c
+	custom/c_*.[ch]
+	custom/*.cal
+	help/custom		(or run:  calc help custom)
+
+    You would be well advised to look at a more recent calc source
+    such as one available in from the calc version archive.
+    See the following for more details:
+
+	help/archive		(or run:  calc help archive)
+
+
+Step 2: Name your custom function
+
+    We suggest that you pick a name that does not conflict with
+    one of the builtin names.  It makes it easier to get help
+    via the help interface and avoid confusion down the road.
+
+    You should avoid picking a name that matches a file or
+    directory name under ${HELPDIR} as well.  Not all help
+    files are associated with builtin function names.
+
+    For purposes of this file, we will use the name 'curds'
+    as our example custom function name.
+
+
+Step 3: Document your custom function
+
+    No this step is NOT out of order.  We recommend that you write the
+    help file associated with your new custom function EARLY.  By
+    experience we have found that the small amount of effort made to
+    write "how the custom function will be used" into a help file pays
+    off in a big way when it comes to coding.  Often the effort of
+    writing a help file will clarify fuzzy aspects of your design.
+    Besides, unless you write the help file first, it will likely never
+    be written later on.  :-(
+
+    OK ... we will stop preaching now ...
+
+    [[ From now on we will give filenames relative to the custom directory ]]
+
+    Take a look at one of the example custom help files:
+
+	custom/devnull
+	custom/argv
+	custom/help
+	custom/sysinfo
+
+    You can save time by using one of the custom help files
+    as a template.  Copy one of these files to your own help file:
+
+	cd custom
+	cp sysinfo curds
+
+    and edit it accordingly.
+
+
+Step 4: Write your test code
+
+    No this step is NOT out of order either.  We recommend that you
+    write a simple calc script that will call your custom function and
+    check the results.
+
+    This script will be useful while you are debugging your code.  In
+    addition, if you wish to submit your code for distribution, this
+    test code will be an import part of your submission.  Your test
+    code will also service as additional for your custom function.
+
+    Oops ... we said we would stop preaching, sorry about that ...
+
+    You can use one of the following as a template:
+
+	custom/argv.cal
+	custom/halflen.cal
+
+    Copy one of these to your own file:
+
+	cd custom
+	cp halflen.cal curds.cal
+
+    and exit it accordingly.  In particular you will want to:
+
+	remove our header disclaimer (or put your own on)
+
+	change the name from halflen() to curds()
+
+	change the comment from 'halflen - determine the length ...' to
+	'curds - brief description about ...'
+
+	change other code as needed.
+
+
+Step 5: Write your custom function
+
+    By convention, the files we ship that contain custom function
+    interface code in filenames of the form:
+
+	c_*.c
+
+    We suggest that you use filenames of the form:
+
+	u_*.c
+
+    to avoid filename conflicts.
+
+    We recommend that you use one of the c_*.c files as a template.
+    Copy an appropriate file to your file:
+
+	cd custom
+	cp c_argv.c u_curds.c
+
+    Before you edit it, you should note that there are several important
+    features of this file.
+
+	a) All of the code in the file is found between #if ... #endif:
+
+		/*
+		 * only comments and blank lines at the top
+		 */
+
+		#if defined(CUSTOM)
+
+		... all code, #includes, #defines etc.
+
+		#endif /* CUSTOM */
+
+	   This allows this code to 'go away' when the upper Makefile
+	   disables the custom code (because ALLOW_CUSTOM no longer
+	   has the -DCUSTOM define).
+
+	b) The function type must be:
+
+		/*ARGSUSED*/
+		VALUE
+		u_curds(char *name, int count, VALUE **vals)
+
+	   The 3 args are passed in by the custom interface
+	   and have the following meaning:
+
+		name	The name of the custom function that
+			was called.  In particular, this is the first
+			string arg that was given to the custom()
+			builtin.  This is the equivalent of argv[0] for
+			main() in C programming.
+
+			The same code can be used for multiple custom
+			functions by processing off of this value.
+
+		count	This is the number of additional args that
+			was given to the custom() builtin.  Note
+			that count does NOT include the name arg.
+			This is similar to argc except that count
+			is one less than the main() argc interface.
+
+			For example, a call of:
+
+			    custom("curds", a, b, c)
+
+			would cause count to be passed as 3.
+
+		vals	This is a pointer to an array of VALUEs.
+			This is the equivalent of argv+1 for
+			main() in C programming.  The difference
+			here is that vals[0] refers to the 1st
+			parameter AFTER the same.
+
+			For example, a call of:
+
+			    custom("curds", a, b, c)
+
+			would cause vals to point to the following array:
+
+			    vals[0]  points to	a
+			    vals[1]  points to	b
+			    vals[2]  points to	c
+
+	   NOTE: If you do not use any of the 3 function parameters,
+	   then you should declare that function parameter to be UNUSED.
+	   For example, if the count and vals parameters were not used
+	   in your custom function, then your declaraction should be:
+
+		/*ARGSUSED*/
+		VALUE
+		u_curds(char *name, int UNUSED count, VALUE UNUSED **vals)
+
+	c) The return value is the function must be a VALUE.
+
+	   The typical way to form a VALUE to return is by declaring
+	   the following local variable:
+
+		VALUE result;	/* what we will return */
+
+	d) You will need to include:
+
+		#if defined(CUSTOM)
+
+		/* any #include <foobar.h> here */
+
+		#include "../have_const.h"
+		#include "../value.h"
+		#include "custom.h"
+
+		#include "../have_unused.h"
+
+	    Typically these will be included just below any system
+	    includes and just below the #if defined(CUSTOM) line.
+
+    To better understand the VALUE type, read:
+
+	../value.h
+
+    The VALUE is a union of major value types found inside calc.
+    The v_type VALUE element determines which union element is
+    being used.	  Assume that we have:
+
+	VALUE *vp;
+
+    Then the value is determined according to v_type:
+
+	vp->v_type	the value is	which is a	type defined in
+	----------	------------	----------	---------------
+	V_NULL		(none)		n/a		n/a
+	V_INT		vp->v_int	long		n/a
+	V_NUM		vp->v_num	NUMBER *	../qmath.h
+	V_COM		vp->v_com	COMPLEX *	../cmath.h
+	V_ADDR		vp->v_addr	VALUE *		../value.h
+	V_STR		vp->v_str	char *		n/a
+	V_MAT		vp->v_mat	MATRIX *	../value.h
+	V_LIST		vp->v_list	LIST *		../value.h
+	V_ASSOC		vp->v_assoc	ASSOC *		../value.h
+	V_OBJ		vp->v_obj	OBJECT *	../value.h
+	V_FILE		vp->v_file	FILEID		../value.h
+	V_RAND		vp->v_rand	RAND *		../zrand.h
+	V_RANDOM	vp->v_random	RANDOM *	../zrandom.h
+	V_CONFIG	vp->v_config	CONFIG *	../config.h
+	V_HASH		vp->v_hash	HASH *		../hash.h
+	V_BLOCK		vp->v_block	BLOCK *		../block.h
+
+    The V_OCTET is under review and should not be used at this time.
+
+    There are a number of macros that may be used to determine
+    information about the numerical values (ZVALUE, NUMBER and COMPLEX).
+    you might also want to read the following to understand
+    some of the numerical types of ZVALUE, NUMBER and COMPLEX:
+
+	../zmath.h
+	../qmath.h
+	../cmath.h
+
+    While we cannot go into full detail here are some cookbook
+    code for manipulating VALUEs.  For these examples assume
+    that we will manipulate the return value:
+
+	VALUE result;	/* what we will return */
+
+    To return NULL:
+
+	result.v_type = V_NULL;
+	return result;
+
+    To return a long you need to convert it to a NUMBER:
+
+	long variable;
+
+	result.v_type = V_NUM;
+	result.v_num = itoq(variable);		/* see ../qmath.c */
+	return result;
+
+    To return a FULL you need to convert it to a NUMBER:
+
+	FULL variable;
+
+	result.v_type = V_NUM;
+	result.v_num = utoq(variable);		/* see ../qmath.c */
+	return result;
+
+    To convert a ZVALUE to a NUMBER*:
+
+	ZVALUE variable;
+
+	result.v_type = V_NUM;
+	result.v_num = qalloc();		/* see ../qmath.c */
+	result.v_num->num = variable;
+	return result;
+
+    To convert a small NUMBER* into a long:
+
+	NUMBER *num;
+	long variable;
+
+	variable = qtoi(num);
+
+    To obtain a ZVALUE from a NUMBER*, extract the numerator:
+
+	NUMBER *num;
+	ZVALUE z_variable;
+
+	if (qisint(num)) {
+		z_variable = num->num;
+	}
+
+    To be sure that the value will fit, use the ZVALUE test macros:
+
+	ZVALUE z_num;
+	long variable;
+	unsigned long u_variable;
+	FULL f_variable;
+	short very_tiny_variable;
+
+	if (zgtmaxlong(z_num)) {			/* see ../zmath.h */
+		variable = ztolong(z_num);
+	}
+	if (zgtmaxulong(z_num)) {
+		u_variable = ztoulong(z_num);
+	}
+	if (zgtmaxufull(z_num)) {
+		f_variable = ztofull(z_num);
+	}
+	if (zistiny(z_num)) {
+		very_tiny_variable = z1tol(z_num);
+	}
+
+    You can (and should) add debugging statements to your custom code
+    by examining bit 8 of the calc_debug config flag:
+
+	if (conf->calc_debug & CALCDBG_CUSTOM) {
+	    fprintf(stderr, "%ssome custom debug note: msg\n",
+		(conf->tab_ok ? "\t" : ""),
+		((msg == NULL) ? "((NULL))" : msg));
+	}
+
+    One is able to set bit 8 by way of the calc command line:
+
+    	calc -D 128
+
+    See the calc man page for details.  One may also set that bit
+    while running calc by way of the config() builtin function:
+
+    	config("calc_debug", 128);
+
+    See the help/config file for details on calc_debug.
+
+Step 6: Register the function in the custom interface table
+
+    To allow the custom() builtin to transfer control to your function,
+    you need to add an entry into the CONST struct custom cust table
+    found in custom/custtbl.c:
+
+	/*
+	 * custom interface table
+	 *
+	 * The order of the elements in struct custom are:
+	 *
+	 *	{ "xyz", "brief description of the xyz custom function",
+	 *	   minimum_args, maximum_args, c_xyz },
+	 *
+	 * where:
+	 *
+	 *	minimum_args	an int >= 0
+	 *	maximum_args	an int >= minimum_args and <= MAX_CUSTOM_ARGS
+	 *
+	 * Use MAX_CUSTOM_ARGS for maximum_args is the maximum number of args
+	 * is potentially 'unlimited'.
+	 *
+	 * If the brief description cannot fit on the same line as the name
+	 * without wrapping on a 80 col window, the description is probably
+	 * too long and will not look nice in the show custom output.
+	 */
+	CONST struct custom cust[] = {
+
+	#if defined(CUSTOM)
+
+
+		/*
+		 * add your own custom functions here
+		 *
+		 * We suggest that you sort the entries below by name
+		 * so that show custom will produce a nice sorted list.
+		 */
+
+		{ "argv", "information about its args, returns arg count",
+		 0, MAX_CUSTOM_ARGS, c_argv },
+
+		{ "devnull", "does nothing",
+		 0, MAX_CUSTOM_ARGS, c_devnull },
+
+		{ "help", "help for custom functions",
+		 1, 1, c_help },
+
+		{ "sysinfo", "return a calc #define value",
+		 0, 1, c_sysinfo },
+
+
+	#endif /* CUSTOM */
+
+		/*
+		 * This must be at the end of this table!!!
+		 */
+		{NULL, NULL,
+		 0, 0, NULL}
+	};
+
+    The definition oÏ  žÏ  ŸÏ   Ï  ¡Ï  ¢Ï  £Ï  ¤Ï                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  f struct custom may be found in custom.h.
+
+    It is important that your entry be placed inside the:
+
+	#if defined(CUSTOM) ... #endif /* CUSTOM */
+
+    lines so that when the custom interface is disabled by the upper
+    level Makefile, one does not have unsatisfied symbols.
+
+    The brief description should be brief so that 'show custom' looks well
+    formatted.	If the brief description cannot fit on the same line as
+    the name without wrapping on a 80 col window, the description is
+    probably too long and will not look nice in the show custom output.
+
+    The minargs places a lower bound on the number of args that
+    must be supplied to the interface.	This does NOT count
+    the name argument given to custom().  So if minargs is 2:
+
+	custom("curds")		/* call blocked at high level interface */
+	custom("curds", a)	/* call blocked at high level interface */
+	custom("curds", a, b)	/* call passed down to "curds" interface */
+
+    The maxargs sets a limit on the number of args that may be passed.
+    If minargs == maxargs, then the call requires a fixed number of
+    argument.  There is a upper limit on the number of args.  If
+    one wants an effectively unlimited upper bound, use MAX_CUSTOM_ARGS.
+
+    Note that one must have:
+
+		0 <= minargs <= maxargs <= MAX_CUSTOM_ARGS
+
+    To allow the curds function to take at least 2 args and up
+    to 5 args, one would add the following entry to cust[]:
+
+		{ "curds", "brief description about curds interface",
+		 2, 5, u_curds },
+
+    It is recommended that the cust[] remain in alphabetical order,
+    so one would place it before the "devnull" and after "argv".
+
+    Last, you must forward declare the u_curds near the top of the file:
+
+	#if defined(CUSTOM)
+
+
+	/*
+	 * add your forward custom function declarations here
+	 *
+	 * Declare custom functions as follows:
+	 *
+	 *	E_FUNC VALUE c_xyz(char*, int, VALUE**);
+	 *
+	 * We suggest that you sort the entries below by name.
+	 */
+	E_FUNC VALUE c_argv(char*, int, VALUE**);
+	E_FUNC VALUE c_devnull(char*, int, VALUE**);
+	E_FUNC VALUE c_help(char*, int, VALUE**);
+	E_FUNC VALUE c_sysinfo(char*, int, VALUE**);
+
+    For u_curds we would add the line:
+
+	E_FUNC VALUE u_curds(char*, int, VALUE**);
+
+
+Step 7: Add the required information to the custom/Makefile.head
+
+    The calc test script, curds.cal, should be added to the
+    CUSTOM_CALC_FILES Makefile variable found in custom/Makefile.head:
+
+	CUSTOM_CALC_FILES= argv.cal halflen.cal curds.cal
+
+    The help file, curds, should be added to the CUSTOM_HELP
+    custom/Makefile.head variable:
+
+	CUSTOM_HELP= argv devnull help sysinfo curds
+
+    If you needed to create any .h files to support u_curds.c, these
+    files should be added to the CUSTOM_H_SRC custom/Makefile.head variable:
+
+	CUSTOM_H_SRC= u_curds.h otherfile.h
+
+    Your u_curds.c file MUST be added to the CUSTOM_SRC custom/Makefile.head
+    variable:
+
+	CUSTOM_SRC= c_argv.c c_devnull.c c_help.c c_sysinfo.c u_curds.c
+
+    and so must the associated .o file:
+
+	CUSTOM_OBJ= c_argv.o c_devnull.o c_help.o c_sysinfo.o u_curds.o
+
+
+Step 8: Compile and link in your code
+
+    If your calc was not previously setup to compile custom code,
+    you should set it up now.  The upper level Makefile (and
+    the custom Makefile) should have the following Makefile
+    variable defined:
+
+	ALLOW_CUSTOM= -DCUSTOM
+
+    It is recommended that you build your code from the top level
+    Makefile.  It saves having to sync the other Makefile values.
+    To try and build the new libcustcalc.a that contains u_curds.c:
+
+	(cd ..; make custom/libcustcalc.a)
+
+    Fix any compile and syntax errors as needed.  :-)
+
+    Once libcustcalc.a successfully builds, compile calc:
+
+	cd ..
+	make calc
+
+    And check to be sure that the regression test suite still
+    works without errors:
+
+	make check
+
+
+Step 9: Add the Make dependency tools
+
+    You should probably add the dependency lines to the bottom of
+    the Makefile.  Given the required include files, you will at least
+    have the following entries placed at the bottom of the Makefile:
+
+	u_curds.o: ../alloc.h
+	u_curds.o: ../block.h
+	u_curds.o: ../byteswap.h
+	u_curds.o: ../calcerr.h
+	u_curds.o: ../cmath.h
+	u_curds.o: ../config.h
+	u_curds.o: ../endian_calc.h
+	u_curds.o: ../hash.h
+	u_curds.o: ../have_const.h
+	u_curds.o: ../have_malloc.h
+	u_curds.o: ../have_newstr.h
+	u_curds.o: ../have_stdlib.h
+	u_curds.o: ../have_string.h
+	u_curds.o: ../longbits.h
+	u_curds.o: ../nametype.h
+	u_curds.o: ../qmath.h
+	u_curds.o: ../shs.h
+	u_curds.o: ../value.h
+	u_curds.o: ../zmath.h
+	u_curds.o: u_curds.c
+	u_curds.o: ../custom.h
+
+    If you have the makedepend tool from the X11 development environment
+    (by Todd Brunhoff, Tektronix, Inc. and MIT Project Athena), you can
+    use the following to update your dependencies:
+
+	# cd to the top level calc directory if you are not there already
+
+	rm -f Makefile.bak custom/Makefile.bak
+	make depend
+
+	diff -c Makefile.bak Makefile			# look at the changes
+	diff -c custom/Makefile.bak custom/Makefile	# look at the changes
+
+	rm -f Makefile.bak custom/Makefile.bak		# cleanup
+
+Step 10: Test
+
+    Now that you have built calc with your new custom function, test it:
+
+	./calc -C		# run the new calc with the -C arg
+
+    And then try out our test suite:
+
+	C-style arbitrary precision calculator (version 2.10.3t5.1)
+	[Type "exit" to exit, or "help" for help.]
+
+	> read custom/curds.cal
+	curds(a, b, [c, d, e]) defined
+
+	> custom("curds", 2, 3, 4)
+
+
+Step 11: Install
+
+    Once you are satisfied that everything works, install the new code:
+
+	# cd to the top level calc directory if you are not there already
+
+	make install
+
+    Although calc does not run setuid, you may need to be root to install
+    the directories into which calc installs may be write protected.
+
+
+Step 12: Contribute
+
+    Your custom function may be of interest to some people and/or
+    serve as an example of what one can do with custom functions.
+
+    Read the file:
+
+	help/contrib		(or run:  calc help contrib)
+
+    and consider submitting your custom function for possible
+    inclusion in later versions of calc.
+
+## Copyright (C) 1999-2007  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.4 $
+## @(#) $Id: HOW_TO_ADD,v 30.4 2007/09/21 01:27:27 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/custom/RCS/HOW_TO_ADD,v $
+##
+## Under source code control:	1997/03/10 03:03:21
+## File existed as early as:	1997
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       NAME
+    systime - kernel CPU time used by the current process
+
+SYNOPSIS
+    systime()
+
+TYPES
+    return	nonnegative real
+
+DESCRIPTION
+    In POSIX based systems, this function will return the CPU seconds
+    used by the current process while in kernel mode executing kernel
+    code on behalf of the current process.  Time spent by the current
+    process executing user code (such as performing computation on
+    behalf of calc) is not counted.
+
+    On non-POSIX based systems, this function will always return 0.
+    In particular, most MS windows based systems do not have the required
+    POSIX system call and so this function will always return 0.
+
+EXAMPLE
+    The result for this example will depend on the speed of the CPU
+    and precision of the operating CPU time accounting sub-system:
+
+    ; t = systime();
+    ; system("true"),
+    ; systime() - t;
+	.001
+
+LIMITS
+    On non-POSIX based systems, this function always returns 0.
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    config, ctime, runtime, systime, time
+
+## Copyright (C) 2006  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: systime,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/systime,v $
+##
+## Under source code control:	2006/12/16 10:31:08
+## File existed as early as:	2006
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             NAME
+    isprime - whether a small integer is prime
+
+SYNOPSIS
+    isprime(x [,err])
+
+TYPES
+    x		int
+    err		int
+
+    return	int
+
+DESCRIPTION
+    Determine if x is is a small prime.	 This function will return
+    1 if x is a small prime.  If x is even, this function will
+    return 0.  If x is negative or a small composite (non-prime),
+    0 will be returned.
+
+    If x is a large positive odd value and the err argument is
+    given, this function return err.  If x is a large positive odd
+    value and the err argument is not given, an error will be
+    generated.
+
+    Note that normally this function returns the integer 0 or 1.
+    If err is given and x is a large positive odd value, then err
+    will be returned.
+
+EXAMPLE
+    ; print isprime(-3), isprime(1), isprime(2)
+    0 0 1
+
+    ; print isprime(21701), isprime(1234577), isprime(1234579)
+    1 1 0
+
+    ; print isprime(2^31-9), isprime(2^31-1), isprime(2^31+11)
+    0 1 1
+
+    ; print isprime(2^32+1, -1), isprime(3^99, 2), isprime(4^99, 2)
+    -1 2 0
+
+LIMITS
+    err not given  and	(y is even  or	y < 2^32)
+
+LINK LIBRARY
+    FLAG zisprime(ZVALUE x)	(return 1 if prime, 0 not prime, -1 if >= 2^32)
+
+SEE ALSO
+    factor, lfactor, nextcand, nextprime, prevcand, prevprime,
+    pfact, pix, ptest
+
+## Copyright (C) 1999-2006  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: isprime,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/isprime,v $
+##
+## Under source code control:	1994/10/21 02:21:29
+## File existed as early as:	1994
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    NAME
+    . - oldvalue
+
+SYNOPSIS
+    .  (with no adjacent letters or digits or _ or .)
+
+TYPES
+    return	any
+
+DESCRIPTION
+    The "old value" is essentially a global variable with identifier "."
+    which at top level when directly from a file or keyboard
+    is automatically assigned the saved value for a line
+    of statements when evaluation of that line is completed and this saved
+    value is not null.	A line of statements is normally completed by a
+    '\n' not within a block bounded by braces or an expression bounded by
+    parentheses.
+
+    Disabling of saving by calling saveval(0) causes lines to return a
+    null value and . then becomes in effect a global variable whose
+    value may be changed by assignments and operations like ++ and --.
+
+    A null value may be assigned to . by . = null() or free(.).
+
+EXAMPLE
+    ; saveval(1);
+    ; a = 2
+    ; .
+	    2
+    ; . += 3; b = . + 4
+    ; print ., b
+    9 9
+    ; . += 3; b = . + 4; null()
+    ; print ., b
+    12 16
+    ; list(a, b, a + b)
+
+    list (3 elements, 3 nonzero):
+	    [[0]] = 2
+	    [[1]] = 16
+	    [[2]] = 18
+
+    ; saveval(0)
+    ; print pop(.), .[[1]]
+    2 18
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    saveval
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: oldvalue,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/oldvalue,v $
+##
+## Under source code control:	1997/09/06 20:03:35
+## File existed as early as:	1997
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            NAME
+    blkfree - free memory allocated to named block
+
+SYNOPSIS
+    blkfree(val)
+
+TYPES
+    val		named block, string, or integer
+
+    return	null value
+
+DESCRIPTION
+    If val is a named block, or the name of a named block, or the
+    identifying index for a named block, blkfree(val) frees the
+    memory block allocated to this named block.	 The block remains
+    in existence with the same name, identifying index, and chunksize,
+    but its size and maxsize becomes zero and the pointer for the start
+    of its data block null.
+
+    A new block of memory may be allocated to a freed block B by
+    blk(B [, len, chunk]), len defaulting to zero and chunk to the
+    chunksize when the block was freed.
+
+EXAMPLE
+
+    ; B1 = blk("foo")
+    ; B2 = blk("Second block")
+    show blocks
+     id	  name
+    ----  -----
+     0	 foo
+     1	 Second block
+
+    ; blkfree(B1)
+    ; show blocks
+     id	  name
+    ----  -----
+     1	 Second block
+
+    ; B1
+	block 0: foo
+	chunksize = 256, maxsize = 0, datalen = 0
+	NULL
+
+    ; blk(B1); B[7] = 5
+    ; B1
+	block 0: foo
+	chunksize = 256, maxsize = 256, datalen = 8
+	0000000000000005
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    blk, blocks
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: blkfree,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/blkfree,v $
+##
+## Under source code control:	1997/04/05 13:07:13
+## File existed as early as:	1997
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 NAME
+    matfill - fill a matrix with specified value or values
+
+SYNOPSIS
+    mat(m, x [, y])
+
+TYPES
+    m		matrix
+    x		any
+    y		any
+
+    return	null
+
+DESCRIPTION
+    For any matrix m, matfill(m, x) assigns to every element of m the
+    value x.  For a square matrix m, matfill(m, x, y) assigns the value
+    x to the off-diagonal elements, y to the diagonal elements.
+
+EXAMPLE
+    ; mat A[3]; matfill(A, 2); print A
+    mat [3] (3 elements, 3 nonzero):
+	[0] = 2
+	[1] = 2
+	[2] = 2
+
+    ; mat B[2, 1:2]; matfill(B,3,4); print B
+    mat [2,1:2] (4 elements, 4 nonzero):
+	[0,1] = 4
+	[0,2] = 3
+	[1,1] = 3
+	[1,2] = 4
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    mat, ismat, matdim, matmax, matmin, mattrans, mattrace, matsum,
+    det, inverse, isident, test, config, search, rsearch, reverse, copy,
+    blkcpy, dp, cp, randperm, sort
+
+## Copyright (C) 1999-2006  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: matfill,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/matfill,v $
+##
+## Under source code control:	1995/10/25 04:03:45
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                        operators
+
+    The operators are similar to C, but there are some differences in
+    the associativity and precedence rules for some operators.	In
+    addition, there are several operators not in C, and some C
+    operators are missing.  A more detailed discussion of situations
+    that may be unexpected for the C programmer may be found in
+    the 'unexpected' help file.
+
+    Below is a list giving the operators arranged in order of
+    precedence, from the least tightly binding to the most tightly
+    binding.  Except where otherwise indicated, operators at the same
+    level of precedence associate from left to right.
+
+    Unlike C, calc has a definite order for evaluation of terms (addends
+    in a sum, factors in a product, arguments for a function or a
+    matrix, etc.).  This order is always from left to right. but
+    skipping of terms may occur for ||, && and ? : .  For example,
+    an expression of the form:
+
+	    A * B + C * D
+
+    is evaluated in the following order:
+
+	    A
+	    B
+	    A * B
+	    C
+	    D
+	    C * D
+	    A * B + C * D
+
+    This order of evaluation is significant if evaluation of a
+    term changes a variable on which a later term depends.  For example:
+
+	    x++ * x++ + x++ * x++
+
+    returns the value of:
+
+	    x * (x + 1) + (x + 2) * (x + 3)
+
+    and increments x as if by x += 4.  Similarly, for functions f, g,
+    the expression:
+
+	    f(x++, x++) + g(x++)
+
+    evaluates to:
+
+	    f(x, x + 1) + g(x + 2)
+
+    and increments x three times.
+
+    In A || B, B is read only if A tests as false;  in A && B, B is
+    read only if A tests as true.  Thus if x is nonzero,
+    x++ || x++ returns x and increments x once; if x is zero,
+    it returns x + 1 and increments x twice.
+
+
+    ,	Comma operator.
+	    a, b returns the value of b.
+	    For situations in which a comma is used for another purpose
+	    (function arguments, array indexing, and the print statement),
+	    parenthesis must be used around the comma operator expression.
+	    E.g., if A is a matrix, A[(a, b), c] evaluates a, b, and c, and
+	    returns the value of A[b, c].
+
+    +=	-=  *=	/=  %=	//=  &=	 |=  <<=  >>=  ^=  **=
+	 Operator-with-assignments.
+	    These associate from left to right, e.g. a += b *= c has the
+	    effect of a = (a + b) * c, where only a is required to be an
+	    lvalue.  For the effect of b *= c; a += b; when both a and b
+	    are lvalues, use a += (b *= c).
+
+    =	Assignment.
+	    As in C, this, when repeated, this associates from right to left,
+	    e.g. a = b = c has the effect of a = (b = c).  Here both a and b
+	    are to be lvalues.
+
+    ? : Conditional value.
+	    a ? b : c  returns b if a tests as true (i.e. nonzero if
+	    a is a number), c otherwise.  Thus it is equivalent to:
+	    if (a) return b; else return c;.
+	    All that is required of the arguments in this function
+	    is that the "is-it-true?" test is meaningful for a.
+	    As in C, this operator associates from right to left,
+	    i.e. a ? b : c ? d : e is evaluated as a ? b : (c ? d : e).
+
+    ||	Logical OR.
+	    Unlike C, the result for a || b is one of the operands
+	    a, b rather than one of the numbers 0 and 1.
+	    a || b is equivalent to a ? a : b, i.e. if a tests as
+	    true, a is returned, otherwise b.  The effect in a
+	    test like "if (a || b) ... " is the same as in C.
+
+    &&	Logical AND.
+	    Unlike C, the result for a && b is one of the operands
+	    a, b rather than one of the numbers 0 and 1.
+	    a && b is equivalent to a ? b : a, i.e. if a tests as
+	    true, b is returned, otherwise a.  The effect in a
+	    test like "if (a && b) ... " is the same as in C.
+
+    ==	!=  <=	>=  <  >
+	    Relations.
+
+    +  -
+	    Binary plus and minus and unary plus and minus when applied to
+	    a first or only term.
+
+    *  /  //  %
+	    Multiply, divide, and modulo.
+	    Please Note: The '/' operator is a fractional divide,
+	    whereas the '//' is an integral divide.  Thus think of '/'
+	    as division of real numbers, and think of '//' as division
+	    of integers (e.g., 8 / 3 is 8/3 whereas 8 // 3 is 2).
+	    The '%' is integral or fractional modulus (e.g., 11%4 is 3,
+	    and 10%pi() is ~.575222).
+
+    |	Bitwise OR.
+	    In a | b, both a and b are to be real integers;
+	    the signs of a and b are ignored, i.e.
+	    a | b = abs(a) | abs(b) and the result will
+	    be a non-negative integer.
+
+    &	Bitwise AND.
+	    In a & b, both a and b are to be real integers;
+	    the signs of a and b are ignored as for a | b.
+
+    ^  **  <<  >>
+	    Powers and shifts.
+	    The '^' and '**' are both exponentiation, e.g. 2^3
+	    returns 8, 2^-3 returns .125.  Note that in a^b, if
+	    'a' == 0 and 'b' is real, then is must be >= 0 as well.
+	    Also 0^0 and 0**0 return the value 1.
+
+	    For the shift operators both arguments are to be
+	    integers, or if the first is complex, it is to have
+	    integral real and imaginary parts.	Changing the
+	    sign of the second argument reverses the shift, e.g.
+	    a >> -b = a << b.  The result has the same sign as
+	    the first argument except that a nonzero value is
+	    reduced to zero by a sufficiently long shift to the
+	    right.  These operators associate right to left,
+	    e.g.  a << b ^ c = a << (b ^ c).
+
+    +  -  !
+	    Plus (+) and minus (-) have their usual meanings as unary
+	    prefix operators at this level of precedence when applied to
+	    other than a first or only term.
+
+	    As a prefix operator, '!' is the logical NOT: !a returns 0 if
+	    a tests as nonzero, and 1 if a tests as zero, i.e. it is
+	    equivalent to a ? 0 : 1.  Be careful about
+	    using this as the first character of a top level command,
+	    since it is also used for executing shell commands.
+
+	    As a postfix operator ! gives the factorial function, i.e.
+	    a! = fact(a).
+
+    ++	--
+	    Pre or post incrementing or decrementing.
+	    These are applicable only to variables.
+
+    [ ]	 [[ ]]	.  ( )
+	    Indexing, double-bracket indexing, element references,
+	    and function calls.	 Indexing can only be applied to matrices,
+	    element references can only be applied to objects, but
+	    double-bracket indexing can be applied to matrices, objects,
+	    or lists.
+
+    variables  constants  .  ( )
+	    These are variable names and constants, the special '.' symbol,
+	    or a parenthesized expression.  Variable names begin with a
+	    letter, but then can contain letters, digits, or underscores.
+	    Constants are numbers in various formats, or strings inside
+	    either single or double quote marks.
+
+
+    The most significant difference from the order of precedence in
+    C is that | and & have higher precedence than ==, +, -, *, / and %.
+    For example, in C a == b | c * d is interpreted as:
+
+	    (a == b) | (c * d)
+
+    and calc it is:
+
+	    a == ((b | c) * d)
+
+
+    Most of the operators will accept any real or complex numbers
+    as arguments.  The exceptions are:
+
+    /  //  %
+	    Second argument must be nonzero.
+
+    ^
+	    The exponent must be an integer.  When raising zero
+	    to a power, the exponent must be non-negative.
+
+    |  &
+	    Both both arguments must be integers.
+
+    <<	>>
+	    The shift amount must be an integer.  The value being
+	    shifted must be an integer or a complex number with
+	    integral real and imaginary parts.
+
+
+    See the 'unexpected' help file for a list of unexpected
+    surprises in calc syntax/usage.  Persons familiar with C should
+    read the 'unexpected' help file to avoid confusion.
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.2 $
+## @(#) $Id: operator,v 30.2 2007/07/11 23:00:39 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/operator,v $
+##
+## Under source code control:	1991/07/21 04:37:23
+## File existed as early as:	1991
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 NAME
+    btrunc - truncate a value to a number of binary places
+
+SYNOPSIS
+    btrunc(x [,plcs])
+
+TYPES
+    x		real
+    plcs	integer, defaults to zero
+
+    return	real
+
+DESCRIPTION
+    Truncate x to plcs binary places, rounding if necessary towards zero,
+    i.e. btrunc(x, plcs) is a multiple of 2^-plcs and the remainder
+    x - btrunc(x, plcs) is either zero or has the same sign as x and
+    absolute value less than 2^-plcs.  Here plcs may be positive, zero or
+    negative.
+
+    Except that it is defined only for real x, btrunc(x, plcs) is equivalent
+    to bround(x, plcs, 2).  btrunc(x,0) and btrunc(x) are equivalent to
+    int(x).
+
+EXAMPLE
+    ; print btrunc(pi()), btrunc(pi(), 10)
+    3 3.140625
+
+    ; print btrunc(3.3), btrunc(3.7), btrunc(3.3, 2), btrunc(3.7, 2)
+    3 3 3.25 3.5
+
+    ; print btrunc(-3.3), btrunc(-3.7), btrunc(-3.3, 2), btrunc(-3.7, 2)
+    -3 -3 -3.25 -3.5
+
+    ; print btrunc(55.123, -4), btrunc(-55.123, -4)
+    48 -48
+
+LIMITS
+    abs(j) < 2^31
+
+LINK LIBRARY
+    NUMBER *qbtrunc(NUMBER *x, *j)
+
+SEE ALSO
+    bround, int, round, trunc
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: btrunc,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/btrunc,v $
+##
+## Under source code control:	1994/09/30 00:44:27
+## File existed as early as:	1994
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            NAME
+    ilog10 - floor of logarithm to base 10
+
+SYNOPSIS
+    ilog10(x)
+
+TYPES
+    x		nonzero real
+
+    return	integer
+
+DESCRIPTION
+    Returns the greatest integer n for which 10^n <= x.
+
+EXAMPLE
+    ; print ilog10(7), ilog10(77.7), ilog10(777), ilog10(.00777), ilog10(-1e27)
+    0 1 2 -3 27
+
+LIMITS
+    none
+
+LINK LIBRARY
+    long qilog10(NUMBER *q)
+
+SEE ALSO
+    ilog2, ilog
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received 

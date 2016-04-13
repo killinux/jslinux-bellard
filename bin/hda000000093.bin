@@ -1,0 +1,1218 @@
+xponent of 0 means
+     a radix point just above the most significant limb.  Non-zero
+     values n are a multiplier 2^n relative to that point.  A NaN, an
+     infinity and a zero are indicated by special values of the exponent
+     field.
+
+   * Finally, the `_mpfr_d' field is a pointer to the limbs, least
+     significant limbs stored first.  The number of limbs in use is
+     controlled by `_mpfr_prec', namely
+     ceil(`_mpfr_prec'/`mp_bits_per_limb').  Non-singular (i.e.,
+     different from NaN, Infinity or zero) values always have the most
+     significant bit of the most significant limb set to 1.  When the
+     precision does not correspond to a whole number of limbs, the
+     excess bits at the low end of the data are zeros.
+
+
+
+File: mpfr.info,  Node: API Compatibility,  Next: Contributors,  Prev: MPFR Interface,  Up: Top
+
+6 API Compatibility
+*******************
+
+The goal of this section is to describe some API changes that occurred
+from one version of MPFR to another, and how to write code that can be
+compiled and run with older MPFR versions.  The minimum MPFR version
+that is considered here is 2.2.0 (released on 20 September 2005).
+
+   API changes can only occur between major or minor versions.  Thus the
+patchlevel (the third number in the MPFR version) will be ignored in
+the following.  If a program does not use MPFR internals, changes in
+the behavior between two versions differing only by the patchlevel
+should only result from what was regarded as a bug or unspecified
+behavior.
+
+   As a general rule, a program written for some MPFR version should
+work with later versions, possibly except at a new major version, where
+some features (described as obsolete for some time) can be removed.  In
+such a case, a failure should occur during compilation or linking.  If
+a result becomes incorrect because of such a change, please look at the
+various changes below (they are minimal, and most software should be
+unaffected), at the FAQ and at the MPFR web page for your version (a
+bug could have been introduced and be already fixed); and if the
+problem is not mentioned, please send us a bug report (*note Reporting
+Bugs::).
+
+   However, a program written for the current MPFR version (as
+documented by this manual) may not necessarily work with previous
+versions of MPFR.  This section should help developers to write
+portable code.
+
+   Note: Information given here may be incomplete.  API changes are
+also described in the NEWS file (for each version, instead of being
+classified like here), together with other changes.
+
+* Menu:
+
+* Type and Macro Changes::
+* Added Functions::
+* Changed Functions::
+* Removed Functions::
+* Other Changes::
+
+
+File: mpfr.info,  Node: Type and Macro Changes,  Next: Added Functions,  Prev: API Compatibility,  Up: API Compatibility
+
+6.1 Type and Macro Changes
+==========================
+
+The official type for exponent values changed from `mp_exp_t' to
+`mpfr_exp_t' in MPFR 3.0.  The type `mp_exp_t' will remain available as
+it comes from GMP (with a different meaning).  These types are
+currently the same (`mpfr_exp_t' is defined as `mp_exp_t' with
+`typedef'), so that programs can still use `mp_exp_t'; but this may
+change in the future.  Alternatively, using the following code after
+including `mpfr.h' will work with official MPFR versions, as
+`mpfr_exp_t' was never defined in MPFR 2.x:
+     #if MPFR_VERSION_MAJOR < 3
+     typedef mp_exp_t mpfr_exp_t;
+     #endif
+
+   The official types for precision values and for rounding modes
+respectively changed from `mp_prec_t' and `mp_rnd_t' to `mpfr_prec_t'
+and `mpfr_rnd_t' in MPFR 3.0.  This change was actually done a long
+time ago in MPFR, at least since MPFR 2.2.0, with the following code in
+`mpfr.h':
+     #ifndef mp_rnd_t
+     # define mp_rnd_t  mpfr_rnd_t
+     #endif
+     #ifndef mp_prec_t
+     # define mp_prec_t mpfr_prec_t
+     #endif
+   This means that it is safe to use the new official types
+`mpfr_prec_t' and `mpfr_rnd_t' in your programs.  The types `mp_prec_t'
+and `mp_rnd_t' (defined in MPFR only) may be removed in the future, as
+the prefix `mp_' is reserved by GMP.
+
+   The precision type `mpfr_prec_t' (`mp_prec_t') was unsigned before
+MPFR 3.0; it is now signed.  `MPFR_PREC_MAX' has not changed, though.
+Indeed the MPFR code requires that `MPFR_PREC_MAX' be representable in
+the exponent type, which may have the same size as `mpfr_prec_t' but
+has always been signed.  The consequence is that valid code that does
+not assume anything about the signedness of `mpfr_prec_t' should work
+with past and new MPFR versions.  This change was useful as the use of
+unsigned types tends to convert signed values to unsigned ones in
+expressions due to the usual arithmetic conversions, which can yield
+incorrect results if a negative value is converted in such a way.
+Warning!  A program assuming (intentionally or not) that `mpfr_prec_t'
+is signed may be affected by this problem when it is built and run
+against MPFR 2.x.
+
+   The rounding modes `GMP_RNDx' were renamed to `MPFR_RNDx' in MPFR
+3.0. However the old names `GMP_RNDx' have been kept for compatibility
+(this might change in future versions), using:
+     #define GMP_RNDN MPFR_RNDN
+     #define GMP_RNDZ MPFR_RNDZ
+     #define GMP_RNDU MPFR_RNDU
+     #define GMP_RNDD MPFR_RNDD
+   The rounding mode "round away from zero" (`MPFR_RNDA') was added in
+MPFR 3.0 (however no rounding mode `GMP_RNDA' exists).
+
+
+File: mpfr.info,  Node: Added Functions,  Next: Changed Functions,  Prev: Type and Macro Changes,  Up: API Compatibility
+
+6.2 Added Functions
+===================
+
+We give here in alphabetical order the functions that were added after
+MPFR 2.2, and in which MPFR version.
+
+   * `mpfr_add_d' in MPFR 2.4.
+
+   * `mpfr_ai' in MPFR 3.0 (incomplete, experimental).
+
+   * `mpfr_asprintf' in MPFR 2.4.
+
+   * `mpfr_buildopt_decimal_p' and `mpfr_buildopt_tls_p' in MPFR 3.0.
+
+   * `mpfr_copysign' in MPFR 2.3.  Note: MPFR 2.2 had a `mpfr_copysign'
+     function that was available, but not documented, and with a slight
+     difference in the semantics (when the second input operand is a
+     NaN).
+
+   * `mpfr_custom_get_significand' in MPFR 3.0.  This function was
+     named `mpfr_custom_get_mantissa' in previous versions;
+     `mpfr_custom_get_mantissa' is still available via a macro in
+     `mpfr.h':
+          #define mpfr_custom_get_mantissa mpfr_custom_get_significand
+     Thus code that needs to work with both MPFR 2.x and MPFR 3.x should
+     use `mpfr_custom_get_mantissa'.
+
+   * `mpfr_d_div' and `mpfr_d_sub' in MPFR 2.4.
+
+   * `mpfr_digamma' in MPFR 3.0.
+
+   * `mpfr_div_d' in MPFR 2.4.
+
+   * `mpfr_fmod' in MPFR 2.4.
+
+   * `mpfr_fms' in MPFR 2.3.
+
+   * `mpfr_fprintf' in MPFR 2.4.
+
+   * `mpfr_get_flt' in MPFR 3.0.
+
+   * `mpfr_get_patches' in MPFR 2.3.
+
+   * `mpfr_get_z_2exp' in MPFR 3.0.  This function was named
+     `mpfr_get_z_exp' in previous versions; `mpfr_get_z_exp' is still
+     available via a macro in `mpfr.h':
+          #define mpfr_get_z_exp mpfr_get_z_2exp
+     Thus code that needs to work with both MPFR 2.x and MPFR 3.x should
+     use `mpfr_get_z_exp'.
+
+   * `mpfr_j0', `mpfr_j1' and `mpfr_jn' in MPFR 2.3.
+
+   * `mpfr_lgamma' in MPFR 2.3.
+
+   * `mpfr_li2' in MPFR 2.4.
+
+   * `mpfr_modf' in MPFR 2.4.
+
+   * `mpfr_mul_d' in MPFR 2.4.
+
+   * `mpfr_printf' in MPFR 2.4.
+
+   * `mpfr_rec_sqrt' in MPFR 2.4.
+
+   * `mpfr_regular_p' in MPFR 3.0.
+
+   * `mpfr_remainder' and `mpfr_remquo' in MPFR 2.3.
+
+   * `mpfr_set_flt' in MPFR 3.0.
+
+   * `mpfr_set_z_2exp' in MPFR 3.0.
+
+   * `mpfr_set_zero' in MPFR 3.0.
+
+   * `mpfr_setsign' in MPFR 2.3.
+
+   * `mpfr_signbit' in MPFR 2.3.
+
+   * `mpfr_sinh_cosh' in MPFR 2.4.
+
+   * `mpfr_snprintf' and `mpfr_sprintf' in MPFR 2.4.
+
+   * `mpfr_sub_d' in MPFR 2.4.
+
+   * `mpfr_urandom' in MPFR 3.0.
+
+   * `mpfr_vasprintf', `mpfr_vfprintf', `mpfr_vprintf',
+     `mpfr_vsprintf' and `mpfr_vsnprintf' in MPFR 2.4.
+
+   * `mpfr_y0', `mpfr_y1' and `mpfr_yn' in MPFR 2.3.
+
+
+
+File: mpfr.info,  Node: Changed Functions,  Next: Removed Functions,  Prev: Added Functions,  Up: API Compatibility
+
+6.3 Changed Functions
+=====================
+
+The following functions have changed after MPFR 2.2. Changes can affect
+the behavior of code written for some MPFR version when built and run
+against another MPFR version (older or newer), as described below.
+
+   * `mpfr_check_range' changed in MPFR 2.3.2 and MPFR 2.4.  If the
+     value is an inexact infinity, the overflow flag is now set (in
+     case it was lost), while it was previously left unchanged.  This
+     is really what is expected in practice (and what the MPFR code was
+     expecting), so that the previous behavior was regarded as a bug.
+     Hence the change in MPFR 2.3.2.
+
+   * `mpfr_get_f' changed in MPFR 3.0.  This function was returning
+     zero, except for NaN and Inf, which do not exist in MPF. The
+     _erange_ flag is now set in these cases, and `mpfr_get_f' now
+     returns the usual ternary value.
+
+   * `mpfr_get_si', `mpfr_get_sj', `mpfr_get_ui' and `mpfr_get_uj'
+     changed in MPFR 3.0.  In previous MPFR versions, the cases where
+     the _erange_ flag is set were unspecified.
+
+   * `mpfr_get_z' changed in MPFR 3.0.  The return type was `void'; it
+     is now `int', and the usual ternary value is returned.  Thus
+     programs that need to work with both MPFR 2.x and 3.x must not use
+     the return value.  Even in this case, C code using `mpfr_get_z' as
+     the second or third term of a conditional operator may also be
+     affected. For instance, the following is correct with MPFR 3.0,
+     but not with MPFR 2.x:
+            bool ? mpfr_get_z(...) : mpfr_add(...);
+     On the other hand, the following is correct with MPFR 2.x, but not
+     with MPFR 3.0:
+            bool ? mpfr_get_z(...) : (void) mpfr_add(...);
+     Portable code should cast `mpfr_get_z(...)' to `void' to use the
+     type `void' for both terms of the conditional operator, as in:
+            bool ? (void) mpfr_get_z(...) : (void) mpfr_add(...);
+     Alternatively, `if ... else' can be used instead of the
+     conditional operator.
+
+     Moreover the cases where the _erange_ flag is set were unspecified
+     in MPFR 2.x.
+
+   * `mpfr_get_z_exp' changed in MPFR 3.0.  In previous MPFR versions,
+     the cases where the _erange_ flag is set were unspecified.  Note:
+     this function has been renamed to `mpfr_get_z_2exp' in MPFR 3.0,
+     but `mpfr_get_z_exp' is still available for compatibility reasons.
+
+   * `mpfr_strtofr' changed in MPFR 2.3.1 and MPFR 2.4.  This was
+     actually a bug fix since the code and the documentation did not
+     match.  But both were changed in order to have a more consistent
+     and useful behavior.  The main changes in the code are as follows.
+     The binary exponent is now accepted even without the `0b' or `0x'
+     prefix.  Data corresponding to NaN can now have an optional sign
+     (such data were previously invalid).
+
+   * `mpfr_strtofr' changed in MPFR 3.0.  This function now accepts
+     bases from 37 to 62 (no changes for the other bases).  Note: if an
+     unsupported base is provided to this function, the behavior is
+     undefined; more precisely, in MPFR 2.3.1 and later, providing an
+     unsupported base yields an assertion failure (this behavior may
+     change in the future).
+
+
+
+File: mpfr.info,  Node: Removed Functions,  Next: Other Changes,  Prev: Changed Functions,  Up: API Compatibility
+
+6.4 Removed Functions
+=====================
+
+Functions `mpfr_random' and `mpfr_random2' have been removed in MPFR
+3.0 (this only affects old code built against MPFR 3.0 or later).  (The
+function `mpfr_random' had been deprecated since at least MPFR 2.2.0,
+and `mpfr_random2' since MPFR 2.4.0.)
+
+
+File: mpfr.info,  Node: Other Changes,  Prev: Removed Functions,  Up: API Compatibility
+
+6.5 Other Changes
+=================
+
+For users of a C++ compiler, the way how the availability of `intmax_t'
+is detected has changed in MPFR 3.0.  In MPFR 2.x, if a macro
+`INTMAX_C' or `UINTMAX_C' was defined (e.g. when the
+`__STDC_CONSTANT_MACROS' macro had been defined before `<stdint.h>' or
+`<inttypes.h>' has been included), `intmax_t' was assumed to be defined.
+However this was not always the case (more precisely, `intmax_t' can be
+defined only in the namespace `std', as with Boost), so that
+compilations could fail.  Thus the check for `INTMAX_C' or `UINTMAX_C'
+is now disabled for C++ compilers, with the following consequences:
+
+   * Programs written for MPFR 2.x that need `intmax_t' may no longer
+     be compiled against MPFR 3.0: a `#define MPFR_USE_INTMAX_T' may be
+     necessary before `mpfr.h' is included.
+
+   * The compilation of programs that work with MPFR 3.0 may fail with
+     MPFR 2.x due to the problem described above.  Workarounds are
+     possible, such as defining `intmax_t' and `uintmax_t' in the global
+     namespace, though this is not clean.
+
+
+
+File: mpfr.info,  Node: Contributors,  Next: References,  Prev: API Compatibility,  Up: Top
+
+Contributors
+************
+
+The main developers of MPFR are Guillaume Hanrot, Vincent Lefèvre,
+Patrick Pélissier, Philippe Théveny and Paul Zimmermann.
+
+   Sylvie Boldo from ENS-Lyon, France, contributed the functions
+`mpfr_agm' and `mpfr_log'.  Emmanuel Jeandel, from ENS-Lyon too,
+contributed the generic hypergeometric code, as well as the internal
+function `mpfr_exp3', a first implementation of the sine and cosine,
+and improved versions of `mpfr_const_log2' and `mpfr_const_pi'.
+Mathieu Dutour contributed the functions `mpfr_atan' and `mpfr_asin',
+and a previous version of `mpfr_gamma'; David Daney contributed the
+hyperbolic and inverse hyperbolic functions, the base-2 exponential,
+and the factorial function. Fabrice Rouillier contributed the
+`mpfr_xxx_z' and `mpfr_xxx_q' functions, and helped to the Microsoft
+Windows porting.  Jean-Luc Rémy contributed the `mpfr_zeta' code.
+Ludovic Meunier helped in the design of the `mpfr_erf' code.  Damien
+Stehlé contributed the `mpfr_get_ld_2exp' function.  Sylvain Chevillard
+contributed the `mpfr_ai' function.
+
+   We would like to thank Jean-Michel Muller and Joris van der Hoeven
+for very fruitful discussions at the beginning of that project,
+Torbjörn Granlund and Kevin Ryde for their help about design issues,
+and Nathalie Revol for her careful reading of a previous version of
+this documentation. In particular Kevin Ryde did a tremendous job for
+the portability of MPFR in 2002-2004.
+
+   The development of the MPFR library would not have been possible
+without the continuous support of INRIA, and of the LORIA (Nancy,
+France) and LIP (Lyon, France) laboratories. In particular the main
+authors were or are members of the PolKA, Spaces, Cacao and Caramel
+project-teams at LORIA and of the Arénaire project-team at LIP.  This
+project was started during the Fiable (reliable in French) action
+supported by INRIA, and continued during the AOC action.  The
+development of MPFR was also supported by a grant (202F0659 00 MPN 121)
+from the Conseil Régional de Lorraine in 2002, from INRIA by an
+"associate engineer" grant (2003-2005), an "opération de développement
+logiciel" grant (2007-2009), and the post-doctoral grant of Sylvain
+Chevillard in 2009-2010.
+
+
+File: mpfr.info,  Node: References,  Next: GNU Free Documentation License,  Prev: Contributors,  Up: Top
+
+References
+**********
+
+   * Richard Brent and Paul Zimmermann, "Modern Computer Arithmetic",
+     Cambridge University Press (to appear), also available from the
+     authors' web pages.
+
+   * Laurent Fousse, Guillaume Hanrot, Vincent Lefèvre, Patrick
+     Pélissier and Paul Zimmermann, "MPFR: A Multiple-Precision Binary
+     Floating-Point Library With Correct Rounding", ACM Transactions on
+     Mathematical Software, volume 33, issue 2, article 13, 15 pages,
+     2007, `http://doi.acm.org/10.1145/1236463.1236468'.
+
+   * Torbjörn Granlund, "GNU MP: The GNU Multiple Precision Arithmetic
+     Library",   version 5.0.1, 2010, `http://gmplib.org'.
+
+   * IEEE standard for binary floating-point arithmetic, Technical
+     Report ANSI-IEEE Standard 754-1985, New York, 1985.  Approved
+     March 21, 1985: IEEE Standards Board; approved July 26,   1985:
+     American National Standards Institute, 18 pages.
+
+   * IEEE Standard for Floating-Point Arithmetic, ANSI-IEEE Standard
+     754-2008, 2008.  Revision of ANSI-IEEE Standard 754-1985, approved
+     June 12, 2008: IEEE Standards Board, 70 pages.
+
+   * Donald E. Knuth, "The Art of Computer Programming", vol 2,
+     "Seminumerical Algorithms", 2nd edition, Addison-Wesley, 1981.
+
+   * Jean-Michel Muller, "Elementary Functions, Algorithms and
+     Implementation", Birkhäuser, Boston, 2nd edition, 2006.
+
+   * Jean-Michel Muller, Nicolas Brisebarre, Florent de Dinechin,
+     Claude-Pierre Jeannerod, Vincent Lefèvre, Guillaume Melquiond,
+     Nathalie Revol, Damien Stehlé and Serge Torrès, "Handbook of
+     Floating-Point Arithmetic", Birkhäuser, Boston, 2009.
+
+
+
+File: mpfr.info,  Node: GNU Free Documentation License,  Next: Concept Index,  Prev: References,  Up: Top
+
+Appendix A GNU Free Documentation License
+*****************************************
+
+                      Version 1.2, November 2002
+
+     Copyright (C) 2000,2001,2002 Free Software Foundation, Inc.
+     51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA
+
+     Everyone is permitted to copy and distribute verbatim copies
+     of this license document, but changing it is not allowed.
+
+  0. PREAMBLE
+
+     The purpose of this License is to make a manual, textbook, or other
+     functional and useful document "free" in the sense of freedom: to
+     assure everyone the effective freedom to copy and redistribute it,
+     with or without modifying it, either commercially or
+     noncommercially.  Secondarily, this License preserves for the
+     author and publisher a way to get credit for their work, while not
+     being considered responsible for modifications made by others.
+
+     This License is a kind of "copyleft", which means that derivative
+     works of the document must themselves be free in the same sense.
+     It complements the GNU General Public License, which is a copyleft
+     license designed for free software.
+
+     We have designed this License in order to use it for manuals for
+     free software, because free software needs free documentation: a
+     free program should come with manuals providing the same freedoms
+     that the software does.  But this License is not limited to
+     software manuals; it can be used for any textual work, regardless
+     of subject matter or whether it is published as a printed book.
+     We recommend this License principally for works whose purpose is
+     instruction or reference.
+
+  1. APPLICABILITY AND DEFINITIONS
+
+     This License applies to any manual or other work, in any medium,
+     that contains a notice placed by the copyright holder saying it
+     can be distributed under the terms of this License.  Such a notice
+     grants a world-wide, royalty-free license, unlimited in duration,
+     to use that work under the conditions stated herein.  The
+     "Document", below, refers to any such manual or work.  Any member
+     of the public is a licensee, and is addressed as "you".  You
+     accept the license if you copy, modify or distribute the work in a
+     way requiring permission under copyright law.
+
+     A "Modified Version" of the Document means any work containing the
+     Document or a portion of it, either copied verbatim, or with
+     modifications and/or translated into another language.
+
+     A "Secondary Section" is a named appendix or a front-matter section
+     of the Document that deals exclusively with the relationship of the
+     publishers or authors of the Document to the Document's overall
+     subject (or to related matters) and contains nothing that could
+     fall directly within that overall subject.  (Thus, if the Document
+     is in part a textbook of mathematics, a Secondary Section may not
+     explain any mathematics.)  The relationship could be a matter of
+     historical connection with the subject or with related matters, or
+     of legal, commercial, philosophical, ethical or political position
+     regarding them.
+
+     The "Invariant Sections" are certain Secondary Sections whose
+     titles are designated, as being those of Invariant Sections, in
+     the notice that says that the Document is released under this
+     License.  If a section does not fit the above definition of
+     Secondary then it is not allowed to be designated as Invariant.
+     The Document may contain zero Invariant Sections.  If the Document
+     does not identify any Invariant Sections then there are none.
+
+     The "Cover Texts" are certain short passages of text that are
+     listed, as Front-Cover Texts or Back-Cover Texts, in the notice
+     that says that the Document is released under this License.  A
+     Front-Cover Text may be at most 5 words, and a Back-Cover Text may
+     be at most 25 words.
+
+     A "Transparent" copy of the Document means a machine-readable copy,
+     represented in a format whose specification is available to the
+     general public, that is suitable for revising the document
+     straightforwardly with generic text editors or (for images
+     composed of pixels) generic paint programs or (for drawings) some
+     widely available drawing editor, and that is suitable for input to
+     text formatters or for automatic translation to a variety of
+     formats suitable for input to text formatters.  A copy made in an
+     otherwise Transparent file format whose markup, or absence of
+     markup, has been arranged to thwart or discourage subsequent
+     modification by readers is not Transparent.  An image format is
+     not Transparent if used for any substantial amount of text.  A
+     copy that is not "Transparent" is called "Opaque".
+
+     Examples of suitable formats for Transparent copies include plain
+     ASCII without markup, Texinfo input format, LaTeX input format,
+     SGML or XML using a publicly available DTD, and
+     standard-conforming simple HTML, PostScript or PDF designed for
+     human modification.  Examples of transparent image formats include
+     PNG, XCF and JPG.  Opaque formats include proprietary formats that
+     can be read and edited only by proprietary word processors, SGML or
+     XML for which the DTD and/or processing tools are not generally
+     available, and the machine-generated HTML, PostScript or PDF
+     produced by some word processors for output purposes only.
+
+     The "Title Page" means, for a printed book, the title page itself,
+     plus such following pages as are needed to hold, legibly, the
+     material this License requires to appear in the title page.  For
+     works in formats which do not have any title page as such, "Title
+     Page" means the text near the most prominent appearance of the
+     work's title, preceding the beginning of the body of the text.
+
+     A section "Entitled XYZ" means a named subunit of the Document
+     whose title either is precisely XYZ or contains XYZ in parentheses
+     following text that translates XYZ in another language.  (Here XYZ
+     stands for a specific section name mentioned below, such as
+     "Acknowledgements", "Dedications", "Endorsements", or "History".)
+     To "Preserve the Title" of such a section when you modify the
+     Document means that it remains a section "Entitled XYZ" according
+     to this definition.
+
+     The Document may include Warranty Disclaimers next to the notice
+     which states that this License applies to the Document.  These
+     Warranty Disclaimers are considered to be included by reference in
+     this License, but only as regards disclaiming warranties: any other
+     implication that these Warranty Disclaimers may have is void and
+     has no effect on the meaning of this License.
+
+  2. VERBATIM COPYING
+
+     You may copy and distribute the Document in any medium, either
+     commercially or noncommercially, provided that this License, the
+     copyright notices, and the license notice saying this License
+     applies to the Document are reproduced in all copies, and that you
+     add no other conditions whatsoever to those of this License.  You
+     may not use technical measures to obstruct or control the reading
+     or further copying of the copies you make or distribute.  However,
+     you may accept compensation in exchange for copies.  If you
+     distribute a large enough number of copies you must also follow
+     the conditions in section 3.
+
+     You may also lend copies, under the same conditions stated above,
+     and you may publicly display copies.
+
+  3. COPYING IN QUANTITY
+
+     If you publish printed copies (or copies in media that commonly
+     have printed covers) of the Document, numbering more than 100, and
+     the Document's license notice requires Cover Texts, you must
+     enclose the copies in covers that carry, clearly and legibly, all
+     these Cover Texts: Front-Cover Texts on the front cover, and
+     Back-Cover Texts on the back cover.  Both covers must also clearly
+     and legibly identify you as the publisher of these copies.  The
+     front cover must present the full title with all words of the
+     title equally prominent and visible.  You may add other material
+     on the covers in addition.  Copying with changes limited to the
+     covers, as long as they preserve the title of the Document and
+     satisfy these conditions, can be treated as verbatim copying in
+     other respects.
+
+     If the required texts for either cover are too voluminous to fit
+     legibly, you should put the first ones listed (as many as fit
+     reasonably) on the actual cover, and continue the rest onto
+     adjacent pages.
+
+     If you publish or distribute Opaque copies of the Document
+     numbering more than 100, you must either include a
+     machine-readable Transparent copy along with each Opaque copy, or
+     state in or with each Opaque copy a computer-network location from
+     which the general network-using public has access to download
+     using public-standard network protocols a complete Transparent
+     copy of the Document, free of added material.  If you use the
+     latter option, you must take reasonably prudent steps, when you
+     begin distribution of Opaque copies in quantity, to ensure that
+     this Transparent copy will remain thus accessible at the stated
+     location until at least one year after the last time you
+     distribute an Opaque copy (directly or through your agents or
+     retailers) of that edition to the public.
+
+     It is requested, but not required, that you contact the authors of
+     the Document well before redistributing any large number of
+     copies, to give them a chance to provide you with an updated
+     version of the Document.
+
+  4. MODIFICATIONS
+
+     You may copy and distribute a Modified Version of the Document
+     under the conditions of sections 2 and 3 above, provided that you
+     release the Modified Version under precisely this License, with
+     the Modified Version filling the role of the Document, thus
+     licensing distribution and modification of the Modified Version to
+     whoever possesses a copy of it.  In addition, you must do these
+     things in the Modified Version:
+
+       A. Use in the Title Page (and on the covers, if any) a title
+          distinct from that of the Document, and from those of
+          previous versions (which should, if there were any, be listed
+          in the History section of the Document).  You may use the
+          same title as a previous version if the original publisher of
+          that version gives permission.
+
+       B. List on the Title Page, as authors, one or more persons or
+          entities responsible for authorship of the modifications in
+          the Modified Version, together with at least five of the
+          principal authors of the Document (all of its principal
+          authors, if it has fewer than five), unless they release you
+          from this requirement.
+
+       C. State on the Title page the name of the publisher of the
+          Modified Version, as the publisher.
+
+       D. Preserve all the copyright notices of the Document.
+
+       E. Add an appropriate copyright notice for your modifications
+          adjacent to the other copyright notices.
+
+       F. Include, immediately after the copyright notices, a license
+          notice giving the public permission to use the Modified
+          Version under the terms of this License, in the form shown in
+          the Addendum below.
+
+       G. Preserve in that license notice the full lists of Invariant
+          Sections and required Cover Texts given in the Document's
+          license notice.
+
+       H. Include an unaltered copy of this License.
+
+       I. Preserve the section Entitled "History", Preserve its Title,
+          and add to it an item stating at least the title, year, new
+          authors, and publisher of the Modified Version as given on
+          the Title Page.  If there is no section Entitled "History" in
+          the Document, create one stating the title, year, authors,
+          and publisher of the Document as given on its Title Page,
+          then add an item describing the Modified Version as stated in
+          the previous sentence.
+
+       J. Preserve the network location, if any, given in the Document
+          for public access to a Transparent copy of the Document, and
+          likewise the network locations given in the Document for
+          previous versions it was based on.  These may be placed in
+          the "History" section.  You may omit a network location for a
+          work that was published at least four years before the
+          Document itself, or if the original publisher of the version
+          it refers to gives permission.
+
+       K. For any section Entitled "Acknowledgements" or "Dedications",
+          Preserve the Title of the section, and preserve in the
+          section all the substance and tone of each of the contributor
+          acknowledgements and/or dedications given therein.
+
+       L. Preserve all the Invariant Sections of the Document,
+          unaltered in their text and in their titles.  Section numbers
+          or the equivalent are not considered part of the section
+          titles.
+
+       M. Delete any section Entitled "Endorsements".  Such a section
+          may not be included in the Modified Version.
+
+       N. Do not retitle any existing section to be Entitled
+          "Endorsements" or to conflict in title with any Invariant
+          Section.
+
+       O. Preserve any Warranty Disclaimers.
+
+     If the Modified Version includes new front-matter sections or
+     appendices that qualify as Secondary Sections and contain no
+     material copied from the Document, you may at your option
+     designate some or all of these sections as invariant.  To do this,
+     add their titles to the list of Invariant Sections in the Modified
+     Version's license notice.  These titles must be distinct from any
+     other section titles.
+
+     You may add a section Entitled "Endorsements", provided it contains
+     nothing but endorsements of your Modified Version by various
+     parties--for example, statements of peer review or that the text
+     has been approved by an organization as the authoritative
+     definition of a standard.
+
+     You may add a passage of up to five words as a Front-Cover Text,
+     and a passage of up to 25 words as a Back-Cover Text, to the end
+     of the list of Cover Texts in the Modified Version.  Only one
+     passage of Front-Cover Text and one of Back-Cover Text may be
+     added by (or through arrangements made by) any one entity.  If the
+     Document already includes a cover text for the same cover,
+     previously added by you or by arrangement made by the same entity
+     you are acting on behalf of, you may not add another; but you may
+     replace the old one, on explicit permission from the previous
+     publisher that added the old one.
+
+     The author(s) and publisher(s) of the Document do not by this
+     License give permission to use their names for publicity for or to
+     assert or imply endorsement of any Modified Version.
+
+  5. COMBINING DOCUMENTS
+
+     You may combine the Document with other documents released under
+     this License, under the terms defined in section 4 above for
+     modified versions, provided that you include in the combination
+     all of the Invariant Sections of all of the original documents,
+     unmodified, and list them all as Invariant Sections of your
+     combined work in its license notice, and that you preserve all
+     their Warranty Disclaimers.
+
+     The combined work need only contain one copy of this License, and
+     multiple identical Invariant Sections may be replaced with a single
+     copy.  If there are multiple Invariant Sections with the same name
+     but different contents, make the title of each such section unique
+     by adding at the end of it, in parentheses, the name of the
+     original author or publisher of that section if known, or else a
+     unique number.  Make the same adjustment to the section titles in
+     the list of Invariant Sections in the license notice of the
+     combined work.
+
+     In the combination, you must combine any sections Entitled
+     "History" in the various original documents, forming one section
+     Entitled "History"; likewise combine any sections Entitled
+     "Acknowledgements", and any sections Entitled "Dedications".  You
+     must delete all sections Entitled "Endorsements."
+
+  6. COLLECTIONS OF DOCUMENTS
+
+     You may make a collection consisting of the Document and other
+     documents released under this License, and replace the individual
+     copies of this License in the various documents with a single copy
+     that is included in the collection, provided that you follow the
+     rules of this License for verbatim copying of each of the
+     documents in all other respects.
+
+     You may extract a single document from such a collection, and
+     distribute it individually under this License, provided you insert
+     a copy of this License into the extracted document, and follow
+     this License in all other respects regarding verbatim copying of
+     that document.
+
+  7. AGGREGATION WITH INDEPENDENT WORKS
+
+     A compilation of the Document or its derivatives with other
+     separate and independent documents or works, in or on a volume of
+     a storage or distribution medium, is called an "aggregate" if the
+     copyright resulting from the compilation is not used to limit the
+     legal rights of the compilation's users beyond what the individual
+     works permit.  When the Document is included in an aggregate, this
+     License does not apply to the other works in the aggregate which
+     are not themselves derivative works of the Document.
+
+     If the Cover Text requirement of section 3 is applicable to these
+     copies of the Document, then if the Document is less than one half
+     of the entire aggregate, the Document's Cover Texts may be placed
+     on covers that bracket the Document within the aggregate, or the
+     electronic equivalent of covers if the Document is in electronic
+     form.  Otherwise they must appear on printed covers that bracket
+     the whole aggregate.
+
+  8. TRANSLATION
+
+     Translation is considered a kind of modification, so you may
+     distribute translations of the Document under the terms of section
+     4.  Replacing Invariant Sections with translations requires special
+     permission from their copyright holders, but you may include
+     translations of some or all Invariant Sections in addition to the
+     original versions of these Invariant Sections.  You may include a
+     translation of this License, and all the license notices in the
+     Document, and any Warranty Disclaimers, provided that you also
+     include the original English version of this License and the
+     original versions of those notices and disclaimers.  In case of a
+     disagreement between the translation and the original version of
+     this License or a notice or disclaimer, the original version will
+     prevail.
+
+     If a section in the Document is Entitled "Acknowledgements",
+     "Dedications", or "History", the requirement (section 4) to
+     Preserve its Title (section 1) will typically require changing the
+     actual title.
+
+  9. TERMINATION
+
+     You may not copy, modify, sublicense, or distribute the Document
+     except as expressly provided for under this License.  Any other
+     attempt to copy, modify, sublicense or distribute the Document is
+     void, and will automatically terminate your rights under this
+     License.  However, parties who have received copies, or rights,
+     from you under this License will not have their licenses
+     terminated so long as such parties remain in full compliance.
+
+ 10. FUTURE REVISIONS OF THIS LICENSE
+
+     The Free Software Foundation may publish new, revised versions of
+     the GNU Free Documentation License from time to time.  Such new
+     versions will be similar in spirit to the present version, but may
+     differ in detail to address new problems or concerns.  See
+     `http://www.gnu.org/copyleft/'.
+
+     Each version of the License is given a distinguishing version
+     number.  If the Document specifies that a particular numbered
+     version of this License "or any later version" applies to it, you
+     have the option of following the terms and conditions either of
+     that specified version or of any later version that has been
+     published (not as a draft) by the Free Software Foundation.  If
+     the Document does not specify a version number of this License,
+     you may choose any version ever published (not as a draft) by the
+     Free Software Foundation.
+
+A.1 ADDENDUM: How to Use This License For Your Documents
+========================================================
+
+To use this License in a document you have written, include a copy of
+the License in the document and put the following copyright and license
+notices just after the title page:
+
+       Copyright (C)  YEAR  YOUR NAME.
+       Permission is granted to copy, distribute and/or modify this document
+       under the terms of the GNU Free Documentation License, Version 1.2
+       or any later version published by the Free Software Foundation;
+       with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+       Texts.  A copy of the license is included in the section entitled ``GNU
+       Free Documentation License''.
+
+   If you have Invariant Sections, Front-Cover Texts and Back-Cover
+Texts, replace the "with...Texts." line with this:
+
+         with the Invariant Sections being LIST THEIR TITLES, with
+         the Front-Cover Texts being LIST, and with the Back-Cover Texts
+         being LIST.
+
+   If you have Invariant Sections without Cover Texts, or some other
+combination of the three, merge those two alternatives to suit the
+situation.
+
+   If your document contains nontrivial examples of program code, we
+recommend releasing these examples in parallel under your choice of
+free software license, such as the GNU General Public License, to
+permit their use in free software.
+
+
+File: mpfr.info,  Node: Concept Index,  Next: Function Index,  Prev: GNU Free Documentation License,  Up: Top
+
+Concept Index
+*************
+
+ [index ]
+* Menu:
+
+* Accuracy:                              MPFR Interface.       (line 25)
+* Arithmetic functions:                  Basic Arithmetic Functions.
+                                                               (line  3)
+* Assignment functions:                  Assignment Functions. (line  3)
+* Basic arithmetic functions:            Basic Arithmetic Functions.
+                                                               (line  3)
+* Combined initialization and assignment functions: Combined Initialization and Assignment Functions.
+                                                               (line  3)
+* Comparison functions:                  Comparison Functions. (line  3)
+* Compatibility with MPF:                Compatibility with MPF.
+                                                               (line  3)
+* Conditions for copying MPFR:           Copying.              (line  6)
+* Conversion functions:                  Conversion Functions. (line  3)
+* Copying conditions:                    Copying.              (line  6)
+* Custom interface:                      Custom Interface.     (line  3)
+* Exception related functions:           Exception Related Functions.
+                                                               (line  3)
+* Float arithmetic functions:            Basic Arithmetic Functions.
+                                                               (line  3)
+* Float comparisons functions:           Comparison Functions. (line  3)
+* Float functions:                       MPFR Interface.       (line  6)
+* Float input and output functions:      Input and Output Functions.
+                                                               (line  3)
+* Float output functions:                Formatted Output Functions.
+                                                               (line  3)
+* Floating-point functions:              MPFR Interface.       (line  6)
+* Floating-point number:                 MPFR Basics.          (line 66)
+* GNU Free Documentation License:        GNU Free Documentation License.
+                                                               (line  6)
+* I/O functions <1>:                     Formatted Output Functions.
+                                                               (line  3)
+* I/O functions:                         Input and Output Functions.
+                                                               (line  3)
+* Initialization functions:              Initialization Functions.
+                                                               (line  3)
+* Input functions:                       Input and Output Functions.
+                                                               (line  3)
+* Installation:                          Installing MPFR.      (line  6)
+* Integer related functions:             Integer Related Functions.
+                                                               (line  3)
+* Internals:                             Internals.            (line  3)
+* intmax_t:                              MPFR Basics.          (line 25)
+* inttypes.h:                            MPFR Basics.          (line 25)
+* libmpfr:                               MPFR Basics.          (line 46)
+* Libraries:                             MPFR Basics.          (line 46)
+* Libtool:                               MPFR Basics.          (line 52)
+* Limb:                                  Internals.            (line  6)
+* Linking:                               MPFR Basics.          (line 46)
+* Miscellaneous float functions:         Miscellaneous Functions.
+                                                               (line  3)
+* mpfr.h:                                MPFR Basics.          (line  9)
+* Output functions <1>:                  Formatted Output Functions.
+                                                               (line  3)
+* Output functions:                      Input and Output Functions.
+                                                               (line  3)
+* Precision <1>:                         MPFR Interface.       (line 17)
+* Precision:                             MPFR Basics.          (line 80)
+* Reporting bugs:                        Reporting Bugs.       (line  6)
+* Rounding mode related functions:       Rounding Related Functions.
+                                                               (line  3)
+* Rounding Modes:                        MPFR Basics.          (line 94)
+* Special functions:                     Special Functions.    (line  3)
+* stdarg.h:                              MPFR Basics.          (line 22)
+* stdint.h:                              MPFR Basics.          (line 25)
+* stdio.h:                               MPFR Basics.          (line 15)
+* uintmax_t:                             MPFR Basics.          (line 25)
+
+
+File: mpfr.info,  Node: Function Index,  Prev: Concept Index,  Up: Top
+
+Function and Type Index
+***********************
+
+ [index ]
+* Menu:
+
+* mpfr_abs:                              Basic Arithmetic Functions.
+                                                              (line 173)
+* mpfr_acos:                             Special Functions.   (line  53)
+* mpfr_acosh:                            Special Functions.   (line 137)
+* mpfr_add:                              Basic Arithmetic Functions.
+                                                              (line   8)
+* mpfr_add_d:                            Basic Arithmetic Functions.
+                                                              (line  14)
+* mpfr_add_q:                            Basic Arithmetic Functions.
+                                                              (line  18)
+* mpfr_add_si:                           Basic Arithmetic Functions.
+                                                              (line  12)
+* mpfr_add_ui:                           Basic Arithmetic Functions.
+                                                              (line  10)
+* mpfr_add_z:                            Basic Arithmetic Functions.
+                                                              (line  16)
+* mpfr_agm:                              Special Functions.   (line 230)
+* mpfr_ai:                               Special Functions.   (line 246)
+* mpfr_asin:                             Special Functions.   (line  54)
+* mpfr_asinh:                            Special Functions.   (line 138)
+* mpfr_asprintf:                         Formatted Output Functions.
+                                                              (line 194)
+* mpfr_atan:                             Special Functions.   (line  55)
+* mpfr_atan2:                            Special Functions.   (line  66)
+* mpfr_atanh:                            Special Functions.   (line 139)
+* mpfr_buildopt_decimal_p:               Miscellaneous Functions.
+                                                              (line 130)
+* mpfr_buildopt_tls_p:                   Miscellaneous Functions.
+                                                              (line 124)
+* mpfr_can_round:                        Rounding Related Functions.
+                                                              (line  37)
+* mpfr_cbrt:                             Basic Arithmetic Functions.
+                                                              (line 107)
+* mpfr_ceil:                             Integer Related Functions.
+                                                              (line   8)
+* mpfr_check_range:                      Exception Related Functions.
+                                                              (line  38)
+* mpfr_clear:                            Initialization Functions.
+                                                              (line  31)
+* mpfr_clear_erangeflag:                 Exception Related Functions.
+                                                              (line 111)
+* mpfr_clear_flags:                      Exception Related Functions.
+                                                              (line 121)
+* mpfr_clear_inexflag:                   Exception Related Functions.
+                                                              (line 110)
+* mpfr_clear_nanflag:                    Exception Related Functions.
+                                                              (line 109)
+* mpfr_clear_overflow:                   Exception Related Functions.
+                                                              (line 108)
+* mpfr_clear_underflow:                  Exception Related Functions.
+                                                              (line 107)
+* mpfr_clears:                           Initialization Functions.
+                                                              (line  36)
+* mpfr_cmp:                              Comparison Functions.
+                                                              (line   7)
+* mpfr_cmp_d:                            Comparison Functions.
+                                                              (line  10)
+* mpfr_cmp_f:                            Comparison Functions.
+                                                              (line  14)
+* mpfr_cmp_ld:                           Comparison Functions.
+                                                              (line  11)
+* mpfr_cmp_q:                            Comparison Functions.
+                                                              (line  13)
+* mpfr_cmp_si:                           Comparison Functions.
+                                                              (line   9)
+* mpfr_cmp_si_2exp:                      Comparison Functions.
+                                                              (line  31)
+* mpfr_cmp_ui:                           Comparison Functions.
+                                                              (line   8)
+* mpfr_cmp_ui_2exp:                      Comparison Functions.
+                                                              (line  29)
+* mpfr_cmp_z:                            Comparison Functions.
+                                                              (line  12)
+* mpfr_cmpabs:                           Comparison Functions.
+                                                              (line  35)
+* mpfr_const_catalan:                    Special Functions.   (line 257)
+* mpfr_const_euler:                      Special Functions.   (line 256)
+* mpfr_const_log2:                       Special Functions.   (line 254)
+* mpfr_const_pi:                         Special Functions.   (line 255)
+* mpfr_copysign:                         Miscellaneous Functions.
+                                                              (line  78)
+* mpfr_cos:                              Special Functions.   (line  31)
+* mpfr_cosh:                             Special Functions.   (line 116)
+* mpfr_cot:                              Special Functions.   (line  49)
+* mpfr_coth:                             Special Functions.   (line 133)
+* mpfr_csc:                              Special Functions.   (line  48)
+* mpfr_csch:                             Special Functions.   (line 132)
+* mpfr_custom_get_exp:                   Custom Interface.    (line  78)
+* mpfr_custom_get_kind:                  Custom Interface.    (line  67)
+* mpfr_custom_get_significand:           Custom Interface.    (line  72)
+* mpfr_custom_get_size:                  Custom Interface.    (line  36)
+* mpfr_custom_init:                      Custom Interface.    (line  41)
+* mpfr_custom_init_set:                  Custom Interface.    (line  48)
+* mpfr_custom_move:                      Custom Interface.    (line  85)
+* mpfr_d_div:                            Basic Arithmetic Functions.
+                                                              (line  82)
+* mpfr_d_sub:                            Basic Arithmetic Functions.
+                                                              (line  37)
+* MPFR_DECL_INIT:                        Initialization Functions.
+                                                              (line  75)
+* mpfr_digamma:                          Special Functions.   (line 185)
+* mpfr_dim:                              Basic Arithmetic Functions.
+                                                              (line 180)
+* mpfr_div:                              Basic Arithmetic Functions.
+                                                              (line  72)
+* mpfr_div_2exp:                         Compatibility with MPF.
+                                                              (line  51)
+* mpfr_div_2si:                          Basic Arithmetic Functions.
+                                                              (line 195)
+* mpfr_div_2ui:                          Basic Arithmetic Functions.
+                                                              (line 193)
+* mpfr_div_d:                            Basic Arithmetic Functions.
+                                                              (line  84)
+* mpfr_div_q:                            Basic Arithmetic Functions.
+                                                              (line  88)
+* mpfr_div_si:                           Basic Arithmetic Functions.
+                                                              (line  80)
+* mpfr_div_ui:                           Basic Arithmetic Functions.
+                                                              (line  76)
+* mpfr_div_z:                            Basic Arithmetic Functions.
+                                                              (line  86)
+* mpfr_eint:                             Special Functions.   (line 155)
+* mpfr_eq:                               Compatibility with MPF.
+                                                              (line  30)
+* mpfr_equal_p:                          Comparison Functions.
+                                                              (line  61)
+* mpfr_erangeflag_p:                     Exception Related Functions.
+                                                              (line 129)
+* mpfr_erf:                              Special Functions.   (line 196)
+* mpfr_erfc:                             Special Functions.   (line 197)
+* mpfr_exp:                              Special Functions.   (line  25)
+* mpfr_exp10:                            Special Functions.   (line  27)
+* mpfr_exp2:                             Special Functions.   (line  26)
+* mpfr_expm1:                            Special Functions.   (line 151)
+* mpfr_fac_ui:                           Special Functions.   (line 144)
+* mpfr_fits_intmax_p:                    Conversion Functions.
+                                                              (line 129)
+* mpfr_fits_sint_p:                      Conversion Functions.
+                                                              (line 125)
+* mpfr_fits_slong_p:                     Conversion Functions.
+                                                              (line 123)
+* mpfr_fits_sshort_p:                    Conversion Functions.
+                                                              (line 127)
+* mpfr_fits_uint_p:                      Conversion Functions.
+                                                              (line 124)
+* mpfr_fits_uintmax_p:                   Conversion Functions.
+                                                              (line 128)
+* mpfr_fits_ulong_p:                     Conversion Functions.
+                                                              (line 122)
+* mpfr_fits_ushort_p:                    Conversion Functions.
+                                                              (line 126)
+* mpfr_floor:                            Integer Related Functions.
+                                                              (line   9)
+* mpfr_fma:                              Special Functions.   (line 223)
+* mpfr_fmod:                             Integer Related Functions.
+                                                              (line  79)
+* mpfr_fms:                              Special Functions.   (line 225)
+* mpfr_fprintf:                          Formatted Output Functions.
+                                                              (line 158)
+* mpfr_frac:                             Integer Related Functions.
+                                                              (line  62)
+* mpfr_free_cache:                       Special Functions.   (line 264)
+* mpfr_free_str:                         Conversion Functions.
+                                                              (line 116)
+* mpfr_gamma:                            Special Functions.   (line 167)
+* mpfr_get_d:                            Conversion Functions.
+                                                              (line   8)
+* mpfr_get_d_2exp:                       Conversion Functions.
+                                                              (line  34)
+* mpfr_get_decimal64:                    Conversion Functions.
+                                                              (line  10)
+* mpfr_get_default_prec:                 Initialization Functions.
+                                                              (line 110)
+* mpfr_get_default_rounding_mode:        Rounding Related Functions.
+                                                              (line  11)
+* mpfr_get_emax:                         Exception Related Functions.
+                                                              (line   8)
+* mpfr_get_emax_max:                     Exception Related Functions.
+                                                              (line  31)
+* mpfr_get_emax_min:                     Exception Related Functions.
+                                                              (line  30)
+* mpfr_get_emin:                         Exception Related Functions.
+                                                              (line   7)
+* mpfr_get_emin_max:                     Exception Related Functions.
+                                                              (line  29)
+* mpfr_get_emin_min:                     Exception Related Functions.
+                                                              (line  28)
+* mpfr_get_exp:                          Miscellaneous Functions.
+                                                              (line  56)
+* mpfr_get_f:                            Conversion Functions.
+                                                              (line  64)
+* mpfr_get_flt:                          Conversion Functions.
+                                                              (line   7)
+* mpfr_get_ld:                           Conversion Functions.
+                                                              (line   9)
+* mpfr_get_ld_2exp:                      Conversion Functions.
+                                                              (line  36)
+* mpfr_get_patches:                      Miscellaneous Functions.
+                                                              (line 115)
+* mpfr_get_prec:                         Initialization Functions.
+                                                              (line 142)
+* mpfr_get_si:                           Conversion Functions.
+                                                              (line  20)
+* mpfr_get_sj:                           Conversion Functions.
+                                                              (line  22)
+* mpfr_get_str:                          Conversion Functions.
+                                                              (line  70)
+* mpfr_get_ui:                           Conversion Functions.
+                                                              (line  21)
+* mpfr_get_uj:                           Conversion Functions.
+                                                              (line  23)
+* mpfr_get_version:                      Miscellaneous Functions.
+                                                              (line  84)
+* mpfr_get_z:                            Conversion Functions.
+                                                              (line  59)
+* mpfr_get_z_2exp:                       Conversion Functions.
+                                                              (line  46)
+* mpfr_greater_p:                        Comparison Functions.
+                                                              (line  57)
+* mpfr_greaterequal_p:                   Comparison Functions.
+                                                              (line  58)
+* mpfr_hypot:                            Special Functions.   (line 239)
+* mpfr_inexflag_p:                       Exception Related Functions.
+                                                              (line 128)
+* mpfr_inf_p:                            Comparison Functions.
+                                                              (line  42)
+* mpfr_init:                             Initialization Functions.
+                                                              (line  54)
+* mpfr_init2:                            Initialization Functions.
+                                                              (line  11)
+* mpfr_init_set:                         Combined Initialization and Assignment Functions.
+                                                              (line   7)
+* mpfr_init_set_d:                       Combined Initialization and Assignment Functions.
+                                                              (line  12)
+* mpfr_init_set_f:                       Combined Initialization and Assignment Functions.
+                                                              (line  17)
+* mpfr_init_set_ld:                      Combined Initialization and Assignment Functions.
+                                                              (line  14)
+* mpfr_init_set_q:                       Combined Initialization and Assignment Functions.
+                                                              (line  16)
+* mpfr_init_set_si:                      Combined Initialization and Assignment Functions.
+                                                              (line  11)
+* mpfr_init_set_str:                     Combined Initialization and Assignment Functions.
+                                                              (line  23)
+* mpfr_init_set_ui:                      Combined Initialization and Assignment Functions.
+                                                              (line   9)
+* mpfr_init_set_z:                       Combined Initialization and Assignment Functions.
+                                                              (line  15)
+* mpfr_inits:                            Initialization Functions.
+                                                              (line  63)
+* mpfr_inits2:                           Initialization Functions.
+                                                              (line  23)
+* mpfr_inp_str:                          Input and Output Functions.
+                                                              (line  33)
+* mpfr_integer_p:                        Integer Related Functions.
+                                                              (line 105)
+* mpfr_j0:                               Special Functions.   (line 201)
+* mpfr_j1:                               Special Functions.   (line 202)
+* mpfr_jn:                               Special Functions.   (line 204)
+* mpfr_less_p:                           Comparison Functions.
+                                                              (line  59)
+* mpfr_lessequal_p:                      Comparison Functions.
+                                                              (line  60)
+* mpfr_lessgreater_p:                    Comparison Functions.
+                                                              (line  67)
+* mpfr_lgamma:                           Special Functions.   (line 177)
+* mpfr_li2:                              Special Functions.   (line 162)
+* mpfr_lngamma:                          Special Functions.   (line 171)
+* mpfr_log:                              Special Functions.   (line  18)
+* mpfr_log10:                            Special Functions.   (line  20)
+* mpfr_log1p:                            Special Functions.   (line 147)
+* mpfr_log2:                             Special Functions.   (line  19)
+* mpfr_max:                              Miscellaneous Functions.
+                                                              (line  24)
+* mpfr_min:                              Miscellaneous Functions.
+                                                              (line  22)
+* mpfr_min_prec:                         Rounding Related Functions.
+                                                              (line  59)
+* mpfr_modf:                             Integer Related Functions.
+                                                              (line  69)
+* mpfr_mul:                              Basic Arithmetic Functions.
+                                                              (line  51)
+* mpfr_mul_2exp:                         Compatibility with MPF.
+                                                              (line  49)
+* mpfr_mul_2si:                          Basic Arithmetic Functions.
+                                                              (line 188)
+* mpfr_mul_2ui:                          Basic Arithmetic Functions.
+                                                              (line 186)
+* mpfr_mul_d:                            Basic Arithmetic Functions.
+                                                              (line  57)
+* mpfr_mul_q:                            Basic Arithmetic Functions.
+                                                              (line  61)
+* mpfr_mul_si:                           Basic Arithmetic Functions.
+                                                              (line  55)
+* mpfr_mul_ui:                           Basic Arithmetic Functions.
+                                                              (line  53)
+* mpfr_mul_z:                            Basic Arithmetic Functions.
+           

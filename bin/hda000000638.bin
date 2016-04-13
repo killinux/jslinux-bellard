@@ -1,0 +1,1537 @@
+ classes, neither the compiler nor the linker impose any
+restrictions in doing this.
+
+
+File: gcc.info,  Node: compatibility_alias,  Prev: Constant string objects,  Up: Objective-C
+
+7.5 compatibility_alias
+=======================
+
+This is a feature of the Objective-C compiler rather than of the
+runtime, anyway since it is documented nowhere and its existence was
+forgotten, we are documenting it here.
+
+ The keyword `@compatibility_alias' allows you to define a class name
+as equivalent to another class name.  For example:
+
+     @compatibility_alias WOApplication GSWApplication;
+
+ tells the compiler that each time it encounters `WOApplication' as a
+class name, it should replace it with `GSWApplication' (that is,
+`WOApplication' is just an alias for `GSWApplication').
+
+ There are some constraints on how this can be used--
+
+   * `WOApplication' (the alias) must not be an existing class;
+
+   * `GSWApplication' (the real class) must be an existing class.
+
+
+
+File: gcc.info,  Node: Compatibility,  Next: Gcov,  Prev: Objective-C,  Up: Top
+
+8 Binary Compatibility
+**********************
+
+Binary compatibility encompasses several related concepts:
+
+"application binary interface (ABI)"
+     The set of runtime conventions followed by all of the tools that
+     deal with binary representations of a program, including
+     compilers, assemblers, linkers, and language runtime support.
+     Some ABIs are formal with a written specification, possibly
+     designed by multiple interested parties.  Others are simply the
+     way things are actually done by a particular set of tools.
+
+"ABI conformance"
+     A compiler conforms to an ABI if it generates code that follows
+     all of the specifications enumerated by that ABI.  A library
+     conforms to an ABI if it is implemented according to that ABI.  An
+     application conforms to an ABI if it is built using tools that
+     conform to that ABI and does not contain source code that
+     specifically changes behavior specified by the ABI.
+
+"calling conventions"
+     Calling conventions are a subset of an ABI that specify of how
+     arguments are passed and function results are returned.
+
+"interoperability"
+     Different sets of tools are interoperable if they generate files
+     that can be used in the same program.  The set of tools includes
+     compilers, assemblers, linkers, libraries, header files, startup
+     files, and debuggers.  Binaries produced by different sets of
+     tools are not interoperable unless they implement the same ABI.
+     This applies to different versions of the same tools as well as
+     tools from different vendors.
+
+"intercallability"
+     Whether a function in a binary built by one set of tools can call a
+     function in a binary built by a different set of tools is a subset
+     of interoperability.
+
+"implementation-defined features"
+     Language standards include lists of implementation-defined
+     features whose behavior can vary from one implementation to
+     another.  Some of these features are normally covered by a
+     platform's ABI and others are not.  The features that are not
+     covered by an ABI generally affect how a program behaves, but not
+     intercallability.
+
+"compatibility"
+     Conformance to the same ABI and the same behavior of
+     implementation-defined features are both relevant for
+     compatibility.
+
+ The application binary interface implemented by a C or C++ compiler
+affects code generation and runtime support for:
+
+   * size and alignment of data types
+
+   * layout of structured types
+
+   * calling conventions
+
+   * register usage conventions
+
+   * interfaces for runtime arithmetic support
+
+   * object file formats
+
+ In addition, the application binary interface implemented by a C++
+compiler affects code generation and runtime support for:
+   * name mangling
+
+   * exception handling
+
+   * invoking constructors and destructors
+
+   * layout, alignment, and padding of classes
+
+   * layout and alignment of virtual tables
+
+ Some GCC compilation options cause the compiler to generate code that
+does not conform to the platform's default ABI.  Other options cause
+different program behavior for implementation-defined features that are
+not covered by an ABI.  These options are provided for consistency with
+other compilers that do not follow the platform's default ABI or the
+usual behavior of implementation-defined features for the platform.  Be
+very careful about using such options.
+
+ Most platforms have a well-defined ABI that covers C code, but ABIs
+that cover C++ functionality are not yet common.
+
+ Starting with GCC 3.2, GCC binary conventions for C++ are based on a
+written, vendor-neutral C++ ABI that was designed to be specific to
+64-bit Itanium but also includes generic specifications that apply to
+any platform.  This C++ ABI is also implemented by other compiler
+vendors on some platforms, notably GNU/Linux and BSD systems.  We have
+tried hard to provide a stable ABI that will be compatible with future
+GCC releases, but it is possible that we will encounter problems that
+make this difficult.  Such problems could include different
+interpretations of the C++ ABI by different vendors, bugs in the ABI, or
+bugs in the implementation of the ABI in different compilers.  GCC's
+`-Wabi' switch warns when G++ generates code that is probably not
+compatible with the C++ ABI.
+
+ The C++ library used with a C++ compiler includes the Standard C++
+Library, with functionality defined in the C++ Standard, plus language
+runtime support.  The runtime support is included in a C++ ABI, but
+there is no formal ABI for the Standard C++ Library.  Two
+implementations of that library are interoperable if one follows the
+de-facto ABI of the other and if they are both built with the same
+compiler, or with compilers that conform to the same ABI for C++
+compiler and runtime support.
+
+ When G++ and another C++ compiler conform to the same C++ ABI, but the
+implementations of the Standard C++ Library that they normally use do
+not follow the same ABI for the Standard C++ Library, object files
+built with those compilers can be used in the same program only if they
+use the same C++ library.  This requires specifying the location of the
+C++ library header files when invoking the compiler whose usual library
+is not being used.  The location of GCC's C++ header files depends on
+how the GCC build was configured, but can be seen by using the G++ `-v'
+option.  With default configuration options for G++ 3.3 the compile
+line for a different C++ compiler needs to include
+
+         -IGCC_INSTALL_DIRECTORY/include/c++/3.3
+
+ Similarly, compiling code with G++ that must use a C++ library other
+than the GNU C++ library requires specifying the location of the header
+files for that other library.
+
+ The most straightforward way to link a program to use a particular C++
+library is to use a C++ driver that specifies that C++ library by
+default.  The `g++' driver, for example, tells the linker where to find
+GCC's C++ library (`libstdc++') plus the other libraries and startup
+files it needs, in the proper order.
+
+ If a program must use a different C++ library and it's not possible to
+do the final link using a C++ driver that uses that library by default,
+it is necessary to tell `g++' the location and name of that library.
+It might also be necessary to specify different startup files and other
+runtime support libraries, and to suppress the use of GCC's support
+libraries with one or more of the options `-nostdlib', `-nostartfiles',
+and `-nodefaultlibs'.
+
+
+File: gcc.info,  Node: Gcov,  Next: Trouble,  Prev: Compatibility,  Up: Top
+
+9 `gcov'--a Test Coverage Program
+*********************************
+
+`gcov' is a tool you can use in conjunction with GCC to test code
+coverage in your programs.
+
+* Menu:
+
+* Gcov Intro::         	        Introduction to gcov.
+* Invoking Gcov::       	How to use gcov.
+* Gcov and Optimization::       Using gcov with GCC optimization.
+* Gcov Data Files::             The files used by gcov.
+* Cross-profiling::             Data file relocation.
+
+
+File: gcc.info,  Node: Gcov Intro,  Next: Invoking Gcov,  Up: Gcov
+
+9.1 Introduction to `gcov'
+==========================
+
+`gcov' is a test coverage program.  Use it in concert with GCC to
+analyze your programs to help create more efficient, faster running
+code and to discover untested parts of your program.  You can use
+`gcov' as a profiling tool to help discover where your optimization
+efforts will best affect your code.  You can also use `gcov' along with
+the other profiling tool, `gprof', to assess which parts of your code
+use the greatest amount of computing time.
+
+ Profiling tools help you analyze your code's performance.  Using a
+profiler such as `gcov' or `gprof', you can find out some basic
+performance statistics, such as:
+
+   * how often each line of code executes
+
+   * what lines of code are actually executed
+
+   * how much computing time each section of code uses
+
+ Once you know these things about how your code works when compiled, you
+can look at each module to see which modules should be optimized.
+`gcov' helps you determine where to work on optimization.
+
+ Software developers also use coverage testing in concert with
+testsuites, to make sure software is actually good enough for a release.
+Testsuites can verify that a program works as expected; a coverage
+program tests to see how much of the program is exercised by the
+testsuite.  Developers can then determine what kinds of test cases need
+to be added to the testsuites to create both better testing and a better
+final product.
+
+ You should compile your code without optimization if you plan to use
+`gcov' because the optimization, by combining some lines of code into
+one function, may not give you as much information as you need to look
+for `hot spots' where the code is using a great deal of computer time.
+Likewise, because `gcov' accumulates statistics by line (at the lowest
+resolution), it works best with a programming style that places only
+one statement on each line.  If you use complicated macros that expand
+to loops or to other control structures, the statistics are less
+helpful--they only report on the line where the macro call appears.  If
+your complex macros behave like functions, you can replace them with
+inline functions to solve this problem.
+
+ `gcov' creates a logfile called `SOURCEFILE.gcov' which indicates how
+many times each line of a source file `SOURCEFILE.c' has executed.  You
+can use these logfiles along with `gprof' to aid in fine-tuning the
+performance of your programs.  `gprof' gives timing information you can
+use along with the information you get from `gcov'.
+
+ `gcov' works only on code compiled with GCC.  It is not compatible
+with any other profiling or test coverage mechanism.
+
+
+File: gcc.info,  Node: Invoking Gcov,  Next: Gcov and Optimization,  Prev: Gcov Intro,  Up: Gcov
+
+9.2 Invoking `gcov'
+===================
+
+     gcov [OPTIONS] SOURCEFILES
+
+ `gcov' accepts the following options:
+
+`-h'
+`--help'
+     Display help about using `gcov' (on the standard output), and exit
+     without doing any further processing.
+
+`-v'
+`--version'
+     Display the `gcov' version number (on the standard output), and
+     exit without doing any further processing.
+
+`-a'
+`--all-blocks'
+     Write individual execution counts for every basic block.  Normally
+     gcov outputs execution counts only for the main blocks of a line.
+     With this option you can determine if blocks within a single line
+     are not being executed.
+
+`-b'
+`--branch-probabilities'
+     Write branch frequencies to the output file, and write branch
+     summary info to the standard output.  This option allows you to
+     see how often each branch in your program was taken.
+     Unconditional branches will not be shown, unless the `-u' option
+     is given.
+
+`-c'
+`--branch-counts'
+     Write branch frequencies as the number of branches taken, rather
+     than the percentage of branches taken.
+
+`-n'
+`--no-output'
+     Do not create the `gcov' output file.
+
+`-l'
+`--long-file-names'
+     Create long file names for included source files.  For example, if
+     the header file `x.h' contains code, and was included in the file
+     `a.c', then running `gcov' on the file `a.c' will produce an
+     output file called `a.c##x.h.gcov' instead of `x.h.gcov'.  This
+     can be useful if `x.h' is included in multiple source files.  If
+     you use the `-p' option, both the including and included file
+     names will be complete path names.
+
+`-p'
+`--preserve-paths'
+     Preserve complete path information in the names of generated
+     `.gcov' files.  Without this option, just the filename component is
+     used.  With this option, all directories are used, with `/'
+     characters translated to `#' characters, `.' directory components
+     removed and `..' components renamed to `^'.  This is useful if
+     sourcefiles are in several different directories.  It also affects
+     the `-l' option.
+
+`-f'
+`--function-summaries'
+     Output summaries for each function in addition to the file level
+     summary.
+
+`-o DIRECTORY|FILE'
+`--object-directory DIRECTORY'
+`--object-file FILE'
+     Specify either the directory containing the gcov data files, or the
+     object path name.  The `.gcno', and `.gcda' data files are
+     searched for using this option.  If a directory is specified, the
+     data files are in that directory and named after the source file
+     name, without its extension.  If a file is specified here, the
+     data files are named after that file, without its extension.  If
+     this option is not supplied, it defaults to the current directory.
+
+`-u'
+`--unconditional-branches'
+     When branch probabilities are given, include those of
+     unconditional branches.  Unconditional branches are normally not
+     interesting.
+
+
+ `gcov' should be run with the current directory the same as that when
+you invoked the compiler.  Otherwise it will not be able to locate the
+source files.  `gcov' produces files called `MANGLEDNAME.gcov' in the
+current directory.  These contain the coverage information of the
+source file they correspond to.  One `.gcov' file is produced for each
+source file containing code, which was compiled to produce the data
+files.  The MANGLEDNAME part of the output file name is usually simply
+the source file name, but can be something more complicated if the `-l'
+or `-p' options are given.  Refer to those options for details.
+
+ The `.gcov' files contain the `:' separated fields along with program
+source code.  The format is
+
+     EXECUTION_COUNT:LINE_NUMBER:SOURCE LINE TEXT
+
+ Additional block information may succeed each line, when requested by
+command line option.  The EXECUTION_COUNT is `-' for lines containing
+no code and `#####' for lines which were never executed.  Some lines of
+information at the start have LINE_NUMBER of zero.
+
+ The preamble lines are of the form
+
+     -:0:TAG:VALUE
+
+ The ordering and number of these preamble lines will be augmented as
+`gcov' development progresses -- do not rely on them remaining
+unchanged.  Use TAG to locate a particular preamble line.
+
+ The additional block information is of the form
+
+     TAG INFORMATION
+
+ The INFORMATION is human readable, but designed to be simple enough
+for machine parsing too.
+
+ When printing percentages, 0% and 100% are only printed when the values
+are _exactly_ 0% and 100% respectively.  Other values which would
+conventionally be rounded to 0% or 100% are instead printed as the
+nearest non-boundary value.
+
+ When using `gcov', you must first compile your program with two
+special GCC options: `-fprofile-arcs -ftest-coverage'.  This tells the
+compiler to generate additional information needed by gcov (basically a
+flow graph of the program) and also includes additional code in the
+object files for generating the extra profiling information needed by
+gcov.  These additional files are placed in the directory where the
+object file is located.
+
+ Running the program will cause profile output to be generated.  For
+each source file compiled with `-fprofile-arcs', an accompanying
+`.gcda' file will be placed in the object file directory.
+
+ Running `gcov' with your program's source file names as arguments will
+now produce a listing of the code along with frequency of execution for
+each line.  For example, if your program is called `tmp.c', this is
+what you see when you use the basic `gcov' facility:
+
+     $ gcc -fprofile-arcs -ftest-coverage tmp.c
+     $ a.out
+     $ gcov tmp.c
+     90.00% of 10 source lines executed in file tmp.c
+     Creating tmp.c.gcov.
+
+ The file `tmp.c.gcov' contains output from `gcov'.  Here is a sample:
+
+             -:    0:Source:tmp.c
+             -:    0:Graph:tmp.gcno
+             -:    0:Data:tmp.gcda
+             -:    0:Runs:1
+             -:    0:Programs:1
+             -:    1:#include <stdio.h>
+             -:    2:
+             -:    3:int main (void)
+             1:    4:{
+             1:    5:  int i, total;
+             -:    6:
+             1:    7:  total = 0;
+             -:    8:
+            11:    9:  for (i = 0; i < 10; i++)
+            10:   10:    total += i;
+             -:   11:
+             1:   12:  if (total != 45)
+         #####:   13:    printf ("Failure\n");
+             -:   14:  else
+             1:   15:    printf ("Success\n");
+             1:   16:  return 0;
+             -:   17:}
+
+ When you use the `-a' option, you will get individual block counts,
+and the output looks like this:
+
+             -:    0:Source:tmp.c
+             -:    0:Graph:tmp.gcno
+             -:    0:Data:tmp.gcda
+             -:    0:Runs:1
+             -:    0:Programs:1
+             -:    1:#include <stdio.h>
+             -:    2:
+             -:    3:int main (void)
+             1:    4:{
+             1:    4-block  0
+             1:    5:  int i, total;
+             -:    6:
+             1:    7:  total = 0;
+             -:    8:
+            11:    9:  for (i = 0; i < 10; i++)
+            11:    9-block  0
+            10:   10:    total += i;
+            10:   10-block  0
+             -:   11:
+             1:   12:  if (total != 45)
+             1:   12-block  0
+         #####:   13:    printf ("Failure\n");
+         $$$$$:   13-block  0
+             -:   14:  else
+             1:   15:    printf ("Success\n");
+             1:   15-block  0
+             1:   16:  return 0;
+             1:   16-block  0
+             -:   17:}
+
+ In this mode, each basic block is only shown on one line - the last
+line of the block.  A multi-line block will only contribute to the
+execution count of that last line, and other lines will not be shown to
+contain code, unless previous blocks end on those lines.  The total
+execution count of a line is shown and subsequent lines show the
+execution counts for individual blocks that end on that line.  After
+each block, the branch and call counts of the block will be shown, if
+the `-b' option is given.
+
+ Because of the way GCC instruments calls, a call count can be shown
+after a line with no individual blocks.  As you can see, line 13
+contains a basic block that was not executed.
+
+ When you use the `-b' option, your output looks like this:
+
+     $ gcov -b tmp.c
+     90.00% of 10 source lines executed in file tmp.c
+     80.00% of 5 branches executed in file tmp.c
+     80.00% of 5 branches taken at least once in file tmp.c
+     50.00% of 2 calls executed in file tmp.c
+     Creating tmp.c.gcov.
+
+ Here is a sample of a resulting `tmp.c.gcov' file:
+
+             -:    0:Source:tmp.c
+             -:    0:Graph:tmp.gcno
+             -:    0:Data:tmp.gcda
+             -:    0:Runs:1
+             -:    0:Programs:1
+             -:    1:#include <stdio.h>
+             -:    2:
+             -:    3:int main (void)
+     function main called 1 returned 1 blocks executed 75%
+             1:    4:{
+             1:    5:  int i, total;
+             -:    6:
+             1:    7:  total = 0;
+             -:    8:
+            11:    9:  for (i = 0; i < 10; i++)
+     branch  0 taken 91% (fallthrough)
+     branch  1 taken 9%
+            10:   10:    total += i;
+             -:   11:
+             1:   12:  if (total != 45)
+     branch  0 taken 0% (fallthrough)
+     branch  1 taken 100%
+         #####:   13:    printf ("Failure\n");
+     call    0 never executed
+             -:   14:  else
+             1:   15:    printf ("Success\n");
+     call    0 called 1 returned 100%
+             1:   16:  return 0;
+             -:   17:}
+
+ For each function, a line is printed showing how many times the
+function is called, how many times it returns and what percentage of the
+function's blocks were executed.
+
+ For each basic block, a line is printed after the last line of the
+basic block describing the branch or call that ends the basic block.
+There can be multiple branches and calls listed for a single source
+line if there are multiple basic blocks that end on that line.  In this
+case, the branches and calls are each given a number.  There is no
+simple way to map these branches and calls back to source constructs.
+In general, though, the lowest numbered branch or call will correspond
+to the leftmost construct on the source line.
+
+ For a branch, if it was executed at least once, then a percentage
+indicating the number of times the branch was taken divided by the
+number of times the branch was executed will be printed.  Otherwise, the
+message "never executed" is printed.
+
+ For a call, if it was executed at least once, then a percentage
+indicating the number of times the call returned divided by the number
+of times the call was executed will be printed.  This will usually be
+100%, but may be less for functions that call `exit' or `longjmp', and
+thus may not return every time they are called.
+
+ The execution counts are cumulative.  If the example program were
+executed again without removing the `.gcda' file, the count for the
+number of times each line in the source was executed would be added to
+the results of the previous run(s).  This is potentially useful in
+several ways.  For example, it could be used to accumulate data over a
+number of program runs as part of a test verification suite, or to
+provide more accurate long-term information over a large number of
+program runs.
+
+ The data in the `.gcda' files is saved immediately before the program
+exits.  For each source file compiled with `-fprofile-arcs', the
+profiling code first attempts to read in an existing `.gcda' file; if
+the file doesn't match the executable (differing number of basic block
+counts) it will ignore the contents of the file.  It then adds in the
+new execution counts and finally writes the data to the file.
+
+
+File: gcc.info,  Node: Gcov and Optimization,  Next: Gcov Data Files,  Prev: Invoking Gcov,  Up: Gcov
+
+9.3 Using `gcov' with GCC Optimization
+======================================
+
+If you plan to use `gcov' to help optimize your code, you must first
+compile your program with two special GCC options: `-fprofile-arcs
+-ftest-coverage'.  Aside from that, you can use any other GCC options;
+but if you want to prove that every single line in your program was
+executed, you should not compile with optimization at the same time.
+On some machines the optimizer can eliminate some simple code lines by
+combining them with other lines.  For example, code like this:
+
+     if (a != b)
+       c = 1;
+     else
+       c = 0;
+
+can be compiled into one instruction on some machines.  In this case,
+there is no way for `gcov' to calculate separate execution counts for
+each line because there isn't separate code for each line.  Hence the
+`gcov' output looks like this if you compiled the program with
+optimization:
+
+           100:   12:if (a != b)
+           100:   13:  c = 1;
+           100:   14:else
+           100:   15:  c = 0;
+
+ The output shows that this block of code, combined by optimization,
+executed 100 times.  In one sense this result is correct, because there
+was only one instruction representing all four of these lines.  However,
+the output does not indicate how many times the result was 0 and how
+many times the result was 1.
+
+ Inlineable functions can create unexpected line counts.  Line counts
+are shown for the source code of the inlineable function, but what is
+shown depends on where the function is inlined, or if it is not inlined
+at all.
+
+ If the function is not inlined, the compiler must emit an out of line
+copy of the function, in any object file that needs it.  If `fileA.o'
+and `fileB.o' both contain out of line bodies of a particular
+inlineable function, they will also both contain coverage counts for
+that function.  When `fileA.o' and `fileB.o' are linked together, the
+linker will, on many systems, select one of those out of line bodies
+for all calls to that function, and remove or ignore the other.
+Unfortunately, it will not remove the coverage counters for the unused
+function body.  Hence when instrumented, all but one use of that
+function will show zero counts.
+
+ If the function is inlined in several places, the block structure in
+each location might not be the same.  For instance, a condition might
+now be calculable at compile time in some instances.  Because the
+coverage of all the uses of the inline function will be shown for the
+same source lines, the line counts themselves might seem inconsistent.
+
+
+File: gcc.info,  Node: Gcov Data Files,  Next: Cross-profiling,  Prev: Gcov and Optimization,  Up: Gcov
+
+9.4 Brief description of `gcov' data files
+==========================================
+
+`gcov' uses two files for profiling.  The names of these files are
+derived from the original _object_ file by substituting the file suffix
+with either `.gcno', or `.gcda'.  All of these files are placed in the
+same directory as the object file, and contain data stored in a
+platform-independent format.
+
+ The `.gcno' file is generated when the source file is compiled with
+the GCC `-ftest-coverage' option.  It contains information to
+reconstruct the basic block graphs and assign source line numbers to
+blocks.
+
+ The `.gcda' file is generated when a program containing object files
+built with the GCC `-fprofile-arcs' option is executed.  A separate
+`.gcda' file is created for each object file compiled with this option.
+It contains arc transition counts, and some summary information.
+
+ The full details of the file format is specified in `gcov-io.h', and
+functions provided in that header file should be used to access the
+coverage files.
+
+
+File: gcc.info,  Node: Cross-profiling,  Prev: Gcov Data Files,  Up: Gcov
+
+9.5 Data file relocation to support cross-profiling
+===================================================
+
+Running the program will cause profile output to be generated.  For each
+source file compiled with `-fprofile-arcs', an accompanying `.gcda'
+file will be placed in the object file directory. That implicitly
+requires running the program on the same system as it was built or
+having the same absolute directory structure on the target system. The
+program will try to create the needed directory structure, if it is not
+already present.
+
+ To support cross-profiling, a program compiled with `-fprofile-arcs'
+can relocate the data files based on two environment variables:
+
+   * GCOV_PREFIX contains the prefix to add to the absolute paths in
+     the object file. Prefix must be absolute as well, otherwise its
+     value is ignored. The default is no prefix.
+
+   * GCOV_PREFIX_STRIP indicates the how many initial directory names
+     to strip off the hardwired absolute paths. Default value is 0.
+
+     _Note:_ GCOV_PREFIX_STRIP has no effect if GCOV_PREFIX is
+     undefined, empty or non-absolute.
+
+ For example, if the object file `/user/build/foo.o' was built with
+`-fprofile-arcs', the final executable will try to create the data file
+`/user/build/foo.gcda' when running on the target system.  This will
+fail if the corresponding directory does not exist and it is unable to
+create it.  This can be overcome by, for example, setting the
+environment as `GCOV_PREFIX=/target/run' and `GCOV_PREFIX_STRIP=1'.
+Such a setting will name the data file `/target/run/build/foo.gcda'.
+
+ You must move the data files to the expected directory tree in order to
+use them for profile directed optimizations (`--use-profile'), or to
+use the `gcov' tool.
+
+
+File: gcc.info,  Node: Trouble,  Next: Bugs,  Prev: Gcov,  Up: Top
+
+10 Known Causes of Trouble with GCC
+***********************************
+
+This section describes known problems that affect users of GCC.  Most
+of these are not GCC bugs per se--if they were, we would fix them.  But
+the result for a user may be like the result of a bug.
+
+ Some of these problems are due to bugs in other software, some are
+missing features that are too much work to add, and some are places
+where people's opinions differ as to what is best.
+
+* Menu:
+
+* Actual Bugs::		      Bugs we will fix later.
+* Cross-Compiler Problems::   Common problems of cross compiling with GCC.
+* Interoperation::      Problems using GCC with other compilers,
+			   and with certain linkers, assemblers and debuggers.
+* Incompatibilities::   GCC is incompatible with traditional C.
+* Fixed Headers::       GCC uses corrected versions of system header files.
+                           This is necessary, but doesn't always work smoothly.
+* Standard Libraries::  GCC uses the system C library, which might not be
+                           compliant with the ISO C standard.
+* Disappointments::     Regrettable things we can't change, but not quite bugs.
+* C++ Misunderstandings::     Common misunderstandings with GNU C++.
+* Protoize Caveats::    Things to watch out for when using `protoize'.
+* Non-bugs::		Things we think are right, but some others disagree.
+* Warnings and Errors:: Which problems in your code get warnings,
+                         and which get errors.
+
+
+File: gcc.info,  Node: Actual Bugs,  Next: Cross-Compiler Problems,  Up: Trouble
+
+10.1 Actual Bugs We Haven't Fixed Yet
+=====================================
+
+   * The `fixincludes' script interacts badly with automounters; if the
+     directory of system header files is automounted, it tends to be
+     unmounted while `fixincludes' is running.  This would seem to be a
+     bug in the automounter.  We don't know any good way to work around
+     it.
+
+   * The `fixproto' script will sometimes add prototypes for the
+     `sigsetjmp' and `siglongjmp' functions that reference the
+     `jmp_buf' type before that type is defined.  To work around this,
+     edit the offending file and place the typedef in front of the
+     prototypes.
+
+
+File: gcc.info,  Node: Cross-Compiler Problems,  Next: Interoperation,  Prev: Actual Bugs,  Up: Trouble
+
+10.2 Cross-Compiler Problems
+============================
+
+You may run into problems with cross compilation on certain machines,
+for several reasons.
+
+   * At present, the program `mips-tfile' which adds debug support to
+     object files on MIPS systems does not work in a cross compile
+     environment.
+
+
+File: gcc.info,  Node: Interoperation,  Next: Incompatibilities,  Prev: Cross-Compiler Problems,  Up: Trouble
+
+10.3 Interoperation
+===================
+
+This section lists various difficulties encountered in using GCC
+together with other compilers or with the assemblers, linkers,
+libraries and debuggers on certain systems.
+
+   * On many platforms, GCC supports a different ABI for C++ than do
+     other compilers, so the object files compiled by GCC cannot be
+     used with object files generated by another C++ compiler.
+
+     An area where the difference is most apparent is name mangling.
+     The use of different name mangling is intentional, to protect you
+     from more subtle problems.  Compilers differ as to many internal
+     details of C++ implementation, including: how class instances are
+     laid out, how multiple inheritance is implemented, and how virtual
+     function calls are handled.  If the name encoding were made the
+     same, your programs would link against libraries provided from
+     other compilers--but the programs would then crash when run.
+     Incompatible libraries are then detected at link time, rather than
+     at run time.
+
+   * On some BSD systems, including some versions of Ultrix, use of
+     profiling causes static variable destructors (currently used only
+     in C++) not to be run.
+
+   * On some SGI systems, when you use `-lgl_s' as an option, it gets
+     translated magically to `-lgl_s -lX11_s -lc_s'.  Naturally, this
+     does not happen when you use GCC.  You must specify all three
+     options explicitly.
+
+   * On a SPARC, GCC aligns all values of type `double' on an 8-byte
+     boundary, and it expects every `double' to be so aligned.  The Sun
+     compiler usually gives `double' values 8-byte alignment, with one
+     exception: function arguments of type `double' may not be aligned.
+
+     As a result, if a function compiled with Sun CC takes the address
+     of an argument of type `double' and passes this pointer of type
+     `double *' to a function compiled with GCC, dereferencing the
+     pointer may cause a fatal signal.
+
+     One way to solve this problem is to compile your entire program
+     with GCC.  Another solution is to modify the function that is
+     compiled with Sun CC to copy the argument into a local variable;
+     local variables are always properly aligned.  A third solution is
+     to modify the function that uses the pointer to dereference it via
+     the following function `access_double' instead of directly with
+     `*':
+
+          inline double
+          access_double (double *unaligned_ptr)
+          {
+            union d2i { double d; int i[2]; };
+
+            union d2i *p = (union d2i *) unaligned_ptr;
+            union d2i u;
+
+            u.i[0] = p->i[0];
+            u.i[1] = p->i[1];
+
+            return u.d;
+          }
+
+     Storing into the pointer can be done likewise with the same union.
+
+   * On Solaris, the `malloc' function in the `libmalloc.a' library may
+     allocate memory that is only 4 byte aligned.  Since GCC on the
+     SPARC assumes that doubles are 8 byte aligned, this may result in a
+     fatal signal if doubles are stored in memory allocated by the
+     `libmalloc.a' library.
+
+     The solution is to not use the `libmalloc.a' library.  Use instead
+     `malloc' and related functions from `libc.a'; they do not have
+     this problem.
+
+   * On the HP PA machine, ADB sometimes fails to work on functions
+     compiled with GCC.  Specifically, it fails to work on functions
+     that use `alloca' or variable-size arrays.  This is because GCC
+     doesn't generate HP-UX unwind descriptors for such functions.  It
+     may even be impossible to generate them.
+
+   * Debugging (`-g') is not supported on the HP PA machine, unless you
+     use the preliminary GNU tools.
+
+   * Taking the address of a label may generate errors from the HP-UX
+     PA assembler.  GAS for the PA does not have this problem.
+
+   * Using floating point parameters for indirect calls to static
+     functions will not work when using the HP assembler.  There simply
+     is no way for GCC to specify what registers hold arguments for
+     static functions when using the HP assembler.  GAS for the PA does
+     not have this problem.
+
+   * In extremely rare cases involving some very large functions you may
+     receive errors from the HP linker complaining about an out of
+     bounds unconditional branch offset.  This used to occur more often
+     in previous versions of GCC, but is now exceptionally rare.  If
+     you should run into it, you can work around by making your
+     function smaller.
+
+   * GCC compiled code sometimes emits warnings from the HP-UX
+     assembler of the form:
+
+          (warning) Use of GR3 when
+            frame >= 8192 may cause conflict.
+
+     These warnings are harmless and can be safely ignored.
+
+   * In extremely rare cases involving some very large functions you may
+     receive errors from the AIX Assembler complaining about a
+     displacement that is too large.  If you should run into it, you
+     can work around by making your function smaller.
+
+   * The `libstdc++.a' library in GCC relies on the SVR4 dynamic linker
+     semantics which merges global symbols between libraries and
+     applications, especially necessary for C++ streams functionality.
+     This is not the default behavior of AIX shared libraries and
+     dynamic linking.  `libstdc++.a' is built on AIX with
+     "runtime-linking" enabled so that symbol merging can occur.  To
+     utilize this feature, the application linked with `libstdc++.a'
+     must include the `-Wl,-brtl' flag on the link line.  G++ cannot
+     impose this because this option may interfere with the semantics
+     of the user program and users may not always use `g++' to link his
+     or her application.  Applications are not required to use the
+     `-Wl,-brtl' flag on the link line--the rest of the `libstdc++.a'
+     library which is not dependent on the symbol merging semantics
+     will continue to function correctly.
+
+   * An application can interpose its own definition of functions for
+     functions invoked by `libstdc++.a' with "runtime-linking" enabled
+     on AIX.  To accomplish this the application must be linked with
+     "runtime-linking" option and the functions explicitly must be
+     exported by the application (`-Wl,-brtl,-bE:exportfile').
+
+   * AIX on the RS/6000 provides support (NLS) for environments outside
+     of the United States.  Compilers and assemblers use NLS to support
+     locale-specific representations of various objects including
+     floating-point numbers (`.' vs `,' for separating decimal
+     fractions).  There have been problems reported where the library
+     linked with GCC does not produce the same floating-point formats
+     that the assembler accepts.  If you have this problem, set the
+     `LANG' environment variable to `C' or `En_US'.
+
+   * Even if you specify `-fdollars-in-identifiers', you cannot
+     successfully use `$' in identifiers on the RS/6000 due to a
+     restriction in the IBM assembler.  GAS supports these identifiers.
+
+
+
+File: gcc.info,  Node: Incompatibilities,  Next: Fixed Headers,  Prev: Interoperation,  Up: Trouble
+
+10.4 Incompatibilities of GCC
+=============================
+
+There are several noteworthy incompatibilities between GNU C and K&R
+(non-ISO) versions of C.
+
+   * GCC normally makes string constants read-only.  If several
+     identical-looking string constants are used, GCC stores only one
+     copy of the string.
+
+     One consequence is that you cannot call `mktemp' with a string
+     constant argument.  The function `mktemp' always alters the string
+     its argument points to.
+
+     Another consequence is that `sscanf' does not work on some very
+     old systems when passed a string constant as its format control
+     string or input.  This is because `sscanf' incorrectly tries to
+     write into the string constant.  Likewise `fscanf' and `scanf'.
+
+     The solution to these problems is to change the program to use
+     `char'-array variables with initialization strings for these
+     purposes instead of string constants.
+
+   * `-2147483648' is positive.
+
+     This is because 2147483648 cannot fit in the type `int', so
+     (following the ISO C rules) its data type is `unsigned long int'.
+     Negating this value yields 2147483648 again.
+
+   * GCC does not substitute macro arguments when they appear inside of
+     string constants.  For example, the following macro in GCC
+
+          #define foo(a) "a"
+
+     will produce output `"a"' regardless of what the argument A is.
+
+   * When you use `setjmp' and `longjmp', the only automatic variables
+     guaranteed to remain valid are those declared `volatile'.  This is
+     a consequence of automatic register allocation.  Consider this
+     function:
+
+          jmp_buf j;
+
+          foo ()
+          {
+            int a, b;
+
+            a = fun1 ();
+            if (setjmp (j))
+              return a;
+
+            a = fun2 ();
+            /* `longjmp (j)' may occur in `fun3'. */
+            return a + fun3 ();
+          }
+
+     Here `a' may or may not be restored to its first value when the
+     `longjmp' occurs.  If `a' is allocated in a register, then its
+     first value is restored; otherwise, it keeps the last value stored
+     in it.
+
+     If you use the `-W' option with the `-O' option, you will get a
+     warning when GCC thinks such a problem might be possible.
+
+   * Programs that use preprocessing directives in the middle of macro
+     arguments do not work with GCC.  For example, a program like this
+     will not work:
+
+          foobar (
+          #define luser
+                  hack)
+
+     ISO C does not permit such a construct.
+
+   * K&R compilers allow comments to cross over an inclusion boundary
+     (i.e. started in an include file and ended in the including file).
+
+   * Declarations of external variables and functions within a block
+     apply only to the block containing the declaration.  In other
+     words, they have the same scope as any other declaration in the
+     same place.
+
+     In some other C compilers, a `extern' declaration affects all the
+     rest of the file even if it happens within a block.
+
+   * In traditional C, you can combine `long', etc., with a typedef
+     name, as shown here:
+
+          typedef int foo;
+          typedef long foo bar;
+
+     In ISO C, this is not allowed: `long' and other type modifiers
+     require an explicit `int'.
+
+   * PCC allows typedef names to be used as function parameters.
+
+   * Traditional C allows the following erroneous pair of declarations
+     to appear together in a given scope:
+
+          typedef int foo;
+          typedef foo foo;
+
+   * GCC treats all characters of identifiers as significant.
+     According to K&R-1 (2.2), "No more than the first eight characters
+     are significant, although more may be used.".  Also according to
+     K&R-1 (2.2), "An identifier is a sequence of letters and digits;
+     the first character must be a letter.  The underscore _ counts as
+     a letter.", but GCC also allows dollar signs in identifiers.
+
+   * PCC allows whitespace in the middle of compound assignment
+     operators such as `+='.  GCC, following the ISO standard, does not
+     allow this.
+
+   * GCC complains about unterminated character constants inside of
+     preprocessing conditionals that fail.  Some programs have English
+     comments enclosed in conditionals that are guaranteed to fail; if
+     these comments contain apostrophes, GCC will probably report an
+     error.  For example, this code would produce an error:
+
+          #if 0
+          You can't expect this to work.
+          #endif
+
+     The best solution to such a problem is to put the text into an
+     actual C comment delimited by `/*...*/'.
+
+   * Many user programs contain the declaration `long time ();'.  In the
+     past, the system header files on many systems did not actually
+     declare `time', so it did not matter what type your program
+     declared it to return.  But in systems with ISO C headers, `time'
+     is declared to return `time_t', and if that is not the same as
+     `long', then `long time ();' is erroneous.
+
+     The solution is to change your program to use appropriate system
+     headers (`<time.h>' on systems with ISO C headers) and not to
+     declare `time' if the system header files declare it, or failing
+     that to use `time_t' as the return type of `time'.
+
+   * When compiling functions that return `float', PCC converts it to a
+     double.  GCC actually returns a `float'.  If you are concerned
+     with PCC compatibility, you should declare your functions to return
+     `double'; you might as well say what you mean.
+
+   * When compiling functions that return structures or unions, GCC
+     output code normally uses a method different from that used on most
+     versions of Unix.  As a result, code compiled with GCC cannot call
+     a structure-returning function compiled with PCC, and vice versa.
+
+     The method used by GCC is as follows: a structure or union which is
+     1, 2, 4 or 8 bytes long is returned like a scalar.  A structure or
+     union with any other size is stored into an address supplied by
+     the caller (usually in a special, fixed register, but on some
+     machines it is passed on the stack).  The target hook
+     `TARGET_STRUCT_VALUE_RTX' tells GCC where to pass this address.
+
+     By contrast, PCC on most target machines returns structures and
+     unions of any size by copying the data into an area of static
+     storage, and then returning the address of that storage as if it
+     were a pointer value.  The caller must copy the data from that
+     memory area to the place where the value is wanted.  GCC does not
+     use this method because it is slower and nonreentrant.
+
+     On some newer machines, PCC uses a reentrant convention for all
+     structure and union returning.  GCC on most of these machines uses
+     a compatible convention when returning structures and unions in
+     memory, but still returns small structures and unions in registers.
+
+     You can tell GCC to use a compatible convention for all structure
+     and union returning with the option `-fpcc-struct-return'.
+
+   * GCC complains about program fragments such as `0x74ae-0x4000'
+     which appear to be two hexadecimal constants separated by the minus
+     operator.  Actually, this string is a single "preprocessing token".
+     Each such token must correspond to one token in C.  Since this
+     does not, GCC prints an error message.  Although it may appear
+     obvious that what is meant is an operator and two values, the ISO
+     C standard specifically requires that this be treated as erroneous.
+
+     A "preprocessing token" is a "preprocessing number" if it begins
+     with a digit and is followed by letters, underscores, digits,
+     periods and `e+', `e-', `E+', `E-', `p+', `p-', `P+', or `P-'
+     character sequences.  (In strict C89 mode, the sequences `p+',
+     `p-', `P+' and `P-' cannot appear in preprocessing numbers.)
+
+     To make the above program fragment valid, place whitespace in
+     front of the minus sign.  This whitespace will end the
+     preprocessing number.
+
+
+File: gcc.info,  Node: Fixed Headers,  Next: Standard Libraries,  Prev: Incompatibilities,  Up: Trouble
+
+10.5 Fixed Header Files
+=======================
+
+GCC needs to install corrected versions of some system header files.
+This is because most target systems have some header files that won't
+work with GCC unless they are changed.  Some have bugs, some are
+incompatible with ISO C, and some depend on special features of other
+compilers.
+
+ Installing GCC automatically creates and installs the fixed header
+files, by running a program called `fixincludes'.  Normally, you don't
+need to pay attention to this.  But there are cases where it doesn't do
+the right thing automatically.
+
+   * If you update the system's header files, such as by installing a
+     new system version, the fixed header files of GCC are not
+     automatically updated.  They can be updated using the `mkheaders'
+     script installed in `LIBEXECDIR/gcc/TARGET/VERSION/install-tools/'.
+
+   * On some systems, header file directories contain machine-specific
+     symbolic links in certain places.  This makes it possible to share
+     most of the header files among hosts running the same version of
+     the system on different machine models.
+
+     The programs that fix the header files do not understand this
+     special way of using symbolic links; therefore, the directory of
+     fixed header files is good only for the machine model used to
+     build it.
+
+     It is possible to make separate sets of fixed header files for the
+     different machine models, and arrange a structure of symbolic
+     links so as to use the proper set, but you'll have to do this by
+     hand.
+
+
+File: gcc.info,  Node: Standard Libraries,  Next: Disappointments,  Prev: Fixed Headers,  Up: Trouble
+
+10.6 Standard Libraries
+=======================
+
+GCC by itself attempts to be a conforming freestanding implementation.
+*Note Language Standards Supported by GCC: Standards, for details of
+what this means.  Beyond the library facilities required of such an
+implementation, the rest of the C library is supplied by the vendor of
+the operating system.  If that C library doesn't conform to the C
+standards, then your programs might get warnings (especially when using
+`-Wall') that you don't expect.
+
+ For example, the `sprintf' function on SunOS 4.1.3 returns `char *'
+while the C standard says that `sprintf' returns an `int'.  The
+`fixincludes' program could make the prototype for this function match
+the Standard, but that would be wrong, since the function will still
+return `char *'.
+
+ If you need a Standard compliant library, then you need to find one, as
+GCC does not provide one.  The GNU C library (called `glibc') provides
+ISO C, POSIX, BSD, SystemV and X/Open compatibility for GNU/Linux and
+HURD-based GNU systems; no recent version of it supports other systems,
+though some very old versions did.  Version 2.2 of the GNU C library
+includes nearly complete C99 support.  You could also ask your
+operating system vendor if newer libraries are available.
+
+
+File: gcc.info,  Node: Disappointments,  Next: C++ Misunderstandings,  Prev: Standard Libraries,  Up: Trouble
+
+10.7 Disappointments and Misunderstandings
+==========================================
+
+These problems are perhaps regrettable, but we don't know any practical
+way around them.
+
+   * Certain local variables aren't recognized by debuggers when you
+     compile with optimization.
+
+     This occurs because sometimes GCC optimizes the variable out of
+     existence.  There is no way to tell the debugger how to compute the
+     value such a variable "would have had", and it is not clear that
+     would be desirable anyway.  So GCC simply does not mention the
+     eliminated variable when it writes debugging information.
+
+     You have to expect a certain amount of disagreement between the
+     executable and your source code, when you use optimization.
+
+   * Users often think it is a bug when GCC reports an error for code
+     like this:
+
+          int foo (struct mumble *);
+
+          struct mumble { ... };
+
+          int foo (struct mumble *x)
+          { ... }
+
+     This code really is erroneous, because the scope of `struct
+     mumble' in the prototype is limited to the argument list
+     containing it.  It does not refer to the `struct mumble' defined
+     with file scope immediately below--they are two unrelated types
+     with similar names in different scopes.
+
+     But in the definition of `foo', the file-scope type is used
+     because that is available to be inherited.  Thus, the definition
+     and the prototype do not match, and you get an error.
+
+     This behavior may seem silly, but it's what the ISO standard
+     specifies.  It is easy enough for you to make your code work by
+     moving the definition of `struct mumble' above the prototype.
+     It's not worth being incompatible with ISO C just to avoid an
+     error for the example shown above.
+
+   * Accesses to bit-fields even in volatile objects works by accessing
+     larger objects, such as a byte or a word.  You cannot rely on what
+     size of object is accessed in order to read or write the
+     bit-field; it may even vary for a given bit-field according to the
+     precise usage.
+
+     If you care about controlling the amount of memory that is
+     accessed, use volatile but do not use bit-fields.
+
+   * GCC comes with shell scripts to fix certain known problems in
+     system header files.  They install corrected copies of various
+     header files in a special directory where only GCC will normally
+     look for them.  The scripts adapt to various systems by searching
+     all the system header files for the problem cases that we know
+     about.
+
+     If new system header files are installed, nothing automatically
+     arranges to update the corrected header files.  They can be
+     updated using the `mkheaders' script installed in
+     `LIBEXECDIR/gcc/TARGET/VERSION/install-tools/'.
+
+   * On 68000 and x86 systems, for instance, you can get paradoxical
+     results if you test the precise values of floating point numbers.
+     For example, you can find that a floating point value which is not
+     a NaN is not equal to itself.  This results from the fact that the
+     floating point registers hold a few more bits of precision than
+     fit in a `double' in memory.  Compiled code moves values between
+     memory and floating point registers at its convenience, and moving
+     them into memory truncates them.
+
+     You can partially avoid this problem by using the `-ffloat-store'
+     option (*note Optimize Options::).
+
+   * On AIX and other platforms without weak symbol support, templates
+     need to be instantiated explicitly and symbols for static members
+     of templates will not be generated.
+
+   * On AIX, GCC scans object files and library archives for static
+     constructors and destructors when linking an application before the
+     linker prunes unreferenced symbols.  This is necessary to prevent
+     the AIX linker from mistakenly assuming that static constructor or
+     destructor are unused and removing them before the scanning can
+     occur.  All static constructors and destructors found will be
+     referenced even though the modules in which they occur may not be
+     used by the program.  This may lead to both increased executable
+     size and unexpected symbol references.
+
+
+File: gcc.info,  Node: C++ Misunderstandings,  Next: Protoize Caveats,  Prev: Disappointments,  Up: Trouble
+
+10.8 Common Misunderstandings with GNU C++
+==========================================
+
+C++ is a complex language and an evolving one, and its standard
+definition (the ISO C++ standard) was only recently completed.  As a
+result, your C++ compiler may occasionally surprise you, even when its
+behavior is correct.  This section discusses some areas that frequently
+give rise to questions of this sort.
+
+* Menu:
+
+* Static Definitions::  Static member declarations are not definitions
+* Name lookup::         Name lookup, templates, and accessing members of base classes
+* Temporaries::         Temporaries may vanish before you expect
+* Copy Assignment::     Copy Assignment operators copy virtual bases twice
+
+
+File: gcc.info,  Node: Static Definitions,  Next: Name lookup,  Up: C++ Misunderstandings
+
+10.8.1 Declare _and_ Define Static Members
+------------------------------------------
+
+When a class has static data members, it is not enough to _declare_ the
+static member; you must also _define_ it.  For example:
+
+     class Foo
+     {
+       ...
+       void method();
+       static int bar;
+     };
+
+ This declaration only establishes that the class `Foo' has an `int'
+named `Foo::bar', and a member function named `Foo::method'.  But you
+still need to define _both_ `method' and `bar' elsewhere.  According to
+the ISO standard, you must supply an initializer in one (and only one)
+source file, such as:
+
+     int Foo::bar = 0;
+
+ Other C++ compilers may not correctly implement the standard behavior.
+As a result, when you switch to `g++' from one of these compilers, you
+may discover that a program that appeared to work correctly in fact
+does not conform to the standard: `g++' reports as undefined symbols
+any static data members that lack definitions.
+
+
+File: gcc.info,  Node: Name lookup,  Next: Temporaries,  Prev: Static Definitions,  Up: C++ Misunderstandings
+
+10.8.2 Name lookup, templates, and accessing members of base classes
+--------------------------------------------------------------------
+
+The C++ standard prescribes that all names that are not dependent on
+template parameters are bound to their present definitions when parsing
+a template function or class.(1)  Only names that are dependent are
+looked up at the point of instantiation.  For example, consider
+
+       void foo(double);
+
+       struct A {
+         template <typename T>
+         void f () {
+           foo (1);        // 1
+           int i = N;      // 2
+           T t;
+           t.bar();        // 3
+           foo (t);        // 4
+         }
+
+         static const int N;
+       };
+
+ Here, the names `foo' and `N' appear in a context that does not depend
+on the type of `T'.  The compiler will thus require that they are
+defined in the context of use in the template, not only before the
+point of instantiation, and will here use `::foo(double)' and `A::N',
+respectively.  In particular, it will convert the integer value to a
+`double' when passing it to `::foo(double)'.
+
+ Conversely, `bar' and the call to `foo' in the fourth marked line are
+used in contexts that do depend on the type of `T', so they are only
+looked up at the point of instantiation, and you can provide
+declarations for them after declaring the template, but before
+instantiating it.  In particular, if you instantiate `A::f<int>', the
+last line will call an overloaded `::foo(int)' if one was provided,
+even if after the declaration of `struct A'.
+
+ This distinction between lookup of dependent and non-dependent names is
+called two-stage (or dependent) name lookup.  G++ implements it since
+version 3.4.
+
+ Two-stage name lookup sometimes leads to situations with behavior
+different from non-template codes.  The most common is probably this:
+
+       template <typename T> struct Base {
+         int i;
+       };
+
+       template <typename T> struct Derived : public Base<T> {
+         int get_i() { return i; }
+       };
+
+ In `get_i()', `i' is not used in a dependent context, so the compiler
+will look for a name declared at the enclosing namespace scope (which
+is the global scope here).  It will not look into the base class, since
+that is dependent and you may declare specializations of `Base' even
+after declaring `Derived', so the compiler can't really know what `i'
+would refer to.  If there is no global variable `i', then you will get
+an error message.
+
+ In order to make it clear that you want the member of the base class,
+you need to defer lookup until instantiation time, at which the base
+class is known.  For this, you need to access `i' in a dependent
+context, by either using `this->i' (remember that `this' is of type
+`Derived<T>*', so is obviously dependent), or using `Base<T>::i'.
+Alternatively, `Base<T>::i' might be brought into scope by a
+`using'-declaration.
+
+ Another, similar example involves calling member functions of a base
+class:
+
+       template <typename T> struct Base {
+           int f();
+       };
+
+       template <typename T> struct Derived : Base<T> {
+           int g() { return f(); };
+       };
+
+ Again, the call to `f()' is not dependent on template arguments (there
+are no arguments that depend on the type `T', and it is also not
+otherwise specified that the call should be in a dependent context).
+Thus a global declaration of such a function must be available, since
+the one in the base class is not visible until instantiation time.  The
+compiler will consequently produce the following error message:
+
+       x.cc: In member function `int Derived<T>::g()':
+       x.cc:6: error: there are no arguments to `f' that depend on a template
+          parameter, so a declaration of `f' must be available
+       x.cc:6: error: (if you use `-fpermissive', G++ will accept your code, but
+          allowing the use of an undeclared name is deprecated)
+
+ To make the code valid either use `this->f()', or `Base<T>::f()'.
+Using the `-fpermissive' flag will also let the compiler accept the
+code, by marking all function calls for which no declaration is visible
+at the time of definition of the template for later lookup at
+instantiation time, as if it were a dependent call.  We do not
+recommend using `-fpermissive' to work around invalid code, and it will
+also only catch cases where functions in base classes are called, not
+where variables in base classes are used (as in the example above).
+
+ Note that some compilers (including G++ versions prior to 3.4) get
+these examples wrong and accept above code without an error.  Those
+compilers do not implement two-stage name lookup correctly.
+
+ ---------- Footnotes ----------
+
+ (1) The C++ standard just uses the term "dependent" for names that
+depend on the type or value of template parameters.  This shorter term
+will also be used in the rest of this section.
+
+
+File: gcc.info,  Node: Temporaries,  Next: Copy Assignment,  Prev: Name lookup,  Up: C++ Misunderstandings
+
+10.8.3 Temporaries May Vanish Before You Expect
+-----------------------------------------------
+
+It is dangerous to use pointers or references to _portions_ of a
+temporary object.  The compiler may very well delete the object before
+you expect it to, leaving a pointer to garbage.  The most common place
+where this problem crops up is in classes like string classes,
+especially ones that define a conversion function to type `char *' or
+`const char *'--which is one reason why the standard `string' class
+requires you to call the `c_str' member function.  However, any class
+that returns a pointer to some internal structure is potentially
+subject to this problem.
+
+ For example, a program may use a function `strfunc' that returns
+`string' objects, and another function `charfunc' that operates on
+pointers to `char':
+
+     string strfunc ();
+     void charfunc (const char *);
+
+     void
+     f ()
+     {
+       const char *p = strfunc().c_str();
+       ...
+       charfunc (p);
+       ...
+       charfunc (p);
+     }
+
+In this situation, it may seem reasonable to save a pointer to the C
+string returned by the `c_str' member function and use that rather than
+call `c_str' repeatedly.  However, the temporary string created by the
+call to `strfunc' is destroyed after `p' is initialized, at which point
+`p' is left pointing to freed memory.
+
+ Code like this may run successfully under some other compilers,
+particularly obsolete cfront-based compilers that delete temporaries
+along with normal local variables.  However, the GNU C++ behavior is
+standard-conforming, so if your program depends on late destruction of
+temporaries it is not portable.
+
+ The safe way to write such code is to give the temporary a name, which
+forces it to remain until the end of the scope of the name.  For
+example:
+
+     const string& tmp = strfunc ();
+     charfunc (tmp.c_str ());
+
+
+File: gcc.info,  Node: Copy Assignment,  Prev: Temporaries,  Up: C++ Misunderstandings
+
+10.8.4 Implicit Copy-Assignment for Virtual Bases
+-------------------------------------------------
+
+When a base class is virtual, only one subobject of the base class
+belongs to each full object.  Also, the constructors and destructors are
+invoked only once, and called from the most-derived class.  However,
+such objects behave unspecified when being assigned.  For example:
+
+     struct Base{
+       char *name;
+       Base(char *n) : name(strdup(n)){}
+       Base& operator= (const Base& other){
+        free (name);
+        name = strdup (other.name);
+       }
+     };
+
+     struct A:virtual Base{
+       int val;
+       A():Base("A"){}
+     };
+
+     struct B:virtual Base{
+       int bval;
+       B():Base("B"){}
+     };
+
+     struct Derived:public A, public B{
+       Derived():Base("Derived"){}
+     };
+
+     void func(Derived &d1, Derived &d2)
+     {
+       d1 = d2;
+     }
+
+ The C++ standard specifies that `Base::Base' is only called once when
+constructing or copy-constructing a Derived object.  It is unspecified
+whether `Base::operator=' is called more than once when the implicit
+copy-assignment for Derived objects is invoked (as it is inside `func'
+in the example).
+
+ G++ implements the "intuitive" algorithm for copy-assignment: assign
+all direct bases, then assign all members.  In that algorithm, the
+virtual base subobject can be encountered more than once.  In the
+example, copying proceeds in the following order: `val', `name' (via
+`strdup'), `bval', and `name' again.
+
+ If application code relies on copy-assignment, a user-defined
+copy-assignment operator removes any uncertainties.  With such an
+operator, the application can define whether and how the virtual base
+subobject is assigned.
+
+
+File: gcc.info,  Node: Protoize Caveats,  Next: Non-bugs,  Prev: C++ Misunderstandings,  Up: Trouble
+
+10.9 Caveats of using `protoize'
+================================
+
+The conversion programs `protoize' and `unprotoize' can sometimes
+change a source file in a way that won't work unless you rearrange it.
+
+   * `protoize' can insert references to a type name or type tag before
+     the definition, or in a file where they are not defined.
+
+     If this happens, compiler error messages should show you where the
+     new references are, so fixing the file by hand is straightforward.
+
+   * There are some C constructs which `protoize' cannot figure out.
+     For example, it can't determine argument types for declaring a
+     pointer-to-function variable; this you must do by hand.  `protoize'
+     inserts a comment containing `???' each time it finds such a
+     variable; so you can find all such variables by searching for this
+     string.  ISO C does not require declaring the argument types of
+     pointer-to-function types.
+
+   * Using `unprotoize' can easily introduce bugs.  If the program
+     relied on prototypes to bring about conversion of arguments, these
+     conversions will not take place in the program without prototypes.
+     One case in which you can be sure `unp

@@ -1,0 +1,2144 @@
+ of one or more elements.
+    The advantage of an object is that the user-defined routines are
+    automatically called by the calculator for various operations,
+    such as addition, multiplication, and printing.  Thus they can be
+    manipulated by the user as if they were just another kind of number.
+
+    An example object type is "surd", which represents numbers of the form
+
+	    a + b*sqrt(D),
+
+    where D is a fixed integer, and 'a' and 'b' are arbitrary rational
+    numbers.  Addition, subtraction, multiplication, and division can be
+    performed on such numbers, and the result can be put unambiguously
+    into the same form.	 (Complex numbers are an example of surds, where
+    D is -1.)
+
+    The "obj" statement defines either an object type or an actual
+    variable of that type.  When defining the object type, the names of
+    its elements are specified inside of a pair of braces.  To define
+    the surd object type, the following could be used:
+
+	    obj surd {a, b};
+
+    Here a and b are the element names for the two components of the
+    surd object.  An object type can be defined more than once as long
+    as the number of elements and their names are the same.
+
+    When an object is created, the elements are all defined with zero
+    values.  A user-defined routine should be provided which will place
+    useful values in the elements.  For example, for an object of type
+    'surd', a function called 'surd' can be defined to set the two
+    components as follows:
+
+	    define surd(a, b)
+	    {
+		    local x;
+
+		    obj surd x;
+		    x.a = a;
+		    x.b = b;
+		    return x;
+	    }
+
+    When an operation is attempted for an object, user functions with
+    particular names are automatically called to perform the operation.
+    These names are created by concatenating the object type name and
+    the operation name together with an underscore.  For example, when
+    multiplying two objects of type surd, the function "surd_mul" is
+    called.
+
+    The user function is called with the necessary arguments for that
+    operation.	For example, for "surd_mul", there are two arguments,
+    which are the two numbers.	The order of the arguments is always
+    the order of the binary operands.  If only one of the operands to
+    a binary operator is an object, then the user function for that
+    object type is still called.  If the two operands are of different
+    object types, then the user function that is called is the one for
+    the first operand.
+
+    The above rules mean that for full generality, user functions
+    should detect that one of their arguments is not of its own object
+    type by using the 'istype' function, and then handle these cases
+    specially.	In this way, users can mix normal numbers with object
+    types.  (Functions which only have one operand don't have to worry
+    about this.)  The following example of "surd_mul" demonstrates how
+    to handle regular numbers when used together with surds:
+
+	    define surd_mul(a, b)
+	    {
+		    local x;
+
+		    obj surd x;
+		    if (!istype(a, x)) {
+			    /* a not of type surd */
+			    x.a = b.a * a;
+			    x.b = b.b * a;
+		    } else if (!istype(b, x)) {
+			    /* b not of type surd */
+			    x.a = a.a * b;
+			    x.b = a.b * b;
+		    } else {
+			    /* both are surds */
+			    x.a = a.a * b.a + D * a.b * b.b;
+			    x.b = a.a * b.b + a.b * b.a;
+		    }
+		    if (x.b == 0)
+			    return x.a; /* normal number */
+		    return x;		/* return surd */
+	    }
+
+    In order to print the value of an object nicely, a user defined
+    routine can be provided.  For small amounts of output, the print
+    routine should not print a newline.	 Also, it is most convenient
+    if the printed object looks like the call to the creation routine.
+    For output to be correctly collected within nested output calls,
+    output should only go to stdout.  This means use the 'print'
+    statement, the 'printf' function, or the 'fprintf' function with
+    'files(1)' as the output file.  For example, for the "surd" object:
+
+	    define surd_print(a)
+	    {
+		    print "surd(" : a.a : "," : a.b : ")" : ;
+	    }
+
+    It is not necessary to provide routines for all possible operations
+    for an object, if those operations can be defaulted or do not make
+    sense for the object.  The calculator will attempt meaningful
+    defaults for many operations if they are not defined.  For example,
+    if 'surd_square' is not defined to square a number, then 'surd_mul'
+    will be called to perform the squaring.  When a default is not
+    possible, then an error will be generated.
+
+    Please note: Arguments to object functions are always passed by
+    reference (as if an '&' was specified for each variable in the call).
+    Therefore, the function should not modify the parameters, but should
+    copy them into local variables before modifying them.  This is done
+    in order to make object calls quicker in general.
+
+    The double-bracket operator can be used to reference the elements
+    of any object in a generic manner.	When this is done, index 0
+    corresponds to the first element name, index 1 to the second name,
+    and so on.	The 'size' function will return the number of elements
+    in an object.
+
+    The following is a list of the operations possible for objects.
+    The 'xx' in each function name is replaced with the actual object
+    type name.	This table is displayed by the 'show objfunctions' command.
+
+	    Name	Args	Comments
+
+	    xx_print    1	print value, default prints elements
+	    xx_one      1	multiplicative identity, default is 1
+	    xx_test     1	logical test (false,true => 0,1), default tests elements
+	    xx_add      2
+	    xx_sub      2
+	    xx_neg      1	negative
+	    xx_mul      2
+	    xx_div      2	non-integral division
+	    xx_inv      1	multiplicative inverse
+	    xx_abs      2	absolute value within given error
+	    xx_norm     1	square of absolute value
+	    xx_conj     1	conjugate
+	    xx_pow      2	integer power, default does multiply, square, inverse
+	    xx_sgn      1	sign of value (-1, 0, 1)
+	    xx_cmp      2	equality (equal,nonequal => 0,1), default tests elements
+	    xx_rel      2	relative order, positive for >, etc.
+	    xx_quo      3	integer quotient
+	    xx_mod      3	remainder of division
+	    xx_int      1	integer part
+	    xx_frac     1	fractional part
+	    xx_inc      1	increment, default adds 1
+	    xx_dec      1	decrement, default subtracts 1
+	    xx_square   1	default multiplies by itself
+	    xx_scale    2	multiply by power of 2
+	    xx_shift    2	shift left by n bits (right if negative)
+	    xx_round    3	round to given number of decimal places
+	    xx_bround   3	round to given number of binary places
+	    xx_root     3	root of value within given error
+	    xx_sqrt     3	square root within given error
+	    xx_or       2	bitwise or
+	    xx_and      2	bitwise and
+	    xx_not      1	logical not
+	    xx_fact     1	factorial or postfix !
+	    xx_min      1	value for min(...)
+	    xx_max      1	value for max(...)
+	    xx_sum      1	value for sum(...)
+	    xx_assign   2	assign, defaults to a = b
+	    xx_xor      2	value for binary ~
+	    xx_comp     1	value for unary ~
+	    xx_content  1	unary hash op
+	    xx_hashop   2	binary hash op
+	    xx_backslash 1	unary backslash op
+	    xx_setminus 2	binary backslash op
+	    xx_plus     1	unary + op
+
+    Also see the standard resource files:
+
+	    deg.cal
+	    dms.cal
+	    ellip.cal
+	    hms.cal
+	    mod.cal
+	    natnumset.cal
+	    poly.cal
+	    quat.cal
+	    regress.cal
+	    set8700.cal
+	    surd.cal
+	    test2300.cal
+	    test3100.cal
+
+## Copyright (C) 1999,2010  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.3 $
+## @(#) $Id: obj.file,v 30.3 2010/09/02 06:36:21 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/obj.file,v $
+##
+## Under source code control:	1991/07/21 04:37:22
+## File existed as early as:	1991
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* operator
+*************
+
+operators
+
+    The operators are similar to C, but there are some differences in
+    the associativity and precedence rules for some operators.	In
+    addition, there are several operators not in C, and some C
+    operators are missing.  A more detailed discussion of situations
+    that may be unexpected for the C programmer may be found in
+    the 'unexpected' help file.
+
+    Below is a list giving the operators arranged in order of
+    precedence, from the least tightly binding to the most tightly
+    binding.  Except where otherwise indicated, operators at the same
+    level of precedence associate from left to right.
+
+    Unlike C, calc has a definite order for evaluation of terms (addends
+    in a sum, factors in a product, arguments for a function or a
+    matrix, etc.).  This order is always from left to right. but
+    skipping of terms may occur for ||, && and ? : .  For example,
+    an expression of the form:
+
+	    A * B + C * D
+
+    is evaluated in the following order:
+
+	    A
+	    B
+	    A * B
+	    C
+	    D
+	    C * D
+	    A * B + C * D
+
+    This order of evaluation is significant if evaluation of a
+    term changes a variable on which a later term depends.  For example:
+
+	    x++ * x++ + x++ * x++
+
+    returns the value of:
+
+	    x * (x + 1) + (x + 2) * (x + 3)
+
+    and increments x as if by x += 4.  Similarly, for functions f, g,
+    the expression:
+
+	    f(x++, x++) + g(x++)
+
+    evaluates to:
+
+	    f(x, x + 1) + g(x + 2)
+
+    and increments x three times.
+
+    In A || B, B is read only if A tests as false;  in A && B, B is
+    read only if A tests as true.  Thus if x is nonzero,
+    x++ || x++ returns x and increments x once; if x is zero,
+    it returns x + 1 and increments x twice.
+
+
+    ,	Comma operator.
+	    a, b returns the value of b.
+	    For situations in which a comma is used for another purpose
+	    (function arguments, array indexing, and the print statement),
+	    parenthesis must be used around the comma operator expression.
+	    E.g., if A is a matrix, A[(a, b), c] evaluates a, b, and c, and
+	    returns the value of A[b, c].
+
+    +=	-=  *=	/=  %=	//=  &=	 |=  <<=  >>=  ^=  **=
+	 Operator-with-assignments.
+	    These associate from left to right, e.g. a += b *= c has the
+	    effect of a = (a + b) * c, where only a is required to be an
+	    lvalue.  For the effect of b *= c; a += b; when both a and b
+	    are lvalues, use a += (b *= c).
+
+    =	Assignment.
+	    As in C, this, when repeated, this associates from right to left,
+	    e.g. a = b = c has the effect of a = (b = c).  Here both a and b
+	    are to be lvalues.
+
+    ? : Conditional value.
+	    a ? b : c  returns b if a tests as true (i.e. nonzero if
+	    a is a number), c otherwise.  Thus it is equivalent to:
+	    if (a) return b; else return c;.
+	    All that is required of the arguments in this function
+	    is that the "is-it-true?" test is meaningful for a.
+	    As in C, this operator associates from right to left,
+	    i.e. a ? b : c ? d : e is evaluated as a ? b : (c ? d : e).
+
+    ||	Logical OR.
+	    Unlike C, the result for a || b is one of the operands
+	    a, b rather than one of the numbers 0 and 1.
+	    a || b is equivalent to a ? a : b, i.e. if a tests as
+	    true, a is returned, otherwise b.  The effect in a
+	    test like "if (a || b) ... " is the same as in C.
+
+    &&	Logical AND.
+	    Unlike C, the result for a && b is one of the operands
+	    a, b rather than one of the numbers 0 and 1.
+	    a && b is equivalent to a ? b : a, i.e. if a tests as
+	    true, b is returned, otherwise a.  The effect in a
+	    test like "if (a && b) ... " is the same as in C.
+
+    ==	!=  <=	>=  <  >
+	    Relations.
+
+    +  -
+	    Binary plus and minus and unary plus and minus when applied to
+	    a first or only term.
+
+    *  /  //  %
+	    Multiply, divide, and modulo.
+	    Please Note: The '/' operator is a fractional divide,
+	    whereas the '//' is an integral divide.  Thus think of '/'
+	    as division of real numbers, and think of '//' as division
+	    of integers (e.g., 8 / 3 is 8/3 whereas 8 // 3 is 2).
+	    The '%' is integral or fractional modulus (e.g., 11%4 is 3,
+	    and 10%pi() is ~.575222).
+
+    |	Bitwise OR.
+	    In a | b, both a and b are to be real integers;
+	    the signs of a and b are ignored, i.e.
+	    a | b = abs(a) | abs(b) and the result will
+	    be a non-negative integer.
+
+    &	Bitwise AND.
+	    In a & b, both a and b are to be real integers;
+	    the signs of a and b are ignored as for a | b.
+
+    ^  **  <<  >>
+	    Powers and shifts.
+	    The '^' and '**' are both exponentiation, e.g. 2^3
+	    returns 8, 2^-3 returns .125.  Note that in a^b, if
+	    'a' == 0 and 'b' is real, then is must be >= 0 as well.
+	    Also 0^0 and 0**0 return the value 1.
+
+	    For the shift operators both arguments are to be
+	    integers, or if the first is complex, it is to have
+	    integral real and imaginary parts.	Changing the
+	    sign of the second argument reverses the shift, e.g.
+	    a >> -b = a << b.  The result has the same sign as
+	    the first argument except that a nonzero value is
+	    reduced to zero by a sufficiently long shift to the
+	    right.  These operators associate right to left,
+	    e.g.  a << b ^ c = a << (b ^ c).
+
+    +  -  !
+	    Plus (+) and minus (-) have their usual meanings as unary
+	    prefix operators at this level of precedence when applied to
+	    other than a first or only term.
+
+	    As a prefix operator, '!' is the logical NOT: !a returns 0 if
+	    a tests as nonzero, and 1 if a tests as zero, i.e. it is
+	    equivalent to a ? 0 : 1.  Be careful about
+	    using this as the first character of a top level command,
+	    since it is also used for executing shell commands.
+
+	    As a postfix operator ! gives the factorial function, i.e.
+	    a! = fact(a).
+
+    ++	--
+	    Pre or post incrementing or decrementing.
+	    These are applicable only to variables.
+
+    [ ]	 [[ ]]	.  ( )
+	    Indexing, double-bracket indexing, element references,
+	    and function calls.	 Indexing can only be applied to matrices,
+	    element references can only be applied to objects, but
+	    double-bracket indexing can be applied to matrices, objects,
+	    or lists.
+
+    variables  constants  .  ( )
+	    These are variable names and constants, the special '.' symbol,
+	    or a parenthesized expression.  Variable names begin with a
+	    letter, but then can contain letters, digits, or underscores.
+	    Constants are numbers in various formats, or strings inside
+	    either single or double quote marks.
+
+
+    The most significant difference from the order of precedence in
+    C is that | and & have higher precedence than ==, +, -, *, / and %.
+    For example, in C a == b | c * d is interpreted as:
+
+	    (a == b) | (c * d)
+
+    and calc it is:
+
+	    a == ((b | c) * d)
+
+
+    Most of the operators will accept any real or complex numbers
+    as arguments.  The exceptions are:
+
+    /  //  %
+	    Second argument must be nonzero.
+
+    ^
+	    The exponent must be an integer.  When raising zero
+	    to a power, the exponent must be non-negative.
+
+    |  &
+	    Both both arguments must be integers.
+
+    <<	>>
+	    The shift amount must be an integer.  The value being
+	    shifted must be an integer or a complex number with
+	    integral real and imaginary parts.
+
+
+    See the 'unexpected' help file for a list of unexpected
+    surprises in calc syntax/usage.  Persons familiar with C should
+    read the 'unexpected' help file to avoid confusion.
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.2 $
+## @(#) $Id: operator,v 30.2 2007/07/11 23:00:39 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/operator,v $
+##
+## Under source code control:	1991/07/21 04:37:23
+## File existed as early as:	1991
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* statement
+*************
+
+Statements
+
+    Statements are very much like C statements.	 Most statements act
+    identically to those in C, but there are minor differences and
+    some additions.  The following is a list of the statement types,
+    with explanation of the non-C statements.
+
+    Statements are generally terminated with semicolons or { ... }.
+
+    C-like statements
+    -----------------
+    { statement }
+    { statement; ... statement }
+
+
+    C-like flow control
+    -------------------
+    if (expr) statement
+    if (expr) statement else statement
+    for (optionalexpr ; optionalexpr ; optionalexpr) statement
+    while (expr) statement
+    do statement while (expr)
+
+	    These all work like in normal C.
+
+	    IMPORTANT NOTE: When statement is of the form { ... },
+	    the leading { must be on the same line as the if, for,
+	    while or do keyword.
+
+	    This works as expected:
+
+	    	if (expr) {
+		    ...
+		}
+
+	    However this WILL NOT WORK AS EXPECTED:
+
+	    	if (expr)
+		{
+		    ...
+		}
+
+	    because calc will parse the if being terminated by
+	    an empty statement followed by a
+
+	    	if (expr) ;
+		{
+		    ...
+		}
+
+	    In the same way, use these forms:
+
+		for (optionalexpr ; optionalexpr ; optionalexpr) {
+			...
+		}
+
+		while (expr) {
+			...
+		}
+
+		do {
+			...
+		while (expr);
+
+	    where the initial { is on the SAME LINE as the if, while,
+	    for or do.
+
+	    See 'help expression' for details on expressions.
+	    See 'help builtin' for details on calc builtin functions.
+	    See 'help unexpanded' for things C programmers do not expect.
+	    See also 'help todo' and 'help bugs'.
+
+
+    C-like flow breaks
+    ------------------
+    continue
+    break
+    goto label
+	    These all work like in normal C.
+
+	    See 'help expression' for details on expressions.
+	    See 'help builtin' for details on calc builtin functions.
+
+
+    return
+    ------
+    return
+    return expr
+    return ( expr )
+	    This returns a value from a function.  Functions always
+	    have a return value, even if this statement is not used.
+	    If no return statement is executed, or if no expression
+	    is specified in the return statement, then the return
+	    value from the function is the null type.
+
+
+    switch
+    ------
+    switch (expr) { caseclauses }
+	    Switch statements work similarly to C, except for the
+	    following.	A switch can be done on any type of value,
+	    and the case statements can be of any type of values.
+	    The case statements can also be expressions calculated
+	    at runtime.	 The calculator compares the switch value
+	    with each case statement in the order specified, and
+	    selects the first case which matches.  The default case
+	    is the exception, and only matches once all other cases
+	    have been tested.
+
+
+    matrix
+    ------
+    mat variable [dimension] [dimension] ...
+    mat variable [dimension, dimension, ...]
+    mat variable [] = { value, ... }
+	    This creates a matrix variable with the specified dimensions.
+	    Matrices can have from 1 to 4 dimensions.  When specifying
+	    multiple dimensions, you can use either the standard C syntax,
+	    or else you can use commas for separating the dimensions.
+	    For example, the following two statements are equivalent,
+	    and so will create the same two dimensional matrix:
+
+		    mat foo[3][6];
+		    mat foo[3,6];
+
+	    By default, each dimension is indexed starting at zero,
+	    as in normal C, and contains the specified number of
+	    elements.  However, this can be changed if a colon is
+	    used to separate two values.  If this is done, then the
+	    two values become the lower and upper bounds for indexing.
+	    This is convenient, for example, to create matrices whose
+	    first row and column begin at 1.  Examples of matrix
+	    definitions are:
+
+		    mat x[3]	one dimension, bounds are 0-2
+		    mat foo[4][5]	two dimensions, bounds are 0-3 and 0-4
+		    mat a[-7:7] one dimension, bounds are (-7)-7
+		    mat s[1:9,1:9]	two dimensions, bounds are 1-9 and 1-9
+
+	    Note that the MAT statement is not a declaration, but is
+	    executed at runtime.  Within a function, the specified
+	    variable must already be defined, and is just converted to
+	    a matrix of the specified size, and all elements are set
+	    to the value of zero.  For convenience, at the top level
+	    command level, the MAT command automatically defines a
+	    global variable of the specified name if necessary.
+
+	    Since the MAT statement is executed, the bounds on the
+	    matrix can be full expressions, and so matrices can be
+	    dynamically allocated.  For example:
+
+		    size = 20;
+		    mat data[size*2];
+
+	    allocates a matrix which can be indexed from 0 to 39.
+
+	    Initial values for the elements of a matrix can be specified
+	    by following the bounds information with an equals sign and
+	    then a list of values enclosed in a pair of braces.	 Even if
+	    the matrix has more than one dimension, the elements must be
+	    specified as a linear list.	 If too few values are specified,
+	    the remaining values are set to zero.  If too many values are
+	    specified, a runtime error will result.  Examples of some
+	    initializations are:
+
+		    mat table1[5] = {77, 44, 22};
+		    mat table2[2,2] = {1, 2, 3, 4};
+
+	    When an initialization is done, the bounds of the matrix
+	    can optionally be left out of the square brackets, and the
+	    correct bounds (zero based) will be set.  This can only be
+	    done for one-dimensional matrices.	An example of this is:
+
+		    mat fred[] = {99, 98, 97};
+
+	    The MAT statement can also be used in declarations to set
+	    variables as being matrices from the beginning.  For example:
+
+		    local mat temp[5];
+		    static mat strtable[] = {"hi", "there", "folks");
+
+
+    object
+    ------
+    obj type { elementnames } optionalvariables
+    obj type variable
+	    These create a new object type, or create one or more
+	    variables of the specified type.  For this calculator,
+	    an object is just a structure which is implicitly acted
+	    on by user defined routines.  The user defined routines
+	    implement common operations for the object, such as plus
+	    and minus, multiply and divide, comparison and printing.
+	    The calculator will automatically call these routines in
+	    order to perform many operations.
+
+	    To create an object type, the data elements used in
+	    implementing the object are specified within a pair
+	    of braces, separated with commas.  For example, to
+	    define an object will will represent points in 3-space,
+	    whose elements are the three coordinate values, the
+	    following could be used:
+
+		    obj point {x, y, z};
+
+	    This defines an object type called point, whose elements
+	    have the names x, y, and z.	 The elements are accessed
+	    similarly to structure element accesses, by using a period.
+	    For example, given a variable 'v' which is a point object,
+	    the three coordinates of the point can be referenced by:
+
+		    v.x
+		    v.y
+		    v.z
+
+	    A particular object type can only be defined once, and
+	    is global throughout all functions.	 However, different
+	    object types can be used at the same time.
+
+	    In order to create variables of an object type, they
+	    can either be named after the right brace of the object
+	    creation statement, or else can be defined later with
+	    another obj statement.  To create two points using the
+	    second (and most common) method, the following is used:
+
+		    obj point p1, p2;
+
+	    This statement is executed, and is not a declaration.
+	    Thus within a function, the variables p1 and p2 must have
+	    been previously defined, and are just changed to be the
+	    new object type.  For convenience, at the top level command
+	    level, object variables are automatically defined as being
+	    global when necessary.
+
+	    Initial values for an object can be specified by following
+	    the variable name by an equals sign and a list of values
+	    enclosed in a pair of braces.  For example:
+
+		    obj point pt = {5, 6};
+
+	    The OBJ statement can also be used in declarations to set
+	    variables as being objects from the beginning.  If multiple
+	    variables are specified, then each one is defined as the
+	    specified object type.  Examples of declarations are:
+
+		    local obj point temp1;
+		    static obj point temp2 = {4, 3};
+		    global obj point p1, p2, p3;
+
+
+    print expressions
+    -----------------
+    print expr
+    print expr, ... expr
+    print expr: ... expr
+	    For interactive expression evaluation, the values of all
+	    typed-in expressions are automatically displayed to the
+	    user.  However, within a function or loop, the printing of
+	    results must be done explicitly.  This can be done using
+	    the 'printf' or 'fprintf' functions, as in standard C, or
+	    else by using the built-in 'print' statement.  The advantage
+	    of the print statement is that a format string is not needed.
+	    Instead, the given values are simply printed with zero or one
+	    spaces between each value.
+
+	    Print accepts a list of expressions, separated either by
+	    commas or colons.  Each expression is evaluated in order
+	    and printed, with no other output, except for the following
+	    special cases.  The comma which separates expressions prints
+	    a single space, and a newline is printed after the last
+	    expression unless the statement ends with a colon.	As
+	    examples:
+
+		    print 3, 4;			prints "3 4" and newline.
+		    print 5:;			prints "5" with no newline.
+		    print 'a' : 'b' , 'c';	prints "ab c" and newline.
+		    print;			prints a newline.
+
+	    For numeric values, the format of the number depends on the
+	    current "mode" configuration parameter.  The initial mode
+	    is to print real numbers, but it can be changed to other
+	    modes such as exponential, decimal fractions, or hex.
+
+	    If a matrix or list is printed, then the elements contained
+	    within the matrix or list will also be printed, up to the
+	    maximum number specified by the "maxprint" configuration
+	    parameter.	If an element is also a matrix or a list, then
+	    their values are not recursively printed.  Objects are printed
+	    using their user-defined routine.  Printing a file value
+	    prints the name of the file that was opened.
+
+
+    Also see the help topic:
+
+	    help command	top level commands
+	    help expression	calc expression syntax
+	    help builtin	calc builtin functions
+	    help usage	    	how to invoke the calc command and calc -options
+
+    You may obtain help on individual builtin functions.  For example:
+
+	    help asinh
+	    help round
+
+    See:
+    	    help builtin
+
+    for a list of builtin functions.
+
+    Some calc operators have their own help pages:
+
+	    help ->
+	    help *
+	    help .
+	    help %
+	    help //
+	    help #
+
+    See also:
+
+	    help help
+
+
+## Copyright (C) 1999-2007  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: statement,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/statement,v $
+##
+## Under source code control:	1991/07/21 04:37:23
+## File existed as early as:	1991
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* resource
+*************
+
+Calc standard resource files
+----------------------------
+
+To load a resource file, try:
+
+    read filename
+
+You do not need to add the .cal extension to the filename.  Calc
+will search along the $CALCPATH (see ``help environment'').
+
+Normally a resource file will simply define some functions.  By default,
+most resource files will print out a short message when they are read.
+For example:
+
+    ; read lucas
+    lucas(h,n) defined
+    gen_u0(h,n,v1) defined
+    gen_v1(h,n) defined
+    ldebug(funct,str) defined
+
+will cause calc to load and execute the 'lucas.cal' resource file.
+Executing the resource file will cause several functions to be defined.
+Executing the lucas function:
+
+    ; lucas(149,60)
+	    1
+    ; lucas(146,61)
+	    0
+
+shows that 149*2^60-1 is prime whereas 146*2^61-1 is not.
+
+=-=
+
+Calc resource file files are provided because they serve as examples of
+how use the calc language, and/or because the authors thought them to
+be useful!
+
+If you write something that you think is useful, please send it to:
+
+    calc-contrib at asthe dot com
+
+    [[ NOTE: Replace 'at' with @, 'dot' is with . and remove the spaces ]]
+    [[ NOTE: The EMail address uses 'asthe' and the web site URL uses 'isthe' ]]
+
+By convention, a resource file only defines and/or initializes functions,
+objects and variables.	(The regress.cal and testxxx.cal regression test
+suite is an exception.)	 Also by convention, an additional usage message
+regarding important object and functions is printed.
+
+If a resource file needs to load another resource file, it should use
+the -once version of read:
+
+    /* pull in needed resource files */
+    read -once "surd"
+    read -once "lucas"
+
+This will cause the needed resource files to be read once.  If these
+files have already been read, the read -once will act as a noop.
+
+The "resource_debug" parameter is intended for controlling the possible
+display of special information relating to functions, objects, and
+other structures created by instructions in calc resource files.
+Zero value of config("resource_debug") means that no such information
+is displayed.  For other values, the non-zero bits which currently
+have meanings are as follows:
+
+    n		Meaning of bit n of config("resource_debug")
+
+    0	When a function is defined, redefined or undefined at
+	interactive level, a message saying what has been done
+	is displayed.
+
+    1	When a function is defined, redefined or undefined during
+	the reading of a file, a message saying what has been done
+	is displayed.
+
+    2	Show func will display more information about a functions
+	arguments as well as more argument summary information.
+
+    3	During execution, allow calc standard resource files
+	to output additional debugging information.
+
+The value for config("resource_debug") in both oldstd and newstd is 3,
+but if calc is invoked with the -d flag, its initial value is zero.
+Thus, if calc is started without the -d flag, until config("resource_debug")
+is changed, a message will be output when a function is defined
+either interactively or during the reading of a file.
+
+Sometimes the information printed is not enough.  In addition to the
+standard information, one might want to print:
+
+	* useful obj definitions
+	* functions with optional args
+	* functions with optional args where the param() interface is used
+
+For these cases we suggest that you place at the bottom of your code
+something that prints extra information if config("resource_debug") has
+either of the bottom 2 bits set:
+
+	if (config("resource_debug") & 3) {
+		print "obj xyz defined";
+		print "funcA([val1 [, val2]]) defined";
+		print "funcB(size, mass, ...) defined";
+	}
+
+If your the resource file needs to output special debugging information,
+we recommend that you check for bit 3 of the config("resource_debug")
+before printing the debug statement:
+
+	if (config("resource_debug") & 8) {
+		print "DEBUG: This a sample debug statement";
+	}
+
+=-=
+
+The following is a brief description of some of the calc resource files
+that are shipped with calc.  See above for example of how to read in
+and execute these files.
+
+alg_config.cal
+
+    global test_time
+    mul_loop(repeat,x) defined
+    mul_ratio(len) defined
+    best_mul2() defined
+    sq_loop(repeat,x) defined
+    sq_ratio(len) defined
+    best_sq2() defined
+    pow_loop(repeat,x,ex) defined
+    pow_ratio(len) defined
+    best_pow2() defined
+
+    These functions search for an optimal value of config("mul2"),
+    config("sq2"), and config("pow2").  The calc default values of these
+    configuration values were set by running this resource file on a
+    1.8GHz AMD 32-bit CPU of ~3406 BogoMIPS.
+
+    The best_mul2() function returns the optimal value of config("mul2").
+    The best_sq2() function returns the optimal value of config("sq2").
+    The best_pow2() function returns the optimal value of config("pow2").
+    The other functions are just support functions.
+
+    By design, best_mul2(), best_sq2(), and best_pow2() take a few
+    minutes to run.  These functions increase the number of times a
+    given computational loop is executed until a minimum amount of CPU
+    time is consumed.  To watch these functions progress, one can set
+    the config("user_debug") value.
+
+    Here is a suggested way to use this resource file:
+
+	; read alg_config
+	; config("user_debug",2),;
+	; best_mul2(); best_sq2(); best_pow2();
+	; best_mul2(); best_sq2(); best_pow2();
+	; best_mul2(); best_sq2(); best_pow2();
+
+    NOTE: It is perfectly normal for the optimal value returned to differ
+    slightly from run to run.  Slight variations due to inaccuracy in
+    CPU timings will cause the best value returned to differ slightly
+    from run to run.
+
+    One can use a calc startup file to change the initial values of
+    config("mul2"), config("sq2"), and config("pow2").  For example one
+    can place into ~/.calcrc these lines:
+
+	config("mul2", 1780),;
+	config("sq2", 3388),;
+	config("pow2", 176),;
+
+    to automatically and silently change these config values.
+    See help/config and CALCRC in help/environment for more information.
+
+
+beer.cal
+
+    Calc's contribution to the 99 Bottles of Beer web page:
+
+	http://www.ionet.net/~timtroyr/funhouse/beer.html#calc
+
+     NOTE: This resource produces a lot of output.  :-)
+
+
+bernoulli.cal
+
+    B(n)
+
+    Calculate the nth Bernoulli number.
+
+    NOTE: There is now a bernoulli() builtin function.  This file is
+    	  left here for backward compatibility and now simply returns
+	  the builtin function.
+
+
+bigprime.cal
+
+    bigprime(a, m, p)
+
+    A prime test, base a, on p*2^x+1 for even x>m.
+
+
+chi.cal
+
+    Z(x[, eps])
+    P(x[, eps])
+    chi_prob(chi_sq, v[, eps])
+
+    Computes the Probability, given the Null Hypothesis, that a given
+    Chi squared values >= chi_sq with v degrees of freedom.
+
+    The chi_prob() function does not work well with odd degrees of freedom.
+    It is reasonable with even degrees of freedom, although one must give
+    a sufficiently small error term as the degrees gets large (>100).
+
+    The Z(x) and P(x) are internal statistical functions.
+
+    eps is an optional epsilon() like error term.
+
+
+chrem.cal
+
+    chrem(r1,m1 [,r2,m2, ...])
+    chrem(rlist, mlist)
+
+    Chinese remainder theorem/problem solver.
+
+
+deg.cal
+
+    deg(deg, min, sec)
+    deg_add(a, b)
+    deg_neg(a)
+    deg_sub(a, b)
+    deg_mul(a, b)
+    deg_print(a)
+
+    Calculate in degrees, minutes, and seconds.  For a more functional
+    version see dms.cal.
+
+
+dms.cal
+
+    dms(deg, min, sec)
+    dms_add(a, b)
+    dms_neg(a)
+    dms_sub(a, b)
+    dms_mul(a, b)
+    dms_print(a)
+    dms_abs(a)
+    dms_norm(a)
+    dms_test(a)
+    dms_int(a)
+    dms_frac(a)
+    dms_rel(a,b)
+    dms_cmp(a,b)
+    dms_inc(a)
+    dms_dec(a)
+
+    Calculate in degrees, minutes, and seconds.  Unlike deg.cal, increments
+    are on the arc second level.  See also hms.cal.
+
+
+dotest.cal
+
+    dotest(dotest_file [,dotest_code [,dotest_maxcond]])
+
+    dotest_file
+
+	Search along CALCPATH for dotest_file, which contains lines that
+	should evaluate to 1.  Comment lines and empty lines are ignored.
+	Comment lines should use ## instead of the multi like /* ... */
+	because lines are evaluated one line at a time.
+
+    dotest_code
+
+	Assign the code number that is to be printed at the start of
+	each non-error line and after **** in each error line.
+	The default code number is 999.
+
+    dotest_maxcond
+
+	The maximum number of error conditions that may be detected.
+	An error condition is not a sign of a problem, in some cases
+	a line deliberately forces an error condition.	A value of -1,
+	the default, implies a maximum of 2147483647.
+
+    Global variables and functions must be declared ahead of time because
+    the dotest scope of evaluation is a line at a time.  For example:
+
+	read dotest.cal
+	read set8700.cal
+	dotest("set8700.line");
+
+
+ellip.cal
+
+    efactor(iN, ia, B, force)
+
+    Attempt to factor using the elliptic functions: y^2 = x^3 + a*x + b.
+
+
+hello.cal
+
+    Calc's contribution to the Hello World! page:
+
+	http://www.latech.edu/~acm/HelloWorld.shtml
+	http://www.latech.edu/~acm/helloworld/calc.html
+
+     NOTE: This resource produces a lot of output.  :-)
+
+
+hms.cal
+
+    hms(hour, min, sec)
+    hms_add(a, b)
+    hms_neg(a)
+    hms_sub(a, b)
+    hms_mul(a, b)
+    hms_print(a)
+    hms_abs(a)
+    hms_norm(a)
+    hms_test(a)
+    hms_int(a)
+    hms_frac(a)
+    hms_rel(a,b)
+    hms_cmp(a,b)
+    hms_inc(a)
+    hms_dec(a)
+
+    Calculate in hours, minutes, and seconds.  See also dmscal.
+
+
+intfile.cal
+
+    file2be(filename)
+
+	Read filename and return an integer that is built from the
+	octets in that file in Big Endian order.  The first octets
+	of the file become the most significant bits of the integer.
+
+    file2le(filename)
+
+	Read filename and return an integer that is built from the
+	octets in that file in Little Endian order.  The first octets
+	of the file become the most significant bits of the integer.
+
+    be2file(v, filename)
+
+	Write the absolute value of v into filename in Big Endian order.
+	The v argument must be on integer.  The most significant bits
+	of the integer become the first octets of the file.
+
+    le2file(v, filename)
+
+	Write the absolute value of v into filename in Little Endian order.
+	The v argument must be on integer.  The least significant bits
+	of the integer become the last octets of the file.
+
+
+linear.cal
+
+    linear(x0, y0, x1, y1, x)
+
+    Returns the value y such that (x,y) in on the line (x0,y0), (x1,y1).
+    Requires x0 != y0.
+
+
+lucas.cal
+
+    lucas(h, n)
+
+    Perform a primality test of h*2^n-1, with 1<=h<2*n.
+
+
+lucas_chk.cal
+
+    lucas_chk(high_n)
+
+    Test all primes of the form h*2^n-1, with 1<=h<200 and n <= high_n.
+    Requires lucas.cal to be loaded.  The highest useful high_n is 1000.
+
+    Used by regress.cal during the 2100 test set.
+
+
+lucas_tbl.cal
+
+    Lucasian criteria for primality tables.
+
+
+mersenne.cal
+
+    mersenne(p)
+
+    Perform a primality test of 2^p-1, for prime p>1.
+
+
+mfactor.cal
+
+    mfactor(n [, start_k=1 [, rept_loop=10000 [, p_elim=17]]])
+
+    Return the lowest factor of 2^n-1, for n > 0.  Starts looking for factors
+    at 2*start_k*n+1.  Skips values that are multiples of primes <= p_elim.
+    By default, start_k == 1, rept_loop = 10000 and p_elim = 17.
+
+    The p_elim == 17 overhead takes ~3 minutes on an 200 Mhz r4k CPU and
+    requires about ~13 Megs of memory.	The p_elim == 13 overhead
+    takes about 3 seconds and requires ~1.5 Megs of memory.
+
+    The value p_elim == 17 is best for long factorizations.  It is the
+    fastest even thought the initial startup overhead is larger than
+    for p_elim == 13.
+
+mod.cal
+
+    lmod(a)
+    mod_print(a)
+    mod_one()
+    mod_cmp(a, b)
+    mod_rel(a, b)
+    mod_add(a, b)
+    mod_sub(a, b)
+    mod_neg(a)
+    mod_mul(a, b)
+    mod_square(a)
+    mod_inc(a)
+    mod_dec(a)
+    mod_inv(a)
+    mod_div(a, b)
+    mod_pow(a, b)
+
+    Routines to handle numbers modulo a specified number.
+
+
+natnumset.cal
+
+    isset(a)
+    setbound(n)
+    empty()
+    full()
+    isin(a, b)
+    addmember(a, n)
+    rmmember(a, n)
+    set()
+    mkset(s)
+    primes(a, b)
+    set_max(a)
+    set_min(a)
+    set_not(a)
+    set_cmp(a, b)
+    set_rel(a, b)
+    set_or(a, b)
+    set_and(a, b)
+    set_comp(a)
+    set_setminus(a, b)
+    set_diff(a,b)
+    set_content(a)
+    set_add(a, b)
+    set_sub(a, b)
+    set_mul(a, b)
+    set_square(a)
+    set_pow(a, n)
+    set_sum(a)
+    set_plus(a)
+    interval(a, b)
+    isinterval(a)
+    set_mod(a, b)
+    randset(n, a, b)
+    polyvals(L, A)
+    polyvals2(L, A, B)
+    set_print(a)
+
+    Demonstration of how the string operators and functions may be used
+    for defining and working with sets of natural numbers not exceeding a
+    user-specified bound.
+
+
+pell.cal
+
+    pellx(D)
+    pell(D)
+
+    Solve Pell's equation; Returns the solution X to: X^2 - D * Y^2 = 1.
+    Type the solution to Pell's equation for a particular D.
+
+
+pi.cal
+
+    qpi(epsilon)
+    piforever()
+
+    The qpi() calculate pi within the specified epsilon using the quartic
+    convergence iteration.
+
+    The piforever() prints digits of pi, nicely formatted, for as long
+    as your free memory space and system up time allows.
+
+    The piforever() function (written by Klaus Alexander Seistrup
+    <klaus@seistrup.dk>) was inspired by an algorithm conceived by
+    Lambert Meertens.  See also the ABC Programmer's Handbook, by Geurts,
+    Meertens & Pemberton, published by Prentice-Hall (UK) Ltd., 1990.
+
+pix.cal
+
+    pi_of_x(x)
+
+    Calculate the number of primes < x using A(n+1)=A(n-1)+A(n-2).  This
+    is a SLOW painful method ... the builtin pix(x) is much faster.
+    Still, this method is interesting.
+
+
+pollard.cal
+
+    pfactor(N, N, ai, af)
+
+    Factor using Pollard's p-1 method.
+
+
+poly.cal
+
+    Calculate with polynomials of one variable.	 There are many functions.
+    Read the documentation in the resource file.
+
+
+prompt.cal
+
+    adder()
+    showvalues(str)
+
+    Demonstration of some uses of prompt() and eval().
+
+
+psqrt.cal
+
+    psqrt(u, p)
+
+    Calculate square roots modulo a prime
+
+
+qtime.cal
+
+    qtime(utc_hr_offset)
+
+    Print the time as English sentence given the hours offset from UTC.
+
+
+quat.cal
+
+    quat(a, b, c, d)
+    quat_print(a)
+    quat_norm(a)
+    quat_abs(a, e)
+    quat_conj(a)
+    quat_add(a, b)
+    quat_sub(a, b)
+    quat_inc(a)
+    quat_dec(a)
+    quat_neg(a)
+    quat_mul(a, b)
+    quat_div(a, b)
+    quat_inv(a)
+    quat_scale(a, b)
+    quat_shift(a, b)
+
+    Calculate using quaternions of the form: a + bi + cj + dk.	In these
+    functions, quaternions are manipulated in the form: s + v, where
+    s is a scalar and v is a vector of size 3.
+
+
+randbitrun.cal
+
+    randbitrun([run_cnt])
+
+    Using randbit(1) to generate a sequence of random bits, determine if
+    the number and length of identical bits runs match what is expected.
+    By default, run_cnt is to test the next 65536 random values.
+
+    This tests the a55 generator.
+
+
+randmprime.cal
+
+    randmprime(bits, seed [,dbg])
+
+    Find a prime of the form h*2^n-1 >= 2^bits for some given x.  The initial
+    search points for 'h' and 'n' are selected by a cryptographic pseudo-random
+    number generator.  The optional argument, dbg, if set to 1, 2 or 3
+    turn on various debugging print statements.
+
+
+randombitrun.cal
+
+    randombitrun([run_cnt])
+
+    Using randombit(1) to generate a sequence of random bits, determine if
+    the number and length of identical bits runs match what is expected.
+    By default, run_cnt is to test the next 65536 random values.
+
+    This tests the Blum-Blum-Shub generator.
+
+
+randomrun.cal
+
+    randomrun([run_cnt])
+
+    Perform the "G. Run test" (pp. 65-68) as found in Knuth's "Art of
+    Computer Programming - 2nd edition", Volume 2, Section 3.3.2 on
+    the builtin rand() function.  This function will generate run_cnt
+    64 bit values.  By default, run_cnt is to test the next 65536
+    random values.
+
+    This tests the Blum-Blum-Shub generator.
+
+
+randrun.cal
+
+    randrun([run_cnt])
+
+    Perform the "G. Run test" (pp. 65-68) as found in Knuth's "Art of
+    Computer Programming - 2nd edition", Volume 2, Section 3.3.2 on
+    the builtin rand() function.  This function will generate run_cnt
+    64 bit values.  By default, run_cnt is to test the next 65536
+    random values.
+
+    This tests the a55 generator.
+
+repeat.cal
+
+    repeat(digit_set, repeat_count)
+
+    Return the value of the digit_set repeated repeat_count times.
+    Both digit_set and repeat_count must be integers > 0.
+
+    For example repeat(423,5) returns the value 423423423423423,
+    which is the digit_set 423 repeated 5 times.
+
+
+regress.cal
+
+    Test the correct execution of the calculator by reading this resource file.
+    Errors are reported with '****' messages, or worse. :-)
+
+
+screen.cal
+
+    up
+    CUU	/* same as up */
+    down = CUD
+    CUD	/* same as down */
+    forward
+    CUF	/* same as forward */
+    back = CUB
+    CUB	/* same as back */
+    save
+    SCP	/* same as save */
+    restore
+    RCP	/* same as restore */
+    cls
+    home
+    eraseline
+    off
+    bold
+    faint
+    italic
+    blink
+    rapidblink
+    reverse
+    concealed
+    /* Lowercase indicates foreground, uppercase background */
+    black
+    red
+    green
+    yellow
+    blue
+    magenta
+    cyan
+    white
+    Black
+    Red
+    Green
+    Yellow
+    Blue
+    Magenta
+    Cyan
+    White
+
+    Define ANSI control sequences providing (i.e., cursor movement, changing
+    foreground or background color, etc.) for VT100 terminals and terminal
+    window emulators (i.e., xterm, Apple OS/X Terminal, etc.) that support them.
+
+    For example:
+
+	read screen
+	print green:"This is green. ":red:"This is red.":black
+
+seedrandom.cal
+
+    seedrandom(seed1, seed2, bitsize [,trials])
+
+    Given:
+	seed1 - a large random value (at least 10^20 and perhaps < 10^93)
+	seed2 - a large random value (at least 10^20 and perhaps < 10^93)
+	size - min Blum modulus as a power of 2 (at least 100, perhaps > 1024)
+	trials - number of ptest() trials (default 25) (optional arg)
+
+    Returns:
+	the previous random state
+
+    Seed the cryptographically strong Blum generator.  This functions allows
+    one to use the raw srandom() without the burden of finding appropriate
+    Blum primes for the modulus.
+
+
+set8700.cal
+
+    set8700_getA1() defined
+    set8700_getA2() defined
+    set8700_getvar() defined
+    set8700_f(set8700_x) defined
+    set8700_g(set8700_x) defined
+
+    Declare globals and define functions needed by dotest() (see
+    dotest.cal) to evaluate set8700.line a line at a time.
+
+
+set8700.line
+
+    A line-by-line evaluation file for dotest() (see dotest.cal).
+    The set8700.cal file (and dotest.cal) should be read first.
+
+
+solve.cal
+
+    solve(low, high, epsilon)
+
+    Solve the equation f(x) = 0 to within the desired error value for x.
+    The function 'f' must be defined outside of this routine, and the low
+    and high values are guesses which must produce values with opposite signs.
+
+
+sumsq.cal
+
+    ss(p)
+
+    Determine the unique two positive integers whose squares sum to the
+    specified prime.  This is always possible for all primes of the form
+    4N+1, and always impossible for primes of the form 4N-1.
+
+
+sumtimes.cal
+
+    timematsum(N)
+    timelistsum(N)
+    timematsort(N)
+    timelistsort(N)
+    timematreverse(N)
+    timelistreverse(N)
+    timematssq(N)
+    timelistssq(N)
+    timehmean(N,M)
+    doalltimes(N)
+
+    Give the user CPU time for various ways of evaluating sums, sums of
+    squares, etc, for large lists and matrices.  N is the size of
+    the list or matrix to use.  The doalltimes() function will run
+    all fo the sumtimes tests.  For example:
+
+    	doalltimes(1e6);
+
+
+surd.cal
+
+    surd(a, b)
+    surd_print(a)
+    surd_conj(a)
+    surd_norm(a)
+    surd_value(a, xepsilon)
+    surd_add(a, b)
+    surd_sub(a, b)
+    surd_inc(a)
+    surd_dec(a)
+    surd_neg(a)
+    surd_mul(a, b)
+    surd_square(a)
+    surd_scale(a, b)
+    surd_shift(a, b)
+    surd_div(a, b)
+    surd_inv(a)
+    surd_sgn(a)
+    surd_cmp(a, b)
+    surd_rel(a, b)
+
+    Calculate using quadratic surds of the form: a + b * sqrt(D).
+
+
+test1700.cal
+
+    value
+
+    This resource files is used by regress.cal to test the read and use keywords.
+
+
+test2600.cal
+
+    global defaultverbose
+    global err
+    testismult(str, n, verbose)
+    testsqrt(str, n, eps, verbose)
+    testexp(str, n, eps, verbose)
+    testln(str, n, eps, verbose)
+    testpower(str, n, b, eps, verbose)
+    testgcd(str, n, verbose)
+    cpow(x, n, eps)
+    cexp(x, eps)
+    cln(x, eps)
+    mkreal()
+    mkcomplex()
+    mkbigreal()
+    mksmallreal()
+    testappr(str, n, verbose)
+    checkappr(x, y, z, verbose)
+    checkresult(x, y, z, a)
+    test2600(verbose, tnum)
+
+    This resource files is used by regress.cal to test some of builtin functions
+    in terms of accuracy and roundoff.
+
+
+test2700.cal
+
+    global defaultverbose
+    mknonnegreal()
+    mkposreal()
+    mkreal_2700()
+    mknonzeroreal()
+    mkposfrac()
+    mkfrac()
+    mksquarereal()
+    mknonsquarereal()
+    mkcomplex_2700()
+    testcsqrt(str, n, verbose)
+    checksqrt(x, y, z, v)
+    checkavrem(A, B, X, eps)
+    checkrounding(s, n, t, u, z)
+    iscomsq(x)
+    test2700(verbose, tnum)
+
+    This resource files is used by regress.cal to test sqrt() for real and
+    complex values.
+
+
+test3100.cal
+
+    obj res
+    global md
+    res_test(a)
+    res_sub(a, b)
+    res_mul(a, b)
+    res_neg(a)
+    res_inv(a)
+    res(x)
+
+    This resource file is used by regress.cal to test determinants of a matrix
+
+
+test3300.cal
+
+    global defaultverbose
+    global err
+    testi(str, n, N, verbose)
+    testr(str, n, N, verbose)
+    test3300(verbose, tnum)
+
+    This resource file is used by regress.cal to provide for more determinant
+    tests.
+
+test3400.cal
+
+    global defaultverbose
+    global err
+    test1(str, n, eps, verbose)
+    test2(str, n, eps, verbose)
+    test3(str, n, eps, verbose)
+    test4(str, n, eps, verbose)
+    test5(str, n, eps, verbose)
+    test6(str, n, eps, verbose)
+    test3400(verbose, tnum)
+
+    This resource file is used by regress.cal to test trig functions.
+    containing objects.
+
+test3500.cal
+
+    global defaultverbose
+    global err
+    testfrem(x, y, verbose)
+    testgcdrem(x, y, verbose)
+    testf(str, n, verbose)
+    testg(str, n, verbose)
+    testh(str, n, N, verbose)
+    test3500(verbose, n, N)
+
+    This resource file is used by regress.cal to test the functions frem,
+    fcnt, gcdrem.
+
+test4000.cal
+
+    global defaultverbose
+    global err
+    global BASEB
+    global BASE
+    global COUNT
+    global SKIP
+    global RESIDUE
+    global MODULUS
+    global K1
+    global H1
+    global K2
+    global H2
+    global K3
+    global H3
+    plen(N) defined
+    rlen(N) defined
+    clen(N) defined
+    ptimes(str, N, n, count, skip, verbose) defined
+    ctimes(str, N, n, count, skip, verbose) defined
+    crtimes(str, a, b, n, count, skip, verbose) defined
+    ntimes(str, N, n, count, skip, residue, mod, verbose) defined
+    testnextcand(str, N, n, cnt, skip, res, mod, verbose) defined
+    testnext1(x, y, count, skip, residue, modulus) defined
+    testprevcand(str, N, n, cnt, skip, res, mod, verbose) defined
+    testprev1(x, y, count, skip, residue, modulus) defined
+    test4000(verbose, tnum) defined
+
+    This resource file is used by regress.cal to test ptest, nextcand and
+    prevcand builtins.
+
+test4100.cal
+
+    global defaultverbose
+    global err
+    global K1
+    global K2
+    global BASEB
+    global BASE
+    rlen_4100(N) defined
+    olen(N) defined
+    test1(x, y, m, k, z1, z2) defined
+    testall(str, n, N, M, verbose) defined
+    times(str, N, n, verbose) defined
+    powtimes(str, N1, N2, n, verbose) defined
+    inittimes(str, N, n, verbose) defined
+    test4100(verbose, tnum) defined
+
+    This resource file is used by regress.cal to test REDC operations.
+
+test4600.cal
+
+    stest(str [, verbose]) defined
+    ttest([m, [n [,verbose]]]) defined
+    sprint(x) defined
+    findline(f,s) defined
+    findlineold(f,s) defined
+    test4600(verbose, tnum) defined
+
+    This resource file is used by regress.cal to test searching in files.
+
+test5100.cal
+
+    global a5100
+    global b5100
+    test5100(x) defined
+
+    This resource file is used by regress.cal to test the new code generator
+    declaration scope and order.
+
+test5200.cal
+
+    global a5200
+    static a5200
+    f5200(x) defined
+    g5200(x) defined
+    h5200(x) defined
+
+    This resource file is used by regress.cal to test the fix of a
+    global/static bug.
+
+test8400.cal
+
+    test8400() defined
+
+    This resource file is used by regress.cal to check for quit-based
+    memory leaks.
+
+test8500.cal
+
+    global err_8500
+    global L_8500
+    global ver_8500
+    global old_seed_8500
+    global cfg_8500
+    onetest_8500(a,b,rnd) defined
+    divmod_8500(N, M1, M2, testnum) defined
+
+    This resource file is used by regress.cal to the // and % operators.
+
+test8600.cal
+
+    global min_8600
+    global max_8600
+    global hash_8600
+    global hmean_8600
+
+    This resource file is used by regress.cal to test a change of
+    allowing up to 1024 args to be passed to a builtin function.
+
+unitfrac.cal
+
+    unitfrac(x)
+
+    Represent a fraction as sum of distinct unit fractions.
+
+
+varargs.cal
+
+    sc(a, b, ...)
+
+    Example program to use 'varargs'.  Program to sum the cubes of all
+    the specified numbers.
+
+xx_print.cal
+
+    is_octet(a) defined
+    list_print(a) defined
+    mat_print (a) defined
+    octet_print(a) defined
+    blk_print(a) defined
+    nblk_print (a) defined
+    strchar(a) defined
+    file_print(a) defined
+    error_print(a) defined
+
+    Demo for the xx_print object routines.
+
+## Copyright (C) 2000  David I. Bell and Landon Curt Noll
+##
+## Primary author: Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.2 $
+## @(#) $Id: README,v 30.2 2010/09/02 06:01:39 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/README,v $
+##
+## Under source code control:	1990/02/15 01:50:32
+## File existed as early as:	before 1990
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* types
+*************
+
+Builtin types
+
+    The calculator has the following built-in types.
+
+    null value
+	    This is the undefined value type.  The function 'null'
+	    returns this value.	 Functions which do not explicitly
+	    return a value return this type.  If a function is called
+	    with fewer parameters than it is defined for, then the
+	    missing parameters have the null type.  The null value is
+	    false if used in an IF test.
+
+    rational numbers
+	    This is the basic data type of the calculator.
+	    These are fractions whose numerators and denominators
+	    can be arbitrarily large.  The fractions are always
+	    in lowest terms.  Integers have a denominator of 1.
+	    The numerator of the number contains the sign, so that
+	    the denominator is always positive.	 When a number is
+	    entered in floating point or exponential notation, it is
+	    immediately converted to the appropriate fractional value.
+	    Printing a value as a floating point or exponential value
+	    involves a conversion from the fractional representation.
+
+	    Numbers are stored in binary format, so that in general,
+	    bit tests and shifts are quicker than multiplies and divides.
+	    Similarly, entering or displaying of numbers in binary,
+	    octal, or hex formats is quicker than in decimal.  The
+	    sign of a number does not affect the bit representation
+	    of a number.
+
+    complex numbers
+	    Complex numbers are composed of real and imaginary parts,
+	    which are both fractions as defined above.	An integer which
+	    is followed by an 'i' character is a pure imaginary number.
+	    Complex numbers such as "2+3i" when typed in, are processed
+	    as the sum of a real and pure imaginary number, resulting
+	    in the desired complex number.  Therefore, parenthesis are
+	    sometimes necessary to avoid confusion, as in the two values:
+
+		    1+2i ^2		(which is -3)
+		    (1+2i) ^2	(which is -3+4i)
+
+	    Similar care is required when entering fractional complex
+	    numbers.  Note the differences below:
+
+		    3/4i		(which is -(3/4)i)
+		    3i/4		(which is (3/4)i)
+
+	    The imaginary unit itself is input using "1i".
+
+    strings
+	    Strings are a sequence of zero or more characters.
+	    They are input using either of the single or double
+	    quote characters.  The quote mark which starts the
+	    string also ends it.  Various special characters can
+	    also be inserted using back-slash.	Example strings:
+
+		    "hello\n"
+		    "that's all"
+		    'lots of """"'
+		    'a'
+		    ""
+
+	    There is no distinction between single character and
+	    multi-character strings.  The 'str' and 'ord' functions
+	    will convert between a single character string and its
+	    numeric value.  The 'str' and 'eval' functions will
+	    convert between longer strings and the corresponding
+	    numeric value (if legal).  The 'strcat', 'strlen', and
+	    'substr' functions are also useful.
+
+    matrices
+	    These are one to four dimensional matrices, whose minimum
+	    and maximum bounds can be specified at runtime.  Unlike C,
+	    the minimum bounds of a matrix do not have to start at 0.
+	    The elements of a matrix can be of any type.  There are
+	    several built-in functions for matrices.  Matrices are
+	    created using the 'mat' statement.
+
+    associations
+	    These are one to four dimensional matrices which can be
+	    indexed by arbitrary values, instead of just integers.
+	    These are also known as associative arrays.	 The elements of
+	    an association can be of any type.	Very few operations are
+	    permitted on an association except for indexing.  Associations
+	    are created using the 'assoc' function.
+
+    lists
+	    These are a sequence of values, which are linked together
+	    so that elements can be easily be inserted or removed
+	    anywhere in the list.  The values can be of any type.
+	    Lists are created using the 'list' function.
+
+    files
+	    These are text files opened using stdio.  Files may be opened
+	    for sequential reading, writing, or appending.  Opening a
+	    file using the 'fopen' function returns a value which can
+	    then be used to perform I/O to that file.  File values can
+	    be copied by normal assignments between variables, or by
+	    using the result of the 'files' function.  Such copies are
+	    indistinguishable from each other.
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: types,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/types,v $
+##
+## Under source code control:	1991/07/21 04:37:24
+## File existed as early as:	1991
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* script
+*************
+
+Calc shell scripts
+------------------
+
+    There are several ways calc may be used in shell scripts.  The
+    syntax for these varies widely for different shells and systems,
+    but common to most are commands like echo, if, for, goto, shift,
+    and exit, as well as the accessing of environment parameters, shell
+    variables, and command-line arguments.
+
+    As a simple example, assuming a C or Bourne shell, let add be a
+    file containing just one line:
+
+	    calc -q -- $1 + $2
+
+    Then:
+
+	    ./add 1.23 4.56
+
+    should respond with the display of:
+
+	    5.9
+
+    The "-q" was included in the command to avoid reading of any
+    start-up calc files which could contain commands not wanted
+    here.  The "--" indicates that there are no more options;
+    without it, if $1 began with '-', calc would interpret it as
+    the first character of another option.  To execute the file,
+    the strings "1.23" and "4.56" were assigned to $1 and $2, so
+    calc was in effect asked to evaluate the string "1.23 + 4.56".
+
+    By making add executable by a command like:
+
+	    chmod u+x add
+
+    the command used here may be simplified to:
+
+	    ./add 1.23 4.56
+
+    Here we shall assume that any script we refer to has been made
+    executable in this way.
+
+    Because $1 and $2, and instructions in the script, are to read
+    by calc as expressions or commands, they may be much more
+    complicated than in the above example, but if they involve
+    characters with special interpretations by the shell (spaces
+    for word separation, * or ? or [ ...] for file-name expansion,
+    ! (without immediately following space) for history expansion,
+    ( ... ) for shell-function arguments, { ... } for brace
+    expansion, $ for parameter or variable expansion, <, <<, >, >>
+    for redirection of input or output, etc.) it will usually be
+    necessary to quote or escape tho characters, or usually more
+    conveniently, quote whole expressions with single or double
+    quotes.
+
+    For example, the add script should have no problem with
+    commands like:
+
+	    ./add "sqrt(2)" "3 * 4"
+
+	    ./add "mat A[2,2] = {1,2,3,4}" "A^2"
+
+	    ./add "2 + 3i" "(3 + 4i)^2"
+
+    If the shell arguments are to be integers, one could use
+    scripts like the following with arithmetic expansion
+    for the bash and ksh:
+
+	    declare -i a=$1
+	    declare -i b=$2
+	    calc -q -- $a + $b
+
+    and for csh:
+
+	    @ a = $1
+	    @ b = $2
+	    calc -q -- $a + $b
+
+    Specifying the shell for a script may be done by including
+    in the script a first line with the "magic number" "#!" and
+    the full file path for the shell as in:
+
+	    #!/bin/bash
+	    declare -i a=$1
+	    declare -i b=$2
+	    calc -q -- $a + $b
+
+    For a script to multiply rather than add two expressions, one
+    could have a file mul with the one line:
+
+	    calc -q -- $1 \* $2
+    or:
+	    calc -q -- "$1 * $2"
+
+    which will work so long as $1 and $2 are literal numbers, but
+    will not work for:
+
+	    ./mul 2+3 4
+    or:
+	    ./mul "2 + 3" 4
+
+    both of which calc interprets as evaluating 2 + 3 * 4.  What should
+    work for most shells is:
+
+	    calc -q -- "($1) * ($2)"
+
+    For adding an arbitrary number of expressions that evaluate to
+    rational numbers expressible with at most 20 decimal places,
+    simple shell script could be used:
+
+	    s=0
+	    for i do
+		    s=`calc -q -- $s + $i`
+	    done
+	    echo sum = $s
+
+    This is not particularly efficient since it calls calc once for
+    each argument.  Also, a more serious script would permit more
+    general numbers.
+
+    Another way of handling a sum of several expressions is with
+    the script addall2 with a here document:
+
+	    calc "-q -s" $* << +

@@ -1,0 +1,1435 @@
+ro.  This means that bit-field instructions count from the
+     most significant bit.  If the machine has no bit-field
+     instructions, then this must still be defined, but it doesn't
+     matter which value it is defined to.  This macro need not be a
+     constant.
+
+     This macro does not affect the way structure fields are packed into
+     bytes or words; that is controlled by `BYTES_BIG_ENDIAN'.
+
+ -- Macro: BYTES_BIG_ENDIAN
+     Define this macro to have the value 1 if the most significant byte
+     in a word has the lowest number.  This macro need not be a
+     constant.
+
+ -- Macro: WORDS_BIG_ENDIAN
+     Define this macro to have the value 1 if, in a multiword object,
+     the most significant word has the lowest number.  This applies to
+     both memory locations and registers; GCC fundamentally assumes
+     that the order of words in memory is the same as the order in
+     registers.  This macro need not be a constant.
+
+ -- Macro: LIBGCC2_WORDS_BIG_ENDIAN
+     Define this macro if `WORDS_BIG_ENDIAN' is not constant.  This
+     must be a constant value with the same meaning as
+     `WORDS_BIG_ENDIAN', which will be used only when compiling
+     `libgcc2.c'.  Typically the value will be set based on
+     preprocessor defines.
+
+ -- Macro: FLOAT_WORDS_BIG_ENDIAN
+     Define this macro to have the value 1 if `DFmode', `XFmode' or
+     `TFmode' floating point numbers are stored in memory with the word
+     containing the sign bit at the lowest address; otherwise define it
+     to have the value 0.  This macro need not be a constant.
+
+     You need not define this macro if the ordering is the same as for
+     multi-word integers.
+
+ -- Macro: BITS_PER_UNIT
+     Define this macro to be the number of bits in an addressable
+     storage unit (byte).  If you do not define this macro the default
+     is 8.
+
+ -- Macro: BITS_PER_WORD
+     Number of bits in a word.  If you do not define this macro, the
+     default is `BITS_PER_UNIT * UNITS_PER_WORD'.
+
+ -- Macro: MAX_BITS_PER_WORD
+     Maximum number of bits in a word.  If this is undefined, the
+     default is `BITS_PER_WORD'.  Otherwise, it is the constant value
+     that is the largest value that `BITS_PER_WORD' can have at
+     run-time.
+
+ -- Macro: UNITS_PER_WORD
+     Number of storage units in a word; normally the size of a
+     general-purpose register, a power of two from 1 or 8.
+
+ -- Macro: MIN_UNITS_PER_WORD
+     Minimum number of units in a word.  If this is undefined, the
+     default is `UNITS_PER_WORD'.  Otherwise, it is the constant value
+     that is the smallest value that `UNITS_PER_WORD' can have at
+     run-time.
+
+ -- Macro: UNITS_PER_SIMD_WORD
+     Number of units in the vectors that the vectorizer can produce.
+     The default is equal to `UNITS_PER_WORD', because the vectorizer
+     can do some transformations even in absence of specialized SIMD
+     hardware.
+
+ -- Macro: POINTER_SIZE
+     Width of a pointer, in bits.  You must specify a value no wider
+     than the width of `Pmode'.  If it is not equal to the width of
+     `Pmode', you must define `POINTERS_EXTEND_UNSIGNED'.  If you do
+     not specify a value the default is `BITS_PER_WORD'.
+
+ -- Macro: POINTERS_EXTEND_UNSIGNED
+     A C expression that determines how pointers should be extended from
+     `ptr_mode' to either `Pmode' or `word_mode'.  It is greater than
+     zero if pointers should be zero-extended, zero if they should be
+     sign-extended, and negative if some other sort of conversion is
+     needed.  In the last case, the extension is done by the target's
+     `ptr_extend' instruction.
+
+     You need not define this macro if the `ptr_mode', `Pmode' and
+     `word_mode' are all the same width.
+
+ -- Macro: PROMOTE_MODE (M, UNSIGNEDP, TYPE)
+     A macro to update M and UNSIGNEDP when an object whose type is
+     TYPE and which has the specified mode and signedness is to be
+     stored in a register.  This macro is only called when TYPE is a
+     scalar type.
+
+     On most RISC machines, which only have operations that operate on
+     a full register, define this macro to set M to `word_mode' if M is
+     an integer mode narrower than `BITS_PER_WORD'.  In most cases,
+     only integer modes should be widened because wider-precision
+     floating-point operations are usually more expensive than their
+     narrower counterparts.
+
+     For most machines, the macro definition does not change UNSIGNEDP.
+     However, some machines, have instructions that preferentially
+     handle either signed or unsigned quantities of certain modes.  For
+     example, on the DEC Alpha, 32-bit loads from memory and 32-bit add
+     instructions sign-extend the result to 64 bits.  On such machines,
+     set UNSIGNEDP according to which kind of extension is more
+     efficient.
+
+     Do not define this macro if it would never modify M.
+
+ -- Macro: PROMOTE_FUNCTION_MODE
+     Like `PROMOTE_MODE', but is applied to outgoing function arguments
+     or function return values, as specified by
+     `TARGET_PROMOTE_FUNCTION_ARGS' and
+     `TARGET_PROMOTE_FUNCTION_RETURN', respectively.
+
+     The default is `PROMOTE_MODE'.
+
+ -- Target Hook: bool TARGET_PROMOTE_FUNCTION_ARGS (tree FNTYPE)
+     This target hook should return `true' if the promotion described by
+     `PROMOTE_FUNCTION_MODE' should be done for outgoing function
+     arguments.
+
+ -- Target Hook: bool TARGET_PROMOTE_FUNCTION_RETURN (tree FNTYPE)
+     This target hook should return `true' if the promotion described by
+     `PROMOTE_FUNCTION_MODE' should be done for the return value of
+     functions.
+
+     If this target hook returns `true', `TARGET_FUNCTION_VALUE' must
+     perform the same promotions done by `PROMOTE_FUNCTION_MODE'.
+
+ -- Macro: PARM_BOUNDARY
+     Normal alignment required for function parameters on the stack, in
+     bits.  All stack parameters receive at least this much alignment
+     regardless of data type.  On most machines, this is the same as the
+     size of an integer.
+
+ -- Macro: STACK_BOUNDARY
+     Define this macro to the minimum alignment enforced by hardware
+     for the stack pointer on this machine.  The definition is a C
+     expression for the desired alignment (measured in bits).  This
+     value is used as a default if `PREFERRED_STACK_BOUNDARY' is not
+     defined.  On most machines, this should be the same as
+     `PARM_BOUNDARY'.
+
+ -- Macro: PREFERRED_STACK_BOUNDARY
+     Define this macro if you wish to preserve a certain alignment for
+     the stack pointer, greater than what the hardware enforces.  The
+     definition is a C expression for the desired alignment (measured
+     in bits).  This macro must evaluate to a value equal to or larger
+     than `STACK_BOUNDARY'.
+
+ -- Macro: FUNCTION_BOUNDARY
+     Alignment required for a function entry point, in bits.
+
+ -- Macro: BIGGEST_ALIGNMENT
+     Biggest alignment that any data type can require on this machine,
+     in bits.  Note that this is not the biggest alignment that is
+     supported, just the biggest alignment that, when violated, may
+     cause a fault.
+
+ -- Macro: MINIMUM_ATOMIC_ALIGNMENT
+     If defined, the smallest alignment, in bits, that can be given to
+     an object that can be referenced in one operation, without
+     disturbing any nearby object.  Normally, this is `BITS_PER_UNIT',
+     but may be larger on machines that don't have byte or half-word
+     store operations.
+
+ -- Macro: BIGGEST_FIELD_ALIGNMENT
+     Biggest alignment that any structure or union field can require on
+     this machine, in bits.  If defined, this overrides
+     `BIGGEST_ALIGNMENT' for structure and union fields only, unless
+     the field alignment has been set by the `__attribute__ ((aligned
+     (N)))' construct.
+
+ -- Macro: ADJUST_FIELD_ALIGN (FIELD, COMPUTED)
+     An expression for the alignment of a structure field FIELD if the
+     alignment computed in the usual way (including applying of
+     `BIGGEST_ALIGNMENT' and `BIGGEST_FIELD_ALIGNMENT' to the
+     alignment) is COMPUTED.  It overrides alignment only if the field
+     alignment has not been set by the `__attribute__ ((aligned (N)))'
+     construct.
+
+ -- Macro: MAX_OFILE_ALIGNMENT
+     Biggest alignment supported by the object file format of this
+     machine.  Use this macro to limit the alignment which can be
+     specified using the `__attribute__ ((aligned (N)))' construct.  If
+     not defined, the default value is `BIGGEST_ALIGNMENT'.
+
+     On systems that use ELF, the default (in `config/elfos.h') is the
+     largest supported 32-bit ELF section alignment representable on a
+     32-bit host e.g. `(((unsigned HOST_WIDEST_INT) 1 << 28) * 8)'.  On
+     32-bit ELF the largest supported section alignment in bits is
+     `(0x80000000 * 8)', but this is not representable on 32-bit hosts.
+
+ -- Macro: DATA_ALIGNMENT (TYPE, BASIC-ALIGN)
+     If defined, a C expression to compute the alignment for a variable
+     in the static store.  TYPE is the data type, and BASIC-ALIGN is
+     the alignment that the object would ordinarily have.  The value of
+     this macro is used instead of that alignment to align the object.
+
+     If this macro is not defined, then BASIC-ALIGN is used.
+
+     One use of this macro is to increase alignment of medium-size data
+     to make it all fit in fewer cache lines.  Another is to cause
+     character arrays to be word-aligned so that `strcpy' calls that
+     copy constants to character arrays can be done inline.
+
+ -- Macro: CONSTANT_ALIGNMENT (CONSTANT, BASIC-ALIGN)
+     If defined, a C expression to compute the alignment given to a
+     constant that is being placed in memory.  CONSTANT is the constant
+     and BASIC-ALIGN is the alignment that the object would ordinarily
+     have.  The value of this macro is used instead of that alignment to
+     align the object.
+
+     If this macro is not defined, then BASIC-ALIGN is used.
+
+     The typical use of this macro is to increase alignment for string
+     constants to be word aligned so that `strcpy' calls that copy
+     constants can be done inline.
+
+ -- Macro: LOCAL_ALIGNMENT (TYPE, BASIC-ALIGN)
+     If defined, a C expression to compute the alignment for a variable
+     in the local store.  TYPE is the data type, and BASIC-ALIGN is the
+     alignment that the object would ordinarily have.  The value of this
+     macro is used instead of that alignment to align the object.
+
+     If this macro is not defined, then BASIC-ALIGN is used.
+
+     One use of this macro is to increase alignment of medium-size data
+     to make it all fit in fewer cache lines.
+
+ -- Macro: EMPTY_FIELD_BOUNDARY
+     Alignment in bits to be given to a structure bit-field that
+     follows an empty field such as `int : 0;'.
+
+     If `PCC_BITFIELD_TYPE_MATTERS' is true, it overrides this macro.
+
+ -- Macro: STRUCTURE_SIZE_BOUNDARY
+     Number of bits which any structure or union's size must be a
+     multiple of.  Each structure or union's size is rounded up to a
+     multiple of this.
+
+     If you do not define this macro, the default is the same as
+     `BITS_PER_UNIT'.
+
+ -- Macro: STRICT_ALIGNMENT
+     Define this macro to be the value 1 if instructions will fail to
+     work if given data not on the nominal alignment.  If instructions
+     will merely go slower in that case, define this macro as 0.
+
+ -- Macro: PCC_BITFIELD_TYPE_MATTERS
+     Define this if you wish to imitate the way many other C compilers
+     handle alignment of bit-fields and the structures that contain
+     them.
+
+     The behavior is that the type written for a named bit-field (`int',
+     `short', or other integer type) imposes an alignment for the entire
+     structure, as if the structure really did contain an ordinary
+     field of that type.  In addition, the bit-field is placed within
+     the structure so that it would fit within such a field, not
+     crossing a boundary for it.
+
+     Thus, on most machines, a named bit-field whose type is written as
+     `int' would not cross a four-byte boundary, and would force
+     four-byte alignment for the whole structure.  (The alignment used
+     may not be four bytes; it is controlled by the other alignment
+     parameters.)
+
+     An unnamed bit-field will not affect the alignment of the
+     containing structure.
+
+     If the macro is defined, its definition should be a C expression;
+     a nonzero value for the expression enables this behavior.
+
+     Note that if this macro is not defined, or its value is zero, some
+     bit-fields may cross more than one alignment boundary.  The
+     compiler can support such references if there are `insv', `extv',
+     and `extzv' insns that can directly reference memory.
+
+     The other known way of making bit-fields work is to define
+     `STRUCTURE_SIZE_BOUNDARY' as large as `BIGGEST_ALIGNMENT'.  Then
+     every structure can be accessed with fullwords.
+
+     Unless the machine has bit-field instructions or you define
+     `STRUCTURE_SIZE_BOUNDARY' that way, you must define
+     `PCC_BITFIELD_TYPE_MATTERS' to have a nonzero value.
+
+     If your aim is to make GCC use the same conventions for laying out
+     bit-fields as are used by another compiler, here is how to
+     investigate what the other compiler does.  Compile and run this
+     program:
+
+          struct foo1
+          {
+            char x;
+            char :0;
+            char y;
+          };
+
+          struct foo2
+          {
+            char x;
+            int :0;
+            char y;
+          };
+
+          main ()
+          {
+            printf ("Size of foo1 is %d\n",
+                    sizeof (struct foo1));
+            printf ("Size of foo2 is %d\n",
+                    sizeof (struct foo2));
+            exit (0);
+          }
+
+     If this prints 2 and 5, then the compiler's behavior is what you
+     would get from `PCC_BITFIELD_TYPE_MATTERS'.
+
+ -- Macro: BITFIELD_NBYTES_LIMITED
+     Like `PCC_BITFIELD_TYPE_MATTERS' except that its effect is limited
+     to aligning a bit-field within the structure.
+
+ -- Target Hook: bool TARGET_ALIGN_ANON_BITFIELDS (void)
+     When `PCC_BITFIELD_TYPE_MATTERS' is true this hook will determine
+     whether unnamed bitfields affect the alignment of the containing
+     structure.  The hook should return true if the structure should
+     inherit the alignment requirements of an unnamed bitfield's type.
+
+ -- Target Hook: bool TARGET_NARROW_VOLATILE_BITFIELDS (void)
+     This target hook should return `true' if accesses to volatile
+     bitfields should use the narrowest mode possible.  It should
+     return `false' if these accesses should use the bitfield container
+     type.
+
+     The default is `!TARGET_STRICT_ALIGN'.
+
+ -- Macro: MEMBER_TYPE_FORCES_BLK (FIELD, MODE)
+     Return 1 if a structure or array containing FIELD should be
+     accessed using `BLKMODE'.
+
+     If FIELD is the only field in the structure, MODE is its mode,
+     otherwise MODE is VOIDmode.  MODE is provided in the case where
+     structures of one field would require the structure's mode to
+     retain the field's mode.
+
+     Normally, this is not needed.
+
+ -- Macro: ROUND_TYPE_ALIGN (TYPE, COMPUTED, SPECIFIED)
+     Define this macro as an expression for the alignment of a type
+     (given by TYPE as a tree node) if the alignment computed in the
+     usual way is COMPUTED and the alignment explicitly specified was
+     SPECIFIED.
+
+     The default is to use SPECIFIED if it is larger; otherwise, use
+     the smaller of COMPUTED and `BIGGEST_ALIGNMENT'
+
+ -- Macro: MAX_FIXED_MODE_SIZE
+     An integer expression for the size in bits of the largest integer
+     machine mode that should actually be used.  All integer machine
+     modes of this size or smaller can be used for structures and
+     unions with the appropriate sizes.  If this macro is undefined,
+     `GET_MODE_BITSIZE (DImode)' is assumed.
+
+ -- Macro: STACK_SAVEAREA_MODE (SAVE_LEVEL)
+     If defined, an expression of type `enum machine_mode' that
+     specifies the mode of the save area operand of a
+     `save_stack_LEVEL' named pattern (*note Standard Names::).
+     SAVE_LEVEL is one of `SAVE_BLOCK', `SAVE_FUNCTION', or
+     `SAVE_NONLOCAL' and selects which of the three named patterns is
+     having its mode specified.
+
+     You need not define this macro if it always returns `Pmode'.  You
+     would most commonly define this macro if the `save_stack_LEVEL'
+     patterns need to support both a 32- and a 64-bit mode.
+
+ -- Macro: STACK_SIZE_MODE
+     If defined, an expression of type `enum machine_mode' that
+     specifies the mode of the size increment operand of an
+     `allocate_stack' named pattern (*note Standard Names::).
+
+     You need not define this macro if it always returns `word_mode'.
+     You would most commonly define this macro if the `allocate_stack'
+     pattern needs to support both a 32- and a 64-bit mode.
+
+ -- Target Hook: enum machine_mode TARGET_LIBGCC_CMP_RETURN_MODE ()
+     This target hook should return the mode to be used for the return
+     value of compare instructions expanded to libgcc calls.  If not
+     defined `word_mode' is returned which is the right choice for a
+     majority of targets.
+
+ -- Target Hook: enum machine_mode TARGET_LIBGCC_SHIFT_COUNT_MODE ()
+     This target hook should return the mode to be used for the shift
+     count operand of shift instructions expanded to libgcc calls.  If
+     not defined `word_mode' is returned which is the right choice for
+     a majority of targets.
+
+ -- Macro: TARGET_FLOAT_FORMAT
+     A code distinguishing the floating point format of the target
+     machine.  There are two defined values:
+
+    `IEEE_FLOAT_FORMAT'
+          This code indicates IEEE floating point.  It is the default;
+          there is no need to define `TARGET_FLOAT_FORMAT' when the
+          format is IEEE.
+
+    `VAX_FLOAT_FORMAT'
+          This code indicates the "F float" (for `float') and "D float"
+          or "G float" formats (for `double') used on the VAX and
+          PDP-11.
+
+     If your target uses a floating point format other than these, you
+     must define a new NAME_FLOAT_FORMAT code for it, and add support
+     for it to `real.c'.
+
+     The ordering of the component words of floating point values
+     stored in memory is controlled by `FLOAT_WORDS_BIG_ENDIAN'.
+
+ -- Macro: MODE_HAS_NANS (MODE)
+     When defined, this macro should be true if MODE has a NaN
+     representation.  The compiler assumes that NaNs are not equal to
+     anything (including themselves) and that addition, subtraction,
+     multiplication and division all return NaNs when one operand is
+     NaN.
+
+     By default, this macro is true if MODE is a floating-point mode
+     and the target floating-point format is IEEE.
+
+ -- Macro: MODE_HAS_INFINITIES (MODE)
+     This macro should be true if MODE can represent infinity.  At
+     present, the compiler uses this macro to decide whether `x - x' is
+     always defined.  By default, the macro is true when MODE is a
+     floating-point mode and the target format is IEEE.
+
+ -- Macro: MODE_HAS_SIGNED_ZEROS (MODE)
+     True if MODE distinguishes between positive and negative zero.
+     The rules are expected to follow the IEEE standard:
+
+        * `x + x' has the same sign as `x'.
+
+        * If the sum of two values with opposite sign is zero, the
+          result is positive for all rounding modes expect towards
+          -infinity, for which it is negative.
+
+        * The sign of a product or quotient is negative when exactly one
+          of the operands is negative.
+
+     The default definition is true if MODE is a floating-point mode
+     and the target format is IEEE.
+
+ -- Macro: MODE_HAS_SIGN_DEPENDENT_ROUNDING (MODE)
+     If defined, this macro should be true for MODE if it has at least
+     one rounding mode in which `x' and `-x' can be rounded to numbers
+     of different magnitude.  Two such modes are towards -infinity and
+     towards +infinity.
+
+     The default definition of this macro is true if MODE is a
+     floating-point mode and the target format is IEEE.
+
+ -- Macro: ROUND_TOWARDS_ZERO
+     If defined, this macro should be true if the prevailing rounding
+     mode is towards zero.  A true value has the following effects:
+
+        * `MODE_HAS_SIGN_DEPENDENT_ROUNDING' will be false for all
+          modes.
+
+        * `libgcc.a''s floating-point emulator will round towards zero
+          rather than towards nearest.
+
+        * The compiler's floating-point emulator will round towards
+          zero after doing arithmetic, and when converting from the
+          internal float format to the target format.
+
+     The macro does not affect the parsing of string literals.  When the
+     primary rounding mode is towards zero, library functions like
+     `strtod' might still round towards nearest, and the compiler's
+     parser should behave like the target's `strtod' where possible.
+
+     Not defining this macro is equivalent to returning zero.
+
+ -- Macro: LARGEST_EXPONENT_IS_NORMAL (SIZE)
+     This macro should return true if floats with SIZE bits do not have
+     a NaN or infinity representation, but use the largest exponent for
+     normal numbers instead.
+
+     Defining this macro to true for SIZE causes `MODE_HAS_NANS' and
+     `MODE_HAS_INFINITIES' to be false for SIZE-bit modes.  It also
+     affects the way `libgcc.a' and `real.c' emulate floating-point
+     arithmetic.
+
+     The default definition of this macro returns false for all sizes.
+
+ -- Target Hook: bool TARGET_VECTOR_OPAQUE_P (tree TYPE)
+     This target hook should return `true' a vector is opaque.  That
+     is, if no cast is needed when copying a vector value of type TYPE
+     into another vector lvalue of the same size.  Vector opaque types
+     cannot be initialized.  The default is that there are no such
+     types.
+
+ -- Target Hook: bool TARGET_MS_BITFIELD_LAYOUT_P (tree RECORD_TYPE)
+     This target hook returns `true' if bit-fields in the given
+     RECORD_TYPE are to be laid out following the rules of Microsoft
+     Visual C/C++, namely: (i) a bit-field won't share the same storage
+     unit with the previous bit-field if their underlying types have
+     different sizes, and the bit-field will be aligned to the highest
+     alignment of the underlying types of itself and of the previous
+     bit-field; (ii) a zero-sized bit-field will affect the alignment of
+     the whole enclosing structure, even if it is unnamed; except that
+     (iii) a zero-sized bit-field will be disregarded unless it follows
+     another bit-field of nonzero size.  If this hook returns `true',
+     other macros that control bit-field layout are ignored.
+
+     When a bit-field is inserted into a packed record, the whole size
+     of the underlying type is used by one or more same-size adjacent
+     bit-fields (that is, if its long:3, 32 bits is used in the record,
+     and any additional adjacent long bit-fields are packed into the
+     same chunk of 32 bits.  However, if the size changes, a new field
+     of that size is allocated).  In an unpacked record, this is the
+     same as using alignment, but not equivalent when packing.
+
+     If both MS bit-fields and `__attribute__((packed))' are used, the
+     latter will take precedence.  If `__attribute__((packed))' is used
+     on a single field when MS bit-fields are in use, it will take
+     precedence for that field, but the alignment of the rest of the
+     structure may affect its placement.
+
+ -- Target Hook: bool TARGET_DECIMAL_FLOAT_SUPPORTED_P (void)
+     Returns true if the target supports decimal floating point.
+
+ -- Target Hook: bool TARGET_FIXED_POINT_SUPPORTED_P (void)
+     Returns true if the target supports fixed-point arithmetic.
+
+ -- Target Hook: void TARGET_EXPAND_TO_RTL_HOOK (void)
+     This hook is called just before expansion into rtl, allowing the
+     target to perform additional initializations or analysis before
+     the expansion.  For example, the rs6000 port uses it to allocate a
+     scratch stack slot for use in copying SDmode values between memory
+     and floating point registers whenever the function being expanded
+     has any SDmode usage.
+
+ -- Target Hook: void TARGET_INSTANTIATE_DECLS (void)
+     This hook allows the backend to perform additional instantiations
+     on rtl that are not actually in any insns yet, but will be later.
+
+ -- Target Hook: const char * TARGET_MANGLE_TYPE (tree TYPE)
+     If your target defines any fundamental types, or any types your
+     target uses should be mangled differently from the default, define
+     this hook to return the appropriate encoding for these types as
+     part of a C++ mangled name.  The TYPE argument is the tree
+     structure representing the type to be mangled.  The hook may be
+     applied to trees which are not target-specific fundamental types;
+     it should return `NULL' for all such types, as well as arguments
+     it does not recognize.  If the return value is not `NULL', it must
+     point to a statically-allocated string constant.
+
+     Target-specific fundamental types might be new fundamental types or
+     qualified versions of ordinary fundamental types.  Encode new
+     fundamental types as `u N NAME', where NAME is the name used for
+     the type in source code, and N is the length of NAME in decimal.
+     Encode qualified versions of ordinary types as `U N NAME CODE',
+     where NAME is the name used for the type qualifier in source code,
+     N is the length of NAME as above, and CODE is the code used to
+     represent the unqualified version of this type.  (See
+     `write_builtin_type' in `cp/mangle.c' for the list of codes.)  In
+     both cases the spaces are for clarity; do not include any spaces
+     in your string.
+
+     This hook is applied to types prior to typedef resolution.  If the
+     mangled name for a particular type depends only on that type's
+     main variant, you can perform typedef resolution yourself using
+     `TYPE_MAIN_VARIANT' before mangling.
+
+     The default version of this hook always returns `NULL', which is
+     appropriate for a target that does not define any new fundamental
+     types.
+
+
+File: gccint.info,  Node: Type Layout,  Next: Registers,  Prev: Storage Layout,  Up: Target Macros
+
+15.6 Layout of Source Language Data Types
+=========================================
+
+These macros define the sizes and other characteristics of the standard
+basic data types used in programs being compiled.  Unlike the macros in
+the previous section, these apply to specific features of C and related
+languages, rather than to fundamental aspects of storage layout.
+
+ -- Macro: INT_TYPE_SIZE
+     A C expression for the size in bits of the type `int' on the
+     target machine.  If you don't define this, the default is one word.
+
+ -- Macro: SHORT_TYPE_SIZE
+     A C expression for the size in bits of the type `short' on the
+     target machine.  If you don't define this, the default is half a
+     word.  (If this would be less than one storage unit, it is rounded
+     up to one unit.)
+
+ -- Macro: LONG_TYPE_SIZE
+     A C expression for the size in bits of the type `long' on the
+     target machine.  If you don't define this, the default is one word.
+
+ -- Macro: ADA_LONG_TYPE_SIZE
+     On some machines, the size used for the Ada equivalent of the type
+     `long' by a native Ada compiler differs from that used by C.  In
+     that situation, define this macro to be a C expression to be used
+     for the size of that type.  If you don't define this, the default
+     is the value of `LONG_TYPE_SIZE'.
+
+ -- Macro: LONG_LONG_TYPE_SIZE
+     A C expression for the size in bits of the type `long long' on the
+     target machine.  If you don't define this, the default is two
+     words.  If you want to support GNU Ada on your machine, the value
+     of this macro must be at least 64.
+
+ -- Macro: CHAR_TYPE_SIZE
+     A C expression for the size in bits of the type `char' on the
+     target machine.  If you don't define this, the default is
+     `BITS_PER_UNIT'.
+
+ -- Macro: BOOL_TYPE_SIZE
+     A C expression for the size in bits of the C++ type `bool' and C99
+     type `_Bool' on the target machine.  If you don't define this, and
+     you probably shouldn't, the default is `CHAR_TYPE_SIZE'.
+
+ -- Macro: FLOAT_TYPE_SIZE
+     A C expression for the size in bits of the type `float' on the
+     target machine.  If you don't define this, the default is one word.
+
+ -- Macro: DOUBLE_TYPE_SIZE
+     A C expression for the size in bits of the type `double' on the
+     target machine.  If you don't define this, the default is two
+     words.
+
+ -- Macro: LONG_DOUBLE_TYPE_SIZE
+     A C expression for the size in bits of the type `long double' on
+     the target machine.  If you don't define this, the default is two
+     words.
+
+ -- Macro: SHORT_FRACT_TYPE_SIZE
+     A C expression for the size in bits of the type `short _Fract' on
+     the target machine.  If you don't define this, the default is
+     `BITS_PER_UNIT'.
+
+ -- Macro: FRACT_TYPE_SIZE
+     A C expression for the size in bits of the type `_Fract' on the
+     target machine.  If you don't define this, the default is
+     `BITS_PER_UNIT * 2'.
+
+ -- Macro: LONG_FRACT_TYPE_SIZE
+     A C expression for the size in bits of the type `long _Fract' on
+     the target machine.  If you don't define this, the default is
+     `BITS_PER_UNIT * 4'.
+
+ -- Macro: LONG_LONG_FRACT_TYPE_SIZE
+     A C expression for the size in bits of the type `long long _Fract'
+     on the target machine.  If you don't define this, the default is
+     `BITS_PER_UNIT * 8'.
+
+ -- Macro: SHORT_ACCUM_TYPE_SIZE
+     A C expression for the size in bits of the type `short _Accum' on
+     the target machine.  If you don't define this, the default is
+     `BITS_PER_UNIT * 2'.
+
+ -- Macro: ACCUM_TYPE_SIZE
+     A C expression for the size in bits of the type `_Accum' on the
+     target machine.  If you don't define this, the default is
+     `BITS_PER_UNIT * 4'.
+
+ -- Macro: LONG_ACCUM_TYPE_SIZE
+     A C expression for the size in bits of the type `long _Accum' on
+     the target machine.  If you don't define this, the default is
+     `BITS_PER_UNIT * 8'.
+
+ -- Macro: LONG_LONG_ACCUM_TYPE_SIZE
+     A C expression for the size in bits of the type `long long _Accum'
+     on the target machine.  If you don't define this, the default is
+     `BITS_PER_UNIT * 16'.
+
+ -- Macro: LIBGCC2_LONG_DOUBLE_TYPE_SIZE
+     Define this macro if `LONG_DOUBLE_TYPE_SIZE' is not constant or if
+     you want routines in `libgcc2.a' for a size other than
+     `LONG_DOUBLE_TYPE_SIZE'.  If you don't define this, the default is
+     `LONG_DOUBLE_TYPE_SIZE'.
+
+ -- Macro: LIBGCC2_HAS_DF_MODE
+     Define this macro if neither `LIBGCC2_DOUBLE_TYPE_SIZE' nor
+     `LIBGCC2_LONG_DOUBLE_TYPE_SIZE' is `DFmode' but you want `DFmode'
+     routines in `libgcc2.a' anyway.  If you don't define this and
+     either `LIBGCC2_DOUBLE_TYPE_SIZE' or
+     `LIBGCC2_LONG_DOUBLE_TYPE_SIZE' is 64 then the default is 1,
+     otherwise it is 0.
+
+ -- Macro: LIBGCC2_HAS_XF_MODE
+     Define this macro if `LIBGCC2_LONG_DOUBLE_TYPE_SIZE' is not
+     `XFmode' but you want `XFmode' routines in `libgcc2.a' anyway.  If
+     you don't define this and `LIBGCC2_LONG_DOUBLE_TYPE_SIZE' is 80
+     then the default is 1, otherwise it is 0.
+
+ -- Macro: LIBGCC2_HAS_TF_MODE
+     Define this macro if `LIBGCC2_LONG_DOUBLE_TYPE_SIZE' is not
+     `TFmode' but you want `TFmode' routines in `libgcc2.a' anyway.  If
+     you don't define this and `LIBGCC2_LONG_DOUBLE_TYPE_SIZE' is 128
+     then the default is 1, otherwise it is 0.
+
+ -- Macro: SF_SIZE
+ -- Macro: DF_SIZE
+ -- Macro: XF_SIZE
+ -- Macro: TF_SIZE
+     Define these macros to be the size in bits of the mantissa of
+     `SFmode', `DFmode', `XFmode' and `TFmode' values, if the defaults
+     in `libgcc2.h' are inappropriate.  By default, `FLT_MANT_DIG' is
+     used for `SF_SIZE', `LDBL_MANT_DIG' for `XF_SIZE' and `TF_SIZE',
+     and `DBL_MANT_DIG' or `LDBL_MANT_DIG' for `DF_SIZE' according to
+     whether `LIBGCC2_DOUBLE_TYPE_SIZE' or
+     `LIBGCC2_LONG_DOUBLE_TYPE_SIZE' is 64.
+
+ -- Macro: TARGET_FLT_EVAL_METHOD
+     A C expression for the value for `FLT_EVAL_METHOD' in `float.h',
+     assuming, if applicable, that the floating-point control word is
+     in its default state.  If you do not define this macro the value of
+     `FLT_EVAL_METHOD' will be zero.
+
+ -- Macro: WIDEST_HARDWARE_FP_SIZE
+     A C expression for the size in bits of the widest floating-point
+     format supported by the hardware.  If you define this macro, you
+     must specify a value less than or equal to the value of
+     `LONG_DOUBLE_TYPE_SIZE'.  If you do not define this macro, the
+     value of `LONG_DOUBLE_TYPE_SIZE' is the default.
+
+ -- Macro: DEFAULT_SIGNED_CHAR
+     An expression whose value is 1 or 0, according to whether the type
+     `char' should be signed or unsigned by default.  The user can
+     always override this default with the options `-fsigned-char' and
+     `-funsigned-char'.
+
+ -- Target Hook: bool TARGET_DEFAULT_SHORT_ENUMS (void)
+     This target hook should return true if the compiler should give an
+     `enum' type only as many bytes as it takes to represent the range
+     of possible values of that type.  It should return false if all
+     `enum' types should be allocated like `int'.
+
+     The default is to return false.
+
+ -- Macro: SIZE_TYPE
+     A C expression for a string describing the name of the data type
+     to use for size values.  The typedef name `size_t' is defined
+     using the contents of the string.
+
+     The string can contain more than one keyword.  If so, separate
+     them with spaces, and write first any length keyword, then
+     `unsigned' if appropriate, and finally `int'.  The string must
+     exactly match one of the data type names defined in the function
+     `init_decl_processing' in the file `c-decl.c'.  You may not omit
+     `int' or change the order--that would cause the compiler to crash
+     on startup.
+
+     If you don't define this macro, the default is `"long unsigned
+     int"'.
+
+ -- Macro: PTRDIFF_TYPE
+     A C expression for a string describing the name of the data type
+     to use for the result of subtracting two pointers.  The typedef
+     name `ptrdiff_t' is defined using the contents of the string.  See
+     `SIZE_TYPE' above for more information.
+
+     If you don't define this macro, the default is `"long int"'.
+
+ -- Macro: WCHAR_TYPE
+     A C expression for a string describing the name of the data type
+     to use for wide characters.  The typedef name `wchar_t' is defined
+     using the contents of the string.  See `SIZE_TYPE' above for more
+     information.
+
+     If you don't define this macro, the default is `"int"'.
+
+ -- Macro: WCHAR_TYPE_SIZE
+     A C expression for the size in bits of the data type for wide
+     characters.  This is used in `cpp', which cannot make use of
+     `WCHAR_TYPE'.
+
+ -- Macro: WINT_TYPE
+     A C expression for a string describing the name of the data type to
+     use for wide characters passed to `printf' and returned from
+     `getwc'.  The typedef name `wint_t' is defined using the contents
+     of the string.  See `SIZE_TYPE' above for more information.
+
+     If you don't define this macro, the default is `"unsigned int"'.
+
+ -- Macro: INTMAX_TYPE
+     A C expression for a string describing the name of the data type
+     that can represent any value of any standard or extended signed
+     integer type.  The typedef name `intmax_t' is defined using the
+     contents of the string.  See `SIZE_TYPE' above for more
+     information.
+
+     If you don't define this macro, the default is the first of
+     `"int"', `"long int"', or `"long long int"' that has as much
+     precision as `long long int'.
+
+ -- Macro: UINTMAX_TYPE
+     A C expression for a string describing the name of the data type
+     that can represent any value of any standard or extended unsigned
+     integer type.  The typedef name `uintmax_t' is defined using the
+     contents of the string.  See `SIZE_TYPE' above for more
+     information.
+
+     If you don't define this macro, the default is the first of
+     `"unsigned int"', `"long unsigned int"', or `"long long unsigned
+     int"' that has as much precision as `long long unsigned int'.
+
+ -- Macro: TARGET_PTRMEMFUNC_VBIT_LOCATION
+     The C++ compiler represents a pointer-to-member-function with a
+     struct that looks like:
+
+            struct {
+              union {
+                void (*fn)();
+                ptrdiff_t vtable_index;
+              };
+              ptrdiff_t delta;
+            };
+
+     The C++ compiler must use one bit to indicate whether the function
+     that will be called through a pointer-to-member-function is
+     virtual.  Normally, we assume that the low-order bit of a function
+     pointer must always be zero.  Then, by ensuring that the
+     vtable_index is odd, we can distinguish which variant of the union
+     is in use.  But, on some platforms function pointers can be odd,
+     and so this doesn't work.  In that case, we use the low-order bit
+     of the `delta' field, and shift the remainder of the `delta' field
+     to the left.
+
+     GCC will automatically make the right selection about where to
+     store this bit using the `FUNCTION_BOUNDARY' setting for your
+     platform.  However, some platforms such as ARM/Thumb have
+     `FUNCTION_BOUNDARY' set such that functions always start at even
+     addresses, but the lowest bit of pointers to functions indicate
+     whether the function at that address is in ARM or Thumb mode.  If
+     this is the case of your architecture, you should define this
+     macro to `ptrmemfunc_vbit_in_delta'.
+
+     In general, you should not have to define this macro.  On
+     architectures in which function addresses are always even,
+     according to `FUNCTION_BOUNDARY', GCC will automatically define
+     this macro to `ptrmemfunc_vbit_in_pfn'.
+
+ -- Macro: TARGET_VTABLE_USES_DESCRIPTORS
+     Normally, the C++ compiler uses function pointers in vtables.  This
+     macro allows the target to change to use "function descriptors"
+     instead.  Function descriptors are found on targets for whom a
+     function pointer is actually a small data structure.  Normally the
+     data structure consists of the actual code address plus a data
+     pointer to which the function's data is relative.
+
+     If vtables are used, the value of this macro should be the number
+     of words that the function descriptor occupies.
+
+ -- Macro: TARGET_VTABLE_ENTRY_ALIGN
+     By default, the vtable entries are void pointers, the so the
+     alignment is the same as pointer alignment.  The value of this
+     macro specifies the alignment of the vtable entry in bits.  It
+     should be defined only when special alignment is necessary. */
+
+ -- Macro: TARGET_VTABLE_DATA_ENTRY_DISTANCE
+     There are a few non-descriptor entries in the vtable at offsets
+     below zero.  If these entries must be padded (say, to preserve the
+     alignment specified by `TARGET_VTABLE_ENTRY_ALIGN'), set this to
+     the number of words in each data entry.
+
+
+File: gccint.info,  Node: Registers,  Next: Register Classes,  Prev: Type Layout,  Up: Target Macros
+
+15.7 Register Usage
+===================
+
+This section explains how to describe what registers the target machine
+has, and how (in general) they can be used.
+
+ The description of which registers a specific instruction can use is
+done with register classes; see *note Register Classes::.  For
+information on using registers to access a stack frame, see *note Frame
+Registers::.  For passing values in registers, see *note Register
+Arguments::.  For returning values in registers, see *note Scalar
+Return::.
+
+* Menu:
+
+* Register Basics::		Number and kinds of registers.
+* Allocation Order::		Order in which registers are allocated.
+* Values in Registers::		What kinds of values each reg can hold.
+* Leaf Functions::		Renumbering registers for leaf functions.
+* Stack Registers::		Handling a register stack such as 80387.
+
+
+File: gccint.info,  Node: Register Basics,  Next: Allocation Order,  Up: Registers
+
+15.7.1 Basic Characteristics of Registers
+-----------------------------------------
+
+Registers have various characteristics.
+
+ -- Macro: FIRST_PSEUDO_REGISTER
+     Number of hardware registers known to the compiler.  They receive
+     numbers 0 through `FIRST_PSEUDO_REGISTER-1'; thus, the first
+     pseudo register's number really is assigned the number
+     `FIRST_PSEUDO_REGISTER'.
+
+ -- Macro: FIXED_REGISTERS
+     An initializer that says which registers are used for fixed
+     purposes all throughout the compiled code and are therefore not
+     available for general allocation.  These would include the stack
+     pointer, the frame pointer (except on machines where that can be
+     used as a general register when no frame pointer is needed), the
+     program counter on machines where that is considered one of the
+     addressable registers, and any other numbered register with a
+     standard use.
+
+     This information is expressed as a sequence of numbers, separated
+     by commas and surrounded by braces.  The Nth number is 1 if
+     register N is fixed, 0 otherwise.
+
+     The table initialized from this macro, and the table initialized by
+     the following one, may be overridden at run time either
+     automatically, by the actions of the macro
+     `CONDITIONAL_REGISTER_USAGE', or by the user with the command
+     options `-ffixed-REG', `-fcall-used-REG' and `-fcall-saved-REG'.
+
+ -- Macro: CALL_USED_REGISTERS
+     Like `FIXED_REGISTERS' but has 1 for each register that is
+     clobbered (in general) by function calls as well as for fixed
+     registers.  This macro therefore identifies the registers that are
+     not available for general allocation of values that must live
+     across function calls.
+
+     If a register has 0 in `CALL_USED_REGISTERS', the compiler
+     automatically saves it on function entry and restores it on
+     function exit, if the register is used within the function.
+
+ -- Macro: CALL_REALLY_USED_REGISTERS
+     Like `CALL_USED_REGISTERS' except this macro doesn't require that
+     the entire set of `FIXED_REGISTERS' be included.
+     (`CALL_USED_REGISTERS' must be a superset of `FIXED_REGISTERS').
+     This macro is optional.  If not specified, it defaults to the value
+     of `CALL_USED_REGISTERS'.
+
+ -- Macro: HARD_REGNO_CALL_PART_CLOBBERED (REGNO, MODE)
+     A C expression that is nonzero if it is not permissible to store a
+     value of mode MODE in hard register number REGNO across a call
+     without some part of it being clobbered.  For most machines this
+     macro need not be defined.  It is only required for machines that
+     do not preserve the entire contents of a register across a call.
+
+ -- Macro: CONDITIONAL_REGISTER_USAGE
+     Zero or more C statements that may conditionally modify five
+     variables `fixed_regs', `call_used_regs', `global_regs',
+     `reg_names', and `reg_class_contents', to take into account any
+     dependence of these register sets on target flags.  The first three
+     of these are of type `char []' (interpreted as Boolean vectors).
+     `global_regs' is a `const char *[]', and `reg_class_contents' is a
+     `HARD_REG_SET'.  Before the macro is called, `fixed_regs',
+     `call_used_regs', `reg_class_contents', and `reg_names' have been
+     initialized from `FIXED_REGISTERS', `CALL_USED_REGISTERS',
+     `REG_CLASS_CONTENTS', and `REGISTER_NAMES', respectively.
+     `global_regs' has been cleared, and any `-ffixed-REG',
+     `-fcall-used-REG' and `-fcall-saved-REG' command options have been
+     applied.
+
+     You need not define this macro if it has no work to do.
+
+     If the usage of an entire class of registers depends on the target
+     flags, you may indicate this to GCC by using this macro to modify
+     `fixed_regs' and `call_used_regs' to 1 for each of the registers
+     in the classes which should not be used by GCC.  Also define the
+     macro `REG_CLASS_FROM_LETTER' / `REG_CLASS_FROM_CONSTRAINT' to
+     return `NO_REGS' if it is called with a letter for a class that
+     shouldn't be used.
+
+     (However, if this class is not included in `GENERAL_REGS' and all
+     of the insn patterns whose constraints permit this class are
+     controlled by target switches, then GCC will automatically avoid
+     using these registers when the target switches are opposed to
+     them.)
+
+ -- Macro: INCOMING_REGNO (OUT)
+     Define this macro if the target machine has register windows.
+     This C expression returns the register number as seen by the
+     called function corresponding to the register number OUT as seen
+     by the calling function.  Return OUT if register number OUT is not
+     an outbound register.
+
+ -- Macro: OUTGOING_REGNO (IN)
+     Define this macro if the target machine has register windows.
+     This C expression returns the register number as seen by the
+     calling function corresponding to the register number IN as seen
+     by the called function.  Return IN if register number IN is not an
+     inbound register.
+
+ -- Macro: LOCAL_REGNO (REGNO)
+     Define this macro if the target machine has register windows.
+     This C expression returns true if the register is call-saved but
+     is in the register window.  Unlike most call-saved registers, such
+     registers need not be explicitly restored on function exit or
+     during non-local gotos.
+
+ -- Macro: PC_REGNUM
+     If the program counter has a register number, define this as that
+     register number.  Otherwise, do not define it.
+
+
+File: gccint.info,  Node: Allocation Order,  Next: Values in Registers,  Prev: Register Basics,  Up: Registers
+
+15.7.2 Order of Allocation of Registers
+---------------------------------------
+
+Registers are allocated in order.
+
+ -- Macro: REG_ALLOC_ORDER
+     If defined, an initializer for a vector of integers, containing the
+     numbers of hard registers in the order in which GCC should prefer
+     to use them (from most preferred to least).
+
+     If this macro is not defined, registers are used lowest numbered
+     first (all else being equal).
+
+     One use of this macro is on machines where the highest numbered
+     registers must always be saved and the save-multiple-registers
+     instruction supports only sequences of consecutive registers.  On
+     such machines, define `REG_ALLOC_ORDER' to be an initializer that
+     lists the highest numbered allocable register first.
+
+ -- Macro: ORDER_REGS_FOR_LOCAL_ALLOC
+     A C statement (sans semicolon) to choose the order in which to
+     allocate hard registers for pseudo-registers local to a basic
+     block.
+
+     Store the desired register order in the array `reg_alloc_order'.
+     Element 0 should be the register to allocate first; element 1, the
+     next register; and so on.
+
+     The macro body should not assume anything about the contents of
+     `reg_alloc_order' before execution of the macro.
+
+     On most machines, it is not necessary to define this macro.
+
+
+File: gccint.info,  Node: Values in Registers,  Next: Leaf Functions,  Prev: Allocation Order,  Up: Registers
+
+15.7.3 How Values Fit in Registers
+----------------------------------
+
+This section discusses the macros that describe which kinds of values
+(specifically, which machine modes) each register can hold, and how many
+consecutive registers are needed for a given mode.
+
+ -- Macro: HARD_REGNO_NREGS (REGNO, MODE)
+     A C expression for the number of consecutive hard registers,
+     starting at register number REGNO, required to hold a value of mode
+     MODE.  This macro must never return zero, even if a register
+     cannot hold the requested mode - indicate that with
+     HARD_REGNO_MODE_OK and/or CANNOT_CHANGE_MODE_CLASS instead.
+
+     On a machine where all registers are exactly one word, a suitable
+     definition of this macro is
+
+          #define HARD_REGNO_NREGS(REGNO, MODE)            \
+             ((GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1)  \
+              / UNITS_PER_WORD)
+
+ -- Macro: HARD_REGNO_NREGS_HAS_PADDING (REGNO, MODE)
+     A C expression that is nonzero if a value of mode MODE, stored in
+     memory, ends with padding that causes it to take up more space than
+     in registers starting at register number REGNO (as determined by
+     multiplying GCC's notion of the size of the register when
+     containing this mode by the number of registers returned by
+     `HARD_REGNO_NREGS').  By default this is zero.
+
+     For example, if a floating-point value is stored in three 32-bit
+     registers but takes up 128 bits in memory, then this would be
+     nonzero.
+
+     This macros only needs to be defined if there are cases where
+     `subreg_get_info' would otherwise wrongly determine that a
+     `subreg' can be represented by an offset to the register number,
+     when in fact such a `subreg' would contain some of the padding not
+     stored in registers and so not be representable.
+
+ -- Macro: HARD_REGNO_NREGS_WITH_PADDING (REGNO, MODE)
+     For values of REGNO and MODE for which
+     `HARD_REGNO_NREGS_HAS_PADDING' returns nonzero, a C expression
+     returning the greater number of registers required to hold the
+     value including any padding.  In the example above, the value
+     would be four.
+
+ -- Macro: REGMODE_NATURAL_SIZE (MODE)
+     Define this macro if the natural size of registers that hold values
+     of mode MODE is not the word size.  It is a C expression that
+     should give the natural size in bytes for the specified mode.  It
+     is used by the register allocator to try to optimize its results.
+     This happens for example on SPARC 64-bit where the natural size of
+     floating-point registers is still 32-bit.
+
+ -- Macro: HARD_REGNO_MODE_OK (REGNO, MODE)
+     A C expression that is nonzero if it is permissible to store a
+     value of mode MODE in hard register number REGNO (or in several
+     registers starting with that one).  For a machine where all
+     registers are equivalent, a suitable definition is
+
+          #define HARD_REGNO_MODE_OK(REGNO, MODE) 1
+
+     You need not include code to check for the numbers of fixed
+     registers, because the allocation mechanism considers them to be
+     always occupied.
+
+     On some machines, double-precision values must be kept in even/odd
+     register pairs.  You can implement that by defining this macro to
+     reject odd register numbers for such modes.
+
+     The minimum requirement for a mode to be OK in a register is that
+     the `movMODE' instruction pattern support moves between the
+     register and other hard register in the same class and that moving
+     a value into the register and back out not alter it.
+
+     Since the same instruction used to move `word_mode' will work for
+     all narrower integer modes, it is not necessary on any machine for
+     `HARD_REGNO_MODE_OK' to distinguish between these modes, provided
+     you define patterns `movhi', etc., to take advantage of this.  This
+     is useful because of the interaction between `HARD_REGNO_MODE_OK'
+     and `MODES_TIEABLE_P'; it is very desirable for all integer modes
+     to be tieable.
+
+     Many machines have special registers for floating point arithmetic.
+     Often people assume that floating point machine modes are allowed
+     only in floating point registers.  This is not true.  Any
+     registers that can hold integers can safely _hold_ a floating
+     point machine mode, whether or not floating arithmetic can be done
+     on it in those registers.  Integer move instructions can be used
+     to move the values.
+
+     On some machines, though, the converse is true: fixed-point machine
+     modes may not go in floating registers.  This is true if the
+     floating registers normalize any value stored in them, because
+     storing a non-floating value there would garble it.  In this case,
+     `HARD_REGNO_MODE_OK' should reject fixed-point machine modes in
+     floating registers.  But if the floating registers do not
+     automatically normalize, if you can store any bit pattern in one
+     and retrieve it unchanged without a trap, then any machine mode
+     may go in a floating register, so you can define this macro to say
+     so.
+
+     The primary significance of special floating registers is rather
+     that they are the registers acceptable in floating point arithmetic
+     instructions.  However, this is of no concern to
+     `HARD_REGNO_MODE_OK'.  You handle it by writing the proper
+     constraints for those instructions.
+
+     On some machines, the floating registers are especially slow to
+     access, so that it is better to store a value in a stack frame
+     than in such a register if floating point arithmetic is not being
+     done.  As long as the floating registers are not in class
+     `GENERAL_REGS', they will not be used unless some pattern's
+     constraint asks for one.
+
+ -- Macro: HARD_REGNO_RENAME_OK (FROM, TO)
+     A C expression that is nonzero if it is OK to rename a hard
+     register FROM to another hard register TO.
+
+     One common use of this macro is to prevent renaming of a register
+     to another register that is not saved by a prologue in an interrupt
+     handler.
+
+     The default is always nonzero.
+
+ -- Macro: MODES_TIEABLE_P (MODE1, MODE2)
+     A C expression that is nonzero if a value of mode MODE1 is
+     accessible in mode MODE2 without copying.
+
+     If `HARD_REGNO_MODE_OK (R, MODE1)' and `HARD_REGNO_MODE_OK (R,
+     MODE2)' are always the same for any R, then `MODES_TIEABLE_P
+     (MODE1, MODE2)' should be nonzero.  If they differ for any R, you
+     should define this macro to return zero unless some other
+     mechanism ensures the accessibility of the value in a narrower
+     mode.
+
+     You should define this macro to return nonzero in as many cases as
+     possible since doing so will allow GCC to perform better register
+     allocation.
+
+ -- Macro: AVOID_CCMODE_COPIES
+     Define this macro if the compiler should avoid copies to/from
+     `CCmode' registers.  You should only define this macro if support
+     for copying to/from `CCmode' is incomplete.
+
+
+File: gccint.info,  Node: Leaf Functions,  Next: Stack Registers,  Prev: Values in Registers,  Up: Registers
+
+15.7.4 Handling Leaf Functions
+------------------------------
+
+On some machines, a leaf function (i.e., one which makes no calls) can
+run more efficiently if it does not make its own register window.
+Often this means it is required to receive its arguments in the
+registers where they are passed by the caller, instead of the registers
+where they would normally arrive.
+
+ The special treatment for leaf functions generally applies only when
+other conditions are met; for example, often they may use only those
+registers for its own variables and temporaries.  We use the term "leaf
+function" to mean a function that is suitable for this special
+handling, so that functions with no calls are not necessarily "leaf
+functions".
+
+ GCC assigns register numbers before it knows whether the function is
+suitable for leaf function treatment.  So it needs to renumber the
+registers in order to output a leaf function.  The following macros
+accomplish this.
+
+ -- Macro: LEAF_REGISTERS
+     Name of a char vector, indexed by hard register number, which
+     contains 1 for a register that is allowable in a candidate for leaf
+     function treatment.
+
+     If leaf function treatment involves renumbering the registers,
+     then the registers marked here should be the ones before
+     renumbering--those that GCC would ordinarily allocate.  The
+     registers which will actually be used in the assembler code, after
+     renumbering, should not be marked with 1 in this vector.
+
+     Define this macro only if the target machine offers a way to
+     optimize the treatment of leaf functions.
+
+ -- Macro: LEAF_REG_REMAP (REGNO)
+     A C expression whose value is the register number to which REGNO
+     should be renumbered, when a function is treated as a leaf
+     function.
+
+     If REGNO is a register number which should not appear in a leaf
+     function before renumbering, then the expression should yield -1,
+     which will cause the compiler to abort.
+
+     Define this macro only if the target machine offers a way to
+     optimize the treatment of leaf functions, and registers need to be
+     renumbered to do this.
+
+ `TARGET_ASM_FUNCTION_PROLOGUE' and `TARGET_ASM_FUNCTION_EPILOGUE' must
+usually treat leaf functions specially.  They can test the C variable
+`current_function_is_leaf' which is nonzero for leaf functions.
+`current_function_is_leaf' is set prior to local register allocation
+and is valid for the remaining compiler passes.  They can also test the
+C variable `current_function_uses_only_leaf_regs' which is nonzero for
+leaf functions which only use leaf registers.
+`current_function_uses_only_leaf_regs' is valid after all passes that
+modify the instructions have been run and is only useful if
+`LEAF_REGISTERS' is defined.
+
+
+File: gccint.info,  Node: Stack Registers,  Prev: Leaf Functions,  Up: Registers
+
+15.7.5 Registers That Form a Stack
+----------------------------------
+
+There are special features to handle computers where some of the
+"registers" form a stack.  Stack registers are normally written by
+pushing onto the stack, and are numbered relative to the top of the
+stack.
+
+ Currently, GCC can only handle one group of stack-like registers, and
+they must be consecutively numbered.  Furthermore, the existing support
+for stack-like registers is specific to the 80387 floating point
+coprocessor.  If you have a new architecture that uses stack-like
+registers, you will need to do substantial work on `reg-stack.c' and
+write your machine description to cooperate with it, as well as
+defining these macros.
+
+ -- Macro: STACK_REGS
+     Define this if the machine has any stack-like registers.
+
+ -- Macro: FIRST_STACK_REG
+     The number of the first stack-like register.  This one is the top
+     of the stack.
+
+ -- Macro: LAST_STACK_REG
+     The number of the last stack-like register.  This one is the
+     bottom of the stack.
+
+
+File: gccint.info,  Node: Register Classes,  Next: Old Constraints,  Prev: Registers,  Up: Target Macros
+
+15.8 Register Classes
+=====================
+
+On many machines, the numbered registers are not all equivalent.  For
+example, certain registers may not be allowed for indexed addressing;
+certain registers may not be allowed in some instructions.  These
+machine restrictions are described to the compiler using "register
+classes".
+
+ You define a number of register classes, giving each one a name and
+saying which of the registers belong to it.  Then you can specify
+register classes that are allowed as operands to particular instruction
+patterns.
+
+ In general, each register will belong to several classes.  In fact, one
+class must be named `ALL_REGS' and contain all the registers.  Another
+class must be named `NO_REGS' and contain no registers.  Often the
+union of two classes will be another class; however, this is not
+required.
+
+ One of the classes must be named `GENERAL_REGS'.  There is nothing
+terribly special about the name, but the operand constraint letters `r'
+and `g' specify this class.  If `GENERAL_REGS' is the same as
+`ALL_REGS', just define it as a macro which expands to `ALL_REGS'.
+
+ Order the classes so that if class X is contained in class Y then X
+has a lower class number than Y.
+
+ The way classes other than `GENERAL_REGS' are specified in operand
+constraints is through machine-dependent operand constraint letters.
+You can define such letters to correspond to various classes, then use
+them in operand constraints.
+
+ You should define a class for the union of two classes whenever some
+instruction allows both classes.  For example, if an instruction allows
+either a floating point (coprocessor) register or a general register
+for a certain operand, you should define a class `FLOAT_OR_GENERAL_REGS'
+which includes both of them.  Otherwise you will get suboptimal code.
+
+ You must also specify certain redundant information about the register
+classes: for each class, which classes contain it and which ones are
+contained in it; for each pair of classes, the largest class contained
+in their union.
+
+ When a value occupying several consecutive registers is expected in a
+certain class, all the registers used must belong to that class.
+Therefore, register classes cannot be used to enforce a requirement for
+a register pair to start with an even-numbered register.  The way to
+specify this requirement is with `HARD_REGNO_MODE_OK'.
+
+ Register classes used for input-operands of bitwise-and or shift
+instructions have a special requirement: each such class must have, for
+each fixed-point machine mode, a subclass whose registers can transfer
+that mode to or from memory.  For example, on some machines, the
+operations for single-byte values (`QImode') are limited to certain
+registers.  When this is so, each register class that is used in a
+bitwise-and or shift instruction must have a subclass consisting of
+registers from which single-byte values can be loaded or stored.  This
+is so that `PREFERRED_RELOAD_CLASS' can always have a possible value to
+return.
+
+ -- Data type: enum reg_class
+     An enumerated type that must be defined with all the register
+     class names as enumerated values.  `NO_REGS' must be first.
+     `ALL_REGS' must be the last register class, followed by one more
+     enumerated value, `LIM_REG_CLASSES', which is not a register class
+     but rather tells how many classes there are.
+
+     Each register class has a number, which is the value of casting
+     the class name to type `int'.  The number serves as an index in
+     many of the tables described below.
+
+ -- Macro: N_REG_CLASSES
+     The number of distinct register classes, defined as follows:
+
+          #define N_REG_CLASSES (int) LIM_REG_CLASSES
+
+ -- Macro: REG_CLASS_NAMES
+     An initializer containing the names of the register classes as C
+     string constants.  These names are used in writing some of the
+     debugging dumps.
+
+ -- Macro: REG_CLASS_CONTENTS
+     An initializer containing the contents of the register classes, as
+     integers which are bit masks.  The Nth integer specifies the
+     contents of class N.  The way the integer MASK is interpreted is
+     that register R is in the class if `MASK & (1 << R)' is 1.
+
+     When the machine has more than 32 registers, an integer does not
+     suffice.  Then the integers are replaced by sub-initializers,
+     braced groupings containing several integers.  Each
+     sub-initializer must be suitable as an initializer for the type
+     `HARD_REG_SET' which is defined in `hard-reg-set.h'.  In this
+     situation, the first integer in each sub-initializer corresponds to
+     registers 0 through 31, the second integer to registers 32 through
+     63, and so on.
+
+ -- Macro: REGNO_REG_CLASS (REGNO)
+     A C expression whose value is a register class containing hard
+     register REGNO.  In general there is more than one such class;
+     choose a class which is "minimal", meaning that no smaller class
+     also contains the register.
+
+ -- Macro: BASE_REG_CLASS
+     A macro whose definition is the name of the class to which a valid
+     base register must belong.  A base register is one used in an
+     address which is the register value plus a displacement.
+
+ -- Macro: MODE_BASE_REG_CLASS (MODE)
+     This is a variation of the `BASE_REG_CLASS' macro which allows the
+     selection of a base register in a mode dependent manner.  If MODE
+     is VOIDmode then it should return the same value as
+     `BASE_REG_CLASS'.
+
+ -- Macro: MODE_BASE_REG_REG_CLASS (MODE)
+     A C expression whose value is the register class to which a valid
+     base register must belong in order to be used in a base plus index
+     register address.  You should define this macro if base plus index
+     addresses have different requirements than other base register
+     uses.
+
+ -- Macro: MODE_CODE_BASE_REG_CLASS (MODE, OUTER_CODE, INDEX_CODE)
+     A C expression whose value is the register class to which a valid
+     base register must belong.  OUTER_CODE and INDEX_CODE define the
+     context in which the base register occurs.  OUTER_CODE is the code
+     of the immediately enclosing expression (`MEM' for the top level
+     of an address, `ADDRESS' for something that occurs in an
+     `address_operand').  INDEX_CODE is the code of the corresponding
+     index expression if OUTER_CODE is `PLUS'; `SCRATCH' otherwise.
+
+ -- Macro: INDEX_REG_CLASS
+     A macro whose definition is the name of the class to which a valid
+     index register must belong.  An index register is one used in an
+     address where its value is either multiplied by a scale factor or
+     added to another register (as well as added to a displacement).
+
+ -- Macro: REGNO_OK_FOR_BASE_P (NUM)
+     A C expression which is nonzero if register number NUM is suitable
+     for use as a base register in operand addresses.  It may be either
+     a suitable hard register or a pseudo register that has been
+     allocated such a hard register.
+
+ -- Macro: REGNO_MODE_OK_FOR_BASE_P (NUM, MODE)
+     A C expression that is just like `REGNO_OK_FOR_BASE_P', except that
+     that expression may examine the mode of the memory reference in
+     MODE.  You should define this macro if the mode of the memory
+     reference affects whether a register may be used as a base
+     register.  If you define this macro, the compiler will use it
+     instead of `REGNO_OK_FOR_BASE_P'.  The mode may be `VOIDmode' for
+     addresses that appear outside a `MEM', 

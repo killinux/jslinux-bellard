@@ -1,0 +1,2218 @@
+		set options [join [lrange $sorted 0 end-1] ", "]
+		append options ", or [lindex $sorted end]"
+		return -code error "bad option \"$flag\": must be $options"
+	    }
+	}
+
+	# store whatever the user gave us
+	foreach item [array names testAttributes] {
+	    set [string trimleft $item "-"] $testAttributes($item)
+	}
+
+	# Check the values supplied for -match
+	variable CustomMatch
+	if {[lsearch [array names CustomMatch] $match] == -1} {
+	    incr testLevel -1
+	    set sorted [lsort [array names CustomMatch]]
+	    set values [join [lrange $sorted 0 end-1] ", "]
+	    append values ", or [lindex $sorted end]"
+	    return -code error "bad -match value \"$match\":\
+		    must be $values"
+	}
+
+	# Replace symbolic valies supplied for -returnCodes
+	foreach {strcode numcode} {ok 0 normal 0 error 1 return 2 break 3 continue 4} {
+	    set returnCodes [string map -nocase [list $strcode $numcode] $returnCodes]
+	}
+    } else {
+	# This is parsing for the old test command format; it is here
+	# for backward compatibility.
+	set result [lindex $args end]
+	if {[llength $args] == 2} {
+	    set body [lindex $args 0]
+	} elseif {[llength $args] == 3} {
+	    set constraints [lindex $args 0]
+	    set body [lindex $args 1]
+	} else {
+	    incr testLevel -1
+	    return -code error "wrong # args:\
+		    should be \"test name desc ?options?\""
+	}
+    }
+
+    if {[Skipped $name $constraints]} {
+	incr testLevel -1
+	return
+    }
+
+    # Save information about the core file.  
+    if {[preserveCore]} {
+	if {[file exists [file join [workingDirectory] core]]} {
+	    set coreModTime [file mtime [file join [workingDirectory] core]]
+	}
+    }
+
+    # First, run the setup script
+    set code [catch {uplevel 1 $setup} setupMsg]
+    if {$code == 1} {
+	set errorInfo(setup) $::errorInfo
+	set errorCode(setup) $::errorCode
+    }
+    set setupFailure [expr {$code != 0}]
+
+    # Only run the test body if the setup was successful
+    if {!$setupFailure} {
+
+	# Verbose notification of $body start
+	if {[IsVerbose start]} {
+	    puts [outputChannel] "---- $name start"
+	    flush [outputChannel]
+	}
+
+	set command [list [namespace origin RunTest] $name $body]
+	if {[info exists output] || [info exists errorOutput]} {
+	    set testResult [uplevel 1 [list [namespace origin Eval] $command 0]]
+	} else {
+	    set testResult [uplevel 1 [list [namespace origin Eval] $command 1]]
+	}
+	foreach {actualAnswer returnCode} $testResult break
+	if {$returnCode == 1} {
+	    set errorInfo(body) $::errorInfo
+	    set errorCode(body) $::errorCode
+	}
+    }
+
+    # Always run the cleanup script
+    set code [catch {uplevel 1 $cleanup} cleanupMsg]
+    if {$code == 1} {
+	set errorInfo(cleanup) $::errorInfo
+	set errorCode(cleanup) $::errorCode
+    }
+    set cleanupFailure [expr {$code != 0}]
+
+    set coreFailure 0
+    set coreMsg ""
+    # check for a core file first - if one was created by the test,
+    # then the test failed
+    if {[preserveCore]} {
+	if {[file exists [file join [workingDirectory] core]]} {
+	    # There's only a test failure if there is a core file
+	    # and (1) there previously wasn't one or (2) the new
+	    # one is different from the old one.
+	    if {[info exists coreModTime]} {
+		if {$coreModTime != [file mtime \
+			[file join [workingDirectory] core]]} {
+		    set coreFailure 1
+		}
+	    } else {
+		set coreFailure 1
+	    }
+	
+	    if {([preserveCore] > 1) && ($coreFailure)} {
+		append coreMsg "\nMoving file to:\
+		    [file join [temporaryDirectory] core-$name]"
+		catch {file rename -force \
+		    [file join [workingDirectory] core] \
+		    [file join [temporaryDirectory] core-$name]
+		} msg
+		if {[string length $msg] > 0} {
+		    append coreMsg "\nError:\
+			Problem renaming core file: $msg"
+		}
+	    }
+	}
+    }
+
+    # check if the return code matched the expected return code
+    set codeFailure 0
+    if {!$setupFailure && [lsearch -exact $returnCodes $returnCode] == -1} {
+	set codeFailure 1
+    }
+
+    # If expected output/error strings exist, we have to compare
+    # them.  If the comparison fails, then so did the test.
+    set outputFailure 0
+    variable outData
+    if {[info exists output] && !$codeFailure} {
+	if {[set outputCompare [catch {
+	    CompareStrings $outData $output $match
+	} outputMatch]] == 0} {
+	    set outputFailure [expr {!$outputMatch}]
+	} else {
+	    set outputFailure 1
+	}
+    }
+
+    set errorFailure 0
+    variable errData
+    if {[info exists errorOutput] && !$codeFailure} {
+	if {[set errorCompare [catch {
+	    CompareStrings $errData $errorOutput $match
+	} errorMatch]] == 0} {
+	    set errorFailure [expr {!$errorMatch}]
+	} else {
+	    set errorFailure 1
+	}
+    }
+
+    # check if the answer matched the expected answer
+    # Only check if we ran the body of the test (no setup failure)
+    if {$setupFailure || $codeFailure} {
+	set scriptFailure 0
+    } elseif {[set scriptCompare [catch {
+	CompareStrings $actualAnswer $result $match
+    } scriptMatch]] == 0} {
+	set scriptFailure [expr {!$scriptMatch}]
+    } else {
+	set scriptFailure 1
+    }
+
+    # if we didn't experience any failures, then we passed
+    variable numTests
+    if {!($setupFailure || $cleanupFailure || $coreFailure
+	    || $outputFailure || $errorFailure || $codeFailure
+	    || $scriptFailure)} {
+	if {$testLevel == 1} {
+	    incr numTests(Passed)
+	    if {[IsVerbose pass]} {
+		puts [outputChannel] "++++ $name PASSED"
+	    }
+	}
+	incr testLevel -1
+	return
+    }
+
+    # We know the test failed, tally it...
+    if {$testLevel == 1} {
+	incr numTests(Failed)
+    }
+
+    # ... then report according to the type of failure
+    variable currentFailure true
+    if {![IsVerbose body]} {
+	set body ""
+    }	
+    puts [outputChannel] "\n==== $name\
+	    [string trim $description] FAILED"
+    if {[string length $body]} {
+	puts [outputChannel] "==== Contents of test case:"
+	puts [outputChannel] $body
+    }
+    if {$setupFailure} {
+	puts [outputChannel] "---- Test setup\
+		failed:\n$setupMsg"
+	if {[info exists errorInfo(setup)]} {
+	    puts [outputChannel] "---- errorInfo(setup): $errorInfo(setup)"
+	    puts [outputChannel] "---- errorCode(setup): $errorCode(setup)"
+	}
+    }
+    if {$scriptFailure} {
+	if {$scriptCompare} {
+	    puts [outputChannel] "---- Error testing result: $scriptMatch"
+	} else {
+	    puts [outputChannel] "---- Result was:\n$actualAnswer"
+	    puts [outputChannel] "---- Result should have been\
+		    ($match matching):\n$result"
+	}
+    }
+    if {$codeFailure} {
+	switch -- $returnCode {
+	    0 { set msg "Test completed normally" }
+	    1 { set msg "Test generated error" }
+	    2 { set msg "Test generated return exception" }
+	    3 { set msg "Test generated break exception" }
+	    4 { set msg "Test generated continue exception" }
+	    default { set msg "Test generated exception" }
+	}
+	puts [outputChannel] "---- $msg; Return code was: $returnCode"
+	puts [outputChannel] "---- Return code should have been\
+		one of: $returnCodes"
+	if {[IsVerbose error]} {
+	    if {[info exists errorInfo(body)] && ([lsearch $returnCodes 1]<0)} {
+		puts [outputChannel] "---- errorInfo: $errorInfo(body)"
+		puts [outputChannel] "---- errorCode: $errorCode(body)"
+	    }
+	}
+    }
+    if {$outputFailure} {
+	if {$outputCompare} {
+	    puts [outputChannel] "---- Error testing output: $outputMatch"
+	} else {
+	    puts [outputChannel] "---- Output was:\n$outData"
+	    puts [outputChannel] "---- Output should have been\
+		    ($match matching):\n$output"
+	}
+    }
+    if {$errorFailure} {
+	if {$errorCompare} {
+	    puts [outputChannel] "---- Error testing errorOutput: $errorMatch"
+	} else {
+	    puts [outputChannel] "---- Error output was:\n$errData"
+	    puts [outputChannel] "---- Error output should have\
+		    been ($match matching):\n$errorOutput"
+	}
+    }
+    if {$cleanupFailure} {
+	puts [outputChannel] "---- Test cleanup failed:\n$cleanupMsg"
+	if {[info exists errorInfo(cleanup)]} {
+	    puts [outputChannel] "---- errorInfo(cleanup): $errorInfo(cleanup)"
+	    puts [outputChannel] "---- errorCode(cleanup): $errorCode(cleanup)"
+	}
+    }
+    if {$coreFailure} {
+	puts [outputChannel] "---- Core file produced while running\
+		test!  $coreMsg"
+    }
+    puts [outputChannel] "==== $name FAILED\n"
+
+    incr testLevel -1
+    return
+}
+
+# Skipped --
+#
+# Given a test name and it constraints, returns a boolean indicating
+# whether the current configuration says the test should be skipped.
+#
+# Side Effects:  Maintains tally of total tests seen and tests skipped.
+#
+proc tcltest::Skipped {name constraints} {
+    variable testLevel
+    variable numTests
+    variable testConstraints
+
+    if {$testLevel == 1} {
+	incr numTests(Total)
+    }
+    # skip the test if it's name matches an element of skip
+    foreach pattern [skip] {
+	if {[string match $pattern $name]} {
+	    if {$testLevel == 1} {
+		incr numTests(Skipped)
+		DebugDo 1 {AddToSkippedBecause userSpecifiedSkip}
+	    }
+	    return 1
+	}
+    }
+    # skip the test if it's name doesn't match any element of match
+    set ok 0
+    foreach pattern [match] {
+	if {[string match $pattern $name]} {
+	    set ok 1
+	    break
+	}
+    }
+    if {!$ok} {
+	if {$testLevel == 1} {
+	    incr numTests(Skipped)
+	    DebugDo 1 {AddToSkippedBecause userSpecifiedNonMatch}
+	}
+	return 1
+    }
+    if {[string equal {} $constraints]} {
+	# If we're limited to the listed constraints and there aren't
+	# any listed, then we shouldn't run the test.
+	if {[limitConstraints]} {
+	    AddToSkippedBecause userSpecifiedLimitConstraint
+	    if {$testLevel == 1} {
+		incr numTests(Skipped)
+	    }
+	    return 1
+	}
+    } else {
+	# "constraints" argument exists;
+	# make sure that the constraints are satisfied.
+
+	set doTest 0
+	if {[string match {*[$\[]*} $constraints] != 0} {
+	    # full expression, e.g. {$foo > [info tclversion]}
+	    catch {set doTest [uplevel #0 expr $constraints]}
+	} elseif {[regexp {[^.:_a-zA-Z0-9 \n\r\t]+} $constraints] != 0} {
+	    # something like {a || b} should be turned into
+	    # $testConstraints(a) || $testConstraints(b).
+	    regsub -all {[.\w]+} $constraints {$testConstraints(&)} c
+	    catch {set doTest [eval expr $c]}
+	} elseif {![catch {llength $constraints}]} {
+	    # just simple constraints such as {unixOnly fonts}.
+	    set doTest 1
+	    foreach constraint $constraints {
+		if {(![info exists testConstraints($constraint)]) \
+			|| (!$testConstraints($constraint))} {
+		    set doTest 0
+
+		    # store the constraint that kept the test from
+		    # running
+		    set constraints $constraint
+		    break
+		}
+	    }
+	}
+	
+	if {!$doTest} {
+	    if {[IsVerbose skip]} {
+		puts [outputChannel] "++++ $name SKIPPED: $constraints"
+	    }
+
+	    if {$testLevel == 1} {
+		incr numTests(Skipped)
+		AddToSkippedBecause $constraints
+	    }
+	    return 1
+	}
+    }
+    return 0
+}
+
+# RunTest --
+#
+# This is where the body of a test is evaluated.  The combination of
+# [RunTest] and [Eval] allows the output and error output of the test
+# body to be captured for comparison against the expected values.
+
+proc tcltest::RunTest {name script} {
+    DebugPuts 3 "Running $name {$script}"
+
+    # If there is no "memory" command (because memory debugging isn't
+    # enabled), then don't attempt to use the command.
+
+    if {[llength [info commands memory]] == 1} {
+	memory tag $name
+    }
+
+    set code [catch {uplevel 1 $script} actualAnswer]
+
+    return [list $actualAnswer $code]
+}
+
+#####################################################################
+
+# tcltest::cleanupTestsHook --
+#
+#	This hook allows a harness that builds upon tcltest to specify
+#       additional things that should be done at cleanup.
+#
+
+if {[llength [info commands tcltest::cleanupTestsHook]] == 0} {
+    proc tcltest::cleanupTestsHook {} {}
+}
+
+# tcltest::cleanupTests --
+#
+# Remove files and dirs created using the makeFile and makeDirectory
+# commands since the last time this proc was invoked.
+#
+# Print the names of the files created without the makeFile command
+# since the tests were invoked.
+#
+# Print the number tests (total, passed, failed, and skipped) since the
+# tests were invoked.
+#
+# Restore original environment (as reported by special variable env).
+#
+# Arguments:
+#      calledFromAllFile - if 0, behave as if we are running a single
+#      test file within an entire suite of tests.  if we aren't running
+#      a single test file, then don't report status.  check for new
+#      files created during the test run and report on them.  if 1,
+#      report collated status from all the test file runs.
+#
+# Results:
+#      None.
+#
+# Side Effects:
+#      None
+#
+
+proc tcltest::cleanupTests {{calledFromAllFile 0}} {
+    variable filesMade
+    variable filesExisted
+    variable createdNewFiles
+    variable testSingleFile
+    variable numTests
+    variable numTestFiles
+    variable failFiles
+    variable skippedBecause
+    variable currentFailure
+    variable originalEnv
+    variable originalTclPlatform
+    variable coreModTime
+
+    FillFilesExisted
+    set testFileName [file tail [info script]]
+
+    # Call the cleanup hook
+    cleanupTestsHook
+
+    # Remove files and directories created by the makeFile and
+    # makeDirectory procedures.  Record the names of files in
+    # workingDirectory that were not pre-existing, and associate them
+    # with the test file that created them.
+
+    if {!$calledFromAllFile} {
+	foreach file $filesMade {
+	    if {[file exists $file]} {
+		DebugDo 1 {Warn "cleanupTests deleting $file..."}
+		catch {file delete -force $file}
+	    }
+	}
+	set currentFiles {}
+	foreach file [glob -nocomplain \
+		-directory [temporaryDirectory] *] {
+	    lappend currentFiles [file tail $file]
+	}
+	set newFiles {}
+	foreach file $currentFiles {
+	    if {[lsearch -exact $filesExisted $file] == -1} {
+		lappend newFiles $file
+	    }
+	}
+	set filesExisted $currentFiles
+	if {[llength $newFiles] > 0} {
+	    set createdNewFiles($testFileName) $newFiles
+	}
+    }
+
+    if {$calledFromAllFile || $testSingleFile} {
+
+	# print stats
+
+	puts -nonewline [outputChannel] "$testFileName:"
+	foreach index [list "Total" "Passed" "Skipped" "Failed"] {
+	    puts -nonewline [outputChannel] \
+		    "\t$index\t$numTests($index)"
+	}
+	puts [outputChannel] ""
+
+	# print number test files sourced
+	# print names of files that ran tests which failed
+
+	if {$calledFromAllFile} {
+	    puts [outputChannel] \
+		    "Sourced $numTestFiles Test Files."
+	    set numTestFiles 0
+	    if {[llength $failFiles] > 0} {
+		puts [outputChannel] \
+			"Files with failing tests: $failFiles"
+		set failFiles {}
+	    }
+	}
+
+	# if any tests were skipped, print the constraints that kept
+	# them from running.
+
+	set constraintList [array names skippedBecause]
+	if {[llength $constraintList] > 0} {
+	    puts [outputChannel] \
+		    "Number of tests skipped for each constraint:"
+	    foreach constraint [lsort $constraintList] {
+		puts [outputChannel] \
+			"\t$skippedBecause($constraint)\t$constraint"
+		unset skippedBecause($constraint)
+	    }
+	}
+
+	# report the names of test files in createdNewFiles, and reset
+	# the array to be empty.
+
+	set testFilesThatTurded [lsort [array names createdNewFiles]]
+	if {[llength $testFilesThatTurded] > 0} {
+	    puts [outputChannel] "Warning: files left behind:"
+	    foreach testFile $testFilesThatTurded {
+		puts [outputChannel] \
+			"\t$testFile:\t$createdNewFiles($testFile)"
+		unset createdNewFiles($testFile)
+	    }
+	}
+
+	# reset filesMade, filesExisted, and numTests
+
+	set filesMade {}
+	foreach index [list "Total" "Passed" "Skipped" "Failed"] {
+	    set numTests($index) 0
+	}
+
+	# exit only if running Tk in non-interactive mode
+	# This should be changed to determine if an event
+	# loop is running, which is the real issue.
+	# Actually, this doesn't belong here at all.  A package
+	# really has no business [exit]-ing an application.
+	if {![catch {package present Tk}] && ![testConstraint interactive]} {
+	    exit
+	}
+    } else {
+
+	# if we're deferring stat-reporting until all files are sourced,
+	# then add current file to failFile list if any tests in this
+	# file failed
+
+	if {$currentFailure \
+		&& ([lsearch -exact $failFiles $testFileName] == -1)} {
+	    lappend failFiles $testFileName
+	}
+	set currentFailure false
+
+	# restore the environment to the state it was in before this package
+	# was loaded
+
+	set newEnv {}
+	set changedEnv {}
+	set removedEnv {}
+	foreach index [array names ::env] {
+	    if {![info exists originalEnv($index)]} {
+		lappend newEnv $index
+		unset ::env($index)
+	    } else {
+		if {$::env($index) != $originalEnv($index)} {
+		    lappend changedEnv $index
+		    set ::env($index) $originalEnv($index)
+		}
+	    }
+	}
+	foreach index [array names originalEnv] {
+	    if {![info exists ::env($index)]} {
+		lappend removedEnv $index
+		set ::env($index) $originalEnv($index)
+	    }
+	}
+	if {[llength $newEnv] > 0} {
+	    puts [outputChannel] \
+		    "env array elements created:\t$newEnv"
+	}
+	if {[llength $changedEnv] > 0} {
+	    puts [outputChannel] \
+		    "env array elements changed:\t$changedEnv"
+	}
+	if {[llength $removedEnv] > 0} {
+	    puts [outputChannel] \
+		    "env array elements removed:\t$removedEnv"
+	}
+
+	set changedTclPlatform {}
+	foreach index [array names originalTclPlatform] {
+	    if {$::tcl_platform($index) \
+		    != $originalTclPlatform($index)} {
+		lappend changedTclPlatform $index
+		set ::tcl_platform($index) $originalTclPlatform($index)
+	    }
+	}
+	if {[llength $changedTclPlatform] > 0} {
+	    puts [outputChannel] "tcl_platform array elements\
+		    changed:\t$changedTclPlatform"
+	}
+
+	if {[file exists [file join [workingDirectory] core]]} {
+	    if {[preserveCore] > 1} {
+		puts "rename core file (> 1)"
+		puts [outputChannel] "produced core file! \
+			Moving file to: \
+			[file join [temporaryDirectory] core-$testFileName]"
+		catch {file rename -force \
+			[file join [workingDirectory] core] \
+			[file join [temporaryDirectory] core-$testFileName]
+		} msg
+		if {[string length $msg] > 0} {
+		    PrintError "Problem renaming file: $msg"
+		}
+	    } else {
+		# Print a message if there is a core file and (1) there
+		# previously wasn't one or (2) the new one is different
+		# from the old one.
+
+		if {[info exists coreModTime]} {
+		    if {$coreModTime != [file mtime \
+			    [file join [workingDirectory] core]]} {
+			puts [outputChannel] "A core file was created!"
+		    }
+		} else {
+		    puts [outputChannel] "A core file was created!"
+		}
+	    }
+	}
+    }
+    flush [outputChannel]
+    flush [errorChannel]
+    return
+}
+
+#####################################################################
+
+# Procs that determine which tests/test files to run
+
+# tcltest::GetMatchingFiles
+#
+#       Looks at the patterns given to match and skip files and uses
+#	them to put together a list of the tests that will be run.
+#
+# Arguments:
+#       directory to search
+#
+# Results:
+#       The constructed list is returned to the user.  This will
+#	primarily be used in 'all.tcl' files.  It is used in
+#	runAllTests.
+#
+# Side Effects:
+#       None
+
+# a lower case version is needed for compatibility with tcltest 1.0
+proc tcltest::getMatchingFiles args {eval GetMatchingFiles $args}
+
+proc tcltest::GetMatchingFiles { args } {
+    if {[llength $args]} {
+	set dirList $args
+    } else {
+	# Finding tests only in [testsDirectory] is normal operation.
+	# This procedure is written to accept multiple directory arguments
+	# only to satisfy version 1 compatibility.
+	set dirList [list [testsDirectory]]
+    }
+
+    set matchingFiles [list]
+    foreach directory $dirList {
+
+	# List files in $directory that match patterns to run.
+	set matchFileList [list]
+	foreach match [matchFiles] {
+	    set matchFileList [concat $matchFileList \
+		    [glob -directory $directory -types {b c f p s} \
+		    -nocomplain -- $match]]
+	}
+
+	# List files in $directory that match patterns to skip.
+	set skipFileList [list]
+	foreach skip [skipFiles] {
+	    set skipFileList [concat $skipFileList \
+		    [glob -directory $directory -types {b c f p s} \
+		    -nocomplain -- $skip]]
+	}
+
+	# Add to result list all files in match list and not in skip list
+	foreach file $matchFileList {
+	    if {[lsearch -exact $skipFileList $file] == -1} {
+		lappend matchingFiles $file
+	    }
+	}
+    }
+
+    if {[llength $matchingFiles] == 0} {
+	PrintError "No test files remain after applying your match and\
+		skip patterns!"
+    }
+    return $matchingFiles
+}
+
+# tcltest::GetMatchingDirectories --
+#
+#	Looks at the patterns given to match and skip directories and
+#	uses them to put together a list of the test directories that we
+#	should attempt to run.  (Only subdirectories containing an
+#	"all.tcl" file are put into the list.)
+#
+# Arguments:
+#	root directory from which to search
+#
+# Results:
+#	The constructed list is returned to the user.  This is used in
+#	the primary all.tcl file.
+#
+# Side Effects:
+#       None.
+
+proc tcltest::GetMatchingDirectories {rootdir} {
+
+    # Determine the skip list first, to avoid [glob]-ing over subdirectories
+    # we're going to throw away anyway.  Be sure we skip the $rootdir if it
+    # comes up to avoid infinite loops.
+    set skipDirs [list $rootdir]
+    foreach pattern [skipDirectories] {
+	set skipDirs [concat $skipDirs [glob -directory $rootdir -types d \
+		-nocomplain -- $pattern]]
+    }
+
+    # Now step through the matching directories, prune out the skipped ones
+    # as you go.
+    set matchDirs [list]
+    foreach pattern [matchDirectories] {
+	foreach path [glob -directory $rootdir -types d -nocomplain -- \
+		$pattern] {
+	    if {[lsearch -exact $skipDirs $path] == -1} {
+		set matchDirs [concat $matchDirs [GetMatchingDirectories $path]]
+		if {[file exists [file join $path all.tcl]]} {
+		    lappend matchDirs $path
+		}
+	    }
+	}
+    }
+
+    if {[llength $matchDirs] == 0} {
+	DebugPuts 1 "No test directories remain after applying match\
+		and skip patterns!"
+    }
+    return $matchDirs
+}
+
+# tcltest::runAllTests --
+#
+#	prints output and sources test files according to the match and
+#	skip patterns provided.  after sourcing test files, it goes on
+#	to source all.tcl files in matching test subdirectories.
+#
+# Arguments:
+#	shell being tested
+#
+# Results:
+#	None.
+#
+# Side effects:
+#	None.
+
+proc tcltest::runAllTests { {shell ""} } {
+    variable testSingleFile
+    variable numTestFiles
+    variable numTests
+    variable failFiles
+
+    FillFilesExisted
+    if {[llength [info level 0]] == 1} {
+	set shell [interpreter]
+    }
+
+    set testSingleFile false
+
+    puts [outputChannel] "Tests running in interp:  $shell"
+    puts [outputChannel] "Tests located in:  [testsDirectory]"
+    puts [outputChannel] "Tests running in:  [workingDirectory]"
+    puts [outputChannel] "Temporary files stored in\
+	    [temporaryDirectory]"
+
+    # [file system] first available in Tcl 8.4
+    if {![catch {file system [testsDirectory]} result]
+	    && ![string equal native [lindex $result 0]]} {
+	# If we aren't running in the native filesystem, then we must
+	# run the tests in a single process (via 'source'), because
+	# trying to run then via a pipe will fail since the files don't
+	# really exist.
+	singleProcess 1
+    }
+
+    if {[singleProcess]} {
+	puts [outputChannel] \
+		"Test files sourced into current interpreter"
+    } else {
+	puts [outputChannel] \
+		"Test files run in separate interpreters"
+    }
+    if {[llength [skip]] > 0} {
+	puts [outputChannel] "Skipping tests that match:  [skip]"
+    }
+    puts [outputChannel] "Running tests that match:  [match]"
+
+    if {[llength [skipFiles]] > 0} {
+	puts [outputChannel] \
+		"Skipping test files that match:  [skipFiles]"
+    }
+    if {[llength [matchFiles]] > 0} {
+	puts [outputChannel] \
+		"Only running test files that match:  [matchFiles]"
+    }
+
+    set timeCmd {clock format [clock seconds]}
+    puts [outputChannel] "Tests began at [eval $timeCmd]"
+
+    # Run each of the specified tests
+    foreach file [lsort [GetMatchingFiles]] {
+	set tail [file tail $file]
+	puts [outputChannel] $tail
+	flush [outputChannel]
+
+	if {[singleProcess]} {
+	    incr numTestFiles
+	    uplevel 1 [list ::source $file]
+	} else {
+	    # Pass along our configuration to the child processes.
+	    # EXCEPT for the -outfile, because the parent process
+	    # needs to read and process output of children.
+	    set childargv [list]
+	    foreach opt [Configure] {
+		if {[string equal $opt -outfile]} {continue}
+		lappend childargv $opt [Configure $opt]
+	    }
+	    set cmd [linsert $childargv 0 | $shell $file]
+	    if {[catch {
+		incr numTestFiles
+		set pipeFd [open $cmd "r"]
+		while {[gets $pipeFd line] >= 0} {
+		    if {[regexp [join {
+			    {^([^:]+):\t}
+			    {Total\t([0-9]+)\t}
+			    {Passed\t([0-9]+)\t}
+			    {Skipped\t([0-9]+)\t}
+			    {Failed\t([0-9]+)}
+			    } ""] $line null testFile \
+			    Total Passed Skipped Failed]} {
+			foreach index {Total Passed Skipped Failed} {
+			    incr numTests($index) [set $index]
+			}
+			if {$Failed > 0} {
+			    lappend failFiles $testFile
+			}
+		    } elseif {[regexp [join {
+			    {^Number of tests skipped }
+			    {for each constraint:}
+			    {|^\t(\d+)\t(.+)$}
+			    } ""] $line match skipped constraint]} {
+			if {[string match \t* $match]} {
+			    AddToSkippedBecause $constraint $skipped
+			}
+		    } else {
+			puts [outputChannel] $line
+		    }
+		}
+		close $pipeFd
+	    } msg]} {
+		puts [outputChannel] "Test file error: $msg"
+		# append the name of the test to a list to be reported
+		# later
+		lappend testFileFailures $file
+	    }
+	}
+    }
+
+    # cleanup
+    puts [outputChannel] "\nTests ended at [eval $timeCmd]"
+    cleanupTests 1
+    if {[info exists testFileFailures]} {
+	puts [outputChannel] "\nTest files exiting with errors:  \n"
+	foreach file $testFileFailures {
+	    puts [outputChannel] "  [file tail $file]\n"
+	}
+    }
+
+    # Checking for subdirectories in which to run tests
+    foreach directory [GetMatchingDirectories [testsDirectory]] {
+	set dir [file tail $directory]
+	puts [outputChannel] [string repeat ~ 44]
+	puts [outputChannel] "$dir test began at [eval $timeCmd]\n"
+	
+	uplevel 1 [list ::source [file join $directory all.tcl]]
+	
+	set endTime [eval $timeCmd]
+	puts [outputChannel] "\n$dir test ended at $endTime"
+	puts [outputChannel] ""
+	puts [outputChannel] [string repeat ~ 44]
+    }
+    return
+}
+
+#####################################################################
+
+# Test utility procs - not used in tcltest, but may be useful for
+# testing.
+
+# tcltest::loadTestedCommands --
+#
+#     Uses the specified script to load the commands to test. Allowed to
+#     be empty, as the tested commands could have been compiled into the
+#     interpreter.
+#
+# Arguments
+#     none
+#
+# Results
+#     none
+#
+# Side Effects:
+#     none.
+
+proc tcltest::loadTestedCommands {} {
+    variable l
+    if {[string equal {} [loadScript]]} {
+	return
+    }
+
+    return [uplevel 1 [loadScript]]
+}
+
+# tcltest::saveState --
+#
+#	Save information regarding what procs and variables exist.
+#
+# Arguments:
+#	none
+#
+# Results:
+#	Modifies the variable saveState
+#
+# Side effects:
+#	None.
+
+proc tcltest::saveState {} {
+    variable saveState
+    uplevel 1 [list ::set [namespace which -variable saveState]] \
+	    {[::list [::info procs] [::info vars]]}
+    DebugPuts  2 "[lindex [info level 0] 0]: $saveState"
+    return
+}
+
+# tcltest::restoreState --
+#
+#	Remove procs and variables that didn't exist before the call to
+#       [saveState].
+#
+# Arguments:
+#	none
+#
+# Results:
+#	Removes procs and variables from your environment if they don't
+#	exist in the saveState variable.
+#
+# Side effects:
+#	None.
+
+proc tcltest::restoreState {} {
+    variable saveState
+    foreach p [uplevel 1 {::info procs}] {
+	if {([lsearch [lindex $saveState 0] $p] < 0)
+		&& ![string equal [namespace current]::$p \
+		[uplevel 1 [list ::namespace origin $p]]]} {
+
+	    DebugPuts 2 "[lindex [info level 0] 0]: Removing proc $p"
+	    uplevel 1 [list ::catch [list ::rename $p {}]]
+	}
+    }
+    foreach p [uplevel 1 {::info vars}] {
+	if {[lsearch [lindex $saveState 1] $p] < 0} {
+	    DebugPuts 2 "[lindex [info level 0] 0]:\
+		    Removing variable $p"
+	    uplevel 1 [list ::catch [list ::unset $p]]
+	}
+    }
+    return
+}
+
+# tcltest::normalizeMsg --
+#
+#	Removes "extra" newlines from a string.
+#
+# Arguments:
+#	msg        String to be modified
+#
+# Results:
+#	string with extra newlines removed
+#
+# Side effects:
+#	None.
+
+proc tcltest::normalizeMsg {msg} {
+    regsub "\n$" [string tolower $msg] "" msg
+    set msg [string map [list "\n\n" "\n"] $msg]
+    return [string map [list "\n\}" "\}"] $msg]
+}
+
+# tcltest::makeFile --
+#
+# Create a new file with the name <name>, and write <contents> to it.
+#
+# If this file hasn't been created via makeFile since the last time
+# cleanupTests was called, add it to the $filesMade list, so it will be
+# removed by the next call to cleanupTests.
+#
+# Arguments:
+#	contents        content of the new file
+#       name            name of the new file
+#       directory       directory name for new file
+#
+# Results:
+#	absolute path to the file created
+#
+# Side effects:
+#	None.
+
+proc tcltest::makeFile {contents name {directory ""}} {
+    variable filesMade
+    FillFilesExisted
+
+    if {[llength [info level 0]] == 3} {
+	set directory [temporaryDirectory]
+    }
+
+    set fullName [file join $directory $name]
+
+    DebugPuts 3 "[lindex [info level 0] 0]:\
+	     putting ``$contents'' into $fullName"
+
+    set fd [open $fullName w]
+    fconfigure $fd -translation lf
+    if {[string equal [string index $contents end] \n]} {
+	puts -nonewline $fd $contents
+    } else {
+	puts $fd $contents
+    }
+    close $fd
+
+    if {[lsearch -exact $filesMade $fullName] == -1} {
+	lappend filesMade $fullName
+    }
+    return $fullName
+}
+
+# tcltest::removeFile --
+#
+#	Removes the named file from the filesystem
+#
+# Arguments:
+#	name          file to be removed
+#       directory     directory from which to remove file
+#
+# Results:
+#	return value from [file delete]
+#
+# Side effects:
+#	None.
+
+proc tcltest::removeFile {name {directory ""}} {
+    variable filesMade
+    FillFilesExisted
+    if {[llength [info level 0]] == 2} {
+	set directory [temporaryDirectory]
+    }
+    set fullName [file join $directory $name]
+    DebugPuts 3 "[lindex [info level 0] 0]: removing $fullName"
+    set idx [lsearch -exact $filesMade $fullName]
+    set filesMade [lreplace $filesMade $idx $idx]
+    if {$idx == -1} {
+	DebugDo 1 {
+	    Warn "removeFile removing \"$fullName\":\n  not created by makeFile"
+	}
+    } 
+    if {![file isfile $fullName]} {
+	DebugDo 1 {
+	    Warn "removeFile removing \"$fullName\":\n  not a file"
+	}
+    }
+    return [file delete $fullName]
+}
+
+# tcltest::makeDirectory --
+#
+# Create a new dir with the name <name>.
+#
+# If this dir hasn't been created via makeDirectory since the last time
+# cleanupTests was called, add it to the $directoriesMade list, so it
+# will be removed by the next call to cleanupTests.
+#
+# Arguments:
+#       name            name of the new directory
+#       directory       directory in which to create new dir
+#
+# Results:
+#	absolute path to the directory created
+#
+# Side effects:
+#	None.
+
+proc tcltest::makeDirectory {name {directory ""}} {
+    variable filesMade
+    FillFilesExisted
+    if {[llength [info level 0]] == 2} {
+	set directory [temporaryDirectory]
+    }
+    set fullName [file join $directory $name]
+    DebugPuts 3 "[lindex [info level 0] 0]: creating $fullName"
+    file mkdir $fullName
+    if {[lsearch -exact $filesMade $fullName] == -1} {
+	lappend filesMade $fullName
+    }
+    return $fullName
+}
+
+# tcltest::removeDirectory --
+#
+#	Removes a named directory from the file system.
+#
+# Arguments:
+#	name          Name of the directory to remove
+#       directory     Directory from which to remove
+#
+# Results:
+#	return value from [file delete]
+#
+# Side effects:
+#	None
+
+proc tcltest::removeDirectory {name {directory ""}} {
+    variable filesMade
+    FillFilesExisted
+    if {[llength [info level 0]] == 2} {
+	set directory [temporaryDirectory]
+    }
+    set fullName [file join $directory $name]
+    DebugPuts 3 "[lindex [info level 0] 0]: deleting $fullName"
+    set idx [lsearch -exact $filesMade $fullName]
+    set filesMade [lreplace $filesMade $idx $idx]
+    if {$idx == -1} {
+	DebugDo 1 {
+	    Warn "removeDirectory removing \"$fullName\":\n  not created\
+		    by makeDirectory"
+	}
+    } 
+    if {![file isdirectory $fullName]} {
+	DebugDo 1 {
+	    Warn "removeDirectory removing \"$fullName\":\n  not a directory"
+	}
+    }
+    return [file delete -force $fullName]
+}
+
+# tcltest::viewFile --
+#
+#	reads the content of a file and returns it
+#
+# Arguments:
+#	name of the file to read
+#       directory in which file is located
+#
+# Results:
+#	content of the named file
+#
+# Side effects:
+#	None.
+
+proc tcltest::viewFile {name {directory ""}} {
+    FillFilesExisted
+    if {[llength [info level 0]] == 2} {
+	set directory [temporaryDirectory]
+    }
+    set fullName [file join $directory $name]
+    set f [open $fullName]
+    set data [read -nonewline $f]
+    close $f
+    return $data
+}
+
+# tcltest::bytestring --
+#
+# Construct a string that consists of the requested sequence of bytes,
+# as opposed to a string of properly formed UTF-8 characters.
+# This allows the tester to
+# 1. Create denormalized or improperly formed strings to pass to C
+#    procedures that are supposed to accept strings with embedded NULL
+#    bytes.
+# 2. Confirm that a string result has a certain pattern of bytes, for
+#    instance to confirm that "\xe0\0" in a Tcl script is stored
+#    internally in UTF-8 as the sequence of bytes "\xc3\xa0\xc0\x80".
+#
+# Generally, it's a bad idea to examine the bytes in a Tcl string or to
+# construct improperly formed strings in this manner, because it involves
+# exposing that Tcl uses UTF-8 internally.
+#
+# Arguments:
+#	string being converted
+#
+# Results:
+#	result fom encoding
+#
+# Side effects:
+#	None
+
+proc tcltest::bytestring {string} {
+    return [encoding convertfrom identity $string]
+}
+
+# tcltest::OpenFiles --
+#
+#	used in io tests, uses testchannel
+#
+# Arguments:
+#	None.
+#
+# Results:
+#	???
+#
+# Side effects:
+#	None.
+
+proc tcltest::OpenFiles {} {
+    if {[catch {testchannel open} result]} {
+	return {}
+    }
+    return $result
+}
+
+# tcltest::LeakFiles --
+#
+#	used in io tests, uses testchannel
+#
+# Arguments:
+#	None.
+#
+# Results:
+#	???
+#
+# Side effects:
+#	None.
+
+proc tcltest::LeakFiles {old} {
+    if {[catch {testchannel open} new]} {
+	return {}
+    }
+    set leak {}
+    foreach p $new {
+	if {[lsearch $old $p] < 0} {
+	    lappend leak $p
+	}
+    }
+    return $leak
+}
+
+#
+# Internationalization / ISO support procs     -- dl
+#
+
+# tcltest::SetIso8859_1_Locale --
+#
+#	used in cmdIL.test, uses testlocale
+#
+# Arguments:
+#	None.
+#
+# Results:
+#	None.
+#
+# Side effects:
+#	None.
+
+proc tcltest::SetIso8859_1_Locale {} {
+    variable previousLocale
+    variable isoLocale
+    if {[info commands testlocale] != ""} {
+	set previousLocale [testlocale ctype]
+	testlocale ctype $isoLocale
+    }
+    return
+}
+
+# tcltest::RestoreLocale --
+#
+#	used in cmdIL.test, uses testlocale
+#
+# Arguments:
+#	None.
+#
+# Results:
+#	None.
+#
+# Side effects:
+#	None.
+
+proc tcltest::RestoreLocale {} {
+    variable previousLocale
+    if {[info commands testlocale] != ""} {
+	testlocale ctype $previousLocale
+    }
+    return
+}
+
+# tcltest::threadReap --
+#
+#	Kill all threads except for the main thread.
+#	Do nothing if testthread is not defined.
+#
+# Arguments:
+#	none.
+#
+# Results:
+#	Returns the number of existing threads.
+#
+# Side Effects:
+#       none.
+#
+
+proc tcltest::threadReap {} {
+    if {[info commands testthread] != {}} {
+
+	# testthread built into tcltest
+
+	testthread errorproc ThreadNullError
+	while {[llength [testthread names]] > 1} {
+	    foreach tid [testthread names] {
+		if {$tid != [mainThread]} {
+		    catch {
+			testthread send -async $tid {testthread exit}
+		    }
+		}
+	    }
+	    ## Enter a bit a sleep to give the threads enough breathing
+	    ## room to kill themselves off, otherwise the end up with a
+	    ## massive queue of repeated events
+	    after 1
+	}
+	testthread errorproc ThreadError
+	return [llength [testthread names]]
+    } elseif {[info commands thread::id] != {}} {
+	
+	# Thread extension
+
+	thread::errorproc ThreadNullError
+	while {[llength [thread::names]] > 1} {
+	    foreach tid [thread::names] {
+		if {$tid != [mainThread]} {
+		    catch {thread::send -async $tid {thread::exit}}
+		}
+	    }
+	    ## Enter a bit a sleep to give the threads enough breathing
+	    ## room to kill themselves off, otherwise the end up with a
+	    ## massive queue of repeated events
+	    after 1
+	}
+	thread::errorproc ThreadError
+	return [llength [thread::names]]
+    } else {
+	return 1
+    }
+    return 0
+}
+
+# Initialize the constraints and set up command line arguments
+namespace eval tcltest {
+    # Define initializers for all the built-in contraint definitions
+    DefineConstraintInitializers
+
+    # Set up the constraints in the testConstraints array to be lazily
+    # initialized by a registered initializer, or by "false" if no
+    # initializer is registered.
+    trace variable testConstraints r [namespace code SafeFetch]
+
+    # Only initialize constraints at package load time if an
+    # [initConstraintsHook] has been pre-defined.  This is only
+    # for compatibility support.  The modern way to add a custom
+    # test constraint is to just call the [testConstraint] command
+    # straight away, without all this "hook" nonsense.
+    if {[string equal [namespace current] \
+	    [namespace qualifiers [namespace which initConstraintsHook]]]} {
+	InitConstraints
+    } else {
+	proc initConstraintsHook {} {}
+    }
+
+    # Define the standard match commands
+    customMatch exact	[list string equal]
+    customMatch glob	[list string match]
+    customMatch regexp	[list regexp --]
+
+    # If the TCLTEST_OPTIONS environment variable exists, configure
+    # tcltest according to the option values it specifies.  This has
+    # the effect of resetting tcltest's default configuration.
+    proc ConfigureFromEnvironment {} {
+	upvar #0 env(TCLTEST_OPTIONS) options
+	if {[catch {llength $options} msg]} {
+	    Warn "invalid TCLTEST_OPTIONS \"$options\":\n  invalid\
+		    Tcl list: $msg"
+	    return
+	}
+	if {[llength $::env(TCLTEST_OPTIONS)] % 2} {
+	    Warn "invalid TCLTEST_OPTIONS: \"$options\":\n  should be\
+		    -option value ?-option value ...?"
+	    return
+	}
+	if {[catch {eval Configure $::env(TCLTEST_OPTIONS)} msg]} {
+	    Warn "invalid TCLTEST_OPTIONS: \"$options\":\n  $msg"
+	    return
+	}
+    }
+    if {[info exists ::env(TCLTEST_OPTIONS)]} {
+	ConfigureFromEnvironment
+    }
+
+    proc LoadTimeCmdLineArgParsingRequired {} {
+	set required false
+	if {[info exists ::argv] && [lsearch -exact $::argv -help] != -1} {
+	    # The command line asks for -help, so give it (and exit)
+	    # right now.  ([configure] does not process -help)
+	    set required true
+	}
+	foreach hook { PrintUsageInfoHook processCmdLineArgsHook
+			processCmdLineArgsAddFlagsHook } {
+	    if {[string equal [namespace current] [namespace qualifiers \
+		    [namespace which $hook]]]} {
+		set required true
+	    } else {
+		proc $hook args {}
+	    }
+	}
+	return $required
+    }
+
+    # Only initialize configurable options from the command line arguments
+    # at package load time if necessary for backward compatibility.  This
+    # lets the tcltest user call [configure] for themselves if they wish.
+    # Traces are established for auto-configuration from the command line
+    # if any configurable options are accessed before the user calls
+    # [configure].
+    if {[LoadTimeCmdLineArgParsingRequired]} {
+	ProcessCmdLineArgs
+    } else {
+	EstablishAutoConfigureTraces
+    }
+
+    package provide [namespace tail [namespace current]] $Version
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       # Tcl package index file, version 1.1
+# This file is generated by the "pkg_mkIndex -direct" command
+# and sourced either when an application starts up or
+# by a "package unknown" script.  It invokes the
+# "package ifneeded" command to set up package-related
+# information so that packages will be loaded automatically
+# in response to "package require" commands.  When this
+# script is sourced, the variable $dir must contain the
+# full path name of this file's directory.
+
+if {![package vsatisfies [package provide Tcl] 8.3]} {return}
+package ifneeded tcltest 2.2.9 [list source [file join $dir tcltest.tcl]]
+                                                                                                                                                                                                                                                                                                                                                                                                                              # init.tcl --
+#
+# Default system startup file for Tcl-based applications.  Defines
+# "unknown" procedure and auto-load facilities.
+#
+# RCS: @(#) $Id: init.tcl,v 1.55.2.7 2007/07/05 18:03:45 dgp Exp $
+#
+# Copyright (c) 1991-1993 The Regents of the University of California.
+# Copyright (c) 1994-1996 Sun Microsystems, Inc.
+# Copyright (c) 1998-1999 Scriptics Corporation.
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+#
+
+if {[info commands package] == ""} {
+    error "version mismatch: library\nscripts expect Tcl version 7.5b1 or later but the loaded version is\nonly [info patchlevel]"
+}
+package require -exact Tcl 8.4
+
+# Compute the auto path to use in this interpreter.
+# The values on the path come from several locations:
+#
+# The environment variable TCLLIBPATH
+#
+# tcl_library, which is the directory containing this init.tcl script.
+# tclInitScript.h searches around for the directory containing this
+# init.tcl and defines tcl_library to that location before sourcing it.
+#
+# The parent directory of tcl_library. Adding the parent
+# means that packages in peer directories will be found automatically.
+#
+# Also add the directory ../lib relative to the directory where the
+# executable is located.  This is meant to find binary packages for the
+# same architecture as the current executable.
+#
+# tcl_pkgPath, which is set by the platform-specific initialization routines
+#	On UNIX it is compiled in
+#       On Windows, it is not used
+#	On Macintosh it is "Tool Command Language" in the Extensions folder
+
+if {![info exists auto_path]} {
+    if {[info exists env(TCLLIBPATH)]} {
+	set auto_path $env(TCLLIBPATH)
+    } else {
+	set auto_path ""
+    }
+}
+namespace eval tcl {
+    variable Dir
+    if {[info library] ne ""} {
+	foreach Dir [list [info library] [file dirname [info library]]] {
+	    if {[lsearch -exact $::auto_path $Dir] < 0} {
+		lappend ::auto_path $Dir
+	    }
+	}
+    }
+    set Dir [file join [file dirname [file dirname \
+	    [info nameofexecutable]]] lib]
+    if {[lsearch -exact $::auto_path $Dir] < 0} {
+	lappend ::auto_path $Dir
+    }
+    if {[info exists ::tcl_pkgPath]} {
+	foreach Dir $::tcl_pkgPath {
+	    if {[lsearch -exact $::auto_path $Dir] < 0} {
+		lappend ::auto_path $Dir
+	    }
+	}
+    }
+}
+  
+# Windows specific end of initialization
+
+if {(![interp issafe]) && $tcl_platform(platform) eq "windows"} {
+    namespace eval tcl {
+	proc EnvTraceProc {lo n1 n2 op} {
+	    set x $::env($n2)
+	    set ::env($lo) $x
+	    set ::env([string toupper $lo]) $x
+	}
+	proc InitWinEnv {} {
+	    global env tcl_platform
+	    foreach p [array names env] {
+		set u [string toupper $p]
+		if {$u ne $p} {
+		    switch -- $u {
+			COMSPEC -
+			PATH {
+			    if {![info exists env($u)]} {
+				set env($u) $env($p)
+			    }
+			    trace add variable env($p) write \
+				    [namespace code [list EnvTraceProc $p]]
+			    trace add variable env($u) write \
+				    [namespace code [list EnvTraceProc $p]]
+			}
+		    }
+		}
+	    }
+	    if {![info exists env(COMSPEC)]} {
+		if {$tcl_platform(os) eq "Windows NT"} {
+		    set env(COMSPEC) cmd.exe
+		} else {
+		    set env(COMSPEC) command.com
+		}
+	    }
+	}
+	InitWinEnv
+    }
+}
+
+# Setup the unknown package handler
+
+package unknown tclPkgUnknown
+
+if {![interp issafe]} {
+    # setup platform specific unknown package handlers
+    if {$::tcl_platform(platform) eq "unix"
+	    && $::tcl_platform(os) eq "Darwin"} {
+	package unknown [list tcl::MacOSXPkgUnknown [package unknown]]
+    }
+    if {$::tcl_platform(platform) eq "macintosh"} {
+	package unknown [list tcl::MacPkgUnknown [package unknown]]
+    }
+}
+
+# Conditionalize for presence of exec.
+
+if {[namespace which -command exec] eq ""} {
+
+    # Some machines, such as the Macintosh, do not have exec. Also, on all
+    # platforms, safe interpreters do not have exec.
+
+    set auto_noexec 1
+}
+set errorCode ""
+set errorInfo ""
+
+# Define a log command (which can be overwitten to log errors
+# differently, specially when stderr is not available)
+
+if {[namespace which -command tclLog] eq ""} {
+    proc tclLog {string} {
+	catch {puts stderr $string}
+    }
+}
+
+# unknown --
+# This procedure is called when a Tcl command is invoked that doesn't
+# exist in the interpreter.  It takes the following steps to make the
+# command available:
+#
+#	1. See if the command has the form "namespace inscope ns cmd" and
+#	   if so, concatenate its arguments onto the end and evaluate it.
+#	2. See if the autoload facility can locate the command in a
+#	   Tcl script file.  If so, load it and execute it.
+#	3. If the command was invoked interactively at top-level:
+#	    (a) see if the command exists as an executable UNIX program.
+#		If so, "exec" the command.
+#	    (b) see if the command requests csh-like history substitution
+#		in one of the common forms !!, !<number>, or ^old^new.  If
+#		so, emulate csh's history substitution.
+#	    (c) see if the command is a unique abbreviation for another
+#		command.  If so, invoke the command.
+#
+# Arguments:
+# args -	A list whose elements are the words of the original
+#		command, including the command name.
+
+proc unknown args {
+    global auto_noexec auto_noload env unknown_pending tcl_interactive
+    global errorCode errorInfo
+
+    # If the command word has the form "namespace inscope ns cmd"
+    # then concatenate its arguments onto the end and evaluate it.
+
+    set cmd [lindex $args 0]
+    if {[regexp "^:*namespace\[ \t\n\]+inscope" $cmd] && [llength $cmd] == 4} {
+        set arglist [lrange $args 1 end]
+	set ret [catch {uplevel 1 ::$cmd $arglist} result]
+        if {$ret == 0} {
+            return $result
+        } else {
+	    return -code $ret -errorcode $errorCode $result
+        }
+    }
+
+    # Save the values of errorCode and errorInfo variables, since they
+    # may get modified if caught errors occur below.  The variables will
+    # be restored just before re-executing the missing command.
+
+    # Safety check in case something unsets the variables 
+    # ::errorInfo or ::errorCode.  [Bug 1063707]
+    if {![info exists errorCode]} {
+	set errorCode ""
+    }
+    if {![info exists errorInfo]} {
+	set errorInfo ""
+    }
+    set savedErrorCode $errorCode
+    set savedErrorInfo $errorInfo
+    set name $cmd
+    if {![info exists auto_noload]} {
+	#
+	# Make sure we're not trying to load the same proc twice.
+	#
+	if {[info exists unknown_pending($name)]} {
+	    return -code error "self-referential recursion in \"unknown\" for command \"$name\"";
+	}
+	set unknown_pending($name) pending;
+	set ret [catch {auto_load $name [uplevel 1 {::namespace current}]} msg]
+	unset unknown_pending($name);
+	if {$ret != 0} {
+	    append errorInfo "\n    (autoloading \"$name\")"
+	    return -code $ret -errorcode $errorCode -errorinfo $errorInfo $msg
+	}
+	if {![array size unknown_pending]} {
+	    unset unknown_pending
+	}
+	if {$msg} {
+	    set errorCode $savedErrorCode
+	    set errorInfo $savedErrorInfo
+	    set code [catch {uplevel 1 $args} msg]
+	    if {$code ==  1} {
+		#
+		# Compute stack trace contribution from the [uplevel].
+		# Note the dependence on how Tcl_AddErrorInfo, etc. 
+		# construct the stack trace.
+		#
+		set cinfo $args
+		set ellipsis ""
+		while {[string bytelength $cinfo] > 150} {
+		    set cinfo [string range $cinfo 0 end-1]
+		    set ellipsis "..."
+		}
+		append cinfo $ellipsis "\"\n    (\"uplevel\" body line 1)"
+		append cinfo "\n    invoked from within"
+		append cinfo "\n\"uplevel 1 \$args\""
+		#
+		# Try each possible form of the stack trace
+		# and trim the extra contribution from the matching case
+		#
+		set expect "$msg\n    while executing\n\"$cinfo"
+		if {$errorInfo eq $expect} {
+		    #
+		    # The stack has only the eval from the expanded command
+		    # Do not generate any stack trace here.
+		    #
+		    return -code error -errorcode $errorCode $msg
+		}
+		#
+		# Stack trace is nested, trim off just the contribution
+		# from the extra "eval" of $args due to the "catch" above.
+		#
+		set expect "\n    invoked from within\n\"$cinfo"
+		set exlen [string length $expect]
+		set eilen [string length $errorInfo]
+		set i [expr {$eilen - $exlen - 1}]
+		set einfo [string range $errorInfo 0 $i]
+		#
+		# For now verify that $errorInfo consists of what we are about
+		# to return plus what we expected to trim off.
+		#
+		if {$errorInfo ne "$einfo$expect"} {
+		    error "Tcl bug: unexpected stack trace in \"unknown\"" {} \
+			[list CORE UNKNOWN BADTRACE $expect $errorInfo]
+		}
+		return -code error -errorcode $errorCode \
+			-errorinfo $einfo $msg
+	    } else {
+		return -code $code $msg
+	    }
+	}
+    }
+
+    if {([info level] == 1) && [info script] eq "" \
+	    && [info exists tcl_interactive] && $tcl_interactive} {
+	if {![info exists auto_noexec]} {
+	    set new [auto_execok $name]
+	    if {$new ne ""} {
+		set errorCode $savedErrorCode
+		set errorInfo $savedErrorInfo
+		set redir ""
+		if {[namespace which -command console] eq ""} {
+		    set redir ">&@stdout <@stdin"
+		}
+		return [uplevel 1 exec $redir $new [lrange $args 1 end]]
+	    }
+	}
+	set errorCode $savedErrorCode
+	set errorInfo $savedErrorInfo
+	if {$name eq "!!"} {
+	    set newcmd [history event]
+	} elseif {[regexp {^!(.+)$} $name -> event]} {
+	    set newcmd [history event $event]
+	} elseif {[regexp {^\^([^^]*)\^([^^]*)\^?$} $name -> old new]} {
+	    set newcmd [history event -1]
+	    catch {regsub -all -- $old $newcmd $new newcmd}
+	}
+	if {[info exists newcmd]} {
+	    tclLog $newcmd
+	    history change $newcmd 0
+	    return [uplevel 1 $newcmd]
+	}
+
+	set ret [catch {set candidates [info commands $name*]} msg]
+	if {$name eq "::"} {
+	    set name ""
+	}
+	if {$ret != 0} {
+	    return -code $ret -errorcode $errorCode \
+		"error in unknown while checking if \"$name\" is\
+		a unique command abbreviation:\n$msg"
+	}
+	# Filter out bogus matches when $name contained
+	# a glob-special char [Bug 946952]
+	if {$name eq ""} {
+	    # Handle empty $name separately due to strangeness
+	    # in [string first] (See RFE 1243354)
+	    set cmds $candidates
+	} else {
+	    set cmds [list]
+	    foreach x $candidates {
+		if {[string first $name $x] == 0} {
+		    lappend cmds $x
+		}
+	    }
+	}
+	if {[llength $cmds] == 1} {
+	    return [uplevel 1 [lreplace $args 0 0 [lindex $cmds 0]]]
+	}
+	if {[llength $cmds]} {
+	    return -code error "ambiguous command name \"$name\": [lsort $cmds]"
+	}
+    }
+    return -code error "invalid command name \"$name\""
+}
+
+# auto_load --
+# Checks a collection of library directories to see if a procedure
+# is defined in one of them.  If so, it sources the appropriate
+# library file to create the procedure.  Returns 1 if it successfully
+# loaded the procedure, 0 otherwise.
+#
+# Arguments: 
+# cmd -			Name of the command to find and load.
+# namespace (optional)  The namespace where the command is being used - must be
+#                       a canonical namespace as returned [namespace current]
+#                       for instance. If not given, namespace current is used.
+
+proc auto_load {cmd {namespace {}}} {
+    global auto_index auto_oldpath auto_path
+
+    if {$namespace eq ""} {
+	set namespace [uplevel 1 [list ::namespace current]]
+    }
+    set nameList [auto_qualify $cmd $namespace]
+    # workaround non canonical auto_index entries that might be around
+    # from older auto_mkindex versions
+    lappend nameList $cmd
+    foreach name $nameList {
+	if {[info exists auto_index($name)]} {
+	    namespace eval :: $auto_index($name)
+	    # There's a couple of ways to look for a command of a given
+	    # name.  One is to use
+	    #    info commands $name
+	    # Unfortunately, if the name has glob-magic chars in it like *
+	    # or [], it may not match.  For our purposes here, a better
+	    # route is to use 
+	    #    namespace which -command $name
+	    if {[namespace which -command $name] ne ""} {
+		return 1
+	    }
+	}
+    }
+    if {![info exists auto_path]} {
+	return 0
+    }
+
+    if {![auto_load_index]} {
+	return 0
+    }
+    foreach name $nameList {
+	if {[info exists auto_index($name)]} {
+	    namespace eval :: $auto_index($name)
+	    if {[namespace which -command $name] ne ""} {
+		return 1
+	    }
+	}
+    }
+    return 0
+}
+
+# auto_load_index --
+# Loads the contents of tclIndex files on the auto_path directory
+# list.  This is usually invoked within auto_load to load the index
+# of available commands.  Returns 1 u�  v�  w�  x�  y�  z�  {�  |�  }�  ~�  �                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      if the index is loaded, and 0 if
+# the index is already loaded and up to date.
+#
+# Arguments: 
+# None.
+
+proc auto_load_index {} {
+    global auto_index auto_oldpath auto_path errorInfo errorCode
+
+    if {[info exists auto_oldpath] && $auto_oldpath eq $auto_path} {
+	return 0
+    }
+    set auto_oldpath $auto_path
+
+    # Check if we are a safe interpreter. In that case, we support only
+    # newer format tclIndex files.
+
+    set issafe [interp issafe]
+    for {set i [expr {[llength $auto_path] - 1}]} {$i >= 0} {incr i -1} {
+	set dir [lindex $auto_path $i]
+	set f ""
+	if {$issafe} {
+	    catch {source [file join $dir tclIndex]}
+	} elseif {[catch {set f [open [file join $dir tclIndex]]}]} {
+	    continue
+	} else {
+	    set error [catch {
+		set id [gets $f]
+		if {$id eq "# Tcl autoload index file, version 2.0"} {
+		    eval [read $f]
+		} elseif {$id eq "# Tcl autoload index file: each line identifies a Tcl"} {
+		    while {[gets $f line] >= 0} {
+			if {[string index $line 0] eq "#" 
+				|| ([llength $line] != 2)} {
+			    continue
+			}
+			set name [lindex $line 0]
+			set auto_index($name) \
+				"source [file join $dir [lindex $line 1]]"
+		    }
+		} else {
+		    error "[file join $dir tclIndex] isn't a proper Tcl index file"
+		}
+	    } msg]
+	    if {$f ne ""} {
+		close $f
+	    }
+	    if {$error} {
+		error $msg $errorInfo $errorCode
+	    }
+	}
+    }
+    return 1
+}
+
+# auto_qualify --
+#
+# Compute a fully qualified names list for use in the auto_index array.
+# For historical reasons, commands in the global namespace do not have leading
+# :: in the index key. The list has two elements when the command name is
+# relative (no leading ::) and the namespace is not the global one. Otherwise
+# only one name is returned (and searched in the auto_index).
+#
+# Arguments -
+# cmd		The command name. Can be any name accepted for command
+#               invocations (Like "foo::::bar").
+# namespace	The namespace where the command is being used - must be
+#               a canonical namespace as returned by [namespace current]
+#               for instance.
+
+proc auto_qualify {cmd namespace} {
+
+    # count separators and clean them up
+    # (making sure that foo:::::bar will be treated as foo::bar)
+    set n [regsub -all {::+} $cmd :: cmd]
+
+    # Ignore namespace if the name starts with ::
+    # Handle special case of only leading ::
+
+    # Before each return case we give an example of which category it is
+    # with the following form :
+    # ( inputCmd, inputNameSpace) -> output
+
+    if {[string match ::* $cmd]} {
+	if {$n > 1} {
+	    # ( ::foo::bar , * ) -> ::foo::bar
+	    return [list $cmd]
+	} else {
+	    # ( ::global , * ) -> global
+	    return [list [string range $cmd 2 end]]
+	}
+    }
+    
+    # Potentially returning 2 elements to try  :
+    # (if the current namespace is not the global one)
+
+    if {$n == 0} {
+	if {$namespace eq "::"} {
+	    # ( nocolons , :: ) -> nocolons
+	    return [list $cmd]
+	} else {
+	    # ( nocolons , ::sub ) -> ::sub::nocolons nocolons
+	    return [list ${namespace}::$cmd $cmd]
+	}
+    } elseif {$namespace eq "::"} {
+	#  ( foo::bar , :: ) -> ::foo::bar
+	return [list ::$cmd]
+    } else {
+	# ( foo::bar , ::sub ) -> ::sub::foo::bar ::foo::bar
+	return [list ${namespace}::$cmd ::$cmd]
+    }
+}
+
+# auto_import --
+#
+# Invoked during "namespace import" to make see if the imported commands
+# reside in an autoloaded library.  If so, the commands are loaded so
+# that they will be available for the import links.  If not, then this
+# procedure does nothing.
+#
+# Arguments -
+# pattern	The pattern of commands being imported (like "foo::*")
+#               a canonical namespace as returned by [namespace current]
+
+proc auto_import {pattern} {
+    global auto_index
+
+    # If no namespace is specified, this will be an error case
+
+    if {![string match *::* $pattern]} {
+	return
+    }
+
+    set ns [uplevel 1 [list ::namespace current]]
+    set patternList [auto_qualify $pattern $ns]
+
+    auto_load_index
+
+    foreach pattern $patternList {
+        foreach name [array names auto_index $pattern] {
+            if {([namespace which -command $name] eq "")
+		    && ([namespace qualifiers $pattern] eq [namespace qualifiers $name])} {
+                namespace eval :: $auto_index($name)
+            }
+        }
+    }
+}
+
+# auto_execok --
+#
+# Returns string that indicates name of program to execute if 
+# name corresponds to a shell builtin or an executable in the
+# Windows search path, or "" otherwise.  Builds an associative 
+# array auto_execs that caches information about previous checks, 
+# for speed.
+#
+# Arguments: 
+# name -			Name of a command.
+
+if {$tcl_platform(platform) eq "windows"} {
+# Windows version.
+#
+# Note that info executable doesn't work under Windows, so we have to
+# look for files with .exe, .com, or .bat extensions.  Also, the path
+# may be in the Path or PATH environment variables, and path
+# components are separated with semicolons, not colons as under Unix.
+#
+proc auto_execok name {
+    global auto_execs env tcl_platform
+
+    if {[info exists auto_execs($name)]} {
+	return $auto_execs($name)
+    }
+    set auto_execs($name) ""
+
+    set shellBuiltins [list cls copy date del erase dir echo mkdir \
+	    md rename ren rmdir rd time type ver vol]
+    if {$tcl_platform(os) eq "Windows NT"} {
+	# NT includes the 'start' built-in
+	lappend shellBuiltins "start"
+    }
+    if {[info exists env(PATHEXT)]} {
+	# Add an initial ; to have the {} extension check first.
+	set execExtensions [split ";$env(PATHEXT)" ";"]
+    } else {
+	set execExtensions [list {} .com .exe .bat]
+    }
+
+    if {[lsearch -exact $shellBuiltins $name] != -1} {
+	# When this is command.com for some reason on Win2K, Tcl won't
+	# exec it unless the case is right, which this corrects.  COMSPEC
+	# may not point to a real file, so do the check.
+	set cmd $env(COMSPEC)
+	if {[file exists $cmd]} {
+	    set cmd [file attributes $cmd -shortname]
+	}
+	return [set auto_execs($name) [list $cmd /c $name]]
+    }
+
+    if {[llength [file split $name]] != 1} {
+	foreach ext $execExtensions {
+	    set file ${name}${ext}
+	    if {[file exists $file] && ![file isdirectory $file]} {
+		return [set auto_execs($name) [list $file]]
+	    }
+	}
+	return ""
+    }
+
+    set path "[file dirname [info nameof]];.;"
+    if {[info exists env(WINDIR)]} {
+	set windir $env(WINDIR) 
+    }
+    if {[info exists windir]} {
+	if {$tcl_platform(os) eq "Windows NT"} {
+	    append path "$windir/system32;"
+	}
+	append path "$windir/system;$windir;"
+    }
+
+    foreach var {PATH Path path} {
+	if {[info exists env($var)]} {
+	    append path ";$env($var)"
+	}
+    }
+
+    foreach dir [split $path {;}] {
+	# Skip already checked directories
+	if {[info exists checked($dir)] || $dir eq {}} { continue }
+	set checked($dir) {}
+	foreach ext $execExtensions {
+	    set file [file join $dir ${name}${ext}]
+	    if {[file exists $file] && ![file isdirectory $file]} {
+		return [set auto_execs($name) [list $file]]
+	    }
+	}
+    }
+    return ""
+}
+
+} else {
+# Unix version.
+#
+proc auto_execok name {
+    global auto_execs env
+
+    if {[info exists auto_execs($name)]} {
+	return $auto_execs($name)
+    }
+    set auto_execs($name) ""
+    if {[llength [file split $name]] != 1} {
+	if {[file executable $name] && ![file isdirectory $name]} {
+	    set auto_execs($name) [list $name]
+	}
+	return $auto_execs($name)
+    }
+    foreach dir [split $env(PATH) :] {
+	if {$dir eq ""} {
+	    set dir .
+	}
+	set file [file join $dir $name]
+	if {[file executable $file] && ![file isdirectory $file]} {
+	    set auto_execs($name) [list $file]
+	    return $auto_execs($name)
+	}
+    }
+    return ""
+}
+
+}
+
+# ::tcl::CopyDirectory --
+#
+# This procedure is called by Tcl's core when attempts to call the
+# filesystem's copydirectory function fail.  The semantics of the call
+# are that 'dest' does not yet exist, i.e. dest should become the exact
+# image of src.  If dest does exist, we throw an error.  
+# 
+# Note that making changes to this procedure can change the results
+# of running Tcl's tests.
+#
+# Arguments: 
+# action -              "renaming" or "copying" 
+# src -			source directory
+# dest -		destination directory
+proc tcl::CopyDirectory {action src dest} {
+    set nsrc [file normalize $src]
+    set ndest [file normalize $dest]
+    if {$action eq "renaming"} {
+	# Can't rename volumes.  We could give a more precise
+	# error message here, but that would break the test suite.
+	if {[lsearch -exact [file volumes] $nsrc] != -1} {
+	    return -code error "error $action \"$src\" to\
+	      \"$dest\": trying to rename a volume or move a directory\
+	      into itself"
+	}
+    }
+    if {[file exists $dest]} {
+	if {$nsrc eq $ndest} {
+	    return -code error "error $action \"$src\" to\
+	      \"$dest\": trying to rename a volume or move a directory\
+	      into itself"
+	}
+	if {$action eq "copying"} {
+	    return -code error "error $action \"$src\" to\
+	      \"$dest\": file already exists"
+	} else {
+	    # Depending on the platform, and on the current
+	    # working directory, the directories '.', '..'
+	    # can be returned in various combinations.  Anyway,
+	    # if any other file is returned, we must signal an error.
+	    set existing [glob -nocomplain -directory $dest * .*]
+	    eval [linsert \
+		    [glob -nocomplain -directory $dest -type hidden * .*] 0 \
+		    lappend existing]
+	    foreach s $existing {
+		if {([file tail $s] ne ".") && ([file tail $s] ne "..")} {
+		    return -code error "error $action \"$src\" to\
+		      \"$dest\": file already exists"
+		}
+	    }
+	}
+    } else {
+	if {[string first $nsrc $ndest] != -1} {
+	    set srclen [expr {[llength [file split $nsrc]] -1}]
+	    set ndest [lindex [file split $ndest] $srclen]
+	    if {$ndest eq [file tail $nsrc]} {
+		return -code error "error $action \"$src\" to\
+		  \"$dest\": trying to rename a volume or move a directory\
+		  into itself"
+	    }
+	}
+	file mkdir $dest
+    }
+    # Have to be careful to capture both visible and hidden files.
+    # We will also be more generous to the file system and not
+    # assume the hidden and non-hidden lists are non-overlapping.
+    # 
+    # On Unix 'hidden' files begin with '.'.  On other platforms
+    # or filesystems hidden files may have other interpretations.
+    set filelist [concat [glob -nocomplain -directory $src *] \
+      [glob -nocomplain -directory $src -types hidden *]]
+    
+    foreach s [lsort -unique $filelist] {
+	if {([file tail $s] ne ".") && ([file tail $s] ne "..")} {
+	    file copy $s [file join $dest [file tail $s]]
+	}
+    }
+    return
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         

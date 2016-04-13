@@ -1,0 +1,2021 @@
+ame _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    void
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    resize(size_type __n, _CharT __c)
+    {
+      const size_type __size = this->size();
+      if (__size < __n)
+	this->append(__n - __size, __c);
+      else if (__n < __size)
+	this->_M_erase(__n, __size - __n);
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    __versa_string<_CharT, _Traits, _Alloc, _Base>&
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    _M_append(const _CharT* __s, size_type __n)
+    {
+      const size_type __len = __n + this->size();
+
+      if (__len <= this->capacity() && !this->_M_is_shared())
+	{
+	  if (__n)
+	    this->_S_copy(this->_M_data() + this->size(), __s, __n);
+	}
+      else
+	this->_M_mutate(this->size(), size_type(0), __s, __n);
+
+      this->_M_set_length(__len);
+      return *this;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    template<typename _InputIterator>
+      __versa_string<_CharT, _Traits, _Alloc, _Base>&
+      __versa_string<_CharT, _Traits, _Alloc, _Base>::
+      _M_replace_dispatch(iterator __i1, iterator __i2, _InputIterator __k1,
+			  _InputIterator __k2, std::__false_type)
+      {
+	const __versa_string __s(__k1, __k2);
+	const size_type __n1 = __i2 - __i1;
+	return _M_replace(__i1 - _M_ibegin(), __n1, __s._M_data(),
+			  __s.size());
+      }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    __versa_string<_CharT, _Traits, _Alloc, _Base>&
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    _M_replace_aux(size_type __pos1, size_type __n1, size_type __n2,
+		   _CharT __c)
+    {
+      _M_check_length(__n1, __n2, "__versa_string::_M_replace_aux");
+
+      const size_type __old_size = this->size();
+      const size_type __new_size = __old_size + __n2 - __n1;
+
+      if (__new_size <= this->capacity() && !this->_M_is_shared())
+	{
+	  _CharT* __p = this->_M_data() + __pos1;
+
+	  const size_type __how_much = __old_size - __pos1 - __n1;
+	  if (__how_much && __n1 != __n2)
+	    this->_S_move(__p + __n2, __p + __n1, __how_much);
+	}
+      else
+	this->_M_mutate(__pos1, __n1, 0, __n2);
+
+      if (__n2)
+	this->_S_assign(this->_M_data() + __pos1, __n2, __c);
+
+      this->_M_set_length(__new_size);
+      return *this;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    __versa_string<_CharT, _Traits, _Alloc, _Base>&
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    _M_replace(size_type __pos, size_type __len1, const _CharT* __s,
+	       const size_type __len2)
+    {
+      _M_check_length(__len1, __len2, "__versa_string::_M_replace");
+
+      const size_type __old_size = this->size();
+      const size_type __new_size = __old_size + __len2 - __len1;
+      
+      if (__new_size <= this->capacity() && !this->_M_is_shared())
+	{
+	  _CharT* __p = this->_M_data() + __pos;
+
+	  const size_type __how_much = __old_size - __pos - __len1;
+	  if (_M_disjunct(__s))
+	    {
+	      if (__how_much && __len1 != __len2)
+		this->_S_move(__p + __len2, __p + __len1, __how_much);
+	      if (__len2)
+		this->_S_copy(__p, __s, __len2);
+	    }
+	  else
+	    {
+	      // Work in-place.
+	      if (__len2 && __len2 <= __len1)
+		this->_S_move(__p, __s, __len2);
+	      if (__how_much && __len1 != __len2)
+		this->_S_move(__p + __len2, __p + __len1, __how_much);
+	      if (__len2 > __len1)
+		{
+		  if (__s + __len2 <= __p + __len1)
+		    this->_S_move(__p, __s, __len2);
+		  else if (__s >= __p + __len1)
+		    this->_S_copy(__p, __s + __len2 - __len1, __len2);
+		  else
+		    {
+		      const size_type __nleft = (__p + __len1) - __s;
+		      this->_S_move(__p, __s, __nleft);
+		      this->_S_copy(__p + __nleft, __p + __len2,
+				    __len2 - __nleft);
+		    }
+		}
+	    }
+	}
+      else
+	this->_M_mutate(__pos, __len1, __s, __len2);
+
+      this->_M_set_length(__new_size);
+      return *this;
+    }
+  
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    __versa_string<_CharT, _Traits, _Alloc, _Base>
+    operator+(const __versa_string<_CharT, _Traits, _Alloc, _Base>& __lhs,
+	      const __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
+    {
+      __versa_string<_CharT, _Traits, _Alloc, _Base> __str;
+      __str.reserve(__lhs.size() + __rhs.size());
+      __str.append(__lhs);
+      __str.append(__rhs);
+      return __str;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    __versa_string<_CharT, _Traits, _Alloc, _Base>
+    operator+(const _CharT* __lhs,
+	      const __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
+    {
+      __glibcxx_requires_string(__lhs);
+      typedef __versa_string<_CharT, _Traits, _Alloc, _Base> __string_type;
+      typedef typename __string_type::size_type	  __size_type;
+      const __size_type __len = _Traits::length(__lhs);
+      __string_type __str;
+      __str.reserve(__len + __rhs.size());
+      __str.append(__lhs, __len);
+      __str.append(__rhs);
+      return __str;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    __versa_string<_CharT, _Traits, _Alloc, _Base>
+    operator+(_CharT __lhs,
+	      const __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
+    {
+      __versa_string<_CharT, _Traits, _Alloc, _Base> __str;
+      __str.reserve(__rhs.size() + 1);
+      __str.push_back(__lhs);
+      __str.append(__rhs);
+      return __str;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    __versa_string<_CharT, _Traits, _Alloc, _Base>
+    operator+(const __versa_string<_CharT, _Traits, _Alloc, _Base>& __lhs,
+	      const _CharT* __rhs)
+    {
+      __glibcxx_requires_string(__rhs);
+      typedef __versa_string<_CharT, _Traits, _Alloc, _Base> __string_type;
+      typedef typename __string_type::size_type	  __size_type;
+      const __size_type __len = _Traits::length(__rhs);
+      __string_type __str;
+      __str.reserve(__lhs.size() + __len);
+      __str.append(__lhs);
+      __str.append(__rhs, __len);
+      return __str;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    __versa_string<_CharT, _Traits, _Alloc, _Base>
+    operator+(const __versa_string<_CharT, _Traits, _Alloc, _Base>& __lhs,
+	      _CharT __rhs)
+    {
+      __versa_string<_CharT, _Traits, _Alloc, _Base> __str;
+      __str.reserve(__lhs.size() + 1);
+      __str.append(__lhs);
+      __str.push_back(__rhs);
+      return __str;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    typename __versa_string<_CharT, _Traits, _Alloc, _Base>::size_type
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    copy(_CharT* __s, size_type __n, size_type __pos) const
+    {
+      _M_check(__pos, "__versa_string::copy");
+      __n = _M_limit(__pos, __n);
+      __glibcxx_requires_string_len(__s, __n);
+      if (__n)
+	this->_S_copy(__s, this->_M_data() + __pos, __n);
+      // 21.3.5.7 par 3: do not append null.  (good.)
+      return __n;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    typename __versa_string<_CharT, _Traits, _Alloc, _Base>::size_type
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    find(const _CharT* __s, size_type __pos, size_type __n) const
+    {
+      __glibcxx_requires_string_len(__s, __n);
+      const size_type __size = this->size();
+      const _CharT* __data = this->_M_data();
+
+      if (__n == 0)
+	return __pos <= __size ? __pos : npos;
+
+      if (__n <= __size)
+	{
+	  for (; __pos <= __size - __n; ++__pos)
+	    if (traits_type::eq(__data[__pos], __s[0])
+		&& traits_type::compare(__data + __pos + 1,
+					__s + 1, __n - 1) == 0)
+	      return __pos;
+	}
+      return npos;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    typename __versa_string<_CharT, _Traits, _Alloc, _Base>::size_type
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    find(_CharT __c, size_type __pos) const
+    {
+      size_type __ret = npos;
+      const size_type __size = this->size();
+      if (__pos < __size)
+	{
+	  const _CharT* __data = this->_M_data();
+	  const size_type __n = __size - __pos;
+	  const _CharT* __p = traits_type::find(__data + __pos, __n, __c);
+	  if (__p)
+	    __ret = __p - __data;
+	}
+      return __ret;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    typename __versa_string<_CharT, _Traits, _Alloc, _Base>::size_type
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    rfind(const _CharT* __s, size_type __pos, size_type __n) const
+    {
+      __glibcxx_requires_string_len(__s, __n);
+      const size_type __size = this->size();
+      if (__n <= __size)
+	{
+	  __pos = std::min(size_type(__size - __n), __pos);
+	  const _CharT* __data = this->_M_data();
+	  do
+	    {
+	      if (traits_type::compare(__data + __pos, __s, __n) == 0)
+		return __pos;
+	    }
+	  while (__pos-- > 0);
+	}
+      return npos;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    typename __versa_string<_CharT, _Traits, _Alloc, _Base>::size_type
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    rfind(_CharT __c, size_type __pos) const
+    {
+      size_type __size = this->size();
+      if (__size)
+	{
+	  if (--__size > __pos)
+	    __size = __pos;
+	  for (++__size; __size-- > 0; )
+	    if (traits_type::eq(this->_M_data()[__size], __c))
+	      return __size;
+	}
+      return npos;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    typename _ã1  å1  ç1  é1  è1  ê1  ë1  í1  ì1  î1  ï1  ñ1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  _versa_string<_CharT, _Traits, _Alloc, _Base>::size_type
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    find_first_of(const _CharT* __s, size_type __pos, size_type __n) const
+    {
+      __glibcxx_requires_string_len(__s, __n);
+      for (; __n && __pos < this->size(); ++__pos)
+	{
+	  const _CharT* __p = traits_type::find(__s, __n,
+						this->_M_data()[__pos]);
+	  if (__p)
+	    return __pos;
+	}
+      return npos;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    typename __versa_string<_CharT, _Traits, _Alloc, _Base>::size_type
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    find_last_of(const _CharT* __s, size_type __pos, size_type __n) const
+    {
+      __glibcxx_requires_string_len(__s, __n);
+      size_type __size = this->size();
+      if (__size && __n)
+	{
+	  if (--__size > __pos)
+	    __size = __pos;
+	  do
+	    {
+	      if (traits_type::find(__s, __n, this->_M_data()[__size]))
+		return __size;
+	    }
+	  while (__size-- != 0);
+	}
+      return npos;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    typename __versa_string<_CharT, _Traits, _Alloc, _Base>::size_type
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    find_first_not_of(const _CharT* __s, size_type __pos, size_type __n) const
+    {
+      __glibcxx_requires_string_len(__s, __n);
+      for (; __pos < this->size(); ++__pos)
+	if (!traits_type::find(__s, __n, this->_M_data()[__pos]))
+	  return __pos;
+      return npos;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    typename __versa_string<_CharT, _Traits, _Alloc, _Base>::size_type
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    find_first_not_of(_CharT __c, size_type __pos) const
+    {
+      for (; __pos < this->size(); ++__pos)
+	if (!traits_type::eq(this->_M_data()[__pos], __c))
+	  return __pos;
+      return npos;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    typename __versa_string<_CharT, _Traits, _Alloc, _Base>::size_type
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    find_last_not_of(const _CharT* __s, size_type __pos, size_type __n) const
+    {
+      __glibcxx_requires_string_len(__s, __n);
+      size_type __size = this->size();
+      if (__size)
+	{
+	  if (--__size > __pos)
+	    __size = __pos;
+	  do
+	    {
+	      if (!traits_type::find(__s, __n, this->_M_data()[__size]))
+		return __size;
+	    }
+	  while (__size--);
+	}
+      return npos;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    typename __versa_string<_CharT, _Traits, _Alloc, _Base>::size_type
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    find_last_not_of(_CharT __c, size_type __pos) const
+    {
+      size_type __size = this->size();
+      if (__size)
+	{
+	  if (--__size > __pos)
+	    __size = __pos;
+	  do
+	    {
+	      if (!traits_type::eq(this->_M_data()[__size], __c))
+		return __size;
+	    }
+	  while (__size--);
+	}
+      return npos;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    int
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    compare(size_type __pos, size_type __n, const __versa_string& __str) const
+    {
+      _M_check(__pos, "__versa_string::compare");
+      __n = _M_limit(__pos, __n);
+      const size_type __osize = __str.size();
+      const size_type __len = std::min(__n, __osize);
+      int __r = traits_type::compare(this->_M_data() + __pos,
+				     __str.data(), __len);
+      if (!__r)
+	__r = _S_compare(__n, __osize);
+      return __r;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    int
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    compare(size_type __pos1, size_type __n1, const __versa_string& __str,
+	    size_type __pos2, size_type __n2) const
+    {
+      _M_check(__pos1, "__versa_string::compare");
+      __str._M_check(__pos2, "__versa_string::compare");
+      __n1 = _M_limit(__pos1, __n1);
+      __n2 = __str._M_limit(__pos2, __n2);
+      const size_type __len = std::min(__n1, __n2);
+      int __r = traits_type::compare(this->_M_data() + __pos1,
+				     __str.data() + __pos2, __len);
+      if (!__r)
+	__r = _S_compare(__n1, __n2);
+      return __r;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    int
+    __versa_string<_CharT, _Traits, _Alloc, _Base>::
+    compare(const _CharT* __s) const
+    {
+      __glibcxx_requires_string(__s);
+      const size_type __size = this->size();
+      const size_type __osize = traits_type::length(__s);
+      const size_type __len = std::min(__size, __osize);
+      int __r = traits_type::compare(this->_M_data(), __s, __len);
+      if (!__r)
+	__r = _S_compare(__size, __osize);
+      return __r;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    int
+    __versa_string <_CharT, _Traits, _Alloc, _Base>::
+    compare(size_type __pos, size_type __n1, const _CharT* __s) const
+    {
+      __glibcxx_requires_string(__s);
+      _M_check(__pos, "__versa_string::compare");
+      __n1 = _M_limit(__pos, __n1);
+      const size_type __osize = traits_type::length(__s);
+      const size_type __len = std::min(__n1, __osize);
+      int __r = traits_type::compare(this->_M_data() + __pos, __s, __len);
+      if (!__r)
+	__r = _S_compare(__n1, __osize);
+      return __r;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    int
+    __versa_string <_CharT, _Traits, _Alloc, _Base>::
+    compare(size_type __pos, size_type __n1, const _CharT* __s,
+	    size_type __n2) const
+    {
+      __glibcxx_requires_string_len(__s, __n2);
+      _M_check(__pos, "__versa_string::compare");
+      __n1 = _M_limit(__pos, __n1);
+      const size_type __len = std::min(__n1, __n2);
+      int __r = traits_type::compare(this->_M_data() + __pos, __s, __len);
+      if (!__r)
+	__r = _S_compare(__n1, __n2);
+      return __r;
+    }
+
+_GLIBCXX_END_NAMESPACE
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+           template <typename, typename, typename> class _Base>
+    basic_istream<_CharT, _Traits>&
+    operator>>(basic_istream<_CharT, _Traits>& __in,
+	       __gnu_cxx::__versa_string<_CharT, _Traits,
+	                                 _Alloc, _Base>& __str)
+    {
+      typedef basic_istream<_CharT, _Traits>            __istream_type;
+      typedef typename __istream_type::ios_base         __ios_base;
+      typedef __gnu_cxx::__versa_string<_CharT, _Traits, _Alloc, _Base>
+	                                                __string_type;
+      typedef typename __istream_type::int_type		__int_type;
+      typedef typename __string_type::size_type		__size_type;
+      typedef ctype<_CharT>				__ctype_type;
+      typedef typename __ctype_type::ctype_base         __ctype_base;
+
+      __size_type __extracted = 0;
+      typename __ios_base::iostate __err = __ios_base::goodbit;
+      typename __istream_type::sentry __cerb(__in, false);
+      if (__cerb)
+	{
+	  try
+	    {
+	      // Avoid reallocation for common case.
+	      __str.erase();
+	      _CharT __buf[128];
+	      __size_type __len = 0;
+	      const streamsize __w = __in.width();
+	      const __size_type __n = __w > 0 ? static_cast<__size_type>(__w)
+		                              : __str.max_size();
+	      const __ctype_type& __ct = use_facet<__ctype_type>(__in.getloc());
+	      const __int_type __eof = _Traits::eof();
+	      __int_type __c = __in.rdbuf()->sgetc();
+
+	      while (__extracted < __n
+		     && !_Traits::eq_int_type(__c, __eof)
+		     && !__ct.is(__ctype_base::space,
+				 _Traits::to_char_type(__c)))
+		{
+		  if (__len == sizeof(__buf) / sizeof(_CharT))
+		    {
+		      __str.append(__buf, sizeof(__buf) / sizeof(_CharT));
+		      __len = 0;
+		    }
+		  __buf[__len++] = _Traits::to_char_type(__c);
+		  ++__extracted;
+		  __c = __in.rdbuf()->snextc();
+		}
+	      __str.append(__buf, __len);
+
+	      if (_Traits::eq_int_type(__c, __eof))
+		__err |= __ios_base::eofbit;
+	      __in.width(0);
+	    }
+	  catch(__cxxabiv1::__forced_unwind&)
+	    {
+	      __in._M_setstate(__ios_base::badbit);
+	      __throw_exception_again;
+	    }
+	  catch(...)
+	    {
+	      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+	      // 91. Description of operator>> and getline() for string<>
+	      // might cause endless loop
+	      __in._M_setstate(__ios_base::badbit);
+	    }
+	}
+      // 211.  operator>>(istream&, string&) doesn't set failbit
+      if (!__extracted)
+	__err |= __ios_base::failbit;
+      if (__err)
+	__in.setstate(__err);
+      return __in;
+    }      
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+           template <typename, typename, typename> class _Base>
+    basic_istream<_CharT, _Traits>&
+    getline(basic_istream<_CharT, _Traits>& __in,
+	    __gnu_cxx::__versa_string<_CharT, _Traits, _Alloc, _Base>& __str,
+	    _CharT __delim)
+    {
+      typedef basic_istream<_CharT, _Traits>	        __istream_type;
+      typedef typename __istream_type::ios_base         __ios_base;
+      typedef __gnu_cxx::__versa_string<_CharT, _Traits, _Alloc, _Base>
+	                                                __string_type;
+      typedef typename __istream_type::int_type		__int_type;
+      typedef typename __string_type::size_type		__size_type;
+
+      __size_type __extracted = 0;
+      const __size_type __n = __str.max_size();
+      typename __ios_base::iostate __err = __ios_base::goodbit;
+      typename __istream_type::sentry __cerb(__in, true);
+      if (__cerb)
+	{
+	  try
+	    {
+	      // Avoid reallocation for common case.
+	      __str.erase();
+	      _CharT __buf[128];
+	      __size_type __len = 0;
+	      const __int_type __idelim = _Traits::to_int_type(__delim);
+	      const __int_type __eof = _Traits::eof();
+	      __int_type __c = __in.rdbuf()->sgetc();
+
+	      while (__extracted < __n
+		     && !_Traits::eq_int_type(__c, __eof)
+		     && !_Traits::eq_int_type(__c, __idelim))
+		{
+		  if (__len == sizeof(__buf) / sizeof(_CharT))
+		    {
+		      __str.append(__buf, sizeof(__buf) / sizeof(_CharT));
+		      __len = 0;
+		    }
+		  __buf[__len++] = _Traits::to_char_type(__c);
+		  ++__extracted;
+		  __c = __in.rdbuf()->snextc();
+		}
+	      __str.append(__buf, __len);
+
+	      if (_Traits::eq_int_type(__c, __eof))
+		__err |= __ios_base::eofbit;
+	      else if (_Traits::eq_int_type(__c, __idelim))
+		{
+		  ++__extracted;		  
+		  __in.rdbuf()->sbumpc();
+		}
+	      else
+		__err |= __ios_base::failbit;
+	    }
+	  catch(__cxxabiv1::__forced_unwind&)
+	    {
+	      __in._M_setstate(__ios_base::badbit);
+	      __throw_exception_again;
+	    }
+	  catch(...)
+	    {
+	      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+	      // 91. Description of operator>> and getline() for string<>
+	      // might cause endless loop
+	      __in._M_setstate(__ios_base::badbit);
+	    }
+	}
+      if (!__extracted)
+	__err |= __ios_base::failbit;
+      if (__err)
+	__in.setstate(__err);
+      return __in;
+    }      
+
+_GLIBCXX_END_NAMESPACE
+
+#endif // _VSTRING_TCC
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           // Singly-linked list implementation -*- C++ -*-
+
+// Copyright (C) 2001, 2002, 2004, 2005, 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/*
+ * Copyright (c) 1997
+ * Silicon Graphics Computer Systems, Inc.
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Silicon Graphics makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ *
+ */
+
+/** @file ext/slist
+ *  This file is a GNU extension to the Standard C++ Library (possibly
+ *  containing extensions from the HP/SGI STL subset). 
+ */
+
+#ifndef _SLIST
+#define _SLIST 1
+
+#include <algorithm>
+#include <bits/allocator.h>
+#include <bits/stl_construct.h>
+#include <bits/stl_uninitialized.h>
+#include <bits/concept_check.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
+  using std::size_t;
+  using std::ptrdiff_t;
+  using std::_Construct;
+  using std::_Destroy;
+  using std::allocator;
+  using std::__true_type;
+  using std::__false_type;
+
+  struct _Slist_node_base
+  {
+    _Slist_node_base* _M_next;
+  };
+  
+  inline _Slist_node_base*
+  __slist_make_link(_Slist_node_base* __prev_node,
+		    _Slist_node_base* __new_node)
+  {
+    __new_node->_M_next = __prev_node->_M_next;
+    __prev_node->_M_next = __new_node;
+    return __new_node;
+  }
+
+  inline _Slist_node_base*
+  __slist_previous(_Slist_node_base* __head,
+		   const _Slist_node_base* __node)
+  {
+    while (__head && __head->_M_next != __node)
+      __head = __head->_M_next;
+    return __head;
+  }
+
+  inline const _Slist_node_base*
+  __slist_previous(const _Slist_node_base* __head,
+		   const _Slist_node_base* __node)
+  {
+    while (__head && __head->_M_next != __node)
+      __head = __head->_M_next;
+    return __head;
+  }
+
+  inline void
+  __slist_splice_after(_Slist_node_base* __pos,
+		       _Slist_node_base* __before_first,
+		       _Slist_node_base* __before_last)
+  {
+    if (__pos != __before_first && __pos != __before_last)
+      {
+	_Slist_node_base* __first = __before_first->_M_next;
+	_Slist_node_base* __after = __pos->_M_next;
+	__before_first->_M_next = __before_last->_M_next;
+	__pos->_M_next = __first;
+	__before_last->_M_next = __after;
+      }
+  }
+
+  inline void
+  __slist_splice_after(_Slist_node_base* __pos, _Slist_node_base* __head)
+  {
+    _Slist_node_base* __before_last = __slist_previous(__head, 0);
+    if (__before_last != __head)
+      {
+	_Slist_node_base* __after = __pos->_M_next;
+	__pos->_M_next = __head->_M_next;
+	__head->_M_next = 0;
+	__before_last->_M_next = __after;
+      }
+  }
+
+  inline _Slist_node_base*
+  __slist_reverse(_Slist_node_base* __node)
+  {
+    _Slist_node_base* __result = __node;
+    __node = __node->_M_next;
+    __result->_M_next = 0;
+    while(__node)
+      {
+	_Slist_node_base* __next = __node->_M_next;
+	__node->_M_next = __result;
+	__result = __node;
+	__node = __next;
+      }
+    return __result;
+  }
+
+  inline size_t
+  __slist_size(_Slist_node_base* __node)
+  {
+    size_t __result = 0;
+    for (; __node != 0; __node = __node->_M_next)
+      ++__result;
+    return __result;
+  }
+
+  template <class _Tp>
+    struct _Slist_node : public _Slist_node_base
+    {
+      _Tp _M_data;
+    };
+
+  struct _Slist_iterator_base
+  {
+    typedef size_t                    size_type;
+    typedef ptrdiff_t                 difference_type;
+    typedef std::forward_iterator_tag iterator_category;
+
+    _Slist_node_base* _M_node;
+    
+    _Slist_iterator_base(_Slist_node_base* __x)
+    : _M_node(__x) {}
+
+    void
+    _M_incr()
+    { _M_node = _M_node->_M_next; }
+
+    bool
+    operator==(const _Slist_iterator_base& __x) const
+    { return _M_node == __x._M_node; }
+
+    bool
+    operator!=(const _Slist_iterator_base& __x) const
+    { return _M_node != __x._M_node; }
+  };
+
+  template <class _Tp, class _Ref, class _Ptr>
+    struct _Slist_iterator : public _Slist_iterator_base
+    {
+      typedef _Slist_iterator<_Tp, _Tp&, _Tp*>             iterator;
+      typedef _Slist_iterator<_Tp, const _Tp&, const _Tp*> const_iterator;
+      typedef _Slist_iterator<_Tp, _Ref, _Ptr>             _Self;
+
+      typedef _Tp              value_type;
+      typedef _Ptr             pointer;
+      typedef _Ref             reference;
+      typedef _Slist_node<_Tp> _Node;
+
+      explicit
+      _Slist_iterator(_Node* __x)
+      : _Slist_iterator_base(__x) {}
+
+      _Slist_iterator()
+      : _Slist_iterator_base(0) {}
+
+      _Slist_iterator(const iterator& __x)
+      : _Slist_iterator_base(__x._M_node) {}
+
+      reference
+      operator*() const
+      { return ((_Node*) _M_node)->_M_data; }
+
+      pointer
+      operator->() const
+      { return &(operator*()); }
+
+      _Self&
+      operator++()
+      {
+	_M_incr();
+	return *this;
+      }
+
+      _Self
+      operator++(int)
+      {
+	_Self __tmp = *this;
+	_M_incr();
+	return __tmp;
+      }
+    };
+
+  template <class _Tp, class _Alloc>
+    struct _Slist_base
+    : public _Alloc::template rebind<_Slist_node<_Tp> >::other
+    {
+      typedef typename _Alloc::template rebind<_Slist_node<_Tp> >::other
+        _Node_alloc;
+      typedef _Alloc allocator_type;
+
+      allocator_type
+      get_allocator() const
+      { return *static_cast<const _Node_alloc*>(this); }
+
+      _Slist_base(const allocator_type& __a)
+      : _Node_alloc(__a)
+      { this->_M_head._M_next = 0; }
+
+      ~_Slist_base()
+      { _M_erase_after(&this->_M_head, 0); }
+
+    protected:
+      _Slist_node_base _M_head;
+
+      _Slist_node<_Tp>*
+      _M_get_node()
+      { return _Node_alloc::allocate(1); }
+  
+      void
+      _M_put_node(_Slist_node<_Tp>* __p)
+      { _Node_alloc::deallocate(__p, 1); }
+
+    protected:
+      _Slist_node_base* _M_erase_after(_Slist_node_base* __pos)
+      {
+	_Slist_node<_Tp>* __next = (_Slist_node<_Tp>*) (__pos->_M_next);
+	_Slist_node_base* __next_next = __next->_M_next;
+	__pos->_M_next = __next_next;
+	get_allocator().destroy(&__next->_M_data);
+	_M_put_node(__next);
+	return __next_next;
+      }
+      _Slist_node_base* _M_erase_after(_Slist_node_base*, _Slist_node_base*);
+    };
+
+  template <class _Tp, class _Alloc>
+    _Slist_node_base*
+    _Slist_base<_Tp,_Alloc>::_M_erase_after(_Slist_node_base* __before_first,
+					    _Slist_node_base* __last_node)
+    {
+      _Slist_node<_Tp>* __cur = (_Slist_node<_Tp>*) (__before_first->_M_next);
+      while (__cur != __last_node)
+	{
+	  _Slist_node<_Tp>* __tmp = __cur;
+	  __cur = (_Slist_node<_Tp>*) __cur->_M_next;
+	  get_allocator().destroy(&__tmp->_M_data);
+	  _M_put_node(__tmp);
+	}
+      __before_first->_M_next = __last_node;
+      return __last_node;
+    }
+
+  /**
+   *  This is an SGI extension.
+   *  @ingroup SGIextensions
+   *  @doctodo
+   */
+  template <class _Tp, class _Alloc = allocator<_Tp> >
+    class slist : private _Slist_base<_Tp,_Alloc>
+    {
+      // concept requirements
+      __glibcxx_class_requires(_Tp, _SGIAssignableConcept)
+	
+    private:
+      typedef _Slist_base<_Tp,_Alloc> _Base;
+
+    public:
+      typedef _Tp               value_type;
+      typedef value_type*       pointer;
+      typedef const value_type* const_pointer;
+      typedef value_type&       reference;
+      typedef const value_type& const_reference;
+      typedef size_t            size_type;
+      typedef ptrdiff_t         difference_type;
+      
+      typedef _Slist_iterator<_Tp, _Tp&, _Tp*>             iterator;
+      typedef _Slist_iterator<_Tp, const _Tp&, const _Tp*> const_iterator;
+      
+      typedef typename _Base::allocator_type allocator_type;
+
+      allocator_type
+      get_allocator() const
+      { return _Base::get_allocator(); }
+
+    private:
+      typedef _Slist_node<_Tp>      _Node;
+      typedef _Slist_node_base      _Node_base;
+      typedef _Slist_iterator_base  _Iterator_base;
+      
+      _Node*
+      _M_create_node(const value_type& __x)
+      {
+	_Node* __node = this->_M_get_node();
+	try
+	  {
+	    get_allocator().construct(&__node->_M_data, __x);
+	    __node->_M_next = 0;
+	  }
+	catch(...)
+	  {
+	    this->_M_put_node(__node);
+	    __throw_exception_again;
+	  }
+	return __node;
+      }
+
+      _Node*
+      _M_create_node()
+      {
+	_Node* __node = this->_M_get_node();
+	try
+	  {
+	    get_allocator().construct(&__node->_M_data, value_type());
+	    __node->_M_next = 0;
+	  }
+	catch(...)
+	  {
+	    this->_M_put_node(__node);
+	    __throw_exception_again;
+	  }
+	return __node;
+      }
+
+    public:
+      explicit
+      slist(const allocator_type& __a = allocator_type())
+      : _Base(__a) {}
+
+      slist(size_type __n, const value_type& __x,
+	    const allocator_type& __a =  allocator_type())
+      : _Base(__a)
+      { _M_insert_after_fill(&this->_M_head, __n, __x); }
+
+      explicit
+      slist(size_type __n)
+      : _Base(allocator_type())
+      { _M_insert_after_fill(&this->_M_head, __n, value_type()); }
+
+      // We don't need any dispatching tricks here, because
+      // _M_insert_after_range already does them.
+      template <class _InputIterator>
+        slist(_InputIterator __first, _InputIterator __last,
+	      const allocator_type& __a =  allocator_type())
+	: _Base(__a)
+        { _M_insert_after_range(&this->_M_head, __first, __last); }
+
+      slist(const slist& __x)
+      : _Base(__x.get_allocator())
+      { _M_insert_after_range(&this->_M_head, __x.begin(), __x.end()); }
+
+      slist&
+      operator= (const slist& __x);
+
+      ~slist() {}
+
+    public:
+      // assign(), a generalized assignment member function.  Two
+      // versions: one that takes a count, and one that takes a range.
+      // The range version is a member template, so we dispatch on whether
+      // or not the type is an integer.
+      
+      void
+      assign(size_type __n, const _Tp& __val)
+      { _M_fill_assign(__n, __val); }
+
+      void
+      _M_fill_assign(size_type __n, const _Tp& __val);
+
+      template <class _InputIterator>
+        void
+        assign(_InputIterator __first, _InputIterator __last)
+        {
+	  typedef typename std::__is_integer<_InputIterator>::__type _Integral;
+	  _M_assign_dispatch(__first, __last, _Integral());
+	}
+
+      template <class _Integer>
+      void
+      _M_assign_dispatch(_Integer __n, _Integer __val, __true_type)
+      { _M_fill_assign((size_type) __n, (_Tp) __val); }
+
+      template <class _InputIterator>
+      void
+      _M_assign_dispatch(_InputIterator __first, _InputIterator __last,
+			 __false_type);
+
+    public:
+
+      iterator
+      begin()
+      { return iterator((_Node*)this->_M_head._M_next); }
+
+      const_iterator
+      begin() const
+      { return const_iterator((_Node*)this->_M_head._M_next);}
+
+      iterator
+      end()
+      { return iterator(0); }
+
+      const_iterator
+      end() const
+      { return const_iterator(0); }
+
+      // Experimental new feature: before_begin() returns a
+      // non-dereferenceable iterator that, when incremented, yi§1  •1  ¶1  ß1  ®1  ©1  ™1  ´1  ¨1  ≠1  Æ1  Ø1  ∞1  ±1  ≤1  ≥1  ¥1  µ1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          elds
+      // begin().  This iterator may be used as the argument to
+      // insert_after, erase_after, etc.  Note that even for an empty
+      // slist, before_begin() is not the same iterator as end().  It
+      // is always necessary to increment before_begin() at least once to
+      // obtain end().
+      iterator
+      before_begin()
+      { return iterator((_Node*) &this->_M_head); }
+
+      const_iterator
+      before_begin() const
+      { return const_iterator((_Node*) &this->_M_head); }
+
+      size_type
+      size() const
+      { return __slist_size(this->_M_head._M_next); }
+
+      size_type
+      max_size() const
+      { return size_type(-1); }
+
+      bool
+      empty() const
+      { return this->_M_head._M_next == 0; }
+
+      void
+      swap(slist& __x)
+      { std::swap(this->_M_head._M_next, __x._M_head._M_next); }
+
+    public:
+
+      reference
+      front()
+      { return ((_Node*) this->_M_head._M_next)->_M_data; }
+
+      const_reference
+      front() const
+      { return ((_Node*) this->_M_head._M_next)->_M_data; }
+
+      void
+      push_front(const value_type& __x)
+      { __slist_make_link(&this->_M_head, _M_create_node(__x)); }
+
+      void
+      push_front()
+      { __slist_make_link(&this->_M_head, _M_create_node()); }
+
+      void
+      pop_front()
+      {
+	_Node* __node = (_Node*) this->_M_head._M_next;
+	this->_M_head._M_next = __node->_M_next;
+	get_allocator().destroy(&__node->_M_data);
+	this->_M_put_node(__node);
+      }
+
+      iterator
+      previous(const_iterator __pos)
+      { return iterator((_Node*) __slist_previous(&this->_M_head,
+						  __pos._M_node)); }
+
+      const_iterator
+      previous(const_iterator __pos) const
+      { return const_iterator((_Node*) __slist_previous(&this->_M_head,
+							__pos._M_node)); }
+
+    private:
+      _Node*
+      _M_insert_after(_Node_base* __pos, const value_type& __x)
+      { return (_Node*) (__slist_make_link(__pos, _M_create_node(__x))); }
+
+      _Node*
+      _M_insert_after(_Node_base* __pos)
+      { return (_Node*) (__slist_make_link(__pos, _M_create_node())); }
+
+      void
+      _M_insert_after_fill(_Node_base* __pos,
+			   size_type __n, const value_type& __x)
+      {
+	for (size_type __i = 0; __i < __n; ++__i)
+	  __pos = __slist_make_link(__pos, _M_create_node(__x));
+      }
+
+      // Check whether it's an integral type.  If so, it's not an iterator.
+      template <class _InIterator>
+        void
+        _M_insert_after_range(_Node_base* __pos,
+			      _InIterator __first, _InIterator __last)
+        {
+	  typedef typename std::__is_integer<_InIterator>::__type _Integral;
+	  _M_insert_after_range(__pos, __first, __last, _Integral());
+	}
+
+      template <class _Integer>
+        void
+        _M_insert_after_range(_Node_base* __pos, _Integer __n, _Integer __x,
+			      __true_type)
+        { _M_insert_after_fill(__pos, __n, __x); }
+
+      template <class _InIterator>
+        void
+        _M_insert_after_range(_Node_base* __pos,
+			      _InIterator __first, _InIterator __last,
+			      __false_type)
+        {
+	  while (__first != __last)
+	    {
+	      __pos = __slist_make_link(__pos, _M_create_node(*__first));
+	      ++__first;
+	    }
+	}
+
+    public:
+      iterator
+      insert_after(iterator __pos, const value_type& __x)
+      { return iterator(_M_insert_after(__pos._M_node, __x)); }
+
+      iterator
+      insert_after(iterator __pos)
+      { return insert_after(__pos, value_type()); }
+
+      void
+      insert_after(iterator __pos, size_type __n, const value_type& __x)
+      { _M_insert_after_fill(__pos._M_node, __n, __x); }
+
+      // We don't need any dispatching tricks here, because
+      // _M_insert_after_range already does them.
+      template <class _InIterator>
+        void
+        insert_after(iterator __pos, _InIterator __first, _InIterator __last)
+        { _M_insert_after_range(__pos._M_node, __first, __last); }
+
+      iterator
+      insert(iterator __pos, const value_type& __x)
+      { return iterator(_M_insert_after(__slist_previous(&this->_M_head,
+							 __pos._M_node),
+					__x)); }
+
+      iterator
+      insert(iterator __pos)
+      { return iterator(_M_insert_after(__slist_previous(&this->_M_head,
+							 __pos._M_node),
+					value_type())); }
+
+      void
+      insert(iterator __pos, size_type __n, const value_type& __x)
+      { _M_insert_after_fill(__slist_previous(&this->_M_head, __pos._M_node),
+			     __n, __x); }
+
+      // We don't need any dispatching tricks here, because
+      // _M_insert_after_range already does them.
+      template <class _InIterator>
+        void
+        insert(iterator __pos, _InIterator __first, _InIterator __last)
+        { _M_insert_after_range(__slist_previous(&this->_M_head, __pos._M_node),
+				__first, __last); }
+
+    public:
+      iterator
+      erase_after(iterator __pos)
+      { return iterator((_Node*) this->_M_erase_after(__pos._M_node)); }
+
+      iterator
+      erase_after(iterator __before_first, iterator __last)
+      { 
+	return iterator((_Node*) this->_M_erase_after(__before_first._M_node,
+						      __last._M_node));
+      }
+
+      iterator
+      erase(iterator __pos)
+      { 
+	return iterator((_Node*) this->_M_erase_after
+			(__slist_previous(&this->_M_head, __pos._M_node)));
+      }
+
+      iterator
+      erase(iterator __first, iterator __last)
+      { 
+	return iterator((_Node*) this->_M_erase_after
+			(__slist_previous(&this->_M_head, __first._M_node),
+			 __last._M_node));
+      }
+      
+      void
+      resize(size_type new_size, const _Tp& __x);
+
+      void
+      resize(size_type new_size)
+      { resize(new_size, _Tp()); }
+
+      void
+      clear()
+      { this->_M_erase_after(&this->_M_head, 0); }
+
+    public:
+      // Moves the range [__before_first + 1, __before_last + 1) to *this,
+      //  inserting it immediately after __pos.  This is constant time.
+      void
+      splice_after(iterator __pos,
+		   iterator __before_first, iterator __before_last)
+      {
+	if (__before_first != __before_last)
+	  __slist_splice_after(__pos._M_node, __before_first._M_node,
+			       __before_last._M_node);
+      }
+
+      // Moves the element that follows __prev to *this, inserting it
+      // immediately after __pos.  This is constant time.
+      void
+      splice_after(iterator __pos, iterator __prev)
+      { __slist_splice_after(__pos._M_node,
+			     __prev._M_node, __prev._M_node->_M_next); }
+
+      // Removes all of the elements from the list __x to *this, inserting
+      // them immediately after __pos.  __x must not be *this.  Complexity:
+      // linear in __x.size().
+      void
+      splice_after(iterator __pos, slist& __x)
+      { __slist_splice_after(__pos._M_node, &__x._M_head); }
+
+      // Linear in distance(begin(), __pos), and linear in __x.size().
+      void
+      splice(iterator __pos, slist& __x)
+      {
+	if (__x._M_head._M_next)
+	  __slist_splice_after(__slist_previous(&this->_M_head, __pos._M_node),
+			       &__x._M_head,
+			       __slist_previous(&__x._M_head, 0)); }
+
+      // Linear in distance(begin(), __pos), and in distance(__x.begin(), __i).
+      void
+      splice(iterator __pos, slist& __x, iterator __i)
+      { __slist_splice_after(__slist_previous(&this->_M_head, __pos._M_node),
+			     __slist_previous(&__x._M_head, __i._M_node),
+			     __i._M_node); }
+
+      // Linear in distance(begin(), __pos), in distance(__x.begin(), __first),
+      // and in distance(__first, __last).
+      void
+      splice(iterator __pos, slist& __x, iterator __first, iterator __last)
+      {
+	if (__first != __last)
+	  __slist_splice_after(__slist_previous(&this->_M_head, __pos._M_node),
+			       __slist_previous(&__x._M_head, __first._M_node),
+			       __slist_previous(__first._M_node,
+						__last._M_node));
+      }
+
+    public:
+      void
+      reverse()
+      {
+	if (this->_M_head._M_next)
+	  this->_M_head._M_next = __slist_reverse(this->_M_head._M_next);
+      }
+
+      void
+      remove(const _Tp& __val);
+
+      void
+      unique();
+      
+      void
+      merge(slist& __x);
+      
+      void
+      sort();
+
+      template <class _Predicate>
+        void
+        remove_if(_Predicate __pred);
+
+      template <class _BinaryPredicate>
+        void
+        unique(_BinaryPredicate __pred);
+
+      template <class _StrictWeakOrdering>
+        void
+        merge(slist&, _StrictWeakOrdering);
+
+      template <class _StrictWeakOrdering>
+        void
+        sort(_StrictWeakOrdering __comp);
+    };
+
+  template <class _Tp, class _Alloc>
+    slist<_Tp, _Alloc>&
+    slist<_Tp, _Alloc>::operator=(const slist<_Tp, _Alloc>& __x)
+    {
+      if (&__x != this)
+	{
+	  _Node_base* __p1 = &this->_M_head;
+	  _Node* __n1 = (_Node*) this->_M_head._M_next;
+	  const _Node* __n2 = (const _Node*) __x._M_head._M_next;
+	  while (__n1 && __n2)
+	    {
+	      __n1->_M_data = __n2->_M_data;
+	      __p1 = __n1;
+	      __n1 = (_Node*) __n1->_M_next;
+	      __n2 = (const _Node*) __n2->_M_next;
+	    }
+	  if (__n2 == 0)
+	    this->_M_erase_after(__p1, 0);
+	  else
+	    _M_insert_after_range(__p1, const_iterator((_Node*)__n2),
+                                  const_iterator(0));
+	}
+      return *this;
+    }
+
+  template <class _Tp, class _Alloc>
+    void
+    slist<_Tp, _Alloc>::_M_fill_assign(size_type __n, const _Tp& __val)
+    {
+      _Node_base* __prev = &this->_M_head;
+      _Node* __node = (_Node*) this->_M_head._M_next;
+      for (; __node != 0 && __n > 0; --__n)
+	{
+	  __node->_M_data = __val;
+	  __prev = __node;
+	  __node = (_Node*) __node->_M_next;
+	}
+      if (__n > 0)
+	_M_insert_after_fill(__prev, __n, __val);
+      else
+	this->_M_erase_after(__prev, 0);
+    }
+  
+  template <class _Tp, class _Alloc>
+    template <class _InputIterator>
+      void
+      slist<_Tp, _Alloc>::_M_assign_dispatch(_InputIterator __first,
+					     _InputIterator __last,
+					     __false_type)
+      {
+	_Node_base* __prev = &this->_M_head;
+	_Node* __node = (_Node*) this->_M_head._M_next;
+	while (__node != 0 && __first != __last)
+	  {
+	    __node->_M_data = *__first;
+	    __prev = __node;
+	    __node = (_Node*) __node->_M_next;
+	    ++__first;
+	  }
+	if (__first != __last)
+	  _M_insert_after_range(__prev, __first, __last);
+	else
+	  this->_M_erase_after(__prev, 0);
+      }
+  
+  template <class _Tp, class _Alloc>
+    inline bool
+    operator==(const slist<_Tp, _Alloc>& _SL1, const slist<_Tp, _Alloc>& _SL2)
+    {
+      typedef typename slist<_Tp,_Alloc>::const_iterator const_iterator;
+      const_iterator __end1 = _SL1.end();
+      const_iterator __end2 = _SL2.end();
+      
+      const_iterator __i1 = _SL1.begin();
+      const_iterator __i2 = _SL2.begin();
+      while (__i1 != __end1 && __i2 != __end2 && *__i1 == *__i2)
+	{
+	  ++__i1;
+	  ++__i2;
+	}
+      return __i1 == __end1 && __i2 == __end2;
+    }
+
+
+  template <class _Tp, class _Alloc>
+    inline bool
+    operator<(const slist<_Tp, _Alloc>& _SL1, const slist<_Tp, _Alloc>& _SL2)
+    { return std::lexicographical_compare(_SL1.begin(), _SL1.end(),
+					  _SL2.begin(), _SL2.end()); }
+
+  template <class _Tp, class _Alloc>
+    inline bool
+    operator!=(const slist<_Tp, _Alloc>& _SL1, const slist<_Tp, _Alloc>& _SL2)
+    { return !(_SL1 == _SL2); }
+
+  template <class _Tp, class _Alloc>
+    inline bool
+    operator>(const slist<_Tp, _Alloc>& _SL1, const slist<_Tp, _Alloc>& _SL2)
+    { return _SL2 < _SL1; }
+
+  template <class _Tp, class _Alloc>
+    inline bool
+    operator<=(const slist<_Tp, _Alloc>& _SL1, const slist<_Tp, _Alloc>& _SL2)
+    { return !(_SL2 < _SL1); }
+
+  template <class _Tp, class _Alloc>
+    inline bool
+    operator>=(const slist<_Tp, _Alloc>& _SL1, const slist<_Tp, _Alloc>& _SL2)
+    { return !(_SL1 < _SL2); }
+
+  template <class _Tp, class _Alloc>
+    inline void
+    swap(slist<_Tp, _Alloc>& __x, slist<_Tp, _Alloc>& __y)
+    { __x.swap(__y); }
+
+  template <class _Tp, class _Alloc>
+    void
+    slist<_Tp, _Alloc>::resize(size_type __len, const _Tp& __x)
+    {
+      _Node_base* __cur = &this->_M_head;
+      while (__cur->_M_next != 0 && __len > 0)
+	{
+	  --__len;
+	  __cur = __cur->_M_next;
+	}
+      if (__cur->_M_next)
+	this->_M_erase_after(__cur, 0);
+      else
+	_M_insert_after_fill(__cur, __len, __x);
+    }
+
+  template <class _Tp, class _Alloc>
+    void
+    slist<_Tp, _Alloc>::remove(const _Tp& __val)
+    { 
+      _Node_base* __cur = &this->_M_head;
+      while (__cur && __cur->_M_next)
+	{
+	  if (((_Node*) __cur->_M_next)->_M_data == __val)
+	    this->_M_erase_after(__cur);
+	  else
+	    __cur = __cur->_M_next;
+	}
+    }
+
+  template <class _Tp, class _Alloc>
+    void
+    slist<_Tp, _Alloc>::unique()
+    {
+      _Node_base* __cur = this->_M_head._M_next;
+      if (__cur)
+	{
+	  while (__cur->_M_next)
+	    {
+	      if (((_Node*)__cur)->_M_data
+		  == ((_Node*)(__cur->_M_next))->_M_data)
+		this->_M_erase_after(__cur);
+	      else
+		__cur = __cur->_M_next;
+	    }
+	}
+    }
+
+  template <class _Tp, class _Alloc>
+    void
+    slist<_Tp, _Alloc>::merge(slist<_Tp, _Alloc>& __x)
+    {
+      _Node_base* __n1 = &this->_M_head;
+      while (__n1->_M_next && __x._M_head._M_next)
+	{
+	  if (((_Node*) __x._M_head._M_next)->_M_data
+	      < ((_Node*) __n1->_M_next)->_M_data)
+	    __slist_splice_after(__n1, &__x._M_head, __x._M_head._M_next);
+	  __n1 = __n1->_M_next;
+	}
+      if (__x._M_head._M_next)
+	{
+	  __n1->_M_next = __x._M_head._M_next;
+	  __x._M_head._M_next = 0;
+	}
+    }
+
+  template <class _Tp, class _Alloc>
+    void
+    slist<_Tp, _Alloc>::sort()
+    {
+      if (this->_M_head._M_next && this->_M_head._M_next->_M_next)
+	{
+	  slist __carry;
+	  slist __counter[64];
+	  int __fill = 0;
+	  while (!empty())
+	    {
+	      __slist_splice_after(&__carry._M_head,
+				   &this->_M_head, this->_M_head._M_next);
+	      int __i = 0;
+	      while (__i < __fill && !__counter[__i].empty())
+		{
+		  __counter[__i].merge(__carry);
+		  __carry.swap(__counter[__i]);
+		  ++__i;
+		}
+	      __carry.swap(__counter[__i]);
+	      if (__i == __fill)
+		++__fill;
+	    }
+	  
+	  for (int __i = 1; __i < __fill; ++__i)
+	    __counter[__i].merge(__counter[__i-1]);
+	  this->swap(__counter[__fill-1]);
+	}
+    }
+
+  template <class _Tp, class _Alloc>
+    template <class _Predicate>
+      void slist<_Tp, _Alloc>::remove_if(_Predicate __pred)
+      {
+	_Node_base* __cur = &this->_M_head;
+	while (__cur->_M_next)
+	  {
+	    if (__pred(((_Node*) __cur->_M_next)->_M_data))
+	      this->_M_erase_after(__cur);
+	    else
+	      __cur = __cur->_M_next;
+	  }
+      }
+
+  template <class _Tp, class _Alloc>
+    template <class _BinaryPredicate>
+      void
+      slist<_Tp, _Alloc>::unique(_BinaryPredicate __pred)
+      {
+	_Node* __cur = (_Node*) this->_M_head._M_next;
+	if (__cur)
+	  {
+	    while (__cur->_M_next)
+	      {
+		if (__pred(((_Node*)__cur)->_M_data,
+			   ((_Node*)(__cur->_M_next))->_M_data))
+		  this->_M_erase_after(__cur);
+		else
+		  __cur = (_Node*) __cur->_M_next;
+	      }
+	  }
+      }
+
+  template <class _Tp, class _Alloc>
+    template <class _StrictWeakOrdering>
+      void
+      slist<_Tp, _Alloc>::merge(slist<_Tp, _Alloc>& __x,
+			       _StrictWeakOrdering __comp)
+      {
+	_Node_base* __n1 = &this->_M_head;
+	while (__n1->_M_next && __x._M_head._M_next)
+	  {
+	    if (__comp(((_Node*) __x._M_head._M_next)->_M_data,
+		       ((_Node*) __n1->_M_next)->_M_data))
+	      __slist_splice_after(__n1, &__x._M_head, __x._M_head._M_next);
+	    __n1 = __n1->_M_next;
+	  }
+	if (__x._M_head._M_next)
+	  {
+	    __n1->_M_next = __x._M_head._M_next;
+	    __x._M_head._M_next = 0;
+	  }
+      }
+
+  template <class _Tp, class _Alloc>
+    template <class _StrictWeakOrdering>
+      void
+      slist<_Tp, _Alloc>::sort(_StrictWeakOrdering __comp)
+      {
+	if (this->_M_head._M_next && this->_M_head._M_next->_M_next)
+	  {
+	    slist __carry;
+	    slist __counter[64];
+	    int __fill = 0;
+	    while (!empty())
+	      {
+		__slist_splice_after(&__carry._M_head,
+				     &this->_M_head, this->_M_head._M_next);
+		int __i = 0;
+		while (__i < __fill && !__counter[__i].empty())
+		  {
+		    __counter[__i].merge(__carry, __comp);
+		    __carry.swap(__counter[__i]);
+		    ++__i;
+		  }
+		__carry.swap(__counter[__i]);
+		if (__i == __fill)
+		  ++__fill;
+	      }
+
+	    for (int __i = 1; __i < __fill; ++__i)
+	      __counter[__i].merge(__counter[__i-1], __comp);
+	    this->swap(__counter[__fill-1]);
+	  }
+      }
+
+_GLIBCXX_END_NAMESPACE
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  // Specialization of insert_iterator so that insertions will be constant
+  // time rather than linear time.
+  template <class _Tp, class _Alloc>
+    class insert_iterator<__gnu_cxx::slist<_Tp, _Alloc> >
+    {
+    protected:
+      typedef __gnu_cxx::slist<_Tp, _Alloc> _Container;
+      _Container* container;
+      typename _Container::iterator iter;
+
+    public:
+      typedef _Container          container_type;
+      typedef output_iterator_tag iterator_category;
+      typedef void                value_type;
+      typedef void                difference_type;
+      typedef void                pointer;
+      typedef void                reference;
+
+      insert_iterator(_Container& __x, typename _Container::iterator __i)
+      : container(&__x)
+      {
+	if (__i == __x.begin())
+	  iter = __x.before_begin();
+	else
+	  iter = __x.previous(__i);
+      }
+
+      insert_iterator<_Container>&
+      operator=(const typename _Container::value_type& __value)
+      {
+	iter = container->insert_after(iter, __value);
+	return *this;
+      }
+
+      insert_iterator<_Container>&
+      operator*()
+      { return *this; }
+
+      insert_iterator<_Container>&
+      operator++()
+      { return *this; }
+
+      insert_iterator<_Container>&
+      operator++(int)
+      { return *this; }
+    };
+
+_GLIBCXX_END_NAMESPACE
+
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     // Allocators -*- C++ -*-
+
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/*
+ * Copyright (c) 1996-1997
+ * Silicon Graphics Computer Systems, Inc.
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Silicon Graphics makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ */
+
+/** @file ext/pool_allocator.h
+ *  This file is a GNU extension to the Standard C++ Library.
+ */
+
+#ifndef _POOL_ALLOCATOR_H
+#define _POOL_ALLOCATOR_H 1
+
+#include <bits/c++config.h>
+#include <cstdlib>
+#include <new>
+#include <bits/functexcept.h>
+#include <ext/atomicity.h>
+#include <ext/concurrence.h>
+#include <bits/stl_move.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
+  using std::size_t;
+  using std::ptrdiff_t;
+
+  /**
+   *  @brief  Base class for __pool_alloc.
+   *
+   *  Uses various allocators to fulfill underlying requests (and makes as
+   *  few requests as possible when in default high-speed pool mode).
+   *
+   *  Important implementation properties:
+   *  0. If globally mandated, then allocate objects from new
+   *  1. If the clients request an object of size > _S_max_bytes, the resulting
+   *     object will be obtained directly from new
+   *  2. In all other cases, we allocate an object of size exactly
+   *     _S_round_up(requested_size).  Thus the client has enough size
+   *     information that we can return the object to the proper free list
+   *     without permanently losing part of the object.
+   */
+    class __pool_alloc_base
+    {
+    protected:
+
+      enum { _S_align = 8 };
+      enum { _S_max_bytes = 128 };
+      enum { _S_free_list_size = (size_t)_S_max_bytes / (size_t)_S_align };
+      
+      union _Obj
+      {
+	union _Obj* _M_free_list_link;
+	char        _M_client_data[1];    // The client sees this.
+      };
+      
+      static _Obj* volatile         _S_free_list[_S_free_list_size];
+
+      // Chunk allocation state.
+      static char*                  _S_start_free;
+      static char*                  _S_end_free;
+      static size_t                 _S_heap_size;     
+      
+      size_t
+      _M_round_up(size_t __bytes)
+      { return ((__bytes + (size_t)_S_align - 1) & ~((size_t)_S_align - 1)); }
+      
+      _Obj* volatile*
+      _M_get_free_list(size_t __bytes);
+    
+      __mutex&
+      _M_get_mutex();
+
+      // Returns an object of size __n, and optionally adds to size __n
+      // free list.
+      void*
+      _M_refill(size_t __n);
+      
+      // Allocates a chunk for nobjs of size size.  nobjs may be reduced
+      // if it is inconvenient to allocate the requested number.
+      char*
+      _M_allocate_chunk(size_t __n, int& __nobjs);
+    };
+
+
+  /// class __pool_alloc.
+  template<typename _Tp>
+    class __pool_alloc : private __pool_alloc_base
+    {
+    private:
+      static _Atomic_word	    _S_force_new;
+
+    public:
+      typedef size_t     size_type;
+      typedef ptrdiff_t  difference_type;
+      typedef _Tp*       pointer;
+      typedef const _Tp* const_pointer;
+      typedef _Tp&       reference;
+      typedef const _Tp& const_reference;
+      typedef _Tp        value_type;
+
+      template<typename _Tp1>
+        struct rebind
+        { typedef __pool_alloc<_Tp1> other; };
+
+      __pool_alloc() throw() { }
+
+      __pool_alloc(const __pool_alloc&) throw() { }
+
+      template<typename _Tp1>
+        __pool_alloc(const __pool_alloc<_Tp1>&) throw() { }
+
+      ~__pool_alloc() throw() { }
+
+      pointer
+      address(reference __x) const { return &__x; }
+
+      const_pointer
+      address(const_reference __x) const { return &__x; }
+
+      size_type
+      max_size() const throw() 
+      { return size_t(-1) / sizeof(_Tp); }
+
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 402. wrong new expression in [some_] allocator::construct
+      void 
+      construct(pointer __p, const _Tp& __val) 
+      { ::new((void *)__p) _Tp(__val); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... _Args>
+        void
+        construct(pointer __p, _Args&&... __args)
+	{ ::new((void *)__p) _Tp(std::forward<_Args>(__args)...); }
+#endif
+
+      void 
+      destroy(pointer __p) { __p->~_Tp(); }
+
+      pointer
+      allocate(size_type __n, const void* = 0);
+
+      void
+      deallocate(pointer __p, size_type __n);      
+    };
+
+  template<typename _Tp>
+    inline bool
+    operator==(const __pool_alloc<_Tp>&, const __pool_alloc<_Tp>&)
+    { return true; }
+
+  template<typename _Tp>
+    inline bool
+    operator!=(const __pool_alloc<_Tp>&, const __pool_alloc<_Tp>&)
+    { return false; }
+
+  template<typename _Tp>
+    _Atomic_word
+    __pool_alloc<_Tp>::_S_force_new;
+
+  template<typename _Tp>
+    _Tp*
+    __pool_alloc<_Tp>::allocate(size_type __n, const void*)
+    {
+      pointer __ret = 0;
+      if (__builtin_expect(__n != 0, true))
+	{
+	  if (__builtin_expect(__n > this->max_size(), false))
+	    std::__throw_bad_alloc();
+
+	  // If there is a race through here, assume answer from getenv
+	  // will resolve in same direction.  Inspired by techniques
+	  // to efficiently support threading found in basic_string.h.
+	  if (_S_force_new == 0)
+	    {
+	      if (std::getenv("GLIBCXX_FORCE_NEW"))
+		__atomic_add_dispatch(&_S_force_new, 1);
+	      else
+		__atomic_add_dispatch(&_S_force_new, -1);
+	    }
+
+	  const size_t __bytes = __n * sizeof(_Tp);	      
+	  if (__bytes > size_t(_S_max_bytes) || _S_force_new > 0)
+	    __ret = static_cast<_Tp*>(::operator new(__bytes));
+	  else
+	    {
+	      _Obj* volatile* __free_list = _M_get_free_list(__bytes);
+	      
+	      __scoped_lock sentry(_M_get_mutex());
+	      _Obj* __restrict__ __result = *__free_list;
+	      if (__builtin_expect(__result == 0, 0))
+		__ret = static_cast<_Tp*>(_M_refill(_M_round_up(__bytes)));
+	      else
+		{
+		  *__free_list = __result->_M_free_list_link;
+		  __ret = reinterpret_cast<_Tp*>(__result);
+		}
+	      if (__builtin_expect(__ret == 0, 0))
+		std::__throw_bad_alloc();
+	    }
+	}
+      return __ret;
+    }
+
+  template<typename _Tp>
+    void
+    __pool_alloc<_Tp>::deallocate(pointer __p, size_type __n)
+    {
+      if (__builtin_expect(__n != 0 && __p != 0, true))
+	{
+	  const size_t __bytes = __n * sizeof(_Tp);
+	  if (__bytes > static_cast<size_t>(_S_max_bytes) || _S_force_new > 0)
+	    ::operator delete(__p);
+	  else
+	    {
+	      _Obj* volatile* __free_list = _M_get_free_list(__bytes);
+	      _Obj* __q = reinterpret_cast<_Obj*>(__p);
+
+	      __scoped_lock sentry(_M_get_mutex());
+	      __q ->_M_free_list_link = *__free_list;
+	      *__free_list = __q;
+	    }
+	}
+    }
+
+_GLIBCXX_END_NAMESPACE
+
+#endif
+           S   .   B   ..  T   assoc_container.hpp U   priority_queue.hpp  V   hash_policy.hpp W   trie_policy.hpp X   detail  q    list_update_policy.hpp  r   exception.hpp   s   tree_policy.hpp t   tag_and_trait.hpp                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       // -*- C++ -*-
+
+// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the terms
+// of the GNU General Public License as published by the Free Software
+// Foundation; either version 2, or (at your option) any later
+// version.
+
+// This library is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
+// MA 02111-1307, USA.
+
+// As a special exception, you may use this file as part of a free
+// software library without restriction.  Specifically, if other files
+// instantiate templates or use macros or 

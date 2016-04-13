@@ -1,0 +1,2370 @@
+#
+## Under source code control:	2006/05/20 14:10:11
+## File existed as early as:	2006
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+
+strcpy("", "") == ""
+strcpy("", "xyz") == ""
+strcpy("a", "xyz") == "x"
+strcpy("ab", "xyz") == "xy"
+strcpy("abc", "xyz") == "xyz"
+strcpy("abcd", "xyz") == "xyz\0"  ## Result will print as "xyz"
+strcpy("abcde", "xyz") == "xyz\0e"
+strcpy("abcdef", "xyz") == "xyz\0ef"
+strcpy("abcdef", "x\0z") == "x\0z\0ef" ## Note z is copied
+strcpy("abc", "") == "\0bc"
+
+strncpy("abcdef", "xyz", 0) == "abcdef" ## No characters copied
+strncpy("abcdef", "xyz", 1) == "xbcdef" ## One character copied, no '\0'
+strncpy("abcdef", "xyz", 2) == "xycdef"
+strncpy("abcdef", "xyz", 3) == "xyzdef"
+strncpy("abcdef", "xyz", 4) == "xyz\0ef"
+strncpy("abcdef", "xyz", 5) == "xyz\0\0f" ## Two nulls as in C
+strncpy("abcdef", "xyz", 6) == "xyz\0\0\0"
+strncpy("abcdef", "xyz", 7) == "xyz\0\0\0" ## Size of first string unchanged
+strncpy("a\0cdef", "\0yz", 4) == "\0yz\0ef"
+strncpy("ab", "xyz", 3) == "xy"
+
+strcmp("", "") == 0
+strcmp("", "a") == -1
+strcmp("\n", "\n") == 0
+strcmp("\0", "") == 1		## '\0' treated like other characters
+strcmp("ab", "") == 1
+strcmp("ab", "a") == 1
+strcmp("ab", "ab") == 0
+strcmp("ab", "abc") == -1
+strcmp("abc", "abb") == 1
+strcmp("abc", "abc") == 0
+strcmp("abc", "abd") == -1
+strcmp("abc\0", "abc") == 1
+
+strncmp("abc", "xyz", 0) == 0
+strncmp("abc", "xyz", 1) == -1
+strncmp("abc", "", 1) == 1
+strncmp("abc", "a", 1) == 0
+strncmp("", "", 2) == 0
+strncmp("a", "a", 2) == 0
+strncmp("a", "b", 2) == -1
+strncmp("ab", "ab", 2) == 0
+strncmp("ab", "ac", 2) == -1
+strncmp("\0ac", "\0b", 2) == -1
+strncmp("ab", "abc", 2) == 0
+strncmp("abc", "abd", 2) == 0
+strncmp("a", "a\0", 2) == -1
+strncmp("a", "a", 3) == 0
+strncmp("abc", "abd", 3) == -1
+strncmp("\0\0\n", "\0\0\t", 3) == 1
+
+str("abc") == "abc"
+str("ab\0") == "ab"
+str("a\0c") == "a"
+str("\0bc") == ""
+
+size("") == 0
+size("a") == 1
+size("\0") == 1
+size("a\0") == 2
+size("a\0b") == 3
+
+strlen("\0") == 0
+strlen("a\0") == 1
+strlen("a\0b") == 1
+
+0 * "abc" == ""
+1 * "abc" == "abc"
+2 * "abc" == "abcabc"
+3 * "abc" == "abcabcabc"
+1 * "" == ""
+-1 * "abc" == "cba"
+-2 * "abc" == "cbacba"
+"abc" + "xyz" == "abcxyz"
+"abc" - "xyz" == "abczyx"
+
+
+substr("abcd",0,0) == ""
+substr("abcd",0,1) == "a"
+substr("abcd",0,2) == "ab"
+substr("abcd",1,0) == ""
+substr("abcd",1,1) == "a"
+substr("abcd",1,2) == "ab"
+substr("abcd",2,0) == ""
+substr("abcd",2,1) == "b"
+substr("abcd",2,2) == "bc";
+substr("abcd",2,3) == "bcd";
+substr("abcd",2,4) == "bcd";
+substr("abcd",2,5) == "bcd"; ## substr stops at end of string
+substr("abcd",4,0) == ""
+substr("abcd",4,1) == "d"
+substr("abcd",4,2) == "d"
+substr("abcd",4,3) == "d"
+substr("abcd",5,0) == ""
+substr("abcd",5,1) == ""
+substr("a\0c\0",2,2) == "\0c"  ## '\0' treated like other characters
+substr("a\0c\0",2,3) == "\0c\0"
+
+#"" == 0	## # operator counts number of bits
+#"\0" == 0
+# "a" == 3
+   #	  "ab" == 6	## white space ignored
+# "abc" == 10
+# 27 == 4
+# 0b1010111011 == 7
+
+7 # 9 == 2		## 7 # 9 = abs(7 - 9)
+3/4 # 2/3 == 1/12
+
+a = 5, a #= 2, a == 3
+a #= 4, a == 1
+
+## Binary # operator not defined for strings
+
+protect(set8700_A) == 0
+## Testing with one lvalue
+isnull(protect(set8700_A,65))
+protect(set8700_A) == 65
+isnull(protect(set8700_A, -1))
+protect(set8700_A) == 64
+protect(set8700_A,-2), protect(set8700_A) == 64
+protect(set8700_A,5), protect(set8700_A) == 69
+protect(set8700_A,-4), protect(set8700_A) == 65
+protect(set8700_A,0), protect(set8700_A) == 0
+protect(set8700_A,1234), protect(set8700_A) == 1234
+protect(set8700_A,-1234), protect(set8700_A) == 0
+protect(set8700_A,65535), protect(set8700_A) == 65535
+protect(set8700_A,-65535), protect(set8700_A) == 0
+
+## Simple assignments
+set8700_A = 42, protect(set8700_A,1024), set8700_B = set8700_A, protect(set8700_B) == 1024
+set8700_A = 6 * 7, protect(set8700_A) == 1024
+set8700_A == set8700_B
+
+## Testing matrix protectioon
+set8700_A = mat [3] = {1, 2, list(3,4)}; 1
+protect(set8700_A, 65, 1), protect(set8700_A) == 1089
+protect(set8700_A[0]) == 65
+protect(set8700_A[2]) == 65
+protect(set8700_A[2][1]) == 0
+protect(set8700_A, 65, 2), protect(set8700_A[2][1]) == 65
+protect(set8700_A,-1024), protect(set8700_A) == 65
+protect(set8700_A, -1, 1), protect(set8700_A) == 64
+protect(set8700_A[1]) == 64
+protect(set8700_A[2]) == 64
+protect(set8700_A[2][0]) == 65
+protect(set8700_A,0), protect(set8700_A) == 0
+protect(set8700_A[1]) == 64
+protect(set8700_A, 0, 2), protect(set8700_A) == 0
+protect(set8700_A[1]) == 0
+protect(set8700_A[2][1]) == 0
+protect(set8700_A,1024, 2), protect(set8700_A) == 1024
+protect(set8700_A[2]) == 1024
+protect(set8700_A[2][0], 512), protect(set8700_A[2][0]) == 1536
+
+## Testing simple assignment of matrix
+set8700_B = set8700_A, protect(set8700_B) == 1024	## protect(set8700_A) copied
+protect(set8700_B[2]) == 1024		## protect(set8700_A[2]) copied
+protect(set8700_B[2][0]) == 1536	## protect(set8700_A[2][0]) copied
+
+## copying matrix to list
+set8700_B = list(5,6,7), protect(set8700_B) == 1024
+protect(set8700_B[0]) == 0
+protect(set8700_B[2]) == 0
+protect(set8700_A,0), protect(set8700_A) == 0
+copy(set8700_A,set8700_B), set8700_B[0] == 1 && set8700_B[1] == 2
+set8700_B[2] == list(3,4)
+protect(set8700_B) == 1024		## protect(set8700_A) not copied
+protect(set8700_B[0]) == 1024		## protect(set8700_A[0]) copied
+protect(set8700_B[2][0]) == 1536	## protect(set8700_A[2][0]) copied
+
+## copying matrix to matrix
+set8700_B = mat[3], protect(set8700_B) == 1024
+protect(set8700_B[2]) == 0
+copy(set8700_A,set8700_B), set8700_B[0] == 1 && set8700_B[1] == 2
+set8700_B[2] == list(3,4)
+protect(set8700_B) == 1024		## protect(set8700_A) not copied
+protect(set8700_B[0]) == 1024		## protect(set8700_A[0]) copied
+protect(set8700_B[2][0]) == 1536	## protect(set8700_A[2][0]) copied
+
+## Testing list protection
+set8700_A = list(1, 2, list(3,4)), 1
+protect(set8700_A,1024, 2), protect(set8700_A) == 1024
+protect(set8700_A[2]) == 1024
+protect(set8700_A[2][0], 512), protect(set8700_A[2][0]) == 1536
+
+## Simple assignment of list
+set8700_B = set8700_A, protect(set8700_B) == 1024	## protect(set8700_A) copied
+protect(set8700_B[2]) == 1024		## protect(set8700_A[2]) copied
+protect(set8700_B[2][0]) == 1536	## protect(set8700_A[2][0]) copied
+
+## Copying list to list
+set8700_B = list(5,6,7), protect(set8700_B) == 1024
+protect(set8700_B[2]) == 0
+copy(set8700_A,set8700_B), set8700_B[0] == 1 && set8700_B[1] == 2
+set8700_B[2] == list(3,4)
+protect(set8700_B) == 1024		## protect(set8700_A) not copied
+protect(set8700_B[0]) == 1024		## protect(set8700_A[0]) copied
+protect(set8700_B[2][0]) == 1536	## protect(set8700_A[2][0]) copied
+
+## Copying list to matrix
+set8700_B = mat[3], protect(set8700_B) == 1024
+protect(set8700_B[2]) == 0
+copy(set8700_A,set8700_B), set8700_B[0] == 1 && set8700_B[1] == 2
+set8700_B[2] == list(3,4)
+protect(set8700_B) == 1024
+protect(set8700_B[0]) == 1024		## protect(set8700_A[0]) copied
+protect(set8700_B[2][0]) == 1536	## protect(set8700_A[2][0]) copied
+
+## Protecting one element of a list
+set8700_A = list(1,4,3,2), protect(set8700_A[1]) == 0
+protect(set8700_A[1], 1024), protect(set8700_A[1]) == 1024
+
+## Testing sort
+set8700_A = sort(set8700_A), set8700_A == list(1,2,3,4)
+protect(set8700_A[1]) == 0
+protect(set8700_A[3]) == 1024		## status of 4
+
+## Testings reverse
+set8700_A = reverse(set8700_A), set8700_A == list(4,3,2,1)
+protect(set8700_A[0]) == 1024		## status of 4
+
+## Testing swap
+swap(set8700_A[0], set8700_A[1]), set8700_A == list(3,4,2,1)
+protect(set8700_A[0]) == 0		## status moved
+protect(set8700_A[1]) == 1024		## 4 retains protection
+
+## Testing list with protected list argument
+protect(set8700_A, 0), protect(set8700_A) == 0
+protect(set8700_A, 512), protect(set8700_A) == 512
+protect(set8700_A[1]) == 1024
+set8700_L = list(1,set8700_A,3), protect(set8700_L) == 0
+protect(set8700_L[0]) == 0
+protect(set8700_L[1]) == 512		## protect(set8700_A) copied
+protect(set8700_L[1][1]) == 1024	## protect(set8700_A[1]) copied
+
+## Testing list with "intialization"
+set8700_L = list(1,2,3), protect(set8700_L) == 0
+protect(set8700_L[0]) | protect(set8700_L[1]) | protect(set8700_L[2]) == 0	## All zero
+set8700_L = {1,set8700_A}, set8700_L[1] == set8700_A
+protect(set8700_L[1]) == 512		## protect(set8700_A) copied
+protect(set8700_L[1][1]) == 1024	## protect(set8700_A[1]) copied
+set8700_L[1] = 2, protect(set8700_L[1]) == 512	## Not changed
+
+## Testing matrix with "initialization"
+set8700_M = mat[3] = {1,set8700_A}, protect(set8700_M) == 0
+protect(set8700_M[0]) == 0
+protect(set8700_M[1]) == 512		## protect(set8700_A) copied
+protect(set8700_M[2]) == 0
+protect(set8700_M[1][1]) == 1024	## protect(set8700_A[1]) copied
+
+## Testing push, pop, append, remove
+set8700_A = list(1,2), protect(set8700_A,0,1), protect(set8700_A[0]) == 0
+protect(set8700_A[0], 256), protect(set8700_A[0]) == 256
+protect(set8700_A[1]) == 0
+append(set8700_A, pop(set8700_A)), protect(set8700_A[0]) ==  0
+protect(set8700_A[1]) == 256
+push(set8700_A, remove(set8700_A)), protect(set8700_A[0]) == 256
+protect(set8700_A[1]) == 0
+
+## Testing operation-assignments
+set8700_A = 5, protect(set8700_A,1024), protect(set8700_A) == 1024
+protect(set8700_A, 1024), set8700_A = 7, protect(set8700_A) == 1024
+protect(set8700_A,1024), set8700_A += 2, protect(set8700_A) == 1024
+protect(set8700_A,1024), set8700_A *= 2, protect(set8700_A) == 1024
+protect(set8700_A,1024), set8700_A |= 2, protect(set8700_A) == 1024
+protect(set8700_A,1024), set8700_A &= 2, protect(set8700_A) == 1024
+protect(set8700_A,1024), set8700_A ^= 2, protect(set8700_A) == 1024
+
+protect(set8700_B,0), set8700_B = set8700_getA1(), protect(set8700_B) == 1024
+protect(set8700_B,0), set8700_B = set8700_getA2(), protect(set8700_B) == 1024
+set8700_B = set8700_getvar(), protect(set8700_B) == 1024 + 256
+
+set8700_x = 7,  protect(set8700_x) == 0
+protect(7,2) == error(10234)
+protect(set8700_x,2.5) == error(10235)
+protect(set8700_x,"abc") == error(10235)
+protect(set8700_x, 1e6) == error(10235)
+protect(set8700_x,1), (set8700_x = 2) == error(10366)
+(set8700_x = 3 + 4) == error(10366)
+
+protect(set8700_x,2), protect(set8700_x) == 3
+protect(set8700_x,-1), protect(set8700_x) == 2
+(set8700_x = 2) == error(10368)
+(set8700_x = 3 + 4) == 7
+protect(set8700_x,2), ++set8700_x == error(10379)
+set8700_x == 7
+--set8700_x == error(10382)
+set8700_x == 7
+set8700_x++ == error(10385)
+set8700_x == 7
+set8700_x-- == error(10388)
+
+protect(set8700_A,0), protect(set8700_A,16), 1
+set8700_A = "abcdef", protect(set8700_A) == 16		## No copy to set8700_A
+protect(set8700_B,0), set8700_B = "xyz", protect(set8700_B) == 0
+copy(set8700_B, set8700_A) == error(10226)
+set8700_A == "abcdef"				## set8700_A not changed
+protect(set8700_A,0), copy(set8700_B,set8700_A), set8700_A == "xyzdef"
+protect(set8700_B,128), protect(set8700_B) == 128	## No copy from set8700_B
+copy(set8700_B,set8700_A,,,3) == error(10225)
+set8700_A == "xyzdef"
+protect(set8700_B,0), copy(set8700_B,set8700_A,,,3), set8700_A == "xyzxyz"
+
+set8700_A = "abcdef", protect(set8700_A, 16), swap(set8700_A[0], set8700_A[5]) == error(10371)
+set8700_A == "abcdef"
+protect(set8700_A,0), isnull(swap(set8700_A[0], set8700_A[5]))
+set8700_A == "fbcdea"
+protect(set8700_A,2), ++set8700_A[0] == error(10377)
+--set8700_A[1] == error(10380)
+sля  мя  ня  оя  пя                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              et8700_A[2]++ == error(10383)
+set8700_A[3]-- == error(10386)
+set8700_A == "fbcdea"
+protect(set8700_A,0), ++set8700_A[0] == 'g'
+--set8700_A[1] == 'a'
+set8700_A[2]++ == ord('c')
+set8700_A[3]-- == ord('d')
+set8700_A == "gadcea"
+
+protect(set8700_x,0), protect(set8700_y,0), protect(set8700_x,256), protect(set8700_y,512),1
+quomod(11,4,set8700_x,set8700_y), set8700_x == 2 && set8700_y == 3
+protect(set8700_x) == 256
+protect(set8700_y) == 512
+
+set8700_A = mat[3]; protect(set8700_A[0], 1024); protect(set8700_A[0]) == 1024
+set8700_x = 7, protect(set8700_x,0), protect(set8700_x, 512), 1
+set8700_A = {set8700_x,,set8700_x}, protect(set8700_A[0]) == 1536
+protect(set8700_A[1]) == 0
+protect(set8700_A[2]) == 512
+protect(set8700_A,16), protect(set8700_A) == 16		## No copy to
+set8700_A == (mat[3] = {7,0,7})
+set8700_A = {1,2,3}, errno() == 10390;
+set8700_A == (mat[3] = {7,0,7})
+
+protect(set8700_A,0), set8700_A = {1,2,3}, set8700_A == (mat[3] = {1,2,3})
+protect(set8700_A[1],1), protect(set8700_A[1]) == 1
+set8700_A = {4,5,6}, errno() == 10394
+set8700_A == (mat[3] = {4,2,6})
+modify(7, "set8700_f") == error(10405)
+set8700_A = list(2,3,5), modify(set8700_A, 7) == error(10406)
+protect(set8700_A,2), modify(set8700_A, "set8700_f") == error(10407)
+protect(set8700_A,0), modify(set8700_A, "h") == error(10408)
+set8700_B = 42, protect(set8700_B,0), modify(set8700_B, "set8700_f") == error(10409)
+set8700_A == list(2,3,5)		## set8700_A not affected by failures
+protect(set8700_A,0,1), modify(set8700_A, "set8700_f") == null()
+set8700_A == list(4,9,25)
+modify(set8700_A,"set8700_g") == null()
+protect(set8700_A[0]) == 0
+protect(set8700_A[1]) == 256 && protect(set8700_A[2]) == 256
+
+set8700_A = 0, protect(set8700_A,0), set8700_A = pop(2), set8700_A == error(10181)
+set8700_A = pop(list(1,2,3)), set8700_A == error(10181)
+set8700_B = set8700_A = pop(2), set8700_B == error(10181)
+set8700_A = 32, protect(set8700_A,8), (set8700_A = pop(2)) == error(10370)
+set8700_A == 32
+set8700_B = set8700_A = pop(2), set8700_B == error(10370)
+## Testing copying of protected elements and initialization
+set8700_M1 = mat[3], protect(set8700_M1,0), protect(set8700_M1[1],1), protect(set8700_M1[1]) == 1
+set8700_M2 = mat[3], protect(set8700_M2,0), protect(set8700_M2[2],4), protect(set8700_M2[2]) == 4
+set8700_L = list(set8700_M1, set8700_M2), protect(set8700_L[0][1]) == 1 && protect(set8700_L[1][2]) == 4
+set8700_L = {{1,2,3},{'a','b','c'}}, set8700_L[0] == (mat[3] = {1,0,3})
+set8700_L[1] == (mat[3] = {'a','b',0})
+set8700_M = mat[2], protect(set8700_M,0), set8700_M = {1,2,3,4}, set8700_M == (mat[2] = {1,2})
+set8700_x = 5, set8700_M = {set8700_x++, set8700_x++, set8700_x++, set8700_x++, set8700_x++}, set8700_M == (mat[2] = {5,6})
+set8700_x == 10		## All initialization terms evaluated
+set8700_S = "   ", set8700_S = {'a','b','c','d'}, set8700_S == "abc"
+
+set8700_P = obj set8700_point = {1,2,3,4}, set8700_P.set8700_x == 1 && set8700_P.set8700_y == 2 && set8700_P.set8700_z == 3
+protect(set8700_P,16), set8700_Q = set8700_P, set8700_Q = {5,6,7}, set8700_Q == set8700_P
+set8700_P == (obj set8700_point = {1,2,3})
+set8700_L = list(mat[1] = {set8700_P}), protect(set8700_L[0][0]) == 16
+set8700_L = {{{4,5,6}}}, set8700_L[0][0] == set8700_P
+protect(set8700_L,0,2), set8700_L = {{{4,5,6}}}, set8700_L[0][0] == (obj set8700_point = {4,5,6})
+
+## Testing quomod
+quomod(14,5,3,4) == error(10374)
+global set8700_a,set8700_b; quomod("abc", 4, set8700_a, set8700_b) == error(10375)
+quomod(14,5,set8700_a,set8700_b,0) == 1 && set8700_a == 2 && set8700_b == 4
+quomod(14,5,set8700_a,set8700_b,1) == 1 && set8700_a == 3 && set8700_b == -1
+quomod("abc",2,set8700_a,set8700_b) == error(10375)
+set8700_a = "abc"; quomod(14,5,set8700_a,set8700_b) == error(10375)
+set8700_a = null(); quomod(14,5,set8700_a,set8700_b,24) == 1; set8700_a == 3 && set8700_b == -1
+quomod(14,5,set8700_a,set8700_a) == error(10374)
+quomod(14,5,set8700_a,set8700_b,-1) == error(10375)
+protect(set8700_a,1); quomod(17,2,set8700_a,set8700_b) == error(10376)
+protect(set8700_a,0); quomod(17,2,set8700_a,set8700_b); set8700_a == 8 && set8700_b == 1
+set8700_p = &set8700_a, set8700_q = &set8700_b; quomod(14,5,*set8700_p,*set8700_q); *set8700_p == 2 && *set8700_q == 4
+
+## Testing estr
+base(1/3) == 10
+strcmp(estr(null()), "\"\"") == 0
+strcmp(estr(bernoulli(48)), "-5609403368997817686249127547/46410") == 0
+strcmp(estr(sin(3i)), "1001787492740990189897i/100000000000000000000") == 0
+base(10) == 1/3
+strcmp(estr("fizzbin"), "\"fizzbin\"") == 0
+strcmp(estr(set8700_c), "mat[5]={1,2+3i,-5+4i,6+5i,-7i}") == 0
+strcmp(estr(set8700_e), "mat[16]={0,1,0,0,2,-3/2,2,-1/2,-3,1/2,-1,1/2,1,0,0,0}") == 0
+strcmp(estr(list(2,3,5)), "list(2,3,5)") == 0
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                        /*
+ * natnumset - functions for sets of natural numbers not exceeding a fixed bound
+ *
+ * Copyright (C) 1999  Ernest Bowen
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: natnumset.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/natnumset.cal,v $
+ *
+ * Under source code control:	1997/09/07 23:53:51
+ * File existed as early as:	1997
+ *
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+/*
+ * Functions for sets of natural numbers not exceeding a fixed bound B.
+ *
+ * The default value for B is 100; B may be assigned another
+ * value n by setbound(n); with no argument, setbound() returns the current
+ * upper bound.
+ *
+ * A set S is stored as an object with one element with one component S.s;
+ * This component is a string of just sufficient size to include m bits,
+ * where m is the maximum integer in S.
+ *
+ * With zero or more integer arguments, set(a, b, ...) returns the set
+ * whose elements are those of a, b, ... in [0, B].  Note that arguments
+ * < 0 or > B are ignored.
+ *
+ * In an assignment of a set-valued lvalue to an lvalue, as in
+ *
+ *		A = set(1,2,3);
+ *		B = A;
+ *
+ * the sets share the same data string, so a change to either has the effect
+ * of changing both.  A set equal to A but with a different string can be
+ * created by
+ *
+ *		B = A | set()
+ *
+ * The functions empty() and full() return the empty set and the set of all
+ * integers in [0,B] respectively.
+ *
+ * isset(A) returns 1 or 0 according as A is or is not a set
+ *
+ * test(A) returns 0 or 1 according as A is or is not the empty set
+ *
+ * isin(A, n) for set A and integer n returns 1 if n is in A, 0 if
+ *	0 <= n <= B and n is not in A, the null value if n < 0 or n > B.
+ *
+ * addmember(A, n) adds n as a member of A, provided n is in [0, B];
+ *	 this is also achieved by A |= n.
+ *
+ * rmmember(A, n) removes n from A if it is a member; this is also achieved
+ *	by A \= n.
+ *
+ * The following unary and binary operations are defined for sets A, B.
+ *	For binary operations with one argument a set and the other an
+ *	integer n, the integer taken to represent set(n).
+ *
+ *	A | B = union of A and B, integers in at least one of A and B
+ *	A & B = intersection of A and B, integers in both A and B
+ *	A ~ B = symmetric difference (boolean sum) of A and Bi, integers
+ *			in exactly one of A and B
+ *	A \ B = set difference, integers in A but not in B
+ *
+ *	~A	= complement of A, integers not in A
+ *	#A	= number ofintegers in A
+ *	!A	= 1 or 0 according as A is empty or not empty
+ *	+A	= sum of the members of A
+ *
+ *	min(A)	= least member of A, -1 for empty set
+ *	max(A)	= greatest member of A, -1 for empty set
+ *	sum(A)	= sum of the members of A
+ *
+ * In the following a and b denote arbitrary members of A and B:
+ *
+ *	A + B = set of sums a + b
+ *	A - B = set of differences a - b
+ *	A * B = set of products a * b
+ *	A ^ n = set of powers a ^ n
+ *	A % m = set of integers congruent to a mod m
+ *
+ *	A == B returns 1 or not according as A and B are equal or not
+ *	A != B = !(A == B)
+ *	A <= B returns 1 if A is a subset of B, i.e. every member of A is
+ *		a member of B
+ *	A < B = ((A <= B) && (A != B))
+ *	A >= B = (B <= A)
+ *	A > B = (B < A)
+ *
+ * Expresssions may be formed from the above "arithmetic" operations in
+ * the usual way, with parentheses for variations from the usual precedence
+ * rules.  For example
+ *
+ *	A + 3 * A ^ 2 + (A - B) ^ 3
+ *
+ * returns the set of integers expressible as
+ *
+ *	a_1 + 3 * a_2 ^ 2 + (a_3 - b) ^3
+ *
+ * where a_1, a_2, a_3 are in A, and b is in B.
+ *
+ * primes(a, b) returns the set of primes between a and b inclusive.
+ *
+ * interval(a, b) returns the integers between a and b inclusive
+ *
+ * isinterval(A) returns 1 if A is a non-empty interval, 0 otherwise.
+ *
+ * randset(n, a, b) returns a random set of n integers between a and b
+ *	inclusive; a defaults to 0, b to N-1.  An error occurs if
+ *	n is too large.
+ *
+ * polyvals(L, A) for L = list(c_0, c_1, c_2, ...) returns the set of
+ * values of
+ *
+ *	c_0 + c_1 * a + c_2 * a^2 + ...
+ *
+ * for a in the set A.
+ *
+ * polyvals2(L, A, B) returns the set of values of poly(L, i, j) for i in
+ *	A and j in B.  Here L is a list whose members are integers or
+ *	lists of integers, the latter representing polynomials in the
+ *	second variable.  For example, with L = list(0, list(0, 1), 1),
+ *	polyvals2(L, A, B) will return the values of i^2 + i * j for
+ *	i in A, j in B.
+ *
+ */
+
+
+static N;		/* Number of integers in [0,B], = B + 1 */
+static M;		/* Maximum string size required, = N // 8 */
+
+obj set {s};
+
+define isset(a) = istype(a, obj set);
+
+define setbound(n)
+{
+	local v;
+
+	v = N - 1;
+	if (isnull(n))
+		return v;
+	if (!isint(n) || n < 0)
+		quit "Bad argument for setbound";
+	N = n + 1;
+	M = quo(N, 8, 1);	/* M // 8 rounded up */
+	if (v >= 0)
+		return v;
+}
+
+setbound(100);
+
+define empty() = obj set = {""};
+
+define full()
+{
+	local v;
+
+	obj set v;
+	v.s = M * char(-1);
+	if (!ismult(N, 8)) v.s[M-1] = 255 >> (8 - N & 7);
+	return v;
+}
+
+define isin(a, b)
+{
+	if (!isset(a) || !isint(b))
+		quit "Bad argument for isin";
+	return bit(a.s, b);
+}
+
+define addmember(a, n)
+{
+	if (!isset(a) || !isint(n))
+		quit "Bad argument for addmember";
+	if (n < N && n >= 0)
+		setbit(a.s, n);
+}
+
+define rmmember(a, n)
+{
+	if (n < N && n >= 0)
+		setbit(a.s, n, 0);
+}
+
+define set()
+{
+	local i, v, s;
+
+	s = M * char(0);
+	for (i = 1; i <= param(0); i++) {
+		v = param(i);
+		if (!isint(v))
+			quit "Non-integral argument for set";
+		if (v >= 0 && v < N)
+			setbit(s, v);
+	}
+	return mkset(s);
+}
+
+
+define mkset(s)
+{
+	local h, m;
+
+	if (!isstr(s))
+		quit "Non-string argument for mkset";
+	h = highbit(s);
+	if (h >= N)
+		quit "Too-long string for mkset";
+	m = quo(h + 1, 8, 1);
+	return obj set = {head(s, m)};
+}
+
+
+define primes(a,b)
+{
+	local i, s, m;
+
+	if (isnull(b)) {
+		if (isnull(a)) {
+			a = 0;
+			b = N - 1;
+		}
+		else b = 0;
+	}
+
+	if (!isint(a) || !isint(b))
+		quit "Non-integer argument for primes";
+	if (a > b)
+		swap(a,b);
+	if (b < 0 || a >= N)
+		return empty();
+	a = max(a, 0);
+	b = min(b, N-1);
+	s = M * char(0);
+	for (i = a; i <= b; i++)
+		if (isprime(i))
+			setbit(s, i);
+	return mkset(s);
+}
+
+define set_max(a) = highbit(a.s);
+
+define set_min(a) = lowbit(a.s);
+
+define set_not(a) = !a.s;
+
+define set_cmp(a,b)
+{
+	if (isset(a) && isset(b))
+		return a.s != b.s;
+	return 1;
+}
+
+define set_rel(a,b)
+{
+	local c;
+
+	if (a == b)
+		return 0;
+	if (isset(a)) {
+		if (isset(b)) {
+			c = a & b;
+			if (c == a)
+				return -1;
+			if (c == b)
+				return 1;
+			return;
+		}
+		if (!isint(b))
+			return set_rel(a, set(b));
+	}
+	if (isint(a))
+		return set_rel(set(a), b);
+}
+
+
+define set_or(a, b)
+{
+	if (isset(a)) {
+		if (isset(b))
+			return obj set = {a.s | b.s};
+		if (isint(b))
+			return a | set(b);
+	}
+	if (isint(a))
+		return set(a) | b;
+	return newerror("Bad argument for set_or");
+}
+
+define set_and(a, b)
+{
+	if (isint(a))
+		return set(a) & b;
+	if (isint(b))
+		return a & set(b);
+	if (!isset(a) || !isset(b))
+		return newerror("Bad argument for set_and");
+	return mkset(a.s & b.s);
+}
+
+
+define set_comp(a) = full() \ a;
+
+define set_setminus(a,b)
+{
+	if (isint(a))
+		return set(a) \ b;
+	if (isint(b))
+		return a \ set(b);
+	if (!isset(a) || !isset(b))
+		return newerror("Bad argument for set_setminus");
+	return mkset(a.s \ b.s);
+}
+
+
+define set_xor(a,b)
+{
+	if (isint(a))
+		return set(a) ~ b;
+	if (isint(b))
+		return a ~ set(b);
+	if (!isset(a) || !isset(b))
+		return newerror("Bad argument for set_xor");
+	return mkset(a.s ~ b.s);
+}
+
+define set_content(a) = #a.s;
+
+define set_add(a, b)
+{
+	local s, i, j, m, n;
+
+	if (isint(a))
+		return set(a) + b;
+	if (isint(b))
+		return a + set(b);
+	if (!isset(a) || !isset(b))
+		return newerror("Bad argument for set_add");
+	if (!a || !b)
+		return empty();
+	m = highbit(a.s);
+	n = highbit(b.s);
+	s = M * char(0);
+	for (i = 0; i <= m; i++)
+		if (isin(a, i))
+			for (j = 0; j <= n && i + j < N; j++)
+				if (isin(b, j))
+					setbit(s, i + j);
+	return mkset(s);
+}
+
+define set_sub(a,b)
+{
+	local s, i, j, m, n;
+
+	if (isint(b))
+		return a - set(b);
+	if (isint(a))
+		return set(a) - b;
+	if (isset(a) && isset(b)) {
+		if (!a || !b)
+			return empty();
+		m = highbit(a.s);
+		n = highbit(b.s);
+		s = M * char(0);
+		for (i = 0; i <= m; i++)
+			if (isin(a, i))
+				for (j = 0; j <= n && j <= i; j++)
+					if (isin(b, j))
+						setbit(s, i - j);
+		return mkset(s);
+	}
+	return newerror("Bad argument for set_sub");
+}
+
+define set_mul(a, b)
+{
+	local s, i, j, m, n;
+
+	if (isset(a)) {
+		s = M * char(0);
+		m = highbit(a.s);
+		if (isset(b)) {
+			if (!a || !b)
+				return empty();
+			n = highbit(b.s);
+			for (i = 0; i <= m; ++i)
+				if (isin(a, i))
+					for (j = 1; j <= n && i * j < N; ++j)
+						if (isin(b, j))
+							setbit(s, i * j);
+			return mkset(s);
+		}
+		if (isint(b)) {
+			if (b == 0) {
+				if (a)
+					return set(0);
+				return empty();
+			}
+			s = M * char(0);
+			for (i = 0; i <= m && b * i < N; ++i)
+				if (isin(a, i))
+					setbit(s, b * i);
+			return mkset(s);
+		}
+	}
+	if (isint(a))
+		return b * a;
+	return newerror("Bad argument for set_mul");
+}
+
+define set_square(a)
+{
+	local s, i, m;
+
+	s = M * char(0);
+	m = highbit(a.s);
+	for (i = 0; i <= m && i^2 < N; ++i)
+		if (bit(a.s, i))
+			setbit(s, i^2);
+	return mkset(s);
+}
+
+define set_pow(a, n)
+{
+	local s, i, m;
+
+	if (!isint(n) || n < 0)
+		quit "Bad exponent for set_power";
+	s = M * char(0);
+	m = highbit(a.s);
+	for (i = 0; i <= m && i^n < N; ++i)
+		if (bit(a.s, i))
+			setbit(s, i^n);
+	return mkset(s);
+}
+
+define set_sum(a)
+{
+	local v, m, i;
+
+	v = 0;
+	m = highbit(a.s);
+	for (i = 0; i <= m; ++i)
+		if (bit(a.s, i))
+			v += i;
+	return v;
+}
+
+define set_plus(a) = set_sum(a);
+
+define interval(a, b)
+{
+	local i, j, s;
+	static tail = "\0\1\3\7\17\37\77\177\377";
+
+	if (!isint(a) || !isint(b))
+		quit "Non-integer argument for interval";
+	if (a > b)
+		swap(a, b);
+	if (b < 0 || a >= N)
+		return empty();
+	a = max(a, 0);
+	b = min(b, N-1);
+	i = quo(a, 8, 0);
+	j = quo(b, 8, 0);
+	s = M * char(0);
+	if (i == j) {
+		s[i] = tail[b + 1 - 8 * i] \ tail[a - 8 * i];
+		return mkset(s);
+	}
+	s[i] = ~tail[a - 8 * i];
+	while (++i < j)
+		s[i] = -1;
+	s[j] = tail[b + 1 - 8 * j];
+	return mkset(s);
+}
+
+define isinterval(a)
+{
+	local i, max, s;
+
+	if (!isset(a))
+		quit "Non-set argument for isinterval";
+
+	s = a.s;
+	if (!s)
+		return 0;
+	for (i = lowbit(s) + 1, max = highbit(s); i < max; i++)
+		if (!bit(s, i))
+			return 0;
+	return 1;
+}
+
+define set_mod(a, b)
+{
+	local s, m, i, j;
+
+	if (isset(a) && isint(b)) {
+		s = M * char(0);
+		m = highbit(a.s);
+		for (i = 0; i <= m; i++)
+			if (bit(a.s, i))
+				for (j = 0; j < N; j++)
+					if (meq(i, j, b))
+						setbit(s, j);
+		return mkset(s);
+	}
+	return newerror("Bad argument for set_mod");
+}
+
+define randset(n, a, b)
+{
+	local m, s, i;
+
+	if (isnull(a))
+		a = 0;
+	if (isnull(b))
+		b = N - 1;
+	if (!isint(n) || !isint(a) || !isint(b) || n < 0 || a < 0 || b < 0)
+		quit "Bad argument for randset";
+	if (a > b)
+		swap(a, b);
+	m = b - a + 1;
+	if (n > m)
+		return newerror("Too many numbers specified for randset");
+	if (2 * n > m)
+		return interval(a,b) \ randset(m - n, a, b);
+	++b;
+	s = M * char(0);
+	while (n-- > 0) {
+		do
+			i = rand(a, b);
+		while
+			(bit(s, i));
+		setbit(s, i);
+	}
+	return mkset(s);
+}
+
+define polyvals(L, A)
+{
+	local s, m, v, i;
+
+	if (!islist(L))
+		quit "Non-list first argument for polyvals";
+	if (!isset(A))
+		quit "Non-set second argument for polyvals";
+	m = highbit(A.s);
+	s = M * char(0);
+	for (i = 0; i <= m; i++)
+		if (bit(A.s, i)) {
+			v = poly(L,i);
+			if (v >> 0 && v < N)
+				setbit(s, v);
+		}
+	return mkset(s);
+}
+
+define polyvals2(L, A, B)
+{
+	local s1, s2, s, m, n, i, j, v;
+
+	s1 = A.s;
+	s2 = B.s;
+	m = highbit(s1);
+	n чя                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              = highbit(s2);
+	s = M * char(0);
+	for (i = 0; i <= m; i++)
+		if (bit(s1, i))
+			for (j = 0; j <= n; j++)
+				if (bit(s2, j)) {
+					v = poly(L, i, j);
+					if (v >= 0 && v < N)
+						setbit(s, v);
+				}
+	return mkset(s);
+}
+
+define set_print(a)
+{
+	local i, s, m;
+
+	s = a.s;
+	i = lowbit(s);
+	print "set(":;
+	if (i >= 0) {
+		print i:;
+		m = highbit(s);
+		while (++i <= m)
+			if (bit(s, i))
+				print ",":i:;
+	}
+	print ")",;
+}
+
+local N, M;	/* End scope of static variables N, M */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   /*
+ * randombitrun - check rand bit run lengths of random()
+ *
+ * Copyright (C) 1999  Landon Curt Noll
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: randombitrun.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/randombitrun.cal,v $
+ *
+ * Under source code control:	1995/02/13 03:43:11
+ * File existed as early as:	1995
+ *
+ * chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+/*
+ * We will use randombit(1) to generate a stream if single bits.
+ * The odds that we will have n bits the same in a row is 1/2^n.
+ */
+
+
+define randombitrun(run_cnt)
+{
+    local i;			/* index */
+    local max_run;		/* longest run */
+    local long_run_cnt;		/* number of runs longer than MAX_RUN */
+    local run;			/* current run length */
+    local tally_sum;		/* sum of all tally values */
+    local last;			/* last random number */
+    local current;		/* current random number */
+    local MAX_RUN = 18;		/* max run we will keep track of */
+    local mat tally[1:MAX_RUN]; /* tally of length of a rise run of 'x' */
+    local mat prob[1:MAX_RUN];	/* prob[x] = probability of 'x' length run */
+
+    /*
+     * parse args
+     */
+    if (param(0) == 0) {
+	run_cnt = 65536;
+    }
+
+    /*
+     * run setup
+     */
+    max_run = 0;		/* no runs yet */
+    long_run_cnt = 0;		/* no long runs set */
+    current = randombit(1);	/* our first number */
+    run = 1;
+
+    /*
+     * compute the run length probabilities
+     *
+     * A bit run length of 'r' occurs with a probability of:
+     *
+     *			1/2^n;
+     */
+    for (i=1; i <= MAX_RUN; ++i) {
+	prob[i] = 1.0/(1<<i);
+    }
+
+    /*
+     * look at a number of random number trials
+     */
+    for (i=0; i < run_cnt; ++i) {
+
+	/* get our current number */
+	last = current;
+	current = randombit(1);
+
+	/* look for a run break */
+	if (current != last) {
+
+	    /*	record the stats */
+	    if (run > max_run) {
+		max_run = run;
+	    }
+	    if (run > MAX_RUN) {
+		++long_run_cnt;
+	    } else {
+		++tally[run];
+	    }
+
+	    /* start a new run */
+	    current = randombit(1);
+	    run = 1;
+
+	/* note the continuing run */
+	} else {
+	    ++run;
+	}
+    }
+    /* determine the number of runs found */
+    tally_sum = matsum(tally) + long_run_cnt;
+
+    /*
+     * print the stats
+     */
+    printf("random runbit test used %d values to produce %d runs\n",
+      run_cnt, tally_sum);
+    for (i=1; i <= MAX_RUN; ++i) {
+	printf("length=%d\tprob=%9.7f\texpect=%d \tcount=%d \terr=%9.7f\n",
+	  i, prob[i], round(tally_sum*prob[i]), tally[i],
+	  (tally[i] - round(tally_sum*prob[i]))/tally_sum);
+    }
+    printf("length>%d\t\t\t\t\tcount=%d\n", MAX_RUN, long_run_cnt);
+    printf("max length=%d\n", max_run);
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               /*
+ * test3100 - 3100 series of the regress.cal test suite
+ *
+ * Copyright (C) 1999  Ernest Bowen and Landon Curt Noll
+ *
+ * Primary author:  Ernest Bowen
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: test3100.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/test3100.cal,v $
+ *
+ * Under source code control:	1995/11/28 11:56:57
+ * File existed as early as:	1995
+ *
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+
+obj res {r};
+global md;
+define res_test(a) = !ismult(a.r, md);
+define res_sub(a,b) {local obj res v = {(a.r - b.r) % md}; return v;};
+define res_mul(a,b) {local obj res v = {(a.r * b.r) % md}; return v;};
+define res_neg(a) {local obj res v = {(-a.r) % md}; return v;};
+define res_inv(a) {local obj res v = {minv(a.r, md)}; return v;};
+define res(x) {local obj res v = {x % md}; return v;};
+                                                                                                                                                                                                                                                                                                                                                                                                                                                         /*
+ * deg - calculate in degrees, minutes, and seconds
+ *
+ * Copyright (C) 1999  David I. Bell
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.2 $
+ * @(#) $Id: deg.cal,v 30.2 2010/09/02 06:01:14 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/deg.cal,v $
+ *
+ * Under source code control:	1990/02/15 01:50:33
+ * File existed as early as:	before 1990
+ *
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+
+obj deg {deg, min, sec};
+
+define deg(deg, min, sec)
+{
+	local ans;
+
+	if (isnull(sec))
+		sec = 0;
+	if (isnull(min))
+		min = 0;
+	obj deg ans;
+	ans.deg = deg;
+	ans.min = min;
+	ans.sec = sec;
+	fixdeg(ans);
+	return ans;
+}
+
+
+define deg_add(a, b)
+{
+	local obj deg	ans;
+
+	ans.deg = 0;
+	ans.min = 0;
+	ans.sec = 0;
+	if (istype(a, ans)) {
+		ans.deg += a.deg;
+		ans.min += a.min;
+		ans.sec += a.sec;
+	} else
+		ans.deg += a;
+	if (istype(b, ans)) {
+		ans.deg += b.deg;
+		ans.min += b.min;
+		ans.sec += b.sec;
+	} else
+		ans.deg += b;
+	fixdeg(ans);
+	return ans;
+}
+
+
+define deg_neg(a)
+{
+	local obj deg	ans;
+
+	ans.deg = -a.deg;
+	ans.min = -a.min;
+	ans.sec = -a.sec;
+	return ans;
+}
+
+
+define deg_sub(a, b)
+{
+	return a - b;
+}
+
+
+define deg_mul(a, b)
+{
+	local obj deg	ans;
+
+	if (istype(a, ans) && istype(b, ans))
+		quit "Cannot multiply degrees together";
+	if (istype(a, ans)) {
+		ans.deg = a.deg * b;
+		ans.min = a.min * b;
+		ans.sec = a.sec * b;
+	} else {
+		ans.deg = b.deg * a;
+		ans.min = b.min * a;
+		ans.sec = b.sec * a;
+	}
+	fixdeg(ans);
+	return ans;
+}
+
+
+define deg_print(a)
+{
+	print a.deg : 'd' : a.min : 'm' : a.sec : 's' :;
+}
+
+
+define deg_abs(a)
+{
+	return a.deg + a.min / 60 + a.sec / 3600;
+}
+
+
+define fixdeg(a)
+{
+	a.min += frac(a.deg) * 60;
+	a.deg = int(a.deg);
+	a.sec += frac(a.min) * 60;
+	a.min = int(a.min);
+	a.min += a.sec // 60;
+	a.sec %= 60;
+	a.deg += a.min // 60;
+	a.min %= 60;
+	a.deg %= 360;
+}
+
+if (config("resource_debug") & 3) {
+    print "obj deg {deg, min, sec} defined";
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                              /*
+ * test4000 - 4000 series of the regress.cal test suite
+ *
+ * Copyright (C) 1999  Ernest Bowen and Landon Curt Noll
+ *
+ * Primary author:  Ernest Bowen
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: test4000.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/test4000.cal,v $
+ *
+ * Under source code control:	1996/03/13 02:38:45
+ * File existed as early as:	1996
+ *
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+/*
+ * Functions for testing and timing ptest, nextcand, prevcand.
+ *
+ * rlen(N) for N > 0 generates a random N-word positive integer.
+ *
+ * plen(N) for N > 0 generates an almost certainly prime positive
+ *	integer whose word-count is about N.
+ *
+ * clen(N) for N > 0 generates a composite odd N-word integer.
+ *
+ * ptimes(str, N [, n [, count [, skip, [, verbose]]]])
+ *	tests, and finds the runtime, for
+ *	ptest(x, count, skip) for n random almost certainly prime integers x
+ *	with word-count about N; n defaults to ceil(K1/abs(count)/(H1 + N^3)),
+ *	count to COUNT, skip to SKIP.
+ *
+ * ctimes(str, N [, n [, count [, skip, [, verbose]]]])
+ *	tests, and finds the runtime, for
+ *	ptest(x, count, skip) for n random composite integers x with word-count
+ *	about N; n defaults to ceil(K2/(H2 + N^3)), count to COUNT, skip
+ *	to SKIP.
+ *
+ * crtimes(str,a,b,n, [,count [, skip, [, verbose]]])
+ *	tests, and finds the runtime,
+ *	for ptest(x, count, skip) for n random integers x between a and b;
+ *	count defaults to COUNT, skip to SKIP.
+ *
+ * ntimes (str, N [,n, [, count [, skip [, residue [, modulus[,verb]]]]]]) tests
+ *	and finds the runtime for nextcand(...) and prevcand (...) for
+ *	n integers x with word-count about N, etc. n defaults to
+ *	ceil(K3/(H3 + N^3));
+ *
+ * testnextcand(str, N [, n [, count [, skip [, residue [, modulus [, verb]]]]])
+ *	performs tests of nextcand(x, count, skip, residue, modulus)
+ *	for n values of x with word-count N; n defaults to
+ *	ceil(K3/(H3 + N^3)), count to COUNT, skip to SKIP, residue to 0,
+ *	modulus to 1.
+ *
+ * testprevcand(str, N [, n [, count [, skip [, residue [, modulus [, verb]]]]])
+ *	performs tests of prevcand(x, count, skip, residue, modulus)
+ *	for n values of x with word-count N; n defaults to
+ *	ceil(K3/(H3 + N^3)), count to COUNT, skip to SKIP, residue to 0,
+ *	modulus to 1.
+ */
+
+
+defaultverbose = 1;	/* default verbose value */
+
+/*
+ * test defaults
+ */
+global BASEB = 32;
+global BASE = 2^BASEB;
+global COUNT = 5;
+global SKIP = 0;
+global RESIDUE = 0;
+global MODULUS = 1;
+
+/*
+ * internal test constants
+ */
+global K1 = 2^15;
+global H1 = 40;
+global K2 = 2^17;
+global H2 = 40;
+global K3 = 2^10;
+global H3 = 10;
+
+
+define rlen(N)
+{
+
+	if (!isint(N) || N <= 0)
+		quit "Bad argument for rlen";
+	return rand(BASE^(N-1), BASE^N);
+}
+
+define plen(N) = nextcand(rlen(N), 10, 0);
+
+define clen(N)
+{
+	local n, v;
+
+	do {
+		v = rlen(N);
+		if (iseven(v))
+			v++;
+	}
+	while
+		(ptest(v, 10, 0));
+	return v;
+}
+
+define ptimes(str, N, n, count, skip, verbose)
+{
+	local A, i, t, p, m;
+
+	if (isnull(verbose))
+		verbose = defaultverbose;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	m = 0;
+	if (isnull(count))
+		count = COUNT;
+	if (isnull(n)) {
+		n = ceil(K1/abs(count)/(H1 + N^3));
+		if (verbose > 1) {
+			print "n =",n;
+		}
+	}
+	if (isnull(skip))
+		skip = SKIP;
+	mat A[n];
+	for (i = 0; i < n; i++)
+		A[i] = plen(N);
+	t = usertime();
+	for (i = 0; i < n; i++) {
+		p = ptest(A[i], count, skip);
+		if (!p) {
+			if (verbose > 0) {
+				printf("*** Error for x = %d\n", A[i]);
+				m++;
+			}
+		}
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)\n", m);
+		} else {
+			t = round(usertime() - t, 4);
+			if (verbose > 1) {
+				printf("%d probable primes: time = %d\n", n, t);
+			} else {
+				printf("%d probable primes: passed\n", n);
+			}
+		}
+	}
+	return m;
+}
+
+define ctimes(str, N, n, count, skip, verbose)
+{
+	local A, i, r, t, p, m;
+
+
+	if (isnull(verbose))
+		verbose = defaultverbose;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	m = 0;
+	if (isnull(count))
+		count = COUNT;
+	if (isnull(n)) {
+		n = ceil(K2/(H2 + N^3));
+		if (verbose > 1) {
+			print "n =",n;
+		}
+	}
+	if (isnull(skip))
+		skip = SKIP;
+	mat A[n];
+	for (i = 0; i < n; i++)
+		A[i] = clen(N);
+	t = usertime();
+	for (i = 0; i < n; i++) {
+		p = ptest(A[i], count, skip);
+		if (p) {
+			if (verbose > 0) {
+				printf("*** Error, what should be rare has occurred for x = %d \n", A[i]);
+				m++;
+			}
+		}
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)\n", m);
+		} else {
+			t = round(usertime() - t, 4);
+			if (verbose > 1) {
+				printf("%d probable primes: time = %d\n", n, t);
+			} else {
+				printf("%d probable primes: passed\n", n);
+			}
+		}
+	}
+	return m;
+}
+
+define crtimes(str, a, b, n, count, skip, verbose)
+{
+	local A, P, i, t, p, m;
+
+	if (isnull(verbose))
+		verbose = defaultverbose;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	m = 0;
+	if (b < a)
+		swap(a,b);
+	b++;
+	if (isnull(count))
+		count = COUNT;
+	if (isnull(skip))
+		skip = SKIP;
+	mat A[n];
+	mat P[n];
+	for (i = 0; i < n; i++) {
+		A[i] = rand(a,b);
+		P[i] = ptest(A[i], 20, 0);
+	}
+	t = usertime();
+	for (i = 0; i < n; i++) {
+		p = ptest(A[i], count, skip);
+		if (p != P[i]) {
+			if (verbose > 0) {
+				printf("*** Apparent error for %s x = %d\n",
+					P[i] ? "prime" : "composite", A[i]);
+				++m;
+			}
+		}
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)?\n", m);
+		} else {
+			t = round(usertime() - t, 4);
+			if (verbose > 1) {
+				printf("%d probable primes: time = %d\n", n, t);
+			} else {
+				printf("%d probable primes: passed\n", n);
+			}
+		}
+	}
+	return m;
+}
+
+define ntimes(str, N, n, count, skip, residue, modulus, verbose)
+{
+	local A, i, t, p, tnext, tprev;
+
+	if (isnull(verbose))
+		verbose = defaultverbose;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	if (isnull(count))
+		count = COUNT;
+	if (isnull(n)) {
+		n = ceil(K3/(H3 + N^3));
+		if (verbose > 1) {
+			print "n =",n;
+		}
+	}
+	if (isnull(skip))
+		skip = SKIP;
+	if (isnull(residue))
+		residue = RESIDUE;
+	if (isnull(modulus))
+		modulus = MODULUS;
+
+	mat A[n];
+	for (i = 0; i < n; i++)
+		A[i] = rlen(N);
+	t = usertime();
+	for (i = 0; i < n; i++) {
+		p = nextcand(A[i], count, skip, residue, modulus);
+	}
+	tnext = round(usertime() - t, 4);
+	t = usertime();
+	for (i = 0; i < n; i++) {
+		p = prevcand(A[i], count, skip, residue, modulus);
+	}
+	tprev = round(usertime() - t, 4);
+	if (verbose > 0) {
+		printf("%d evaluations, nextcand: %d, prevcand: %d\n", n, tnext, tprev);
+	}
+}
+
+define testnextcand(str, N, n, count, skip, residue, modulus, verbose)
+{
+	local p, x, y, i, m;
+
+	if (isnull(verbose))
+		verbose = defaultverbose;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	m = 0;
+	if (isnull(count))
+		count = COUNT;
+	if (isnull(n)) {
+		n = ceil(K3/(H3 + N^3));
+		print "n =",n;
+	}
+	if (isnull(skip))
+		skip = SKIP;
+	if (isnull(residue))
+		residue = RESIDUE;
+	if (isnull(modulus))
+		modulus = MODULUS;
+	for (i = 0; i < n; i++) {
+		x = rlen(N);
+		y = nextcand(x, count, skip, residue, modulus);
+		p = testnext1(x, y, count, skip, residue, modulus);
+		if (p) {
+			m++;
+			if (verbose > 1) {
+				printf("*** Failure %d for x = %d\n", p, x);
+			}
+		}
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)?\n", m);
+		} else {
+			printf("%d successful tests\n", n);
+		}
+	}
+	return m;
+}
+
+define testnext1(x, y, count, skip, residue, modulus)
+{
+	if (y <= x)
+		return 1;
+	if (!ptest(y, count, skip))
+		return 2;
+	if (mne(y, residue, modulus))
+		return 3;
+	return 0;
+}
+
+define testprevcand(str, N, n, count, skip, residue, modulus, verbose)
+{
+	local p, x, y, i, m;
+
+	if (isnull(verbose))
+		verbose = defaultverbose;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	m = 0;
+	if (isnull(count))
+		count = COUNT;
+	if (isnull(n)) {
+		n = ceil(K3/(H3 + N^3));
+		print "n =",n;
+	}
+	if (isnull(skip))
+		skip = SKIP;
+	if (isnull(residue))
+		residue = RESIDUE;
+	if (isnull(modulus))
+		modulus = MODULUS;
+	for (i = 0; i < n; i++) {
+		x = rlen(N);
+		y = prevcand(x, count, skip, residue, modulus);
+		p = testprev1(x, y, count, skip, residue, modulus);
+		if (p) {
+			m++;
+			if (verbose > 1) {
+				printf("*** Failure %d for x = %d\n", p, x);
+			}
+		}
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)?\n", m);
+		} else {
+			printf("%d successful tests\n", n);
+		}
+	}
+	return m;
+}
+
+
+define testprev1(x, y, count, skip, residue, modulus)
+{
+	if (y >= x)
+		return 1;
+	if (!ptest(y, count, skip))
+		return 2;
+	if (mne(y, residue, modulus))
+		return 3;
+	return 0;
+}
+
+/*
+ * test4000 - perform all of the above tests a bunch of times
+ */
+define test4000(v, tnum)
+{
+	local n;	/* test parameter */
+
+	/*
+	 * set test parameters
+	 */
+	srand(4000e4000);
+
+	/*
+	 * test a lot of stuff
+	 */
+	err += ptimes(strcat(str(tnum++),": ptimes(1,250)"), 1, 250,,,v);
+	err += ptimes(strcat(str(tnum++),": ptimes(3,50)"), 3, 50,,,v);
+	err += ptimes(strcat(str(tnum++),": ptimes(5,20)"), 5, 20,,,v);
+
+	err += ctimes(strcat(str(tnum++),": ctimes(1,7500)"), 1, 7500,,,v);
+	err += ctimes(strcat(str(tnum++),": ctimes(3,500)"), 3, 500,,,v);
+	err += ctimes(strcat(str(tnum++),": ctimes(5,200)"), 5, 200,,,v);
+
+	err += crtimes(strcat(str(tnum++),": crtimes(2^30,2^31,2500)"),
+		2^30, 2^31, 2500,,,v);
+	err += crtimes(strcat(str(tnum++),": crtimes(2^300,2^301,75)"),
+		2^300, 2^301, 75,,,v);
+
+	err += testprevcand(strcat(str(tnum++),": testprevcand(1,250)"),
+		1, 250, ,,,,v);
+	err += testprevcand(strcat(str(tnum++),": testprevcand(3,25)"),
+		3, 25, ,,,,v);
+	err += testprevcand(strcat(str(tnum++),": testprevcand(5,10)"),
+		5, 10, ,,,,v);
+
+	err += testnextcand(strcat(str(tnum++),": testnextcand(1,250)"),
+		1, 250, ,,,,v);
+	err += testnextcand(strcat(str(tnum++),": testnextcand(3,25)"),
+		3, 25, ,,,,v);
+	err += testnextcand(strcat(str(tnum++),": testnextcand(5,10)"),
+		5, 10, ,,,,v);
+
+	/*
+	 * report results
+	 */
+	if (v > 1) {
+		if (err) {
+			print "***", err, "error(s) found in testall";
+		} else {
+			print "no errors in testall";
+		}
+	}
+	return tnum;
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   /*
+ * test8400 - 8400 series of the regress.cal test suite
+ *
+ * Copyright (C) 1999  Landon Curt Noll
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: test8400.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/test8400.cal,v $
+ *
+ * Under source code control:	1999/10/31 01:00:03
+ * File existed as early as:	1999
+ *
+ * chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+
+print "8401: in test8400.cal";
+
+/*
+ * test8400 - dummy function to allow a check of quit-based memory leaks
+ */
+define test8400()
+{
+    local x8401 = 19937;    /* watch for lost memory */
+    static s8401 = 44497;   /* watch for lost memory */
+
+    return x8401+s8401;
+}
+print "8402: parsed test8400()";
+vrfy(test8400() == 64434,	    '8403: test8400() == 64434');
+
+quit;
+prob('quit did not end test8400.cal');
+                                                                                                                                                                                                                                                                                                                                                                                                                                 /*
+ * test2600 - 2600 series of the regress.cal test suite
+ *
+ * Copyright (C) 1999  Ernest Bowen and Landon Curt Noll
+ *
+ * Primary author:  Ernest Bowen
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.2 $
+ * @(#) $Id: test2600.cal,v 30.2 2007/07/11 22:57:23 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/test2600.cal,v $
+ *
+ * Under source code control:	1995/10/13 00:13:14
+ * File existed as early as:	1995
+ *
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+/*
+ * Stringent tests of some of calc's builtin functions.
+ * Most of the tests are concerned with the accuracy of the value
+ * returned for a function; usually it is expected that
+ * remainder (true value - calculated value) will be less in
+ * absolute value than "epsilon", where this is either a specified
+ * argument eps, or if this is omitted, the current value of epsilon().
+ * In some cases the remainder is to have a particular sign, or to
+ * have absolute value not exceeding eps/2, or in some cases 3 * eps/4.
+ *
+ * Typical of these tests is testpower("power", n, b, eps, verbose).
+ * Here n is the number of numbers a for which power(a, b, eps) is to
+ * be evaluated; the ratio c = (true value - calculated value)/eps
+ * is calculated and if this is not less in absolute value than
+ * 0.75, a "failure" is recorded and the value of a displayed.
+ * On completion of the tests, the minimum and maximum values of
+ * c are displayed.
+ *
+ * The numbers a are usually large "random" integers or sometimes
+ * ratios of such integers.  In some cases the formulae used to
+ * calculate c assume eps is small compared with the value of the
+ * function.  If eps is very small, say 1e-1000, or if the denominator
+ * of b in power(a, b, eps) is large, the computation required for
+ * a test may be very heavy.
+ *
+ * Test funcations are called as:
+ *
+ *	testabc(str, ..., verbose)
+ *
+ * where str is a string that names the test.  This string is printed
+ * without a newline (if verbose > 0), near the beginning of the function.
+ * The verbose parameter controls how verbose the test will be:
+ *
+ *	0 - print nothing
+ *	1 - print str and the error count
+ *	2 - print min and max errors as well
+ *	3 - print everything including individual loop counts
+ *
+ * All functions return the number of errors that they detected.
+ */
+
+
+global defaultverbose = 1;	/* default verbose value */
+global err;
+
+define testismult(str, n, verbose)
+{
+	local a, b, c, i, m;
+
+	if (isnull(verbose)) verbose = defaultverbose;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	m = 0;
+	for (i = 0; i < n; i++) {
+		if (verbose > 2) print i,:;
+		a = scale(rand(1,1e1000), rand(100));
+		b = scale(rand(1,1e1000), rand(100));
+		c = a * b;
+		if (!ismult(c,a)) {
+			m++;
+			if (verbose > 1) {
+				printf("*** Failure with:\na = %d\nb = %d\n", a,b);
+			}
+		}
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)\n", m);
+		} else {
+			printf("no errors\n");
+		}
+	}
+	return m;
+}
+
+define testsqrt(str, n, eps, verbose)
+{
+	local a, c, i, x, m, min, max;
+
+	if (isnull(verbose)) verbose = 2;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	m = 0;
+	min = 1000;
+	max = -1000;
+	if (isnull(eps))
+		eps = epsilon();
+	for (i = 1; i <= n; i++) {
+		if (verbose > 2) print i,:;
+		a = scale(rand(1,1000), rand(100));
+		x = sqrt(a, eps);
+		if (x)
+			c = (a/x - x)/2/eps;
+		else
+			c = a/eps;		/* ??? */
+		if (c < min)
+			min = c;
+		if (c > max)
+			max = c;
+		if (abs(c) > 1) {
+			m++;
+			if (verbose > 1) {
+				printf("*** Failure with:\na = %d\neps = %d\n", a,eps);
+			}
+		}
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)\n", m);
+			printf("    %s: rem/eps min=%d, max=%d\n",
+			       str, min, max);
+		} else {
+			printf("no errors\n");
+		}
+	}
+	if (verbose > 1) {
+		printf("    %s: rem/eps min=%0.4d, max=%0.4d\n", str, min, max);
+	}
+	return m;
+}
+
+
+define testexp(str, n, eps, verbose)
+{
+	local i, a, c, m, min, max;
+
+	if (isnull(verbose)) verbose = 2;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	if (isnull(eps))
+		eps = epsilon();
+	min = 1000;
+	max = -1000;
+	for (i = 1; i <= n; i++) {
+		if (verbose > 2) print i,:;
+		a = rand(1,1e20)/rand(1,1e20) + rand(50);
+		if (rand(1))
+			a = -a;
+		c = cexp(a, eps);
+		if (c < min)
+			min = c;
+		if (c > max)
+			max = c;
+		if (abs(c) > 0.02) {
+			m++;
+			if (verbose > 1) {
+				printf("*** Failure with:\na = %d\neps = %d\n", a,eps);
+			}
+		}
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)\n", m);
+			printf("    %s: rem/eps min=%d, max=%d\n",
+			       str, min, max);
+		} else {
+			printf("no errors\n");
+		}
+	}
+	if (verbose > 1) {
+		printf("    %s: rem/eps min=%0.4d, max=%0.4d\n", str, min, max);
+	}
+	return m;
+}
+
+
+define cexp(x,eps)		/* Find relative rem/eps for exp(x, eps) */
+{
+	local eps1, v, v1, c;
+
+	if (isnull(eps))
+		eps = epsilon();
+	eps1 = eps * 1e-6;
+	v = exp(x, eps);
+	v1 = exp(x, eps1);
+	c = round((v1 - v)/v1/eps, 6, 24);
+	return c;
+}
+
+
+define testln(str, n, eps, verbose)
+{
+	local i, a, c, m, min, max;
+
+	if (isnull(verbose)) verbose = 2;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	if (isnull(eps))
+		eps = epsilon();
+	min = 1000;
+	max = -1000;
+	for (i = 1; i <= n; i++) {
+		if (verbose > 2) print i,:;
+		a = rand(1,1e20)/rand(1,1e20) + rand(50);
+		c = cln(a, eps);
+		if (c < min)
+			min = c;
+		if (c > max)
+			max = c;
+		if (abs(c) > 0.5) {
+			m++;
+			if (verbose > 1) {
+				printf("*** Failure with:\na = %d\neps = %d\n", a,eps);
+			}
+		}
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)\n", m);
+			printf("    %s: rem/eps min=%d, max=%d\n",
+			       str, min, max);
+		} else {
+			printf("no errors\n");
+		}
+	}
+	if (verbose > 1) {
+		printf("    %s: rem/eps min=%0.4d, max=%0.4d\n", str, min, max);
+	}
+	return m;
+}
+
+define cln(a, eps)
+{
+	local eps1, v, v1, c;
+
+	if (isnull(eps))
+		eps = epsilon();
+	eps1 = eps/1e6;
+	v = ln(a, eps);
+	v1 = ln(a, eps1);
+	c = round((v1 - v)/eps, 6, 24);
+	return c;
+}
+
+
+define testpower(str, n, b, eps, verbose)
+{
+	local i, a, c, m, min, max;
+
+	if (isnull(verbose)) verbose = 2;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	if (isnull(eps))
+		eps = epsilon();
+	if (!isnum(b))
+		quit "Second argument (exponent) to be a number";
+	min = 1000;
+	max = -1000;
+	for (i = 1; i <= n; i++) {
+		if (verbose > 2) print i,:;
+		a = rand(1,1e20)/rand(1,1e20);
+		c = cpow(a, b, eps);
+		if (abs(c) > .75) {
+			m++;
+			if (verbose > 1) {
+				printf("*** Failure for a = %d\n", a);
+			}
+		}
+		if (c < min)
+			min = c;
+		if (c > max)
+			max = c;
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)\n", m);
+			printf("    %s: rem/eps min=%d, max=%d\n",
+			       str, min, max);
+		} else {
+			printf("no errors\n");
+		}
+	}
+	if (verbose > 1) {
+		printf("    %s: rem/eps min=%0.4d, max=%0.4d\n", str, min, max);
+	}
+	return m;
+}
+
+
+define testpower2(str, n, eps, verbose)
+{
+	local i, a, c, m, min, max;
+	local b;
+	local num;
+	local c2;
+	local oldeps;
+
+	if (isnull(verbose)) verbose = 2;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	if (isnull(eps))
+		eps = epsilon();
+	oldeps = epsilon(eps);
+	epsilon(eps),;
+	if (!isnum(b))
+		quit "Second argument (exponent) to be a number";
+	min = 1000;
+	max = -1000;
+	for (i = 1; i <= n; i++) {
+		if (verbose > 2) print i,:;
+
+		/* real ^ real */
+		a = rand(1,1e20);
+		a = a / (int(a/2)+rand(1,1e20));
+		b = rand(1,1e20);
+		b = b / (int(b/2)+rand(1,1e20));
+		c = a ^ b;
+		c2 = power(a, b);
+		if (c != c2) {
+			m++;
+			if (verbose > 1) {
+				printf("*** real^real failure for a = %d\n", a);
+			}
+		}
+
+		/* complex ^ real */
+		a = rand(1,1e20);
+		a = a / (int(a/2)+rand(1,1e20));
+		b = rand(1,1e20);
+		b = b / (int(b/2)+rand(1,1e20));
+		c = (a*1i) ^ b;
+		c2 = power(a*1i, b);
+		if (c != c2) {
+			m++;
+			if (verbose > 1) {
+				printf("*** comp^real failure for a = %d\n", a);
+			}
+		}
+
+		/* real ^ complex */
+		a = rand(1,1e20);
+		a = a / (int(a/2)+rand(1,1e20));
+		b = rand(1,1e20);
+		b = b / (int(b/2)+rand(1,1e20));
+		c = a ^ (b*1i);
+		c2 = power(a, b*1i);
+		if (c != c2) {
+			m++;
+			if (verbose > 1) {
+				printf("*** real^comp failure for a = %d\n", a);
+			}
+		}
+
+		/* complex ^ complex */
+		a = rand(1,1e20);
+		a = a / (int(a/2)+rand(1,1e20));
+		b = rand(1,1e20);
+		b = b / (int(b/2)+rand(1,1e20));
+		c = (a*1i) ^ (b*1i);
+		c2 = power(a*1i, b*1i);
+		if (c != c2) {
+			m++;
+			if (verbose > 1) {
+				printf("*** comp^comp failure for a = %d\n", a);
+			}
+		}
+	}
+	epsilon(oldeps),;
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)\n", m);
+			printf("    %s: rem/eps min=%d, max=%d\n",
+			       str, min, max);
+		} else {
+			printf("no errors\n");
+		}
+	}
+	if (verbose > 1) {
+		printf("    %s: rem/eps min=%0.4d, max=%0.4d\n", str, min, max);
+	}
+	return m;
+}
+
+
+define cpow(a, b, eps)		/* Find rem/eps for power(a,b,eps) */
+{
+	local v, v1, c, n, d, h;
+
+	if (isnull(eps))
+		eps = epsilon();
+	n = num(b);
+	d = den(b);
+
+	v = power(a, b, eps);
+	h = (a^n/v^d - 1) * v/d;
+	c = round(h/eps, 6, 24);
+	return c;
+}
+
+define testgcd(str, n, verbose)
+{
+	local i, a, b, g, m;
+
+	if (isnull(verbose)) verbose = 2;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	m = 0;
+	for (i = 1; i <= n; i++) {
+		if (verbose > 2) print i,:;
+		a = rand(1,1e1000);
+		b = rand(1,1e1000);
+		g = gcd(a,b);
+		if (!ismult(a,g) || !ismult(b,g) || !g || !isrel(a/g, b/g)) {
+			m++;
+			printf("*** Failure for a = %d, b = %d\n", a, b);
+		}
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)\n", m);
+		} else {
+			printf("no errors\n");
+		}
+	}
+	return m;
+}
+
+define mkreal() = scale(rand(-1000,1001)/rand(1,1000), rand(-100, 101));
+
+define mkcomplex() = mkreal() + 1i * mkreal();
+
+define mkbigreal()
+{
+	local x;
+
+	x = rand(100, 1000)/rand(1,10);
+	if (rand(2))
+		x = -x;
+	return x;
+}
+
+define mksmallreal() = rand(-10, 11)/rand(100,1000);
+
+define testappr(str, n, verbose)
+{
+	local x, y, z, m, i, p;
+
+	if (isnull(verbose))
+		verbose = defaultverbose;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	m = 0;
+	for (i = 1; i <= n; i++) {
+		x = rand(3) ? mkreal(): mkcomplex();
+		y = mkreal();
+		if (verbose > 2)
+			printf("    %d: x = %d, y = %d\n", i, x, y);
+
+		for (z = 0; z < 32; z++) {
+			p = checkappr(x,y,z,verbose);
+			if (p) {
+				printf("*** Failure for x=%d, y=%d, z=%d\n",
+					x, y, z);
+				m++;
+			}
+		}
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)\n", m);
+		} else {
+			printf("no errors\n");
+		}
+	}
+	return m;
+}
+
+
+define checkappr(x,y,z,verbose)		/* Returns 1 if an error is detected */
+{
+	local a;
+
+	a = appr(x,y,z);
+	if (verbose > 1)
+		printf("\ta = %d\n", a);
+	if (isreal(x))
+		return checkresult(x,y,z,a);
+	if (isnum(x))
+		return checkresult(re(x), y, z, re(a))
+			| checkresult(im(x), y, z, im(a));
+
+	quit "Bad first argument for checkappr()";
+}
+
+define checkre

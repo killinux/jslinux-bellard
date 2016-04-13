@@ -1,0 +1,1889 @@
+s string.  If found, returns the index where it was
+       *  found.  If not found, returns npos.
+      */
+      size_type
+      find_last_not_of(_CharT __c, size_type __pos = npos) const;
+
+      /**
+       *  @brief  Get a substring.
+       *  @param pos  Index of first character (default 0).
+       *  @param n  Number of characters in substring (default remainder).
+       *  @return  The new string.
+       *  @throw  std::out_of_range  If pos > size().
+       *
+       *  Construct and return a new string using the @a n characters starting
+       *  at @a pos.  If the string is too short, use the remainder of the
+       *  characters.  If @a pos is beyond the end of the string, out_of_range
+       *  is thrown.
+      */
+      basic_string
+      substr(size_type __pos = 0, size_type __n = npos) const
+      { return basic_string(*this,
+			    _M_check(__pos, "basic_string::substr"), __n); }
+
+      /**
+       *  @brief  Compare to a string.
+       *  @param str  String to compare against.
+       *  @return  Integer < 0, 0, or > 0.
+       *
+       *  Returns an integer < 0 if this string is ordered before @a str, 0 if
+       *  their values are equivalent, or > 0 if this string is ordered after
+       *  @a str.  Determines the effective length rlen of the strings to
+       *  compare as the smallest of size() and str.size().  The function
+       *  then compares the two strings by calling traits::compare(data(),
+       *  str.data(),rlen).  If the result of the comparison is nonzero returns
+       *  it, otherwise the shorter one is ordered first.
+      */
+      int
+      compare(const basic_string& __str) const
+      {
+	const size_type __size = this->size();
+	const size_type __osize = __str.size();
+	const size_type __len = std::min(__size, __osize);
+
+	int __r = traits_type::compare(_M_data(), __str.data(), __len);
+	if (!__r)
+	  __r = _S_compare(__size, __osize);
+	return __r;
+      }
+
+      /**
+       *  @brief  Compare substring to a string.
+       *  @param pos  Index of first character of substring.
+       *  @param n  Number of characters in substring.
+       *  @param str  String to compare against.
+       *  @return  Integer < 0, 0, or > 0.
+       *
+       *  Form the substring of this string from the @a n characters starting
+       *  at @a pos.  Returns an integer < 0 if the substring is ordered
+       *  before @a str, 0 if their values are equivalent, or > 0 if the
+       *  substring is ordered after @a str.  Determines the effective length
+       *  rlen of the strings to compare as the smallest of the length of the
+       *  substring and @a str.size().  The function then compares the two
+       *  strings by calling traits::compare(substring.data(),str.data(),rlen).
+       *  If the result of the comparison is nonzero returns it, otherwise the
+       *  shorter one is ordered first.
+      */
+      int
+      compare(size_type __pos, size_type __n, const basic_string& __str) const;
+
+      /**
+       *  @brief  Compare substring to a substring.
+       *  @param pos1  Index of first character of substring.
+       *  @param n1  Number of characters in substring.
+       *  @param str  String to compare against.
+       *  @param pos2  Index of first character of substring of str.
+       *  @param n2  Number of characters in substring of str.
+       *  @return  Integer < 0, 0, or > 0.
+       *
+       *  Form the substring of this string from the @a n1 characters starting
+       *  at @a pos1.  Form the substring of @a str from the @a n2 characters
+       *  starting at @a pos2.  Returns an integer < 0 if this substring is
+       *  ordered before the substring of @a str, 0 if their values are
+       *  equivalent, or > 0 if this substring is ordered after the substring
+       *  of @a str.  Determines the effective length rlen of the strings
+       *  to compare as the smallest of the lengths of the substrings.  The
+       *  function then compares the two strings by calling
+       *  traits::compare(substring.data(),str.substr(pos2,n2).data(),rlen).
+       *  If the result of the comparison is nonzero returns it, otherwise the
+       *  shorter one is ordered first.
+      */
+      int
+      compare(size_type __pos1, size_type __n1, const basic_string& __str,
+	      size_type __pos2, size_type __n2) const;
+
+      /**
+       *  @brief  Compare to a C string.
+       *  @param s  C string to compare against.
+       *  @return  Integer < 0, 0, or > 0.
+       *
+       *  Returns an integer < 0 if this string is ordered before @a s, 0 if
+       *  their values are equivalent, or > 0 if this string is ordered after
+       *  @a s.  Determines the effective length rlen of the strings to
+       *  compare as the smallest of size() and the length of a string
+       *  constructed from @a s.  The function then compares the two strings
+       *  by calling traits::compare(data(),s,rlen).  If the result of the
+       *  comparison is nonzero returns it, otherwise the shorter one is
+       *  ordered first.
+      */
+      int
+      compare(const _CharT* __s) const;
+
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 5 String::compare specification questionable
+      /**
+       *  @brief  Compare substring to a C string.
+       *  @param pos  Index of first character of substring.
+       *  @param n1  Number of characters in substring.
+       *  @param s  C string to compare against.
+       *  @return  Integer < 0, 0, or > 0.
+       *
+       *  Form the substring of this string from the @a n1 characters starting
+       *  at @a pos.  Returns an integer < 0 if the substring is ordered
+       *  before @a s, 0 if their values are equivalent, or > 0 if the
+       *  substring is ordered after @a s.  Determines the effective length
+       *  rlen of the strings to compare as the smallest of the length of the 
+       *  substring and the length of a string constructed from @a s.  The
+       *  function then compares the two string by calling
+       *  traits::compare(substring.data(),s,rlen).  If the result of the
+       *  comparison is nonzero returns it, otherwise the shorter one is
+       *  ordered first.
+      */
+      int
+      compare(size_type __pos, size_type __n1, const _CharT* __s) const;
+
+      /**
+       *  @brief  Compare substring against a character array.
+       *  @param pos1  Index of first character of substring.
+       *  @param n1  Number of characters in substring.
+       *  @param s  character array to compare against.
+       *  @param n2  Number of characters of s.
+       *  @return  Integer < 0, 0, or > 0.
+       *
+       *  Form the substring of this string from the @a n1 characters starting
+       *  at @a pos1.  Form a string from the first @a n2 characters of @a s.
+       *  Returns an integer < 0 if this substring is ordered before the string
+       *  from @a s, 0 if their values are equivalent, or > 0 if this substring
+       *  is ordered after the string from @a s.   Determines the effective
+       *  length rlen of the strings to compare as the smallest of the length
+       *  of the substring and @a n2.  The function then compares the two
+       *  strings by calling traits::compare(substring.data(),s,rlen).  If the
+       *  result of the comparison is nonzero returns it, otherwise the shorter
+       *  one is ordered first.
+       *
+       *  NB: s must have at least n2 characters, '\0' has no special
+       *  meaning.
+      */
+      int
+      compare(size_type __pos, size_type __n1, const _CharT* __s,
+	      size_type __n2) const;
+  };
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline basic_string<_CharT, _Traits, _Alloc>::
+    basic_string()
+#ifndef _GLIBCXX_FULLY_DYNAMIC_STRING
+    : _M_dataplus(_S_empty_rep()._M_refdata(), _Alloc()) { }
+#else
+    : _M_dataplus(_S_construct(size_type(), _CharT(), _Alloc()), _Alloc()) { }
+#endif
+
+  // operator+
+  /**
+   *  @brief  Concatenate two strings.
+   *  @param lhs  First string.
+   *  @param rhs  Last string.
+   *  @return  New string with value of @a lhs followed by @a rhs.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>
+    operator+(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	      const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    {
+      basic_string<_CharT, _Traits, _Alloc> __str(__lhs);
+      __str.append(__rhs);
+      return __str;
+    }
+
+  /**
+   *  @brief  Concatenate C string and string.
+   *  @param lhs  First string.
+   *  @param rhs  Last string.
+   *  @return  New string with value of @a lhs followed by @a rhs.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT,_Traits,_Alloc>
+    operator+(const _CharT* __lhs,
+	      const basic_string<_CharT,_Traits,_Alloc>& __rhs);
+
+  /**
+   *  @brief  Concatenate character and string.
+   *  @param lhs  First string.
+   *  @param rhs  Last string.
+   *  @return  New string with @a lhs followed by @a rhs.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT,_Traits,_Alloc>
+    operator+(_CharT __lhs, const basic_string<_CharT,_Traits,_Alloc>& __rhs);
+
+  /**
+   *  @brief  Concatenate string and C string.
+   *  @param lhs  First string.
+   *  @param rhs  Last string.
+   *  @return  New string with @a lhs followed by @a rhs.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline basic_string<_CharT, _Traits, _Alloc>
+    operator+(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	     const _CharT* __rhs)
+    {
+      basic_string<_CharT, _Traits, _Alloc> __str(__lhs);
+      __str.append(__rhs);
+      return __str;
+    }
+
+  /**
+   *  @brief  Concatenate string and character.
+   *  @param lhs  First string.
+   *  @param rhs  Last string.
+   *  @return  New string with @a lhs followed by @a rhs.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline basic_string<_CharT, _Traits, _Alloc>
+    operator+(const basic_string<_CharT, _Traits, _Alloc>& __lhs, _CharT __rhs)
+    {
+      typedef basic_string<_CharT, _Traits, _Alloc>	__string_type;
+      typedef typename __string_type::size_type		__size_type;
+      __string_type __str(__lhs);
+      __str.append(__size_type(1), __rhs);
+      return __str;
+    }
+
+  // operator ==
+  /**
+   *  @brief  Test equivalence of two strings.
+   *  @param lhs  First string.
+   *  @param rhs  Second string.
+   *  @return  True if @a lhs.compare(@a rhs) == 0.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator==(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	       const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { return __lhs.compare(__rhs) == 0; }
+
+  template<typename _CharT>
+    inline
+    typename __gnu_cxx::__enable_if<__is_char<_CharT>::__value, bool>::__type
+    operator==(const basic_string<_CharT>& __lhs,
+	       const basic_string<_CharT>& __rhs)
+    { return (__lhs.size() == __rhs.size()
+	      && !std::char_traits<_CharT>::compare(__lhs.data(), __rhs.data(),
+						    __lhs.size())); }
+
+  /**
+   *  @brief  Test equivalence of C string and string.
+   *  @param lhs  C string.
+   *  @param rhs  String.
+   *  @return  True if @a rhs.compare(@a lhs) == 0.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator==(const _CharT* __lhs,
+	       const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { return __rhs.compare(__lhs) == 0; }
+
+  /**
+   *  @brief  Test equivalence of string and C string.
+   *  @param lhs  String.
+   *  @param rhs  C string.
+   *  @return  True if @a lhs.compare(@a rhs) == 0.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator==(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	       const _CharT* __rhs)
+    { return __lhs.compare(__rhs) == 0; }
+
+  // operator !=
+  /**
+   *  @brief  Test difference of two strings.
+   *  @param lhs  First string.
+   *  @param rhs  Second string.
+   *  @return  True if @a lhs.compare(@a rhs) != 0.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator!=(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	       const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { return !(__lhs == __rhs); }
+
+  /**
+   *  @brief  Test difference of C string and string.
+   *  @param lhs  C string.
+   *  @param rhs  String.
+   *  @return  True if @a rhs.compare(@a lhs) != 0.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator!=(const _CharT* __lhs,
+	       const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { return !(__lhs == __rhs); }
+
+  /**
+   *  @brief  Test difference of string and C string.
+   *  @param lhs  String.
+   *  @param rhs  C string.
+   *  @return  True if @a lhs.compare(@a rhs) != 0.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator!=(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	       const _CharT* __rhs)
+    { return !(__lhs == __rhs); }
+
+  // operator <
+  /**
+   *  @brief  Test if string precedes string.
+   *  @param lhs  First string.
+   *  @param rhs  Second string.
+   *  @return  True if @a lhs precedes @a rhs.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator<(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	      const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { return __lhs.compare(__rhs) < 0; }
+
+  /**
+   *  @brief  Test if string precedes C string.
+   *  @param lhs  String.
+   *  @param rhs  C string.
+   *  @return  True if @a lhs precedes @a rhs.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator<(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	      const _CharT* __rhs)
+    { return __lhs.compare(__rhs) < 0; }
+
+  /**
+   *  @brief  Test if C string precedes string.
+   *  @param lhs  C string.
+   *  @param rhs  String.
+   *  @return  True if @a lhs precedes @a rhs.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator<(const _CharT* __lhs,
+	      const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { return __rhs.compare(__lhs) > 0; }
+
+  // operator >
+  /**
+   *  @brief  Test if string follows string.
+   *  @param lhs  First string.
+   *  @param rhs  Second string.
+   *  @return  True if @a lhs follows @a rhs.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator>(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	      const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { return __lhs.compare(__rhs) > 0; }
+
+  /**
+   *  @brief  Test if string follows C string.
+   *  @param lhs  String.
+   *  @param rhs  C string.
+   *  @return  True if @a lhs follows @a rhs.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator>(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	      const _CharT* __rhs)
+    { return __lhs.compare(__rhs) > 0; }
+
+  /**
+   *  @brief  Test if C string follows string.
+   *  @param lhs  C string.
+   *  @param rhs  String.
+   *  @return  True if @a lhs follows @a rhs.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator>(const _CharT* __lhs,
+	      const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { return __rhs.compare(__lhs) < 0; }
+
+  // operator <=
+  /**
+   *  @brief  Test if string doesn't follow string.
+   *  @param lhs  First string.
+   *  @param rhs  Second string.
+   *  @return  True if @a lhs doesn't follow @a rhs.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator<=(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	       const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { return __lhs.compare(__rhs) <= 0; }
+
+  /**
+   *  @brief  Test if string doesn't follow C string.
+   *  @param lhs  String.
+   *  @param rhs  C string.
+   *  @return  True if @a lhs doesn't follow @a rhs.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator<=(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	       const _CharT* __rhs)
+    { return __lhs.compare(__rhs) <= 0; }
+
+  /**
+   *  @brief  Test if C string doesn't follow string.
+   *  @param lhs  C string.
+   *  @param rhs  String.
+   *  @return  True if @a lhs doesn't follow @a rhs.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator<=(const _CharT* __lhs,
+	       const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { return __rhs.compare(__lhs) >= 0; }
+
+  // operator >=
+  /**
+   *  @brief  Test if string doesn't precede string.
+   *  @param lhs  First string.
+   *  @param rhs  Second string.
+   *  @return  True if @a lhs doesn't precede @a rhs.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator>=(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	       const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { return __lhs.compare(__rhs) >= 0; }
+
+  /**
+   *  @brief  Test if string doesn't precede C string.
+   *  @param lhs  String.
+   *  @param rhs  C string.
+   *  @return  True if @a lhs doesn't precede @a rhs.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator>=(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	       const _CharT* __rhs)
+    { return __lhs.compare(__rhs) >= 0; }
+
+  /**
+   *  @brief  Test if C string doesn't precede string.
+   *  @param lhs  C string.
+   *  @param rhs  String.
+   *  @return  True if @a lhs doesn't precede @a rhs.  False otherwise.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline bool
+    operator>=(const _CharT* __lhs,
+	     const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { return __rhs.compare(__lhs) <= 0; }
+
+  /**
+   *  @brief  Swap contents of two strings.
+   *  @param lhs  First string.
+   *  @param rhs  Second string.
+   *
+   *  Exchanges the contents of @a lhs and @a rhs in constant time.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline void
+    swap(basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	 basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { __lhs.swap(__rhs); }
+
+  /**
+   *  @brief  Read stream into a string.
+   *  @param is  Input stream.
+   *  @param str  Buffer to store into.
+   *  @return  Reference to the input stream.
+   *
+   *  Stores characters from @a is into @a str until whitespace is found, the
+   *  end of the stream is encountered, or str.max_size() is reached.  If
+   *  is.width() is non-zero, that is the limit on the number of characters
+   *  stored into @a str.  Any previous contents of @a str are erased.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_istream<_CharT, _Traits>&
+    operator>>(basic_istream<_CharT, _Traits>& __is,
+	       basic_string<_CharT, _Traits, _Alloc>& __str);
+
+  template<>
+    basic_istream<char>&
+    operator>>(basic_istream<char>& __is, basic_string<char>& __str);
+
+  /**
+   *  @brief  Write string to a stream.
+   *  @param os  Output stream.
+   *  @param str  String to write out.
+   *  @return  Reference to the output stream.
+   *
+   *  Output characters of @a str into os following the same rules as for
+   *  writing a C string.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline basic_ostream<_CharT, _Traits>&
+    operator<<(basic_ostream<_CharT, _Traits>& __os,
+	       const basic_string<_CharT, _Traits, _Alloc>& __str)
+    {
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 586. string inserter not a formatted function
+      return __ostream_insert(__os, __str.data(), __str.size());
+    }
+
+  /**
+   *  @brief  Read a line from stream into a string.
+   *  @param is  Input stream.
+   *  @param str  Buffer to store into.
+   *  @param delim  Character marking end of line.
+   *  @return  Reference to the input stream.
+   *
+   *  Stores characters from @a is into @a str until @a delim is found, the
+   *  end of the stream is encountered, or str.max_size() is reached.  If
+   *  is.width() is non-zero, that is the limit on the number of characters
+   *  stored into @a str.  Any previous contents of @a str are erased.  If @a
+   *  delim was encountered, it is extracted but not stored into @a str.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_istream<_CharT, _Traits>&
+    getline(basic_istream<_CharT, _Traits>& __is,
+	    basic_string<_CharT, _Traits, _Alloc>& __str, _CharT __delim);
+
+  /**
+   *  @brief  Read a line from stream into a string.
+   *  @param is  Input stream.
+   *  @param str  Buffer to store into.
+   *  @return  Reference to the input stream.
+   *
+   *  Stores characters from is into @a str until '\n' is found, the end of
+   *  the stream is encountered, or str.max_size() is reached.  If is.width()
+   *  is non-zero, that is the limit on the number of characters stored into
+   *  @a str.  Any previous contents of @a str are erased.  If end of line was
+   *  encountered, it is extracted but not stored into @a str.
+   */
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline basic_istream<_CharT, _Traits>&
+    getline(basic_istream<_CharT, _Traits>& __is,
+	    basic_string<_CharT, _Traits, _Alloc>& __str)
+    { return getline(__is, __str, __is.widen('\n')); }
+
+  template<>
+    basic_istream<char>&
+    getline(basic_istream<char>& __in, basic_string<char>& __str,
+	    char __delim);
+
+#ifdef _GLIBCXX_USE_WCHAR_T
+  template<>
+    basic_istream<wchar_t>&
+    getline(basic_istream<wchar_t>& __in, basic_string<wchar_t>& __str,
+	    wchar_t __delim);
+#endif  
+
+_GLIBCXX_END_NAMESPACE
+
+#endif /* _BASIC_STRING_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   // Vector implementation (out of line) -*- C++ -*-
+
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/*
+ *
+ * Copyright (c) 1994
+ * Hewlett-Packard Company
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Hewlett-Packard Company makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ *
+ *
+ * Copyright (c) 1996
+ * Silicon Graphics Computer Systems, Inc.
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Silicon Graphics makes no
+ * representations about the suitability of this  software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ */
+
+/** @file vector.tcc
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+#ifndef _VECTOR_TCC
+#define _VECTOR_TCC 1
+
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
+
+  template<typename _Tp, typename _Alloc>
+    void
+    vector<_Tp, _Alloc>::
+    reserve(size_type __n)
+    {
+      if (__n > this->max_size())
+	__throw_length_error(__N("vector::reserve"));
+      if (this->capacity() < __n)
+	{
+	  const size_type __old_size = size();
+	  pointer __tmp = _M_allocate_and_copy(__n,
+		 _GLIBCXX_MAKE_MOVE_ITERATOR(this->_M_impl._M_start),
+		 _GLIBCXX_MAKE_MOVE_ITERATOR(this->_M_impl._M_finish));
+	  std::_Destroy(this->_M_impl._M_start, this->_M_impl._M_finish,
+			_M_get_Tp_allocator());
+	  _M_deallocate(this->_M_impl._M_start,
+			this->_M_impl._M_end_of_storage
+			- this->_M_impl._M_start);
+	  this->_M_impl._M_start = __tmp;
+	  this->_M_impl._M_finish = __tmp + __old_size;
+	  this->_M_impl._M_end_of_storage = this->_M_impl._M_start + __n;
+	}
+    }
+
+  template<typename _Tp, typename _Alloc>
+    typename vector<_Tp, _Alloc>::iterator
+    vector<_Tp, _Alloc>::
+    insert(iterator __position, const value_type& __x)
+    {
+      const size_type __n = __position - begin();
+      if (this->_M_impl._M_finish != this->_M_impl._M_end_of_storage
+	  && __position == end())
+	{
+	  this->_M_impl.construct(this->_M_impl._M_finish, __x);
+	  ++this->_M_impl._M_finish;
+	}
+      else
+	{
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+	  if (this->_M_impl._M_finish != this->_M_impl._M_end_of_storage)
+	    {
+	      _Tp __x_copy = __x;
+	      _M_insert_aux(__position, std::move(__x_copy));
+	    }
+	  else
+#endif
+	    _M_insert_aux(__position, __x);
+	}
+      return iterator(this->_M_impl._M_start + __n);
+    }
+
+  template<typename _Tp, typename _Alloc>
+    typename vector<_Tp, _Alloc>::iterator
+    vector<_Tp, _Alloc>::
+    erase(iterator __position)
+    {
+      if (__position + 1 != end())
+	_GLIBCXX_MOVE3(__position + 1, end(), __position);
+      --this->_M_impl._M_finish;
+      this->_M_impl.destroy(this->_M_impl._M_finish);
+      return __position;
+    }
+
+  template<typename _Tp, typename _Alloc>
+    typename vector<_Tp, _Alloc>::iterator
+    vector<_Tp, _Alloc>::
+    erase(iterator __first, iterator __last)
+    {
+      if (__last != end())
+	_GLIBCXX_MOVE3(__last, end(), __first);
+      _M_erase_at_end(__first.base() + (end() - __last));
+      return __first;
+    }
+
+  template<typename _Tp, typename _Alloc>
+    vector<_Tp, _Alloc>&
+    vector<_Tp, _Alloc>::
+    operator=(const vector<_Tp, _Alloc>& __x)
+    {
+      if (&__x != this)
+	{
+	  const size_type __xlen = __x.size();
+	  if (__xlen > capacity())
+	    {
+	      pointer __tmp = _M_allocate_and_copy(__xlen, __x.begin(),
+						   __x.end());
+	      std::_Destroy(this->_M_impl._M_start, this->_M_impl._M_finish,
+			    _M_get_Tp_allocator());
+	      _M_deallocate(this->_M_impl._M_start,
+			    this->_M_impl._M_end_of_storage
+			    - this->_M_impl._M_start);
+	      this->_M_impl._M_start = __tmp;
+	      this->_M_impl._M_end_of_storage = this->_M_impl._M_start + __xlen;
+	    }
+	  else if (size() >= __xlen)
+	    {
+	      std::_Destroy(std::copy(__x.begin(), __x.end(), begin()),
+			    end(), _M_get_Tp_allocator());
+	    }
+	  else
+	    {
+	      std::copy(__x._M_impl._M_start, __x._M_impl._M_start + size(),
+			this->_M_impl._M_start);
+	      std::__uninitialized_copy_a(__x._M_impl._M_start + size(),
+					  __x._M_impl._M_finish,
+					  this->_M_impl._M_finish,
+					  _M_get_Tp_allocator());
+	    }
+	  this->_M_impl._M_finish = this->_M_impl._M_start + __xlen;
+	}
+      return *this;
+    }
+
+  template<typename _Tp, typename _Alloc>
+    void
+    vector<_Tp, _Alloc>::
+    _M_fill_assign(size_t __n, const value_type& __val)
+    {
+      if (__n > capacity())
+	{
+	  vector __tmp(__n, __val, _M_get_Tp_allocator());
+	  __tmp.swap(*this);
+	}
+      else if (__n > size())
+	{
+	  std::fill(begin(), end(), __val);
+	  std::__uninitialized_fill_n_a(this->_M_impl._M_finish,
+					__n - size(), __val,
+					_M_get_Tp_allocator());
+	  this->_M_impl._M_finish += __n - size();
+	}
+      else
+        _M_erase_at_end(std::fill_n(this->_M_impl._M_start, __n, __val));
+    }
+
+  template<typename _Tp, typename _Alloc>
+    template<typename _InputIterator>
+      void
+      vector<_Tp, _Alloc>::
+      _M_assign_aux(_InputIterator __first, _InputIterator __last,
+		    std::input_iterator_tag)
+      {
+	pointer __cur(this->_M_impl._M_start);
+	for (; __first != __last && __cur != this->_M_impl._M_finish;
+	     ++__cur, ++__first)
+	  *__cur = *__first;
+	if (__first == __last)
+	  _M_erase_at_end(__cur);
+	else
+	  insert(end(), __first, __last);
+      }
+
+  template<typename _Tp, typename _Alloc>
+    template<typename _ForwardIterator>
+      void
+      vector<_Tp, _Alloc>::
+      _M_assign_aux(_ForwardIterator __first, _ForwardIterator __last,
+		    std::forward_iterator_tag)
+      {
+	const size_type __len = std::distance(__first, __last);
+
+	if (__len > capacity())
+	  {
+	    pointer __tmp(_M_allocate_and_copy(__len, __first, __last));
+	    std::_Destroy(this->_M_impl._M_start, this->_M_impl._M_finish,
+			  _M_get_Tp_allocator());
+	    _M_deallocate(this->_M_impl._M_start,
+			  this->_M_impl._M_end_of_storage
+			  - this->_M_impl._M_start);
+	    this->_M_impl._M_start = __tmp;
+	    this->_M_impl._M_finish = this->_M_impl._M_start + __len;
+	    this->_M_impl._M_end_of_storage = this->_M_impl._M_finish;
+	  }
+	else if (size() >= __len)
+	  _M_erase_at_end(std::copy(__first, __last, this->_M_impl._M_start));
+	else
+	  {
+	    _ForwardIterator __mid = __first;
+	    std::advance(__mid, size());
+	    std::copy(__first, __mid, this->_M_impl._M_start);
+	    this->_M_impl._M_finish =
+	      std::__uninitialized_copy_a(__mid, __last,
+					  this->_M_impl._M_finish,
+					  _M_get_Tp_allocator());
+	  }
+      }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Tp, typename _Alloc>
+    template<typename... _Args>
+      typename vector<_Tp, _Alloc>::iterator
+      vector<_Tp, _Alloc>::
+      emplace(iterator __position, _Args&&... __args)
+      {
+	const size_type __n = __position - begin();
+	if (this->_M_impl._M_finish != this->_M_impl._M_end_of_storage
+	    && __position == end())
+	  {
+	    this->_M_impl.construct(this->_M_impl._M_finish,
+				    std::forward<_Args>(__args)...);
+	    ++this->_M_impl._M_finish;
+	  }
+	else
+	  _M_insert_aux(__position, std::forward<_Args>(__args)...);
+	return iterator(this->_M_impl._M_start + __n);
+      }
+
+  template<typename _Tp, typename _Alloc>
+    template<typename... _Args>
+      void
+      vector<_Tp, _Alloc>::
+      _M_insert_aux(iterator __position, _Args&&... __args)
+#else
+  template<typename _Tp, typename _Alloc>
+    void
+    vector<_Tp, _Alloc>::
+    _M_insert_aux(iterator __position, const _Tp& __x)
+#endif
+    {
+      if (this->_M_impl._M_finish != this->_M_impl._M_end_of_storage)
+	{
+	  this->_M_impl.construct(this->_M_impl._M_finish,
+				  _GLIBCXX_MOVE(*(this->_M_impl._M_finish
+						  - 1)));
+	  ++this->_M_impl._M_finish;
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+	  _Tp __x_copy = __x;
+#endif
+	  _GLIBCXX_MOVE_BACKWARD3(__position.base(),
+				  this->_M_impl._M_finish - 2,
+				  this->_M_impl._M_finish - 1);
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+	  *__position = __x_copy;
+#else
+	  *__position = _Tp(std::forward<_Args>(__args)...);
+#endif
+	}
+      else
+	{
+	  const size_type __len =
+	    _M_check_len(size_type(1), "vector::_M_insert_aux");
+	  pointer __new_start(this->_M_allocate(__len));
+	  pointer __new_finish(__new_start);
+	  try
+	    {
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+	      this->_M_impl.construct(__new_start + (__position - begin()),
+				      std::forward<_Args>(__args)...);
+#endif
+	      __new_finish =
+		std::__uninitialized_move_a(this->_M_impl._M_start,
+					    __position.base(), __new_start,
+					    _M_get_Tp_allocator());
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+	      this->_M_impl.construct(__new_finish, __x);
+#endif
+	      ++__new_finish;
+	      __new_finish =
+		std::__uninitialized_move_a(__position.base(),
+					    this->_M_impl._M_finish,
+					    __new_finish,
+					    _M_get_Tp_allocator());
+	    }
+	  catch(...)
+	    {
+	      std::_Destroy(__new_start, __new_finish, _M_get_Tp_allocator());
+	      _M_deallocate(__new_start, __len);
+	      __throw_exception_again;
+	    }
+	  std::_Destroy(this->_M_impl._M_start, this->_M_impl._M_finish,
+			_M_get_Tp_allocator());
+	  _M_deallocate(this->_M_impl._M_start,
+			this->_M_impl._M_end_of_storage
+			- this->_M_impl._M_start);
+	  this->_M_impl._M_start = __new_start;
+	  this->_M_impl._M_finish = __new_finish;
+	  this->_M_impl._M_end_of_storage = __new_start + __len;
+	}
+    }
+
+  template<typename _Tp, typename _Alloc>
+    void
+    vector<_Tp, _Alloc>::
+    _M_fill_insert(iterator __position, size_type __n, const value_type& __x)
+    {
+      if (__n != 0)
+	{
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+	  value_type __x_copy = __x;
+#endif
+	  if (size_type(this->_M_impl._M_end_of_storage
+			- this->_M_impl._M_finish) >= __n)
+	    {
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+	      value_type __x_copy = __x;
+#endif
+	      const size_type __elems_after = end() - __position;
+	      pointer __old_finish(this->_M_impl._M_finish);
+	      if (__elems_after > __n)
+		{
+		  std::__uninitialized_move_a(this->_M_impl._M_finish - __n,
+					      this->_M_impl._M_finish,
+					      this->_M_impl._M_finish,
+					      _M_get_Tp_allocator());
+		  this->_M_impl._M_finish += __n;
+		  _GLIBCXX_MOVE_BACKWARD3(__position.base(),
+					  __old_finish - __n, __old_finish);
+		  std::fill(__position.base(), __position.base() + __n,
+			    __x_copy);
+		}
+	      else
+		{
+		  std::__uninitialized_fill_n_a(this->_M_impl._M_finish,
+						__n - __elems_after,
+						__x_copy,
+	ã)  ä)  å)  æ)  ç)  è)  é)  ê)  ë)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              					_M_get_Tp_allocator());
+		  this->_M_impl._M_finish += __n - __elems_after;
+		  std::__uninitialized_move_a(__position.base(), __old_finish,
+					      this->_M_impl._M_finish,
+					      _M_get_Tp_allocator());
+		  this->_M_impl._M_finish += __elems_after;
+		  std::fill(__position.base(), __old_finish, __x_copy);
+		}
+	    }
+	  else
+	    {
+	      const size_type __len =
+		_M_check_len(__n, "vector::_M_fill_insert");
+	      pointer __new_start(this->_M_allocate(__len));
+	      pointer __new_finish(__new_start);
+	      try
+		{
+		  __new_finish =
+		    std::__uninitialized_move_a(this->_M_impl._M_start,
+						__position.base(),
+						__new_start,
+						_M_get_Tp_allocator());
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+		  std::__uninitialized_fill_n_a(__new_finish, __n, __x_copy,
+#else
+		  std::__uninitialized_fill_n_a(__new_finish, __n, __x,
+#endif
+						_M_get_Tp_allocator());
+		  __new_finish += __n;
+		  __new_finish =
+		    std::__uninitialized_move_a(__position.base(),
+						this->_M_impl._M_finish,
+						__new_finish,
+						_M_get_Tp_allocator());
+		}
+	      catch(...)
+		{
+		  std::_Destroy(__new_start, __new_finish,
+				_M_get_Tp_allocator());
+		  _M_deallocate(__new_start, __len);
+		  __throw_exception_again;
+		}
+	      std::_Destroy(this->_M_impl._M_start, this->_M_impl._M_finish,
+			    _M_get_Tp_allocator());
+	      _M_deallocate(this->_M_impl._M_start,
+			    this->_M_impl._M_end_of_storage
+			    - this->_M_impl._M_start);
+	      this->_M_impl._M_start = __new_start;
+	      this->_M_impl._M_finish = __new_finish;
+	      this->_M_impl._M_end_of_storage = __new_start + __len;
+	    }
+	}
+    }
+
+  template<typename _Tp, typename _Alloc>
+    template<typename _InputIterator>
+      void
+      vector<_Tp, _Alloc>::
+      _M_range_insert(iterator __pos, _InputIterator __first,
+		      _InputIterator __last, std::input_iterator_tag)
+      {
+	for (; __first != __last; ++__first)
+	  {
+	    __pos = insert(__pos, *__first);
+	    ++__pos;
+	  }
+      }
+
+  template<typename _Tp, typename _Alloc>
+    template<typename _ForwardIterator>
+      void
+      vector<_Tp, _Alloc>::
+      _M_range_insert(iterator __position, _ForwardIterator __first,
+		      _ForwardIterator __last, std::forward_iterator_tag)
+      {
+	if (__first != __last)
+	  {
+	    const size_type __n = std::distance(__first, __last);
+	    if (size_type(this->_M_impl._M_end_of_storage
+			  - this->_M_impl._M_finish) >= __n)
+	      {
+		const size_type __elems_after = end() - __position;
+		pointer __old_finish(this->_M_impl._M_finish);
+		if (__elems_after > __n)
+		  {
+		    std::__uninitialized_move_a(this->_M_impl._M_finish - __n,
+						this->_M_impl._M_finish,
+						this->_M_impl._M_finish,
+						_M_get_Tp_allocator());
+		    this->_M_impl._M_finish += __n;
+		    _GLIBCXX_MOVE_BACKWARD3(__position.base(),
+					    __old_finish - __n, __old_finish);
+		    std::copy(__first, __last, __position);
+		  }
+		else
+		  {
+		    _ForwardIterator __mid = __first;
+		    std::advance(__mid, __elems_after);
+		    std::__uninitialized_copy_a(__mid, __last,
+						this->_M_impl._M_finish,
+						_M_get_Tp_allocator());
+		    this->_M_impl._M_finish += __n - __elems_after;
+		    std::__uninitialized_move_a(__position.base(),
+						__old_finish,
+						this->_M_impl._M_finish,
+						_M_get_Tp_allocator());
+		    this->_M_impl._M_finish += __elems_after;
+		    std::copy(__first, __mid, __position);
+		  }
+	      }
+	    else
+	      {
+		const size_type __len =
+		  _M_check_len(__n, "vector::_M_range_insert");
+		pointer __new_start(this->_M_allocate(__len));
+		pointer __new_finish(__new_start);
+		try
+		  {
+		    __new_finish =
+		      std::__uninitialized_move_a(this->_M_impl._M_start,
+						  __position.base(),
+						  __new_start,
+						  _M_get_Tp_allocator());
+		    __new_finish =
+		      std::__uninitialized_copy_a(__first, __last,
+						  __new_finish,
+						  _M_get_Tp_allocator());
+		    __new_finish =
+		      std::__uninitialized_move_a(__position.base(),
+						  this->_M_impl._M_finish,
+						  __new_finish,
+						  _M_get_Tp_allocator());
+		  }
+		catch(...)
+		  {
+		    std::_Destroy(__new_start, __new_finish,
+				  _M_get_Tp_allocator());
+		    _M_deallocate(__new_start, __len);
+		    __throw_exception_again;
+		  }
+		std::_Destroy(this->_M_impl._M_start, this->_M_impl._M_finish,
+			      _M_get_Tp_allocator());
+		_M_deallocate(this->_M_impl._M_start,
+			      this->_M_impl._M_end_of_storage
+			      - this->_M_impl._M_start);
+		this->_M_impl._M_start = __new_start;
+		this->_M_impl._M_finish = __new_finish;
+		this->_M_impl._M_end_of_storage = __new_start + __len;
+	      }
+	  }
+      }
+
+
+  // vector<bool>
+
+  template<typename _Alloc>
+    void
+    vector<bool, _Alloc>::
+    reserve(size_type __n)
+    {
+      if (__n > this->max_size())
+	__throw_length_error(__N("vector::reserve"));
+      if (this->capacity() < __n)
+	{
+	  _Bit_type* __q = this->_M_allocate(__n);
+	  this->_M_impl._M_finish = _M_copy_aligned(begin(), end(),
+						    iterator(__q, 0));
+	  this->_M_deallocate();
+	  this->_M_impl._M_start = iterator(__q, 0);
+	  this->_M_impl._M_end_of_storage = (__q + (__n + int(_S_word_bit) - 1)
+					     / int(_S_word_bit));
+	}
+    }
+
+  template<typename _Alloc>
+    void
+    vector<bool, _Alloc>::
+    _M_fill_insert(iterator __position, size_type __n, bool __x)
+    {
+      if (__n == 0)
+	return;
+      if (capacity() - size() >= __n)
+	{
+	  std::copy_backward(__position, end(),
+			     this->_M_impl._M_finish + difference_type(__n));
+	  std::fill(__position, __position + difference_type(__n), __x);
+	  this->_M_impl._M_finish += difference_type(__n);
+	}
+      else
+	{
+	  const size_type __len = 
+	    _M_check_len(__n, "vector<bool>::_M_fill_insert");
+	  _Bit_type * __q = this->_M_allocate(__len);
+	  iterator __i = _M_copy_aligned(begin(), __position,
+					 iterator(__q, 0));
+	  std::fill(__i, __i + difference_type(__n), __x);
+	  this->_M_impl._M_finish = std::copy(__position, end(),
+					      __i + difference_type(__n));
+	  this->_M_deallocate();
+	  this->_M_impl._M_end_of_storage = (__q + ((__len
+						     + int(_S_word_bit) - 1)
+						    / int(_S_word_bit)));
+	  this->_M_impl._M_start = iterator(__q, 0);
+	}
+    }
+
+  template<typename _Alloc>
+    template<typename _ForwardIterator>
+      void
+      vector<bool, _Alloc>::
+      _M_insert_range(iterator __position, _ForwardIterator __first, 
+		      _ForwardIterator __last, std::forward_iterator_tag)
+      {
+	if (__first != __last)
+	  {
+	    size_type __n = std::distance(__first, __last);
+	    if (capacity() - size() >= __n)
+	      {
+		std::copy_backward(__position, end(),
+				   this->_M_impl._M_finish
+				   + difference_type(__n));
+		std::copy(__first, __last, __position);
+		this->_M_impl._M_finish += difference_type(__n);
+	      }
+	    else
+	      {
+		const size_type __len =
+		  _M_check_len(__n, "vector<bool>::_M_insert_range");
+		_Bit_type * __q = this->_M_allocate(__len);
+		iterator __i = _M_copy_aligned(begin(), __position,
+					       iterator(__q, 0));
+		__i = std::copy(__first, __last, __i);
+		this->_M_impl._M_finish = std::copy(__position, end(), __i);
+		this->_M_deallocate();
+		this->_M_impl._M_end_of_storage = (__q
+						   + ((__len
+						       + int(_S_word_bit) - 1)
+						      / int(_S_word_bit)));
+		this->_M_impl._M_start = iterator(__q, 0);
+	      }
+	  }
+      }
+
+  template<typename _Alloc>
+    void
+    vector<bool, _Alloc>::
+    _M_insert_aux(iterator __position, bool __x)
+    {
+      if (this->_M_impl._M_finish._M_p != this->_M_impl._M_end_of_storage)
+	{
+	  std::copy_backward(__position, this->_M_impl._M_finish, 
+			     this->_M_impl._M_finish + 1);
+	  *__position = __x;
+	  ++this->_M_impl._M_finish;
+	}
+      else
+	{
+	  const size_type __len =
+	    _M_check_len(size_type(1), "vector<bool>::_M_insert_aux");
+	  _Bit_type * __q = this->_M_allocate(__len);
+	  iterator __i = _M_copy_aligned(begin(), __position,
+					 iterator(__q, 0));
+	  *__i++ = __x;
+	  this->_M_impl._M_finish = std::copy(__position, end(), __i);
+	  this->_M_deallocate();
+	  this->_M_impl._M_end_of_storage = (__q + ((__len
+						     + int(_S_word_bit) - 1)
+						    / int(_S_word_bit)));
+	  this->_M_impl._M_start = iterator(__q, 0);
+	}
+    }
+
+_GLIBCXX_END_NESTED_NAMESPACE
+
+#endif /* _VECTOR_TCC */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ¯    cpp_type_traits.h   ±    
+stl_pair.h  ²    ostream.tcc ³    indirect_array.h´    functexcept.h   µ    char_traits.h   ¶    istream.tcc ·    stringfwd.h ¸    streambuf_iterator.h¹    
+postypes.h  º    locale_facets.tcc   »    stl_vector.h¼    locale_classes.h½    locale_classes.tcc  ¾   $ stl_iterator_base_funcs.h   ¿    valarray_array.tcc  À    
+stl_algo.h  Á    gslice.hÂ    stream_iterator.h   Ã    valarray_array.hÄ    stl_construct.h Å    fstream.tcc Æ    stl_algobase.h  Ç    concept_check.h È    
+ios_base.h  É   $ stl_iterator_base_types.h   Ê    stl_iterator.h  Ë    streambuf.tcc   Ì   \stl_stack.h                                                                                                                                                                                                                                                                                                                                         // The  -*- C++ -*- type traits classes for internal use in libstdc++
+
+// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file cpp_type_traits.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+// Written by Gabriel Dos Reis <dosreis@cmla.ens-cachan.fr>
+
+#ifndef _CPP_TYPE_TRAITS_H
+#define _CPP_TYPE_TRAITS_H 1
+
+#pragma GCC system_header
+
+#include <bits/c++config.h>
+
+//
+// This file provides some compile-time information about various types.
+// These representations were designed, on purpose, to be constant-expressions
+// and not types as found in <bits/type_traits.h>.  In particular, they
+// can be used in control structures and the optimizer hopefully will do
+// the obvious thing.
+//
+// Why integral expressions, and not functions nor types?
+// Firstly, these compile-time entities are used as template-arguments
+// so function return values won't work:  We need compile-time entities.
+// We're left with types and constant  integral expressions.
+// Secondly, from the point of view of ease of use, type-based compile-time
+// information is -not- *that* convenient.  On has to write lots of
+// overloaded functions and to hope that the compiler will select the right
+// one. As a net effect, the overall structure isn't very clear at first
+// glance.
+// Thirdly, partial ordering and overload resolution (of function templates)
+// is highly costly in terms of compiler-resource.  It is a Good Thing to
+// keep these resource consumption as least as possible.
+//
+// See valarray_array.h for a case use.
+//
+// -- Gaby (dosreis@cmla.ens-cachan.fr) 2000-03-06.
+//
+// Update 2005: types are also provided and <bits/type_traits.h> has been
+// removed.
+//
+
+// Forward declaration hack, should really include this from somewhere.
+_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+
+  template<typename _Iterator, typename _Container>
+    class __normal_iterator;
+
+_GLIBCXX_END_NAMESPACE
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  struct __true_type { };
+  struct __false_type { };
+
+  template<bool>
+    struct __truth_type
+    { typedef __false_type __type; };
+
+  template<>
+    struct __truth_type<true>
+    { typedef __true_type __type; };
+
+  // N.B. The conversions to bool are needed due to the issue
+  // explained in c++/19404.
+  template<class _Sp, class _Tp>
+    struct __traitor
+    {
+      enum { __value = bool(_Sp::__value) || bool(_Tp::__value) };
+      typedef typename __truth_type<__value>::__type __type;
+    };
+
+  // N.B. The conversions to bool are needed due to the issue
+  // explained in c++/19404.
+  template<class _Sp, class _Tp>
+    struct __traitand
+    {
+      enum { __value = bool(_Sp::__value) && bool(_Tp::__value) };
+      typedef typename __truth_type<__value>::__type __type;
+    };
+
+  // Compare for equality of types.
+  template<typename, typename>
+    struct __are_same
+    {
+      enum { __value = 0 };
+      typedef __false_type __type;
+    };
+
+  template<typename _Tp>
+    struct __are_same<_Tp, _Tp>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  // Holds if the template-argument is a void type.
+  template<typename _Tp>
+    struct __is_void
+    {
+      enum { __value = 0 };
+      typedef __false_type __type;
+    };
+
+  template<>
+    struct __is_void<void>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  //
+  // Integer types
+  //
+  template<typename _Tp>
+    struct __is_integer
+    {
+      enum { __value = 0 };
+      typedef __false_type __type;
+    };
+
+  // Thirteen specializations (yes there are eleven standard integer
+  // types; 'long long' and 'unsigned long long' are supported as
+  // extensions)
+  template<>
+    struct __is_integer<bool>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_integer<char>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_integer<signed char>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_integer<unsigned char>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+# ifdef _GLIBCXX_USE_WCHAR_T
+  template<>
+    struct __is_integer<wchar_t>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+# endif
+
+  template<>
+    struct __is_integer<short>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_integer<unsigned short>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_integer<int>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_integer<unsigned int>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_integer<long>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_integer<unsigned long>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_integer<long long>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_integer<unsigned long long>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  //
+  // Floating point types
+  //
+  template<typename _Tp>
+    struct __is_floating
+    {
+      enum { __value = 0 };
+      typedef __false_type __type;
+    };
+
+  // three specializations (float, double and 'long double')
+  template<>
+    struct __is_floating<float>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_floating<double>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_floating<long double>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  //
+  // Pointer types
+  //
+  template<typename _Tp>
+    struct __is_pointer
+    {
+      enum { __value = 0 };
+      typedef __false_type __type;
+    };
+
+  template<typename _Tp>
+    struct __is_pointer<_Tp*>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  //
+  // Normal iterator type
+  //
+  template<typename _Tp>
+    struct __is_normal_iterator
+    {
+      enum { __value = 0 };
+      typedef __false_type __type;
+    };
+
+  template<typename _Iterator, typename _Container>
+    struct __is_normal_iterator< __gnu_cxx::__normal_iterator<_Iterator,
+							      _Container> >
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  //
+  // An arithmetic type is an integer type or a floating point type
+  //
+  template<typename _Tp>
+    struct __is_arithmetic
+    : public __traitor<__is_integer<_Tp>, __is_floating<_Tp> >
+    { };
+
+  //
+  // A fundamental type is `void' or and arithmetic type
+  //
+  template<typename _Tp>
+    struct __is_fundamental
+    : public __traitor<__is_void<_Tp>, __is_arithmetic<_Tp> >
+    { };
+
+  //
+  // A scalar type is an arithmetic type or a pointer type
+  // 
+  template<typename _Tp>
+    struct __is_scalar
+    : public __traitor<__is_arithmetic<_Tp>, __is_pointer<_Tp> >
+    { };
+
+  //
+  // For use in std::copy and std::find overloads for streambuf iterators.
+  //
+  template<typename _Tp>
+    struct __is_char
+    {
+      enum { __value = 0 };
+      typedef __false_type __type;
+    };
+
+  template<>
+    struct __is_char<char>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+#ifdef _GLIBCXX_USE_WCHAR_T
+  template<>
+    struct __is_char<wchar_t>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+#endif
+
+  template<typename _Tp>
+    struct __is_byte
+    {
+      enum { __value = 0 };
+      typedef __false_type __type;
+    };
+
+  template<>
+    struct __is_byte<char>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_byte<signed char>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  template<>
+    struct __is_byte<unsigned char>
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+
+  //
+  // Move iterator type
+  //
+  template<typename _Tp>
+    struct __is_move_iterator
+    {
+      enum { __value = 0 };
+      typedef __false_type __type;
+    };
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Iterator>
+    class move_iterator;
+
+  template<typename _Iterator>
+    struct __is_move_iterator< move_iterator<_Iterator> >
+    {
+      enum { __value = 1 };
+      typedef __true_type __type;
+    };
+#endif
+
+_GLIBCXX_END_NAMESPACE
+
+#endif //_CPP_TYPE_TRAITS_H
+                                                                                                                                                                                                                                       // The template and inlines for the -*- C++ -*- gslice_array class.
+
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2004, 2005
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file gslice_array.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+// Written by Gabriel Dos Reis <Gabriel.Dos-Reis@DPTMaths.ENS-Cachan.Fr>
+
+#ifndef _GSLICE_ARRAY_H
+#define _GSLICE_ARRAY_H 1
+
+#pragma GCC system_header
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  /**
+   *  @brief  Reference to multi-dimensional subset of an array.
+   *
+   *  A gslice_array is a reference to the actual elements of an array
+   *  specified by a gslice.  The way to get a gslice_array is to call
+   *  operator[](gslice) on a valarray.  The returned gslice_array then
+   *  permits carrying operations out on the referenced subset of elements in
+   *  the original valarray.  For example, operator+=(valarray) will add
+   *  values to the subset of elements in the underlying valarray this
+   *  gslice_array refers to.
+   *
+   *  @param  Tp  Element type.
+   */
+  template<typename _Tp>
+    class gslice_array
+    {
+    public:
+      typedef _Tp value_type;
+
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 253. valarray helper functions are almost entirely useless
+
+      ///  Copy constructor.  Both slices refer to the same underlying array.
+      gslice_array(const gslice_array&);
+
+      ///  Assignment operator.  Assigns slice elements to corresponding
+      ///  elements of @a a.
+      gslice_array& operator=(const gslice_array&);
+
+      ///  Assign slice elements to corresponding elements of @a v.
+      void operator=(const valarray<_Tp>&) const;
+      ///  Multiply slice elements by corresponding elements of @a v.
+      void operator*=(const valarray<_Tp>&) const;
+      ///  Divide slice elements by corresponding elements of @a v.
+      void operator/=(const valarray<_Tp>&) const;
+      ///  Modulo slice elements by corresponding elements of @a v.
+      void operator%=(const valarray<_Tp>&) const;
+      ///  Add corresponding elements of @a v to slice elements.
+      void operator+=(const valarray<_Tp>&) const;
+      ///  Subtract corresponding elements of @a v from slice elements.
+      void operator-=(const valarray<_Tp>&) const;
+      ///  Logical xor slice elements with corresponding elements of @a v.
+      void operator^=(const valarray<_Tp>&) const;
+      ///  Logical and slice elements with corresponding elements of @a v.
+      void operator&=(const valarray<_Tp>&) const;
+      ///  Logical or slice elements with corresponding elements of @a v.
+      void operator|=(const valarray<_Tp>&) const;
+      ///  Left shift slice elements by corresponding elements of @a v.
+      void operator<<=(const valarray<_Tp>&) const;
+      ///  Right shift slice elements by corresponding elements of @a v.
+      void operator>>=(const valarray<_Tp>&) const;
+      ///  Assign all slice elements to @a t.
+      void operator=(const _Tp&) const;
+
+      template<class _Dom>
+        void operator=(const _Expr<_Dom, _Tp>&) const;
+      template<class _Dom>
+        void operator*=(const _Expr<_Dom, _Tp>&) const;
+      template<class _Dom>
+        void operator/=(const _Expr<_Dom, _Tp>&) const;
+      template<class _Dom>
+        void operator%=(const _Expr<_Dom, _Tp>&) const;
+      template<class _Dom>
+        void operator+=(const _Expr<_Dom, _Tp>&) const;
+      template<class _Dom>
+        void operator-=(const _Expr<_Dom, _Tp>&) const;
+      template<class _Dom>
+        void operator^=(const _Expr<_Dom, _Tp>&) const;
+      template<class _Dom>
+        void operator&=(const _Expr<_Dom, _Tp>&) const;
+      template<class _Dom>
+        void operator|=(const _Expr<_Dom, _Tp>&) const;
+      template<class _Dom>
+        void operator<<=(const _Expr<_Dom, _Tp>&) const;
+      template<class _Dom>
+        void operator>>=(const _Expr<_Dom, _Tp>&) const;
+
+    private:
+      _Array<_Tp>    _M_array;
+      const valarray<size_t>& _M_index;
+
+      friend class valarray<_Tp>;
+
+      gslice_array(_Array<_Tp>, const valarray<size_t>&);
+
+      // not implemented
+      gslice_array();
+    };
+
+  template<typename _Tp>
+    inline
+    gslice_array<_Tp>::gslice_array(_Array<_Tp> __a,
+				    const valarray<size_t>& __i)
+    : _M_array(__a), _M_index(__i) {}
+
+  template<typename _Tp>
+    inline
+    gslice_array<_Tp>::gslice_array(const gslice_array<_Tp>& __a)
+    : _M_array(__a._M_array), _M_index(__a._M_index) {}
+
+  template<typename _Tp>
+    inline gslice_array<_Tp>&
+    gslice_array<_Tp>::operator=(const gslice_array<_Tp>& __a)
+    {
+      std::__valarray_copy(_Array<_Tp>(__a._M_array),
+			   _Array<size_t>(__a._M_index), _M_index.size(),
+			   _M_array, _Array<size_t>(_M_index));
+      return *this;
+    }
+
+  template<typename _Tp>
+    inline void
+    gslice_array<_Tp>::operator=(const _Tp& __t) const
+    {
+      std::__valarray_fill(_M_array, _Array<size_t>(_M_index),
+			   _M_index.size(), __t);
+    }
+
+  template<typename _Tp>
+    inline void
+    gslice_array<_Tp>::operator=(const valarray<_Tp>& __v) const
+    {
+      std::__valarray_copy(_Array<_Tp>(__v), __v.size(),
+			   _M_array, _Array<size_t>(_M_index));
+    }
+
+  template<typename _Tp>
+    template<class _Dom>
+      inline void
+      gslice_array<_Tp>::operator=(const _Expr<_Dom, _Tp>& __e) const
+      {
+	std::__valarray_copy (__e, _M_index.size(), _M_array,
+			      _Array<size_t>(_M_index));
+      }
+
+#undef _DEFINE_VALARRAY_OPERATOR
+#define _DEFINE_VALARRAY_OPERATOR(_Op, _Name)				\
+  template<typename _Tp>						\
+    inline void								\
+    gslice_array<_Tp>::operator _Op##=(const valarray<_Tp>& __v) const	\
+    {									\
+      _Array_augmented_##_Name(_M_array, _Array<size_t>(_M_index),	\
+			       _Array<_Tp>(__v), __v.size());		\
+    }									\
+									\
+  template<typename _Tp>                                                \
+    template<class _Dom>				                \
+      inline void							\
+      gslice_array<_Tp>::operator _Op##= (const _Expr<_Dom, _Tp>& __e) const\
+      {									\
+	_Array_augmented_##_Name(_M_array, _Array<size_t>(_M_index), __e,\
+				 _M_index.size());			\
+      }
+
+_DEFINE_VALARRAY_OPERATOR(*, __multiplies)
+_DEFINE_VALARRAY_OPERATOR(/, __divides)
+_DEFINE_VALARRAY_OPERATOR(%, __modulus)
+_DEFINE_VALARRAY_OPERATOR(+, __plus)
+_DEFINE_VALARRAY_OPERATOR(-, __minus)
+_DEFINE_VALARRAY_OPERATOR(^, __bitwise_xor)
+_DEFINE_VALARRAY_OPERATOR(&, __bitwise_and)
+_DEFINE_VALARRAY_OPERATOR(|, __bitwise_or)
+_DEFINE_VALARRAY_OPERATOR(<<, __shift_left)
+_DEFINE_VALARRAY_OPERATOR(>>, __shift_right)
+
+#undef _DEFINE_VALARRAY_OPERATOR
+
+_GLIBCXX_END_NAMESPACE
+
+#endif /* _GSLICE_ARRAY_H */
+                                                                                                                                                                                                                       // Pair implementation -*- C++ -*-
+
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, 

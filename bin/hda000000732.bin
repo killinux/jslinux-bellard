@@ -1,0 +1,1670 @@
+should use the other symbols
+   to test for features.
+
+   All macros listed above as possibly being defined by this file are
+   explicitly undefined if they are not explicitly defined.
+   Feature-test macros that are not defined by the user or compiler
+   but are implied by the other feature-test macros defined (or by the
+   lack of any definitions) are defined by the file.  */
+
+
+/* Undefine everything, so we get a clean slate.  */
+#undef	__USE_ISOC99
+#undef	__USE_ISOC95
+#undef	__USE_POSIX
+#undef	__USE_POSIX2
+#undef	__USE_POSIX199309
+#undef	__USE_POSIX199506
+#undef	__USE_XOPEN
+#undef	__USE_XOPEN_EXTENDED
+#undef	__USE_UNIX98
+#undef	__USE_XOPEN2K
+#undef	__USE_XOPEN2K8
+#undef	__USE_LARGEFILE
+#undef	__USE_LARGEFILE64
+#undef	__USE_FILE_OFFSET64
+#undef	__USE_BSD
+#undef	__USE_SVID
+#undef	__USE_MISC
+#undef	__USE_ATFILE
+#undef	__USE_GNU
+#undef	__USE_REENTRANT
+#undef	__USE_FORTIFY_LEVEL
+#undef	__FAVOR_BSD
+#undef	__KERNEL_STRICT_NAMES
+
+/* Suppress kernel-name space pollution unless user expressedly asks
+   for it.  */
+#ifndef _LOOSE_KERNEL_NAMES
+# define __KERNEL_STRICT_NAMES
+#endif
+
+/* Always use ISO C things.  */
+#define	__USE_ANSI	1
+
+/* Convenience macros to test the versions of glibc and gcc.
+   Use them like this:
+   #if __GNUC_PREREQ (2,8)
+   ... code requiring gcc 2.8 or later ...
+   #endif
+   Note - they won't work for gcc1 or glibc1, since the _MINOR macros
+   were not defined then.  */
+#if defined __GNUC__ && defined __GNUC_MINOR__
+# define __GNUC_PREREQ(maj, min) \
+	((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#else
+# define __GNUC_PREREQ(maj, min) 0
+#endif
+
+
+/* If _BSD_SOURCE was defined by the user, favor BSD over POSIX.  */
+#if defined _BSD_SOURCE && \
+    !(defined _POSIX_SOURCE || defined _POSIX_C_SOURCE || \
+      defined _XOPEN_SOURCE || defined _XOPEN_SOURCE_EXTENDED || \
+      defined _GNU_SOURCE || defined _SVID_SOURCE)
+# define __FAVOR_BSD	1
+#endif
+
+/* If _GNU_SOURCE was defined by the user, turn on all the other features.  */
+#ifdef _GNU_SOURCE
+# undef  _ISOC99_SOURCE
+# define _ISOC99_SOURCE	1
+# undef  _POSIX_SOURCE
+# define _POSIX_SOURCE	1
+# undef  _POSIX_C_SOURCE
+# define _POSIX_C_SOURCE	200809L
+# undef  _XOPEN_SOURCE
+# define _XOPEN_SOURCE	700
+# undef  _XOPEN_SOURCE_EXTENDED
+# define _XOPEN_SOURCE_EXTENDED	1
+# undef	 _LARGEFILE64_SOURCE
+# define _LARGEFILE64_SOURCE	1
+# undef  _BSD_SOURCE
+# define _BSD_SOURCE	1
+# undef  _SVID_SOURCE
+# define _SVID_SOURCE	1
+# undef  _ATFILE_SOURCE
+# define _ATFILE_SOURCE	1
+#endif
+
+/* This macro indicates that the installed library is uClibc.  Use
+ * __UCLIBC_MAJOR__ and __UCLIBC_MINOR__ to test for the features in
+ * specific releases.  */
+#define	__UCLIBC__		1
+
+#ifdef __UCLIBC__
+/* Load up the current set of uClibc supported features along
+ * with the current uClibc major and minor version numbers.
+ * For uClibc release 0.9.26, these numbers would be:
+ *	#define	__UCLIBC_MAJOR__	0
+ *	#define	__UCLIBC_MINOR__	9
+ *	#define	__UCLIBC_SUBLEVEL__	26
+ */
+# define __need_uClibc_config_h
+# include <bits/uClibc_config.h>
+# undef __need_uClibc_config_h
+
+/* For uClibc, always optimize for size -- this should disable
+ * a lot of expensive inlining...
+ * TODO: this is wrong! __OPTIMIZE_SIZE__ is an indicator of
+ * gcc -Os compile. We should not mess with compiler inlines.
+ * We should instead disable __USE_EXTERN_INLINES unconditionally,
+ * or maybe actually audit and test uclibc to work correctly
+ * with __USE_EXTERN_INLINES on.
+ */
+# define __OPTIMIZE_SIZE__   1
+
+/* disable unsupported features */
+# undef _FORTIFY_SOURCE
+# undef __LDBL_COMPAT
+
+# ifndef __UCLIBC_HAS_THREADS__
+#  if defined _REENTRANT || defined _THREAD_SAFE
+#   warning requested reentrant code, but thread support was disabled
+#   undef _REENTRANT
+#   undef _THREAD_SAFE
+#  endif
+# endif
+
+# ifndef __UCLIBC_HAS_LFS__
+#  undef _LARGEFILE64_SOURCE
+/* NOTE: This is probably incorrect on a 64-bit arch... */
+#  if defined _FILE_OFFSET_BITS && _FILE_OFFSET_BITS == 64
+#   error It appears you have defined _FILE_OFFSET_BITS=64.  Unfortunately, \
+uClibc was built without large file support enabled.
+#  endif
+# elif defined __BCC__
+#  error BCC does not support LFS, please disable it
+# endif
+#endif /* __UCLIBC__ */
+
+/* If nothing (other than _GNU_SOURCE) is defined,
+   define _BSD_SOURCE and _SVID_SOURCE.  */
+#if (!defined __STRICT_ANSI__ && !defined _ISOC99_SOURCE && \
+     !defined _POSIX_SOURCE && !defined _POSIX_C_SOURCE && \
+     !defined _XOPEN_SOURCE && !defined _XOPEN_SOURCE_EXTENDED && \
+     !defined _BSD_SOURCE && !defined _SVID_SOURCE)
+# define _BSD_SOURCE	1
+# define _SVID_SOURCE	1
+#endif
+
+/* This is to enable the ISO C99 extension.  Also recognize the old macro
+   which was used prior to the standard acceptance.  This macro will
+   eventually go away and the features enabled by default once the ISO C99
+   standard is widely adopted.  */
+#if (defined _ISOC99_SOURCE || defined _ISOC9X_SOURCE \
+     || (defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L))
+# define __USE_ISOC99	1
+#endif
+
+/* This is to enable the ISO C90 Amendment 1:1995 extension.  */
+#if (defined _ISOC99_SOURCE || defined _ISOC9X_SOURCE \
+     || (defined __STDC_VERSION__ && __STDC_VERSION__ >= 199409L))
+# define __USE_ISOC95	1
+#endif
+
+/* If none of the ANSI/POSIX macros are defined, use POSIX.1 and POSIX.2
+   (and IEEE Std 1003.1b-1993 unless _XOPEN_SOURCE is defined).  */
+#if ((!defined __STRICT_ANSI__ || (_XOPEN_SOURCE - 0) >= 500) && \
+     !defined _POSIX_SOURCE && !defined _POSIX_C_SOURCE)
+# define _POSIX_SOURCE	1
+# if defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) < 500
+#  define _POSIX_C_SOURCE	2
+# elif defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) < 600
+#  define _POSIX_C_SOURCE	199506L
+# elif defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) < 700
+#  define _POSIX_C_SOURCE	200112L
+# else
+#  define _POSIX_C_SOURCE	200809L
+# endif
+# define __USE_POSIX_IMPLICITLY	1
+#endif
+
+#if defined _POSIX_SOURCE || _POSIX_C_SOURCE >= 1 || defined _XOPEN_SOURCE
+# define __USE_POSIX	1
+#endif
+
+#if defined _POSIX_C_SOURCE && _POSIX_C_SOURCE >= 2 || defined _XOPEN_SOURCE
+# define __USE_POSIX2	1
+#endif
+
+#if (_POSIX_C_SOURCE - 0) >= 199309L
+# define __USE_POSIX199309	1
+#endif
+
+#if (_POSIX_C_SOURCE - 0) >= 199506L
+# define __USE_POSIX199506	1
+#endif
+
+#if (_POSIX_C_SOURCE - 0) >= 200112L
+# define __USE_XOPEN2K		1
+# undef __USE_ISOC99
+# define __USE_ISOC99		1
+#endif
+
+#if (_POSIX_C_SOURCE - 0) >= 200809L
+# define __USE_XOPEN2K8		1
+# undef  _ATFILE_SOURCE
+# define _ATFILE_SOURCE	1
+#endif
+
+#ifdef	_XOPEN_SOURCE
+# define __USE_XOPEN	1
+# if (_XOPEN_SOURCE - 0) >= 500
+#  define __USE_XOPEN_EXTENDED	1
+#  define __USE_UNIX98	1
+#  undef _LARGEFILE_SOURCE
+#  define _LARGEFILE_SOURCE	1
+#  if (_XOPEN_SOURCE - 0) >= 600
+#   if (_XOPEN_SOURCE - 0) >= 700
+#    define __USE_XOPEN2K8	1
+#   endif
+#   define __USE_XOPEN2K	1
+#   undef __USE_ISOC99
+#   define __USE_ISOC99		1
+#  endif
+# else
+#  ifdef _XOPEN_SOURCE_EXTENDED
+#   define __USE_XOPEN_EXTENDED	1
+#  endif
+# endif
+#endif
+
+#ifdef _LARGEFILE_SOURCE
+# define __USE_LARGEFILE	1
+#endif
+
+#ifdef _LARGEFILE64_SOURCE
+# define __USE_LARGEFILE64	1
+#endif
+
+#if defined _FILE_OFFSET_BITS && _FILE_OFFSET_BITS == 64
+# define __USE_FILE_OFFSET64	1
+#endif
+
+#if defined _BSD_SOURCE || defined _SVID_SOURCE
+# define __USE_MISC	1
+#endif
+
+#ifdef	_BSD_SOURCE
+# define __USE_BSD	1
+#endif
+
+#ifdef	_SVID_SOURCE
+# define __USE_SVID	1
+#endif
+
+#ifdef	_ATFILE_SOURCE
+# define __USE_ATFILE	1
+#endif
+
+#ifdef	_GNU_SOURCE
+# define __USE_GNU	1
+#endif
+
+#if defined _REENTRANT || defined _THREAD_SAFE
+# define __USE_REENTRANT	1
+#endif
+
+#if defined _FORTIFY_SOURCE && _FORTIFY_SOURCE > 0 \
+    && __GNUC_PREREQ (4, 1) && defined __OPTIMIZE__ && __OPTIMIZE__ > 0
+# if _FORTIFY_SOURCE > 1
+#  define __USE_FORTIFY_LEVEL 2
+# else
+#  define __USE_FORTIFY_LEVEL 1
+# endif
+#else
+# define __USE_FORTIFY_LEVEL 0
+#endif
+
+/* We do support the IEC 559 math functionality, real and complex.  */
+#ifdef __UCLIBC_HAS_FLOATS__
+#define __STDC_IEC_559__		1
+#define __STDC_IEC_559_COMPLEX__	1
+#endif
+
+#ifdef __UCLIBC_HAS_WCHAR__
+/* wchar_t uses ISO 10646-1 (2nd ed., published 2000-09-15) / Unicode 3.1.  */
+#define __STDC_ISO_10646__		200009L
+#endif
+
+/*  There is an unwholesomely huge amount of code out there that d	∑  
+∑  ∑                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      epends on the
+ *  presence of GNU libc header files.  We have GNU libc header files.  So here
+ *  we commit a horrible sin.  At this point, we _lie_ and claim to be GNU libc
+ *  to make things like /usr/include/linux/socket.h and lots of apps work as
+ *  their developers intended.  This is IMHO, pardonable, since these defines
+ *  are not really intended to check for the presence of a particular library,
+ *  but rather are used to define an _interface_.  */
+#if !defined __FORCE_NOGLIBC && (!defined _LIBC || defined __FORCE_GLIBC)
+/* This macro indicates that the installed library is the GNU C Library.
+   For historic reasons the value now is 6 and this will stay from now
+   on.  The use of this variable is deprecated.  */
+/* uClibc WARNING: leave these aligned to the left, don't put a space after '#', else
+ * broken apps could fail the check. */
+#undef  __GNU_LIBRARY__
+#define __GNU_LIBRARY__ 6
+
+/* Major and minor version number of the GNU C library package.  Use
+   these macros to test for features in specific releases.  */
+/* Don't do it, if you want to keep uClibc happy.  */
+#define	__GLIBC__	2
+#define	__GLIBC_MINOR__	2
+#endif
+
+#define __GLIBC_PREREQ(maj, min) \
+	((__GLIBC__ << 16) + __GLIBC_MINOR__ >= ((maj) << 16) + (min))
+
+#ifndef __UCLIBC__
+/* Decide whether a compiler supports the long long datatypes.  */
+#if defined __GNUC__ \
+    || (defined __PGI && defined __i386__ ) \
+    || (defined __INTEL_COMPILER && (defined __i386__ || defined __ia64__)) \
+    || (defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L)
+# define __GLIBC_HAVE_LONG_LONG	1
+#endif
+#endif
+
+/* This is here only because every header file already includes this one.  */
+#ifndef __ASSEMBLER__
+# ifndef _SYS_CDEFS_H
+#  include <sys/cdefs.h>
+# endif
+
+/* If we don't have __REDIRECT, prototypes will be missing if
+   __USE_FILE_OFFSET64 but not __USE_LARGEFILE[64]. */
+# if defined __USE_FILE_OFFSET64 && !defined __REDIRECT
+#  define __USE_LARGEFILE	1
+#  ifdef __UCLIBC_HAS_LFS__
+#  define __USE_LARGEFILE64	1
+#  endif
+# endif
+
+#endif	/* !ASSEMBLER */
+
+/* Decide whether we can, and are willing to define extern inline
+ * functions in headers, even if this results in a slightly bigger
+ * code for user programs built against uclibc.
+ * Enabled only in -O2 compiles, not -Os.
+ * uclibc itself is usually built without __USE_EXTERN_INLINES,
+ * remove "&& !defined __OPTIMIZE_SIZE__" part to do otherwise.
+ */
+#if __GNUC_PREREQ (2, 7) && defined __OPTIMIZE__ \
+    && !defined __OPTIMIZE_SIZE__ && !defined __NO_INLINE__ \
+    && (defined __extern_inline || defined __GNUC_GNU_INLINE__)
+# define __USE_EXTERN_INLINES	1
+#endif
+
+
+#endif	/* features.h  */
+                                                                                                                                                                                                                                                                                                                                                                                                                                    /* Copyright (C) 1996, 1997, 1998, 1999, 2004, 2008
+   Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+   Contributed by Ulrich Drepper <drepper@cygnus.com>, 1996.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  */
+
+#ifndef _REGEXP_H
+#define _REGEXP_H	1
+
+/* The contents of this header file was first standardized in X/Open
+   System Interface and Headers Issue 2, originally coming from SysV.
+   In issue 4, version 2, it is marked as TO BE WITDRAWN, and it has
+   been withdrawn in SUSv3.
+
+   This code shouldn't be used in any newly written code.  It is
+   included only for compatibility reasons.  Use the POSIX definition
+   in <regex.h> for portable applications and a reasonable interface.  */
+
+#include <features.h>
+#include <alloca.h>
+#include <regex.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* The implementation provided here emulates the needed functionality
+   by mapping to the POSIX regular expression matcher.  The interface
+   for the here included function is weird (this really is a harmless
+   word).
+
+   The user has to provide six macros before this header file can be
+   included:
+
+   INIT		Declarations vor variables which can be used by the
+		other macros.
+
+   GETC()	Return the value of the next character in the regular
+		expression pattern.  Successive calls should return
+		successive characters.
+
+   PEEKC()	Return the value of the next character in the regular
+		expression pattern.  Immediately successive calls to
+		PEEKC() should return the same character which should
+		also be the next character returned by GETC().
+
+   UNGETC(c)	Cause `c' to be returned by the next call to GETC() and
+		PEEKC().
+
+   RETURN(ptr)	Used for normal exit of the `compile' function.  `ptr'
+		is a pointer to the character after the last character of
+		the compiled regular expression.
+
+   ERROR(val)	Used for abnormal return from `compile'.  `val' is the
+		error number.  The error codes are:
+		11	Range endpoint too large.
+		16	Bad number.
+		25	\digit out of range.
+		36	Illegal or missing delimiter.
+		41	No remembered search string.
+		42	\( \) imbalance.
+		43	Too many \(.
+		44	More tan two numbers given in \{ \}.
+		45	} expected after \.
+		46	First number exceeds second in \{ \}.
+		49	[ ] imbalance.
+		50	Regular expression overflow.
+
+  */
+
+__BEGIN_DECLS
+
+#if 0
+/* Interface variables.  They contain the results of the successful
+   calls to `setp' and `advance'.  */
+extern char *loc1;
+extern char *loc2;
+
+/* The use of this variable in the `advance' function is not
+   supported.  */
+extern char *locs;
+#endif
+
+
+#ifndef __DO_NOT_DEFINE_COMPILE
+/* Get and compile the user supplied pattern up to end of line or
+   string or until EOF is seen, whatever happens first.  The result is
+   placed in the buffer starting at EXPBUF and delimited by ENDBUF.
+
+   This function cannot be defined in the libc itself since it depends
+   on the macros.  */
+char *
+compile (char *__restrict instring, char *__restrict expbuf,
+	 __const char *__restrict endbuf, int eof)
+{
+  char *__input_buffer = NULL;
+  size_t __input_size = 0;
+  size_t __current_size = 0;
+  int __ch;
+  int __error;
+  INIT
+
+  /* Align the expression buffer according to the needs for an object
+     of type `regex_t'.  Then check for minimum size of the buffer for
+     the compiled regular expression.  */
+  regex_t *__expr_ptr;
+# if defined __GNUC__ && __GNUC__ >= 2
+  const size_t __req = __alignof__ (regex_t *);
+# else
+  /* How shall we find out?  We simply guess it and can change it is
+     this really proofs to be wrong.  */
+  const size_t __req = 8;
+# endif
+  expbuf += __req;
+  expbuf -= (expbuf - ((char *) 0)) % __req;
+  if (endbuf < expbuf + sizeof (regex_t))
+    {
+      ERROR (50);
+    }
+  __expr_ptr = (regex_t *) expbuf;
+  /* The remaining space in the buffer can be used for the compiled
+     pattern.  */
+  __expr_ptr->__REPB_PREFIX (buffer) = expbuf + sizeof (regex_t);
+  __expr_ptr->__REPB_PREFIX (allocated)
+    = endbuf - (char *) __expr_ptr->__REPB_PREFIX (buffer);
+
+  while ((__ch = (GETC ())) != eof)
+    {
+      if (__ch == '\0' || __ch == '\n')
+	{
+	  UNGETC (__ch);
+	  break;
+	}
+
+      if (__current_size + 1 >= __input_size)
+	{
+	  size_t __new_size = __input_size ? 2 * __input_size : 128;
+	  char *__new_room = (char *) alloca (__new_size);
+	  /* See whether we can use the old buffer.  */
+	  if (__new_room + __new_size == __input_buffer)
+	    {
+	      __input_size += __new_size;
+	      __input_buffer = (char *) memcpy (__new_room, __input_buffer,
+					       __current_size);
+	    }
+	  else if (__input_buffer + __input_size == __new_room)
+	    __input_size += __new_size;
+	  else
+	    {
+	      __input_size = __new_size;
+	      __input_buffer = (char *) memcpy (__new_room, __input_buffer,
+						__current_size);
+	    }
+	}
+      __input_buffer[__current_size++] = __ch;
+    }
+  if (__current_size)
+    __input_buffer[__current_size++] = '\0';
+  else
+    __input_buffer = "";
+
+  /* Now compile the pattern.  */
+  __error = regcomp (__expr_ptr, __input_buffer, REG_NEWLINE);
+  if (__error != 0)
+    /* Oh well, we have to translate POSIX error codes.  */
+    switch (__error)
+      {
+      case REG_BADPAT:
+      case REG_ECOLLATE:
+      case REG_ECTYPE:
+      case REG_EESCAPE:
+      case REG_BADRPT:
+      case REG_EEND:
+      case REG_ERPAREN:
+      default:
+	/* There is no matching error code.  */
+	RETURN (36);
+      case REG_ESUBREG:
+	RETURN (25);
+      case REG_EBRACK:
+	RETURN (49);
+      case REG_EPAREN:
+	RETURN (42);
+      case REG_EBRACE:
+	RETURN (44);
+      case REG_BADBR:
+	RETURN (46);
+      case REG_ERANGE:
+	RETURN (11);
+      case REG_ESPACE:
+      case REG_ESIZE:
+	ERROR (50);
+      }
+
+  /* Everything is ok.  */
+  RETURN ((char *) (__expr_ptr->__REPB_PREFIX (buffer)
+		    + __expr_ptr->__REPB_PREFIX (used)));
+}
+#endif
+
+
+#if 0
+/* Find the next match in STRING.  The compiled regular expression is
+   found in the buffer starting at EXPBUF.  `loc1' will return the
+   first character matched and `loc2' points to the next unmatched
+   character.  */
+extern int step (__const char *__restrict __string,
+		 __const char *__restrict __expbuf) __THROW;
+
+/* Match the beginning of STRING with the compiled regular expression
+   in EXPBUF.  If the match is successful `loc2' will contain the
+   position of the first unmatched character.  */
+extern int advance (__const char *__restrict __string,
+		    __const char *__restrict __expbuf) __THROW;
+#endif
+
+
+__END_DECLS
+
+#endif /* regexp.h */
+                   /*
+ * Copyright (c) 1987, 1993
+ *	The Regents of the University of California.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 4. Neither the name of the University nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ *	@(#)sysexits.h	8.1 (Berkeley) 6/2/93
+ */
+
+#ifndef	_SYSEXITS_H
+#define	_SYSEXITS_H 1
+
+/*
+ *  SYSEXITS.H -- Exit status codes for system programs.
+ *
+ *	This include file attempts to categorize possible error
+ *	exit statuses for system programs, notably delivermail
+ *	and the Berkeley network.
+ *
+ *	Error numbers begin at EX__BASE to reduce the possibility of
+ *	clashing with other exit statuses that random programs may
+ *	already return.  The meaning of the codes is approximately
+ *	as follows:
+ *
+ *	EX_USAGE -- The command was used incorrectly, e.g., with
+ *		the wrong number of arguments, a bad flag, a bad
+ *		syntax in a parameter, or whatever.
+ *	EX_DATAERR -- The input data was incorrect in some way.
+ *		This should only be used for user's data & not
+ *		system files.
+ *	EX_NOINPUT -- An input file (not a system file) did not
+ *		exist or was not readable.  This could also include
+ *		errors like "No message" to a mailer (if it cared
+ *		to catch it).
+ *	EX_NOUSER -- The user specified did not exist.  This might
+ *		be used for mail addresses or remote logins.
+ *	EX_NOHOST -- The host specified did not exist.  This is used
+ *		in mail addresses or network requests.
+ *	EX_UNAVAILABLE -- A service is unavailable.  This can occur
+ *		if a support program or file does not exist.  This
+ *		can also be used as a catchall message when something
+ *		you wanted to do doesn't work, but you don't know
+ *		why.
+ *	EX_SOFTWARE -- An internal software error has been detected.
+ *		This should be limited to non-operating system related
+ *		errors as possible.
+ *	EX_OSERR -- An operating system error has been detected.
+ *		This is intended to be used for such things as "cannot
+ *		fork", "cannot create pipe", or the like.  It includes
+ *		things like getuid returning a user that does not
+ *		exist in the passwd file.
+ *	EX_OSFILE -- Some system file (e.g., /etc/passwd, /etc/utmp,
+ *		etc.) does not exist, cannot be opened, or has some
+ *		sort of error (e.g., syntax error).
+ *	EX_CANTCREAT -- A (user specified) output file cannot be
+ *		created.
+ *	EX_IOERR -- An error occurred while doing I/O on some file.
+ *	EX_TEMPFAIL -- temporary failure, indicating something that
+ *		is not really an error.  In sendmail, this means
+ *		that a mailer (e.g.) could not create a connection,
+ *		and the request should be reattempted later.
+ *	EX_PROTOCOL -- the remote system returned something that
+ *		was "not possible" during a protocol exchange.
+ *	EX_NOPERM -- You did not have sufficient permission to
+ *		perform the operation.  This is not intended for
+ *		file system problems, which should use NOINPUT or
+ *		CANTCREAT, but rather for higher level permissions.
+ */
+
+#define EX_OK		0	/* successful termination */
+
+#define EX__BASE	64	/* base value for error messages */
+
+#define EX_USAGE	64	/* command line usage error */
+#define EX_DATAERR	65	/* data format error */
+#define EX_NOINPUT	66	/* cannot open input */
+#define EX_NOUSER	67	/* addressee unknown */
+#define EX_NOHOST	68	/* host name unknown */
+#define EX_UNAVAILABLE	69	/* service unavailable */
+#define EX_SOFTWARE	70	/* internal software error */
+#define EX_OSERR	71	/* system error (e.g., can't fork) */
+#define EX_OSFILE	72	/* critical OS file missing */
+#define EX_CANTCREAT	73	/* can't create (user) output file */
+#define EX_IOERR	74	/* input/output error */
+#define EX_TEMPFAIL	75	/* temp failure; user is invited to retry */
+#define EX_PROTOCOL	76	/* remote error in protocol */
+#define EX_NOPERM	77	/* permission denied */
+#define EX_CONFIG	78	/* configuration error */
+
+#define EX__MAX	78	/* maximum listed value */
+
+#endif /* sysexits.h */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                /* Declaration for error-reporting function
+   Copyright (C) 1995, 1996, 1997, 2003 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  */
+
+#ifndef _ERROR_H
+#define _ERROR_H 1
+
+#include <features.h>
+
+__BEGIN_DECLS
+
+/* Print a message with `fprintf (stderr, FORMAT, ...)';
+   if ERRNUM is nonzero, follow it with ": " and strerror (ERRNUM).
+   If STATUS is nonzero, terminate the program with `exit (STATUS)'.  */
+
+extern void error (int __status, int __errnum, const char *__format, ...)
+     __attribute__ ((__format__ (__printf__, 3, 4)));
+
+extern void error_at_line (int __status, int __errnum, const char *__fname,
+			   unsigned int __lineno, const char *__format, ...)
+     __attribute__ ((__format__ (__printf__, 5, 6)));
+
+/* If NULL, error will flush stdout, then print on stderr the program
+   name, a colon and a space.  Otherwise, error will call this
+   function without parameters instead.  */
+extern void (*error_print_progname) (void);
+
+/* This variable is incremented each time `error' is called.  */
+extern unsigned int error_message_count;
+
+/* Sometimes we want to have at most one error per line.  This
+   variable controls whether this mode is selected or not.  */
+extern int error_one_per_line;
+
+__END_DECLS
+
+#endif /* error.h */
+                        ¶$   signal.hß$   	lastlog.h   é2   	neteconet   ®$   setjmp.h©$   gnu-versions.h  ™$   	complex.h   ´$   getopt.h¨$   
+tclDecls.h  ≠$   link.h  Æ$   time.h  Ø$   assert.h∞$   ncurses_dll.h   ±$   eti.h   ê2   netax25 ≤$   stdio_ext.h ≥$   syslog.h¥$   	fnmatch.h   í2   arpa    c++ µ$   tar.h   ∂$   locale.h∑$   tgmath.h∏$   resolv.hπ$   malloc.h∫$   	dis-asm.h   ª$   
+nl_types.h  º$   string.hΩ$   	syscall.h   æ$   poll.h  ø$   glob.h  ¿$   sound   À$   ctype.h Ã$   	pthread.h   Õ$   tclPlatDecls.h  Œ$   pwd.h   œ$   alloca.h–$   libgen.h—$   termio.h“$   drm „$   cpio.h  R-   netinet ^-   asm ‰$   	termcap.h   ô-   net Â$   
+ansidecl.h  §-   netipx  Ê$   ttyent.hÁ$   tcl.h   Ë$   stdint.hÈ$   a.out.h Í$   shadow.hÎ$   dirent.hÏ$   panel.h Ì$   fpu_control.h   Ó$   netdb.h Ô$   
+inttypes.h  $   bfd.h   Ò$   err.h   Ú$   curses.hÛ$   memory.h/* Copyright (C) 1991-2003, 2004 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  */
+
+/*
+ *	ISO C99 Standard: 7.14 Signal handling <signal.h>
+ */
+
+#ifndef	_SIGNAL_H
+
+#if !defined __need_sig_atomic_t && !defined __need_sigset_t
+# define _SIGNAL_H
+#endif
+
+#include <features.h>
+
+__BEGIN_DECLS
+
+#include <bits/sigset.h>		/* __sigset_t, __sig_atomic_t.  */
+
+/* An integral type that can be modified atomically, without the
+   possibility of a signal arriving in the middle of the operation.  */
+#if defined __need_sig_atomic_t || defined _SIGNAL_H
+# ifndef __sig_atomic_t_defined
+#  define __sig_atomic_t_defined
+__BEGIN_NAMESPACE_STD
+typedef __sig_atomic_t sig_atomic_t;
+__END_NAMESPACE_STD
+# endif
+# undef __need_sig_atomic_t
+#endif
+
+#if defined __need_sigset_t || (defined _SIGNAL_H && defined __USE_POSIX)
+# ifndef __sigset_t_defined
+#  define __sigset_t_defined
+typedef __sigset_t sigset_t;
+# endif
+# undef __need_sigset_t
+#endif
+
+#ifdef _SIGNAL_H
+
+#include <bits/types.h>
+#include <bits/signum.h>
+
+/* Fake signal functions.  */
+#define SIG_ERR    ((__sighandler_t) -1) /* Error return.  */
+#define SIG_DFL    ((__sighandler_t) 0)  /* Default action.  */
+#define SIG_IGN    ((__sighandler_t) 1)  /* Ignore signal.  */
+#ifdef __USE_UNIX98
+# define SIG_HOLD  ((__sighandler_t) 2)  /* Add signal to hold mask.  */
+#endif
+/* Biggest signal number + 1 (including real-time signals).  */
+#ifndef _NSIG /* if arch has not defined it in bits/signum.h... */
+# define _NSIG 65
+#endif
+#ifdef __USE_MISC
+# define NSIG _NSIG
+#endif
+/* Real-time signal range */
+#define SIGRTMIN   (__libc_current_sigrtmin())
+#define SIGRTMAX   (__libc_current_sigrtmax())
+/* These are the hard limits of the kernel.  These values should not be
+   used directly at user level.  */
+#ifndef __SIGRTMIN /* if arch has not defined it in bits/signum.h... */
+# define __SIGRTMIN 32
+#endif
+#define __SIGRTMAX (_NSIG - 1)
+
+
+#if defined __USE_XOPEN || defined __USE_XOPEN2K
+# ifndef __pid_t_defined
+typedef __pid_t pid_t;
+#  define __pid_t_defined
+# endif
+# ifndef __uid_t_defined
+typedef __uid_t uid_t;
+#  define __uid_t_defined
+# endif
+#endif	/* Unix98 */
+
+
+/* Type of a signal handler.  */
+typedef void (*__sighandler_t) (int);
+#if defined __UCLIBC_HAS_OBSOLETE_SYSV_SIGNAL__
+/* The X/Open definition of `signal' specifies the SVID semantic.  Use
+   the additional function `sysv_signal' when X/Open compatibility is
+   requested.  */
+extern __sighandler_t __sysv_signal (int __sig, __sighandler_t __handler)
+     __THROW;
+# ifdef __USE_GNU
+extern __sighandler_t sysv_signal (int __sig, __sighandler_t __handler)
+     __THROW;
+# endif
+#endif /* __UCLIBC_HAS_OBSOLETE_SYSV_SIGNAL__ */
+
+/* Set the handler for the signal SIG to HANDLER, returning the old
+   handler, or SIG_ERR on error.
+   By default `signal' has the BSD semantic.  */
+__BEGIN_NAMESPACE_STD
+#if defined __USE_BSD || !defined __UCLIBC_HAS_OBSOLETE_SYSV_SIGNAL__
+extern __sighandler_t signal (int __sig, __sighandler_t __handler)
+     __THROW;
+#else
+/* Make sure the used `signal' implementation is the SVID version. */
+# ifdef __REDIRECT_NTH
+extern __sighandler_t __REDIRECT_NTH (signal,
+				      (int __sig, __sighandler_t __handler),
+				      __sysv_signal);
+# else
+#  define signal __sysv_signal
+# endif
+#endif
+__END_NAMESPACE_STD
+
+#if defined __USE_XOPEN && defined __UCLIBC_SUSV3_LEGACY__
+/* The X/Open definition of `signal' conflicts with the BSD version.
+   So they defined another function `bsd_signal'.  */
+extern __sighandler_t bsd_signal (int __sig, __sighandler_t __handler)
+     __THROW;
+#endif
+
+/* Send signal SIG to process number PID.  If PID is zero,
+   send SIG to all processes in the current process's process group.
+   If PID is < -1, send SIG to all processes in process group - PID.  */
+#ifdef __USE_POSIX
+extern int kill (__pid_t __pid, int __sig) __THROW;
+#endif
+
+#if defined __USE_BSD || defined __USE_XOPEN_EXTENDED
+/* Send SIG to all processes in process group PGRP.
+   If PGRP is zero, send SIG to all processes in
+   the current process's process group.  */
+extern int killpg (__pid_t __pgrp, int __sig) __THROW;
+#endif
+
+__BEGIN_NAMESPACE_STD
+/* Raise signal SIG, i.e., send SIG to yourself.  */
+extern int raise (int __sig) __THROW;
+__END_NAMESPACE_STD
+
+#ifdef __USE_SVID
+/* SVID names for the same things.  */
+extern __sighandler_t ssignal (int __sig, __sighandler_t __handler)
+     __THROW;
+extern int gsignal (int __sig) __THROW;
+#endif /* Use SVID.  */
+
+#ifdef __USE_MISC
+/* Print a message describing the meaning of the given signal number.  */
+extern void psignal (int __sig, __const char *__s);
+#endif /* Use misc.  */
+
+
+/* The `sigpause' function has two different interfaces.  The original
+   BSD definition defines the argument as a mask of the signal, while
+   the more modern interface in X/Open defines it as the signal
+   number.  We go with the BSD version unless the user explicitly
+   selects the X/Open version.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern int __sigpause (int __sig_or_mask, int __is_sig);
+
+#ifdef __FAVOR_BSD
+/* Set the mask of blocked signals to MASK,
+   wait for a signal to arrive, and then restore the mask.  */
+extern int sigpause (int __mask) __THROW __attribute_deprecated__;
+# define sigpause(mask) __sigpause ((mask), 0)
+#else
+# ifdef __USE_XOPEN
+/* Remove a signal from the signal mask and suspend the process.  */
+#  define sigpause(sig) __sigpause ((sig), 1)
+# endif
+#endif
+
+
+#ifdef __USE_BSD
+/* None of the following functions should be used anymore.  They are here
+   only for compatibility.  A single word (`int') is not guaranteed to be
+   enough to hold a complete signal mask and therefore these functions
+   simply do not work in many situations.  Use `sigprocmask' instead.  */
+
+/* Compute mask for signal SIG.  */
+# define sigmask(sig)	__sigmask(sig)
+
+/* Block signals in MASK, returning the old mask.  */
+extern int sigblock (int __mask) __THROW;
+/* collides with libc_hidden_proto: __attribute_deprecated__; */
+
+/* Set the mask of blocked signals to MASK, returning the old mask.  */
+extern int sigsetmask (int __mask) __THROW;
+/* collides with libc_hidden_proto: __attribute_deprecated__; */
+
+/* Return currently selected signal mask.  */
+extern int siggetmask (void) __THROW __attribute_deprecated__;
+#endif /* Use BSD.  */
+
+
+#ifdef __USE_GNU
+typedef __sighandler_t sighandler_t;
+#endif
+
+/* 4.4 BSD uses the name `sig_t' for this.  */
+#ifdef __USE_BSD
+typedef __sighandler_t sig_t;
+#endif
+
+#ifdef __USE_POSIX
+
+# ifdef __USE_POSIX199309
+/* We need `struct timespec' later on.  */
+#  define __need_timespec
+#  include <time.h>
+
+/* Get the `siginfo_t' type plus the needed symbols.  */
+#  include <bits/siginfo.h>
+# endif
+
+/* Clear all signals from SET.  */
+extern int sigemptyset (sigset_t *__set) __THROW __nonnull ((1));
+
+/* Set all signals in SET.  */
+extern int sigfillset (sigset_t *__set) __THROW __nonnull ((1));
+
+/* Add SIGNO to SET.  */
+extern int sigaddset (sigset_t *__set, int __signo) __THROW __nonnull ((1));
+
+/* Remove SIGNO from SET.  */
+extern int sigdelset (sigset_t *__set, int __signo) __THROW __nonnull ((1));
+
+/* Return 1 if SIGNO is in SET, 0 if not.  */
+extern int sigismember (__const sigset_t *__set, int __signo)
+     __THROW __nonnull ((1));
+
+# ifdef __USE_GNU
+/* Return non-empty value is SET is not empty.  */
+extern int sigisemptyset (__const sigset_t *__set) __THROW __nonnull ((1));
+
+/* Build new signal set by combining the two inputs set using logical AND.  */
+extern int sigandset (sigset_t *__set, __const sigset_t *__left,
+		      __const sigset_t *__right) __THROW __nonnull ((1, 2, 3));
+
+/* Build new signal set by combining the two inputs set using logical OR.  */
+extern int sigorset (sigset_t *__set, __const sigset_t *__left,
+		     __const sigset_t *__right) __THROW __nonnull ((1, 2, 3));
+# endif /* GNU */
+
+/* Get the system-specific definitions of `struct sigaction'
+   and the `SA_*' and `SIG_*'. constants.  */
+# include <bits/sigaction.h>
+
+/* Get and/or change the set of blocked signals.  */
+extern int sigprocmask (int __how, __const sigset_t *__restrict __set,
+			sigset_t *__restrict __oset) __THROW;
+
+/* Change the set of blocked signals to SET,
+   wait until a signal arrives, and restore the set of blocked signals.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern int sigsuspend (__const sigset_t *__set) __nonnull ((1));
+
+/* Get and/or set the action for signal SIG.  */
+extern int sigaction (int __sig, __const struct sigaction *__restrict __act,
+		      struct sigaction *__restrict __oact) __THROW;
+
+/* Put in SET all signals that are blocked and waiting to be delivered.  */
+extern int sigpending (sigset_t *__set) __THROW __nonnull ((1));
+
+
+/* Select any of pending signals from SET or wait for any to arrive.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern int sigwait (__const sigset_t *__restrict __set, int *__restrict __sig)
+     __nonnull ((1, 2));
+
+# if defined __USE_POSIX199309 && defined __UCLIBC_HAS_REALTIME__
+/* Select any of pending signals from SET and place information in INFO.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern int sigwaitinfo (__const sigset_t *__restrict __set,
+			siginfo_t *__restrict __info) __nonnull ((1));
+
+/* Select any of pending signals from SET and place information in INFO.
+   Wait the time specified by TIMEOUT if no signal is pending.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern int sigtimedwait (__const sigset_t *__restrict __set,
+			 siginfo_t *__restrict __info,
+			 __const struct timespec *__restrict __timeout)
+     __nonnull ((1));
+
+/* Send signal SIG to the process PID.  Associate data in VAL with the
+   signal.  */
+extern int sigqueue (__pid_t __pid, int __sig, __const union sigval __val)
+     __THROW;
+# endif	/* Use POSIX 199306.  */
+
+#endif /* Use POSIX.  */
+
+#ifdef __USE_BSD
+
+# ifdef __UCLIBC_HAS_SYS_SIGLIST__
+/* Names of the signals.  This variable exists only for compatibility.
+   Use `strsignal' instead (see <string.h>).  */
+#  define _sys_siglist sys_siglist
+extern __const char *__const sys_siglist[_NSIG];
+# endif
+
+/* Structure passed to `sigvec'.  */
+struct sigvec
+  {
+    __sighandler_t sv_handler;	/* Signal handler.  */
+    int sv_mask;		/* Mask of signals to be blocked.  */
+
+    int sv_flags;		/* Flags (see below).  */
+# define sv_onstack	sv_flags /* 4.2 BSD compatibility.  */
+  };
+
+/* Bits in `sv_flags'.  */
+# define SV_ONSTACK	(1 << 0)/* Take the signal on the signal stack.  */
+# define SV_INTERRUPT	(1 << 1)/* Do not restart system calls.  */
+# define SV_RESETHAND	(1 << 2)/* Reset handler to SIG_DFL on receipt.  */
+
+
+/* If VEC is non-NULL, set the handler for SIG to the `sv_handler' member
+   of VEC.  The signals in `sv_mask' will be blocked while the handler runs.
+   If the SV_RESETHAND bit is set in `sv_flags', the handler for SIG will be
+   reset to SIG_DFL before `sv_handler' is entered.  If OVEC is non-NULL,
+   it is filled in with the old information for SIG.  */
+extern int sigvec (int __sig, __const struct sigvec *__vec,
+		   struct sigvec *__ovec) __THROW;
+
+
+/* Get machine-dependent `struct sigcontext' and signal subcodes.  */
+# include <bits/sigcontext.h>
+
+/* Restore the state saved in SCP.  */
+extern int sigreturn (struct sigcontext *__scp) __THROW;
+
+#endif /*  use BSD.  */
+
+
+#if defined __USE_BSD || defined __USE_XOPEN_EXTENDED
+
+# ifdef __UCLIBC_SUSV4_LEGACY__
+/* If IN)∑  *∑  +∑                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      TERRUPT is nonzero, make signal SIG interrupt system calls
+   (causing them to fail with EINTR); if INTERRUPT is zero, make system
+   calls be restarted after signal SIG.  */
+extern int siginterrupt (int __sig, int __interrupt) __THROW;
+# endif
+
+# include <bits/sigstack.h>
+# ifdef __USE_XOPEN
+/* This will define `ucontext_t' and `mcontext_t'.  */
+#  include <ucontext.h>
+# endif
+
+/* Run signals handlers on the stack specified by SS (if not NULL).
+   If OSS is not NULL, it is filled in with the old signal stack status.
+   This interface is obsolete and on many platform not implemented.  */
+extern int sigstack (struct sigstack *__ss, struct sigstack *__oss)
+     __THROW __attribute_deprecated__;
+
+/* Alternate signal handler stack interface.
+   This interface should always be preferred over `sigstack'.  */
+extern int sigaltstack (__const struct sigaltstack *__restrict __ss,
+			struct sigaltstack *__restrict __oss) __THROW;
+
+#endif /* use BSD or X/Open Unix.  */
+
+#if defined __USE_XOPEN_EXTENDED && defined __UCLIBC_HAS_OBSOLETE_BSD_SIGNAL__
+/* Simplified interface for signal management.  */
+
+/* Add SIG to the calling process' signal mask.  */
+extern int sighold (int __sig) __THROW;
+
+/* Remove SIG from the calling process' signal mask.  */
+extern int sigrelse (int __sig) __THROW;
+
+/* Set the disposition of SIG to SIG_IGN.  */
+extern int sigignore (int __sig) __THROW;
+
+/* Set the disposition of SIG.  */
+extern __sighandler_t sigset (int __sig, __sighandler_t __disp) __THROW;
+#endif
+
+#if defined __UCLIBC_HAS_THREADS__ && (defined __USE_POSIX199506 || defined __USE_UNIX98)
+/* Some of the functions for handling signals in threaded programs must
+   be defined here.  */
+# include <bits/pthreadtypes.h>
+# include <bits/sigthread.h>
+#endif
+
+/* The following functions are used internally in the C library and in
+   other code which need deep insights.  */
+
+/* Return number of available real-time signal with highest priority.  */
+extern int __libc_current_sigrtmin (void) __THROW;
+/* Return number of available real-time signal with lowest priority.  */
+extern int __libc_current_sigrtmax (void) __THROW;
+
+#endif /* signal.h  */
+
+__END_DECLS
+
+#endif /* not signal.h */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       /* This header file is used in 4.3BSD to define `struct lastlog',
+   which we define in <bits/utmp.h>.  */
+
+#include <utmp.h>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  /* Copyright (C) 1991-1999, 2001 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  */
+
+/*
+ *	ISO C99 Standard: 7.13 Nonlocal jumps	<setjmp.h>
+ */
+
+#ifndef	_SETJMP_H
+#define	_SETJMP_H	1
+
+#include <features.h>
+
+__BEGIN_DECLS
+
+#include <bits/setjmp.h>		/* Get `__jmp_buf'.  */
+#include <bits/sigset.h>		/* Get `__sigset_t'.  */
+
+/* Calling environment, plus possibly a saved signal mask.  */
+typedef struct __jmp_buf_tag	/* C++ doesn't like tagless structs.  */
+  {
+    /* NOTE: The machine-dependent definitions of `__sigsetjmp'
+       assume that a `jmp_buf' begins with a `__jmp_buf' and that
+       `__mask_was_saved' follows it.  Do not move these members
+       or add others before it.  */
+    __jmp_buf __jmpbuf;		/* Calling environment.  */
+    int __mask_was_saved;	/* Saved the signal mask?  */
+    __sigset_t __saved_mask;	/* Saved signal mask.  */
+  } jmp_buf[1];
+
+
+/* Store the calling environment in ENV, also saving the signal mask.
+   Return 0.  */
+extern int setjmp (jmp_buf __env) __THROW;
+
+/* Store the calling environment in ENV, not saving the signal mask.
+   Return 0.  */
+extern int _setjmp (jmp_buf __env) __THROW;
+
+/* Store the calling environment in ENV, also saving the
+   signal mask if SAVEMASK is nonzero.  Return 0.
+   This is the internal name for `sigsetjmp'.  */
+extern int __sigsetjmp (jmp_buf __env, int __savemask) __THROW;
+
+#ifndef	__FAVOR_BSD
+/* Do not save the signal mask.  This is equivalent to the `_setjmp'
+   BSD function.  */
+# define setjmp(env)	_setjmp (env)
+#else
+/* We are in 4.3 BSD-compatibility mode in which `setjmp'
+   saves the signal mask like `sigsetjmp (ENV, 1)'.  We have to
+   define a macro since ISO C says `setjmp' is one.  */
+# define setjmp(env)	setjmp (env)
+#endif /* Favor BSD.  */
+
+
+/* Jump to the environment saved in ENV, making the
+   `setjmp' call there return VAL, or 1 if VAL is 0.  */
+extern void longjmp (jmp_buf __env, int __val)
+     __THROW __attribute__ ((__noreturn__));
+#if defined __USE_BSD || defined __USE_XOPEN
+/* Same.  Usually `_longjmp' is used with `_setjmp', which does not save
+   the signal mask.  But it is how ENV was saved that determines whether
+   `longjmp' restores the mask; `_longjmp' is just an alias.  */
+extern void _longjmp (jmp_buf __env, int __val)
+     __THROW __attribute__ ((__noreturn__));
+#endif
+
+
+#ifdef	__USE_POSIX
+/* Use the same type for `jmp_buf' and `sigjmp_buf'.
+   The `__mask_was_saved' flag determines whether
+   or not `longjmp' will restore the signal mask.  */
+typedef jmp_buf sigjmp_buf;
+
+/* Store the calling environment in ENV, also saving the
+   signal mask if SAVEMASK is nonzero.  Return 0.  */
+# define sigsetjmp(env, savemask)	__sigsetjmp (env, savemask)
+
+/* Jump to the environment saved in ENV, making the
+   sigsetjmp call there return VAL, or 1 if VAL is 0.
+   Restore the signal mask if that sigsetjmp call saved it.
+   This is just an alias `longjmp'.  */
+extern void siglongjmp (sigjmp_buf __env, int __val)
+     __THROW __attribute__ ((__noreturn__));
+#endif /* Use POSIX.  */
+
+__END_DECLS
+
+#endif /* setjmp.h  */
+                                                                                                                                                                                                                                                                           /* Header with interface version macros for library pieces copied elsewhere.
+   Copyright (C) 1995, 1996, 1997 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  */
+
+#ifndef _GNU_VERSIONS_H
+#define	_GNU_VERSIONS_H	1
+
+/* This file exists to define these few macros.  Each specifies a version
+   number associated with the library interface of a piece of the C library
+   which is also distributed with other GNU packages.  These pieces are
+   both part of the GNU C library and also distributed with other GNU
+   packages so those packages may use their facilities on systems lacking
+   the GNU C library.  The source files for each piece surround all their
+   code with `#ifndef ELIDE_CODE' after defining it with this:
+
+   #define OBSTACK_INTERFACE_VERSION 1
+   #if !defined (_LIBC) && defined (__GNU_LIBRARY__) && __GNU_LIBRARY__ > 1
+   #include <gnu-versions.h>
+   #if _GNU_OBSTACK_INTERFACE_VERSION == OBSTACK_INTERFACE_VERSION
+   #define ELIDE_CODE
+   #endif
+   #endif
+
+   This allows those one to avoid compiling those files when part of a GNU
+   package not libc, on a system using a GNU C library that supports the
+   same interface.
+
+   Please preserve the format of the comments after each macro.  And
+   remember, if any of these versions change, the libc.so major version
+   number must change too (so avoid it)!  */
+
+#define _GNU_OBSTACK_INTERFACE_VERSION	1 /* vs malloc/obstack.c */
+#define _GNU_REGEX_INTERFACE_VERSION	1 /* vs posix/regex.c */
+#define _GNU_GLOB_INTERFACE_VERSION	1 /* vs posix/glob.c */
+#define _GNU_GETOPT_INTERFACE_VERSION	2 /* vs posix/getopt.c and
+					     posix/getopt1.c */
+
+#endif	/* gnu-versions.h */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                /* Copyright (C) 1997, 1998, 1999, 2000 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  */
+
+/*
+ *	ISO C99:  7.3 Complex arithmetic	<complex.h>
+ */
+
+#ifndef _COMPLEX_H
+#define _COMPLEX_H	1
+
+#include <features.h>
+
+/* Get general and ISO C99 specific information.  */
+#include <bits/mathdef.h>
+
+__BEGIN_DECLS
+
+/* We might need to add support for more compilers here.  But since ISO
+   C99 is out hopefully all maintained compilers will soon provide the data
+   types `float complex' and `double complex'.  */
+#if __GNUC_PREREQ (2, 7) && !__GNUC_PREREQ (2, 97)
+# define _Complex __complex__
+#endif
+
+#define complex		_Complex
+
+/* Narrowest imaginary unit.  This depends on the floating-point
+   evaluation method.
+   XXX This probably has to go into a gcc related file.  */
+#define _Complex_I	(__extension__ 1.0iF)
+
+/* Another more descriptive name is `I'.
+   XXX Once we have the imaginary support switch this to _Imaginary_I.  */
+#undef I
+#define I _Complex_I
+
+/* The file <bits/cmathcalls.h> contains the prototypes for all the
+   actual math functions.  These macros are used for those prototypes,
+   so we can easily declare each function as both `name' and `__name',
+   and can declare the float versions `namef' and `__namef'.  */
+
+#define __MATHCALL(function, args)	\
+  __MATHDECL (_Mdouble_complex_,function, args)
+#define __MATHDECL(type, function, args) \
+  __MATHDECL_1(type, function, args); \
+  __MATHDECL_1(type, __CONCAT(__,function), args)
+#define __MATHDECL_1(type, function, args) \
+  extern type __MATH_PRECNAME(function) args __THROW
+
+#define _Mdouble_		double
+#define __MATH_PRECNAME(name)	name
+#include <bits/cmathcalls.h>
+#undef	_Mdouble_
+#undef	__MATH_PRECNAME
+
+/* Now the float versions.  */
+#ifndef _Mfloat_
+# define _Mfloat_		float
+#endif
+#define _Mdouble_		_Mfloat_
+#ifdef __STDC__
+# define __MATH_PRECNAME(name)	name##f
+#else
+# define __MATH_PRECNAME(name)	name/**/f
+#endif
+#include <bits/cmathcalls.h>
+#undef	_Mdouble_
+#undef	__MATH_PRECNAME
+
+/* And the long double versions.  It is non-critical to define them
+   here unconditionally since `long double' is required in ISO C99.  */
+#if __STDC__ - 0 || __GNUC__ - 0 && defined __UCLIBC_HAS_LONG_DOUBLE_MATH__
+# ifndef _Mlong_double_
+#  define _Mlong_double_	long double
+# endif
+# define _Mdouble_		_Mlong_double_
+# ifdef __STDC__
+#  define __MATH_PRECNAME(name)	name##l
+# else
+#  define __MATH_PRECNAME(name)	name/**/l
+# endif
+# include <bits/cmathcalls.h>
+#endif
+#undef	_Mdouble_
+#undef	__MATH_PRECNAME
+#undef	__MATHDECL_1
+#undef	__MATHDECL
+#undef	__MATHCALL
+
+__END_DECLS
+
+#endif /* complex.h */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          /* This file will not be installed if not using gnu getopt. */
+
+#include <bits/getopt.h>
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      /*
+ * tclDecls.h --
+ *
+ *	Declarations of functions in the platform independent public Tcl API.
+ *
+ * Copyright (c) 1998-1999 by Scriptics Corporation.
+ *
+ * See the file "license.terms" for information on usage and redistribution
+ * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ *
+ * RCS: @(#) $Id: tclDecls.h,v 1.93.2.7 2006/09/22 01:26:23 andreas_kupries Exp $
+ */
+
+#ifndef _TCLDECLS
+#define _TCLDECLS
+
+/*
+ * WARNING: This file is automatically generated by the tools/genStubs.tcl
+ * script.  Any modifications to the function declarations below should be made
+ * in the generic/tcl.decls script.
+ */
+
+/* !BEGIN!: Do not edit below this line. */
+
+/*
+ * Exported function declarations:
+ */
+
+/* 0 */
+EXTERN int		Tcl_PkgProvideEx _ANSI_ARGS_((Tcl_Interp* interp, 
+				CONST char* name, CONST char* version, 
+				ClientData clientData));
+/* 1 */
+EXTERN CONST84_RETURN char * Tcl_PkgRequireEx _ANSI_ARGS_((
+				Tcl_Interp * interp, CONST char * name, 
+				CONST char * version, int exact, 
+				ClientData * clientDataPtr));
+/* 2 */
+EXTERN void		Tcl_Panic _ANSI_ARGS_(TCL_VARARGS(CONST char *,format));
+/* 3 */
+EXTERN char *		Tcl_Alloc _ANSI_ARGS_((unsigned int size));
+/* 4 */
+EXTERN void		Tcl_Free _ANSI_ARGS_((char * ptr));
+/* 5 */
+EXTERN char *		Tcl_Realloc _ANSI_ARGS_((char * ptr, 
+				unsigned int size));
+/* 6 */
+EXTERN char *		Tcl_DbCkalloc _ANSI_ARGS_((unsigned int size, 
+				CONST char * file, int line));
+/* 7 */
+EXTERN int		Tcl_DbCkfree _ANSI_ARGS_((char * ptr, 
+				CONST char * file, int line));
+/* 8 */
+EXTERN char *		Tcl_DbCkrealloc _ANSI_ARGS_((char * ptr, 
+				unsigned int size, CONST char * file, 
+				int line));
+#if !defined(__WIN32__) && !defined(MAC_TCL) /* UNIX */
+/* 9 */
+EXTERN void		Tcl_CreateFileHandler _ANSI_ARGS_((int fd, int mask, 
+				Tcl_FileProc * proc, ClientData clientData));
+#endif /* UNIX */
+#if !defined(__WIN32__) && !defined(MAC_TCL) /* UNIX */
+/* 10 */
+EXTERN void		Tcl_DeleteFileHandler _ANSI_ARGS_((int fd));
+#endif /* UNIX */
+/* 11 */
+EXTERN void		Tcl_SetTimer _ANSI_ARGS_((Tcl_Time * timePtr));
+/* 12 */
+EXTERN void		Tcl_Sleep _ANSI_ARGS_((int ms));
+/* 13 */
+EXTERN int		Tcl_WaitForEvent _ANSI_ARGS_((Tcl_Time * timePtr));
+/* 14 */
+EXTERN int		Tcl_AppendAllObjTypes _ANSI_ARGS_((
+				Tcl_Interp * interp, Tcl_Obj * objPtr));
+/* 15 */
+EXTERN void		Tcl_AppendStringsToObj _ANSI_ARGS_(TCL_VARARGS(Tcl_Obj *,objPtr));
+/* 16 */
+EXTERN void		Tcl_AppendToObj _ANSI_ARGS_((Tcl_Obj* objPtr, 
+				CONST char* bytes, int length));
+/* 17 */
+EXTERN Tcl_Obj *	Tcl_ConcatObj _ANSI_ARGS_((int objc, 
+				Tcl_Obj *CONST objv[]));
+/* 18 */
+EXTERN int		Tcl_ConvertToType _ANSI_ARGS_((Tcl_Interp * interp, 
+				Tcl_Obj * objPtr, Tcl_ObjType * typePtr));
+/* 19 */
+EXTERN void		Tcl_DbDecrRefCount _ANSI_ARGS_((Tcl_Obj * objPtr, 
+				CONST char * file, int line));
+/* 20 */
+EXTERN void		Tcl_DbIncrRefCount _ANSI_ARGS_((Tcl_Obj * objPtr, 
+				CONST char * file, int line));
+/* 21 */
+EXTERN int		Tcl_DbIsShared _ANSI_ARGS_((Tcl_Obj * objPtr, 
+				CONST char * file, int line));
+/* 22 */
+EXTERN Tcl_Obj *	Tcl_DbNewBooleanObj _ANSI_ARGS_((int boolValue, 
+				CONST char * file, int line));
+/* 23 */
+EXTERN Tcl_Obj *	Tcl_DbNewByteArrayObj _ANSI_ARGS_((
+				CONST unsigned char * bytes, int length, 
+				CONST char * file, int line));
+/* 24 */
+EXTERN Tcl_Obj *	Tcl_DbNewDoubleObj _ANSI_ARGS_((double doubleValue, 
+				CONST char * file, int line));
+/* 25 */
+EXTERN Tcl_Obj *	Tcl_DbNewListObj _ANSI_ARGS_((int objc, 
+				Tcl_Obj *CONST * objv, CONST char * file, 
+				int line));
+/* 26 */
+EXTERN Tcl_Obj *	Tcl_DbNewLongObj _ANSI_ARGS_((long longValue, 
+				CONST char * file, int line));
+/* 27 */
+EXTERN Tcl_Obj *	Tcl_DbNewObj _ANSI_ARGS_((CONST char * file, 
+				int line));
+/* 28 */
+EXTERN Tcl_Obj *	Tcl_DbNewStringObj _ANSI_ARGS_((CONST char * bytes, 
+				int length, CONST char * file, int line));
+/* 29 */
+EXTERN Tcl_Obj *	Tcl_DuplicateObj _ANSI_ARGS_((Tcl_Obj * objPtr));
+/* 30 */
+EXTERN void		TclFreeObj _ANSI_ARGS_((Tcl_Obj * objPtr));
+/* 31 */
+EXTERN int		Tcl_GetBoolean _ANSI_ARGS_((Tcl_Interp * interp, 
+				CONST char * str, int * boolPtr));
+/* 32 */
+EXTERN int		Tcl_GetBooleanFromObj _ANSI_ARGS_((
+				Tcl_Interp * interp, Tcl_Obj * objPtr, 
+				int * boolPtr));
+/* 33 */
+EXTERN unsigned char *	Tcl_GetByteArrayFromObj _ANSI_ARGS_((
+				Tcl_Obj * objPtr, int * lengthPtr));
+/* 34 */
+EXTERN int		Tcl_GetDouble _ANSI_ARGS_((Tcl_Interp * interp, 
+				CONST char * str, double * doublePtr));
+/* 35 */
+EXTERN int		Tcl_GetDoubleFromObj _ANSI_ARGS_((
+				Tcl_Interp * interp, Tcl_Obj * objPtr, 
+				double * doublePtr));
+/* 36 */
+EXTERN int		Tcl_GetIndexFromObj _ANSI_ARGS_((Tcl_Interp * interp, 
+				Tcl_Obj * objPtr, CONST84 char ** tablePtr, 
+				CONST char * msg, int flags, int * indexPtr));
+/* 37 */
+EXTERN int		Tcl_GetInt _ANSI_ARGS_((Tcl_Interp * interp, 
+				CONST char * str, int * intPtr));
+/* 38 */
+EXTERN int		Tcl_GetIntFromObj _ANSI_ARGS_((Tcl_Interp * interp, 
+				Tcl_Obj * objPtr, int * intPtr));
+/* 39 */
+EXTERN int		Tcl_GetLongFromObj _ANSI_ARGS_((Tcl_Interp * interp, 
+				Tcl_Obj * objPtr, long * longPtr));
+/* 40 */
+EXTERN Tcl_ObjType *	Tcl_GetObjType _ANSI_ARGS_((CONST char * typeName));
+/* 41 */
+EXTERN char *		Tcl_GetStringFromObj _ANSI_ARGS_((Tcl_Obj * objPtr, 
+				int * lengthPtr));
+/* 42 */
+EXTERN void		Tcl_InvalidateStringRep _ANSI_ARGS_((
+				Tcl_Obj * objPtr));
+/* 43 */
+EXTERN int		Tcl_ListObjAppendList _ANSI_ARGS_((
+				Tcl_Interp * interp, Tcl_Obj * listPtr, 
+				Tcl_Obj * elemListPtr));
+/* 44 */
+EXTERN int		Tcl_ListObjAppendElement _ANSI_ARGS_((
+				Tcl_Interp * interp, Tcl_Obj * listPtr, 
+				Tcl_Obj * objPtr));
+/* 45 */
+EXTERN int		Tcl_ListObjGetElements _ANSI_ARGS_((
+				Tcl_Interp * interp, Tcl_Obj * listPtr, 
+				int * objcPtr, Tcl_Obj *** objvPtr));
+/* 46 */
+EXTERN int		Tcl_ListObjIndex _ANSI_ARGS_((Tcl_Interp * interp, 
+				Tcl_Obj * listPtr, int index, 
+				Tcl_Obj ** objPtrPtr));
+/* 47 */
+EXTERN int		Tcl_ListObjLength _ANSI_ARGS_((Tcl_Interp * interp, 
+				Tcl_Obj * listPtr, int * lengthPtr));
+/* 48 */
+EXTERN int		Tcl_ListObjReplace _ANSI_ARGS_((Tcl_Interp * interp, 
+				Tcl_Obj * listPtr, int first, int count, 
+				int objc, Tcl_Obj *CONST objv[]));
+/* 49 */
+EXTERN Tcl_Obj *	Tcl_NewBooleanObj _ANSI_ARGS_((int boolValue));
+/* 50 */
+EXTERN Tcl_Obj *	Tcl_NewByteArrayObj _ANSI_ARGS_((
+				CONST unsigned char* bytes, int length));
+/* 51 */
+EXTERN Tcl_Obj *	Tcl_NewDoubleObj _ANSI_ARGS_((double doubleValue));
+/* 52 */
+EXTERN Tcl_Obj *	Tcl_NewIntObj _ANSI_ARGS_((int intValue));
+/* 53 */
+EXTERN Tcl_Obj *	Tcl_NewListObj _ANSI_ARGS_((int objc, 
+				Tcl_Obj *CONST objv[]));
+/* 54 */
+EXTERN Tcl_Obj *	Tcl_NewLongObj _ANSI_ARGS_((long longValue));
+/* 55 */
+EXTERN Tcl_Obj *	Tcl_NewObj _ANSI_ARGS_((void));
+/* 56 */
+EXTERN Tcl_Obj *	Tcl_NewStringObj _ANSI_ARGS_((CONST char * bytes, 
+				int length));
+/* 57 */
+EXTERN void		Tcl_SetBooleanObj _ANSI_ARGS_((Tcl_Obj * objPtr, 
+				int boolValue));
+/* 58 */
+EXTERN unsigned char *	Tcl_SetByteArrayLength _ANSI_ARGS_((Tcl_Obj * objPtr, 
+				int length));
+/* 59 */
+EXTERN void		Tcl_SetByteArrayObj _ANSI_ARGS_((Tcl_Obj * objPtr, 
+				CONST unsigned char * bytes, int length));
+/* 60 */
+EXTERN void		Tcl_SetDoubleObj _ANSI_ARGS_((Tcl_O

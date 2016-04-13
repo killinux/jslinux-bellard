@@ -1,0 +1,1854 @@
+oncept
+  {
+    void __constraints() {
+      __function_requires< _TrivialIteratorConcept<_Tp> >();
+      // require iterator_traits typedef's
+      typedef typename std::iterator_traits<_Tp>::difference_type _Diff;
+//      __function_requires< _SignedIntegerConcept<_Diff> >();
+      typedef typename std::iterator_traits<_Tp>::reference _Ref;
+      typedef typename std::iterator_traits<_Tp>::pointer _Pt;
+      typedef typename std::iterator_traits<_Tp>::iterator_category _Cat;
+      __function_requires< _ConvertibleConcept<
+        typename std::iterator_traits<_Tp>::iterator_category,
+        std::input_iterator_tag> >();
+      ++__i;                            // require preincrement operator
+      __i++;                            // require postincrement operator
+    }
+    _Tp __i;
+  };
+
+  template <class _Tp, class _ValueT>
+  struct _OutputIteratorConcept
+  {
+    void __constraints() {
+      __function_requires< _AssignableConcept<_Tp> >();
+      ++__i;                            // require preincrement operator
+      __i++;                            // require postincrement operator
+      *__i++ = __t;                     // require postincrement and assignment
+    }
+    _Tp __i;
+    _ValueT __t;
+  };
+
+  template <class _Tp>
+  struct _ForwardIteratorConcept
+  {
+    void __constraints() {
+      __function_requires< _InputIteratorConcept<_Tp> >();
+      __function_requires< _DefaultConstructibleConcept<_Tp> >();
+      __function_requires< _ConvertibleConcept<
+        typename std::iterator_traits<_Tp>::iterator_category,
+        std::forward_iterator_tag> >();
+      typedef typename std::iterator_traits<_Tp>::reference _Ref;
+      _Ref __r _IsUnused = *__i;
+    }
+    _Tp __i;
+  };
+
+  template <class _Tp>
+  struct _Mutable_ForwardIteratorConcept
+  {
+    void __constraints() {
+      __function_requires< _ForwardIteratorConcept<_Tp> >();
+      *__i++ = *__i;                    // require postincrement and assignment
+    }
+    _Tp __i;
+  };
+
+  template <class _Tp>
+  struct _BidirectionalIteratorConcept
+  {
+    void __constraints() {
+      __function_requires< _ForwardIteratorConcept<_Tp> >();
+      __function_requires< _ConvertibleConcept<
+        typename std::iterator_traits<_Tp>::iterator_category,
+        std::bidirectional_iterator_tag> >();
+      --__i;                            // require predecrement operator
+      __i--;                            // require postdecrement operator
+    }
+    _Tp __i;
+  };
+
+  template <class _Tp>
+  struct _Mutable_BidirectionalIteratorConcept
+  {
+    void __constraints() {
+      __function_requires< _BidirectionalIteratorConcept<_Tp> >();
+      __function_requires< _Mutable_ForwardIteratorConcept<_Tp> >();
+      *__i-- = *__i;                    // require postdecrement and assignment
+    }
+    _Tp __i;
+  };
+
+
+  template <class _Tp>
+  struct _RandomAccessIteratorConcept
+  {
+    void __constraints() {
+      __function_requires< _BidirectionalIteratorConcept<_Tp> >();
+      __function_requires< _ComparableConcept<_Tp> >();
+      __function_requires< _ConvertibleConcept<
+        typename std::iterator_traits<_Tp>::iterator_category,
+        std::random_access_iterator_tag> >();
+      // ??? We don't use _Ref, are we just checking for "referenceability"?
+      typedef typename std::iterator_traits<_Tp>::reference _Ref;
+
+      __i += __n;                       // require assignment addition operator
+      __i = __i + __n; __i = __n + __i; // require addition with difference type
+      __i -= __n;                       // require assignment subtraction op
+      __i = __i - __n;                  // require subtraction with
+                                        //            difference type
+      __n = __i - __j;                  // require difference operator
+      (void)__i[__n];                   // require element access operator
+    }
+    _Tp __a, __b;
+    _Tp __i, __j;
+    typename std::iterator_traits<_Tp>::difference_type __n;
+  };
+
+  template <class _Tp>
+  struct _Mutable_RandomAccessIteratorConcept
+  {
+    void __constraints() {
+      __function_requires< _RandomAccessIteratorConcept<_Tp> >();
+      __function_requires< _Mutable_BidirectionalIteratorConcept<_Tp> >();
+      __i[__n] = *__i;                  // require element access and assignment
+    }
+    _Tp __i;
+    typename std::iterator_traits<_Tp>::difference_type __n;
+  };
+
+  //===========================================================================
+  // Container Concepts
+
+  template <class _Container>
+  struct _ContainerConcept
+  {
+    typedef typename _Container::value_type _Value_type;
+    typedef typename _Container::difference_type _Difference_type;
+    typedef typename _Container::size_type _Size_type;
+    typedef typename _Container::const_reference _Const_reference;
+    typedef typename _Container::const_pointer _Const_pointer;
+    typedef typename _Container::const_iterator _Const_iterator;
+
+    void __constraints() {
+      __function_requires< _InputIteratorConcept<_Const_iterator> >();
+      __function_requires< _AssignableConcept<_Container> >();
+      const _Container __c;
+      __i = __c.begin();
+      __i = __c.end();
+      __n = __c.size();
+      __n = __c.max_size();
+      __b = __c.empty();
+    }
+    bool __b;
+    _Const_iterator __i;
+    _Size_type __n;
+  };
+
+  template <class _Container>
+  struct _Mutable_ContainerConcept
+  {
+    typedef typename _Container::value_type _Value_type;
+    typedef typename _Container::reference _Reference;
+    typedef typename _Container::iterator _Iterator;
+    typedef typename _Container::pointer _Pointer;
+
+    void __constraints() {
+      __function_requires< _ContainerConcept<_Container> >();
+      __function_requires< _AssignableConcept<_Value_type> >();
+      __function_requires< _InputIteratorConcept<_Iterator> >();
+
+      __i = __c.begin();
+      __i = __c.end();
+      __c.swap(__c2);
+    }
+    _Iterator __i;
+    _Container __c, __c2;
+  };
+
+  template <class _ForwardContainer>
+  struct _ForwardContainerConcept
+  {
+    void __constraints() {
+      __function_requires< _ContainerConcept<_ForwardContainer> >();
+      typedef typename _ForwardContainer::const_iterator _Const_iterator;
+      __function_requires< _ForwardIteratorConcept<_Const_iterator> >();
+    }
+  };
+
+  template <class _ForwardContainer>
+  struct _Mutable_ForwardContainerConcept
+  {
+    void __constraints() {
+      __function_requires< _ForwardContainerConcept<_ForwardContainer> >();
+      __function_requires< _Mutable_ContainerConcept<_ForwardContainer> >();
+      typedef typename _ForwardContainer::iterator _Iterator;
+      __function_requires< _Mutable_ForwardIteratorConcept<_Iterator> >();
+    }
+  };
+
+  template <class _ReversibleContainer>
+  struct _ReversibleContainerConcept
+  {
+    typedef typename _ReversibleContainer::const_iterator _Const_iterator;
+    typedef typename _ReversibleContainer::const_reverse_iterator
+      _Const_reverse_iterator;
+
+    void __constraints() {
+      __function_requires< _ForwardContainerConcept<_ReversibleContainer> >();
+      __function_requires< _BidirectionalIteratorConcept<_Const_iterator> >();
+      __function_requires<
+        _BidirectionalIteratorConcept<_Const_reverse_iterator> >();
+
+      const _ReversibleContainer __c;
+      _Const_reverse_iterator __i = __c.rbegin();
+      __i = __c.rend();
+    }
+  };
+
+  template <class _ReversibleContainer>
+  struct _Mutable_ReversibleContainerConcept
+  {
+    typedef typename _ReversibleContainer::iterator _Iterator;
+    typedef typename _ReversibleContainer::reverse_iterator _Reverse_iterator;
+
+    void __constraints() {
+      __function_requires<_ReversibleContainerConcept<_ReversibleContainer> >();
+      __function_requires<
+        _Mutable_ForwardContainerConcept<_ReversibleContainer> >();
+      __function_requires<_Mutable_BidirectionalIteratorConcept<_Iterator> >();
+      __function_requires<
+        _Mutable_BidirectionalIteratorConcept<_Reverse_iterator> >();
+
+      _Reverse_iterator __i = __c.rbegin();
+      __i = __c.rend();
+    }
+    _ReversibleContainer __c;
+  };
+
+  template <class _RandomAccessContainer>
+  struct _RandomAccessContainerConcept
+  {
+    typedef typename _RandomAccessContainer::size_type _Size_type;
+    typedef typename _RandomAccessContainer::const_reference _Const_reference;
+    typedef typename _RandomAccessContainer::const_iterator _Const_iterator;
+    typedef typename _RandomAccessContainer::const_reverse_iterator
+      _Const_reverse_iterator;
+
+    void __constraints() {
+      __function_requires<
+        _ReversibleContainerConcept<_RandomAccessContainer> >();
+      __function_requires< _RandomAccessIteratorConcept<_Const_iterator> >();
+      __function_requires<
+        _RandomAccessIteratorConcept<_Const_reverse_iterator> >();
+
+      const _RandomAccessContainer __c;
+      _Const_reference __r _IsUnused = __c[__n];
+    }
+    _Size_type __n;
+  };
+
+  template <class _RandomAccessContainer>
+  struct _Mutable_RandomAccessContainerConcept
+  {
+    typedef typename _RandomAccessContainer::size_type _Size_type;
+    typedef typename _RandomAccessContainer::reference _Reference;
+    typedef typename _RandomAccessContainer::iterator _Iterator;
+    typedef typename _RandomAccessContainer::reverse_iterator _Reverse_iterator;
+
+    void __constraints() {
+      __function_requires<
+        _RandomAccessContainerConcept<_RandomAccessContainer> >();
+      __function_requires<
+        _Mutable_ReversibleContainerConcept<_RandomAccessContainer> >();
+      __function_requires< _Mutable_RandomAccessIteratorConcept<_Iterator> >();
+      __function_requires<
+        _Mutable_RandomAccessIteratorConcept<_Reverse_iterator> >();
+
+      _Reference __r _IsUnused = __c[__i];
+    }
+    _Size_type __i;
+    _RandomAccessContainer __c;
+  };
+
+  // A Sequence is inherently mutable
+  template <class _Sequence>
+  struct _SequenceConcept
+  {
+    typedef typename _Sequence::reference _Reference;
+    typedef typename _Sequence::const_reference _Const_reference;
+
+    void __constraints() {
+      // Matt Austern's book puts DefaultConstructible here, the C++
+      // standard places it in Container
+      //    function_requires< DefaultConstructible<Sequence> >();
+      __function_requires< _Mutable_ForwardContainerConcept<_Sequence> >();
+      __function_requires< _DefaultConstructibleConcept<_Sequence> >();
+
+      _Sequence
+	__c _IsUnused(__n, __t),
+        __c2 _IsUnused(__first, __last);
+
+      __c.insert(__p, __t);
+      __c.insert(__p, __n, __t);
+      __c.insert(__p, __first, __last);
+
+      __c.erase(__p);
+      __c.erase(__p, __q);
+
+      _Reference __r _IsUnused = __c.front();
+
+      __const_constraints(__c);
+    }
+    void __const_constraints(const _Sequence& __c) {
+      _Const_reference __r _IsUnused = __c.front();
+    }
+    typename _Sequence::value_type __t;
+    typename _Sequence::size_type __n;
+    typename _Sequence::value_type *__first, *__last;
+    typename _Sequence::iterator __p, __q;
+  };
+
+  template <class _FrontInsertionSequence>
+  struct _FrontInsertionSequenceConcept
+  {
+    void __constraints() {
+      __function_requires< _SequenceConcept<_FrontInsertionSequence> >();
+
+      __c.push_front(__t);
+      __c.pop_front();
+    }
+    _FrontInsertionSequence __c;
+    typename _FrontInsertionSequence::value_type __t;
+  };
+
+  template <class _BackInsertionSequence>
+  struct _BackInsertionSequenceConcept
+  {
+    typedef typename _BackInsertionSequence::reference _Reference;
+    typedef typename _BackInsertionSequence::const_reference _Const_reference;
+
+    void __constraints() {
+      __function_requires< _SequenceConcept<_BackInsertionSequence> >();
+
+      __c.push_back(__t);
+      __c.pop_back();
+      _Reference __r _IsUnused = __c.back();
+    }
+    void __const_constraints(const _BackInsertionSequence& __c) {
+      _Const_reference __r _IsUnused = __c.back();
+    };
+    _BackInsertionSequence __c;
+    typename _BackInsertionSequence::value_type __t;
+  };
+
+_GLIBCXX_END_NAMESPACE
+
+#undef _IsUnused
+
+#endif // _GLIBCXX_BOOST_CONCEPT_CHECK
+
+
+                                                                                                                                                                                                                                                                                                        // functional_hash.h header -*- C++ -*-
+
+// Copyright (C) 2007,2008 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+// Boston, MA 02110-1301, USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file bits/functional_hash.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+#ifndef _FUNCTIONAL_HASH_H
+#define _FUNCTIONAL_HASH_H 1
+
+#pragma GCC system_header
+
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+# include <c++0x_warning.h>
+#endif
+
+#if defined(_GLIBCXX_INCLUDE_AS_TR1)
+#  error C++0x header cannot be included from TR1 header
+#endif
+
+#if defined(_GLIBCXX_INCLUDE_AS_CXX0X)
+#  include <tr1_impl/functional_hash.h>
+#else
+#  define _GLIBCXX_INCLUDE_AS_CXX0X
+#  define _GLIBCXX_BEGIN_NAMESPACE_TR1
+#  define _GLIBCXX_END_NAMESPACE_TR1
+#  define _GLIBCXX_TR1
+#  include <tr1_impl/functional_hash.h>
+#  undef _GLIBCXX_TR1
+#  undef _GLIBCXX_END_NAMESPACE_TR1
+#  undef _GLIBCXX_BEGIN_NAMESPACE_TR1
+#  undef _GLIBCXX_INCLUDE_AS_CXX0X
+#endif
+
+#endif // _FUNCTIONAL_HASH_H
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 // Iostreams base classes -*- C++ -*-
+
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007, 2008
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file basic_ios.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+#ifndef _BASIC_IOS_H
+#define _BASIC_IOS_H 1
+
+#pragma GCC system_header
+
+#include <bits/localefwd.h>
+#include <bits/locale_classes.h>
+#include <bits/locale_facets.h>
+#include <bits/streambuf_iterator.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  template<typename _Facet>
+    inline const _Facet&
+    __check_facet(const _Facet* __f)
+    {
+      if (!__f)
+	__throw_bad_cast();
+      return *__f;
+    }
+
+  // 27.4.5  Template class basic_ios
+  /**
+   *  @brief  Virtual base class for all stream classes.
+   *
+   *  Most of the member functions called dispatched on stream objects
+   *  (e.g., @c std::cout.foo(bar);) are consolidated in this class.
+  */
+  template<typename _CharT, typename _Traits>
+    class basic_ios : public ios_base
+    {
+    public:
+      //@{
+      /**
+       *  These are standard types.  They permit a standardized way of
+       *  referring to names of (or names dependant on) the template
+       *  parameters, which are specific to the implementation.
+      */
+      typedef _CharT                                 char_type;
+      typedef typename _Traits::int_type             int_type;
+      typedef typename _Traits::pos_type             pos_type;
+      typedef typename _Traits::off_type             off_type;
+      typedef _Traits                                traits_type;
+      //@}
+
+      //@{
+      /**
+       *  These are non-standard types.
+      */
+      typedef ctype<_CharT>                          __ctype_type;
+      typedef num_put<_CharT, ostreambuf_iterator<_CharT, _Traits> >
+						     __num_put_type;
+      typedef num_get<_CharT, istreambuf_iterator<_CharT, _Traits> >
+						     __num_get_type;
+      //@}
+
+      // Data members:
+    protected:
+      basic_ostream<_CharT, _Traits>*                _M_tie;
+      mutable char_type                              _M_fill;
+      mutable bool                                   _M_fill_init;
+      basic_streambuf<_CharT, _Traits>*              _M_streambuf;
+
+      // Cached use_facet<ctype>, which is based on the current locale info.
+      const __ctype_type*                            _M_ctype;
+      // For ostream.
+      const __num_put_type*                          _M_num_put;
+      // For istream.
+      const __num_get_type*                          _M_num_get;
+
+    public:
+      //@{
+      /**
+       *  @brief  The quick-and-easy status check.
+       *
+       *  This allows you to write constructs such as
+       *  "if (!a_stream) ..." and "while (a_stream) ..."
+      */
+      operator void*() const
+      { return this->fail() ? 0 : const_cast<basic_ios*>(this); }
+
+      bool
+      operator!() const
+      { return this->fail(); }
+      //@}
+
+      /**
+       *  @brief  Returns the error state of the stream buffer.
+       *  @return  A bit pattern (well, isn't everything?)
+       *
+       *  See std::ios_base::iostate for the possible bit values.  Most
+       *  users will call one of the interpreting wrappers, e.g., good().
+      */
+      iostate
+      rdstate() const
+      { return _M_streambuf_state; }
+
+      /**
+       *  @brief  [Re]sets the error state.
+       *  @param  state  The new state flag(s) to set.
+       *
+       *  See std::ios_base::iostate for the possible bit values.  Most
+       *  users will not need to pass an argument.
+      */
+      void
+      clear(iostate __state = goodbit);
+
+      /**
+       *  @brief  Sets additional flags in the error state.
+       *  @param  state  The additional state flag(s) to set.
+       *
+       *  See std::ios_base::iostate for the possible bit values.
+      */
+      void
+      setstate(iostate __state)
+      { this->clear(this->rdstate() | __state); }
+
+      // Flip the internal state on for the proper state bits, then re
+      // throws the propagated exception if bit also set in
+      // exceptions().
+      void
+      _M_setstate(iostate __state)
+      {
+	// 27.6.1.2.1 Common requirements.
+	// Turn this on without causing an ios::failure to be thrown.
+	_M_streambuf_state |= __state;
+	if (this->exceptions() & __state)
+	  __throw_exception_again;
+      }
+
+      /**
+       *  @brief  Fast error checking.
+       *  @return  True if no error flags are set.
+       *
+       *  A wrapper around rdstate.
+      */
+      bool
+      good() const
+      { return this->rdstate() == 0; }
+
+      /**
+       *  @brief  Fast error checking.
+       *  @return  True if the eofbit is set.
+       *
+       *  Note that other iostate flags may also be set.
+      */
+      bool
+      eof() const
+      { return (this->rdstate() & eofbit) != 0; }
+
+      /**
+       *  @brief  Fast error checking.
+       *  @return  True if either the badbit or the failbit is set.
+       *
+       *  Checking the badbit in fail() is historical practice.
+       *  Note that other iostate flags may also be set.
+      */
+      bool
+      fail() const
+      { return (this->rdstate() & (badbit | failbit)) != 0; }
+
+      /**
+       *  @brief  Fast error checking.
+       *  @return  True if the badbit is set.
+       *
+       *  Note that other iostate flags may also be set.
+      */
+      bool
+      bad() const
+      { return (this->rdstate() & badbit) != 0; }
+
+      /**
+       *  @brief  Throwing exceptions on errors.
+       *  @return  The current exceptions mask.
+       *
+       *  This changes nothing in the stream.  See the one-argument version
+       *  of exceptions(iostate) for the meaning of the return value.
+      */
+      iostate
+      exceptions() const
+      { return _M_exception; }
+
+      /**
+       *  @brief  Throwing exceptions on errors.
+       *  @param  except  The new exceptions mask.
+       *
+       *  By default, error flags are set silently.  You can set an
+       *  exceptions mask for each stream; if a bit in the mask becomes set
+       *  in the error flags, then an exception of type
+       *  std::ios_base::failure is thrown.
+       *
+       *  If the error flag is already set when the exceptions mask is
+       *  added, the exception is immediately thrown.  Try running the
+       *  following under GCC 3.1 or later:
+       *  @code
+       *  #include <iostream>
+       *  #include <fstream>
+       *  #include <exception>
+       *
+       *  int main()
+       *  {
+       *      std::set_terminate (__gnu_cxx::__verbose_terminate_handler);
+       *
+       *      std::ifstream f ("/etc/motd");
+       *
+       *      std::cerr << "Setting badbit\n";
+       *      f.setstate (std::ios_base::badbit);
+       *
+       *      std::cerr << "Setting exception mask\n";
+       *      f.exceptions (std::ios_base::badbit);
+       *  }
+       *  @endcode
+      */
+      void
+      exceptions(iostate __except)
+      {
+        _M_exception = __except;
+        this->clear(_M_streambuf_state);
+      }
+
+      // Constructor/destructor:
+      /**
+       *  @brief  Constructor performs initialization.
+       *
+       *  The parameter is passed by derived streams.
+      */
+      explicit
+      basic_ios(basic_streambuf<_CharT, _Traits>* __sb)
+      : ios_base(), _M_tie(0), _M_fill(), _M_fill_init(false), _M_streambuf(0),
+	_M_ctype(0), _M_num_put(0), _M_num_get(0)
+      { this->init(__sb); }
+
+      /**
+       *  @brief  Empty.
+       *
+       *  The destructor does nothing.  More specifically, it does not
+       *  destroy the streambuf held by rdbuf().
+      */
+      virtual
+      ~basic_ios() { }
+
+      // Members:
+      /**
+       *  @brief  Fetches the current @e tied stream.
+       *  @return  A pointer to the tied stream, or NULL if the stream is
+       *           not tied.
+       *
+       *  A stream may be @e tied (or synchronized) to a second output
+       *  stream.  When this stream performs any I/O, the tied stream is
+       *  first flushed.  For example, @c std::cin is tied to @c std::cout.
+      */
+      basic_ostream<_CharT, _Traits>*
+      tie() const
+      { return _M_tie; }
+
+      /**
+       *  @brief  Ties this stream to an output stream.
+       *  @param  tiestr  The output stream.
+       *  @return  The previously tied output stream, or NULL if the stream
+       *           was not tied.
+       *
+       *  This sets up a new tie; see tie() for more.
+      */
+      basic_ostream<_CharT, _Traits>*
+      tie(basic_ostream<_CharT, _Traits>* __tiestr)
+      {
+        basic_ostream<_CharT, _Traits>* __old = _M_tie;
+        _M_tie = __tiestr;
+        return __old;
+      }
+
+      /**
+       *  @brief  Accessing the underlying buffer.
+       *  @return  The current stream buffer.
+       *
+       *  This does not change the state of the stream.
+      */
+      basic_streambuf<_CharT, _Traits>*
+      rdbuf() const
+      { return _M_streambuf; }
+
+      /**
+       *  @brief  Changing the underlying buffer.
+       *  @param  sb  The new stream buffer.
+       *  @return  The previous stream buffer.
+       *
+       *  Associates a new buffer with the current stream, and clears the
+       *  error state.
+       *
+       *  Due to historical accidents which the LWG refuses to correct, the
+       *  I/O library suffers from a design error:  this function is hidden
+       *  in derived classes by overrides of the zero-argument @c rdbuf(),
+       *  which is non-virtual for hysterical raisins.  As a result, you
+       *  must use explicit qualifications to access this function via any
+       *  derived class.  For example:
+       *
+       *  @code
+       *  std::fstream     foo;         // or some other derived type
+       *  std::streambuf*  p = .....;
+       *
+       *  foo.ios::rdbuf(p);            // ios == basic_ios<char>
+       *  @endcode
+      */
+      basic_streambuf<_CharT, _Traits>*
+      rdbuf(basic_streambuf<_CharT, _Traits>* __sb);
+
+      /**
+       *  @brief  Copies fields of __rhs into this.
+       *  @param  __rhs  The source values for the copies.
+       *  @return  Reference to this object.
+       *
+       *  All fields of __rhs are copied into this object except that rdbuf()
+       *  and rdstate() remain unchanged.  All values in the pword and iword
+       *  arrays are copied.  Before copying, each callback is invoked with
+       *  erase_event.  After copying, each (new) callback is invoked with
+       *  copyfmt_event.  The final step is to copy exceptions().
+      */
+      basic_ios&
+      copyfmt(const basic_ios& __rhs);
+
+      /**
+       *  @brief  Retrieves the "empty" character.
+       *  @return  The current fill character.
+       *
+       *  It defaults to a space (' ') in the current locale.
+      */
+      char_type
+      fill() const
+      {
+	if (!_M_fill_init)
+	  {
+	    _M_fill = this->widen(' ');
+	    _M_fill_init = true;
+	  }
+	return _M_fill;
+      }
+
+      /**
+       *  @brief  Sets a new "empty" character.
+       *  @param  ch  The new character.
+\&  ]&  ^&                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             *  @return  The previous fill character.
+       *
+       *  The fill character is used to fill out space when P+ characters
+       *  have been requested (e.g., via setw), Q characters are actually
+       *  used, and Q<P.  It defaults to a space (' ') in the current locale.
+      */
+      char_type
+      fill(char_type __ch)
+      {
+	char_type __old = this->fill();
+	_M_fill = __ch;
+	return __old;
+      }
+
+      // Locales:
+      /**
+       *  @brief  Moves to a new locale.
+       *  @param  loc  The new locale.
+       *  @return  The previous locale.
+       *
+       *  Calls @c ios_base::imbue(loc), and if a stream buffer is associated
+       *  with this stream, calls that buffer's @c pubimbue(loc).
+       *
+       *  Additional l10n notes are at
+       *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/localization.html
+      */
+      locale
+      imbue(const locale& __loc);
+
+      /**
+       *  @brief  Squeezes characters.
+       *  @param  c  The character to narrow.
+       *  @param  dfault  The character to narrow.
+       *  @return  The narrowed character.
+       *
+       *  Maps a character of @c char_type to a character of @c char,
+       *  if possible.
+       *
+       *  Returns the result of
+       *  @code
+       *    std::use_facet<ctype<char_type> >(getloc()).narrow(c,dfault)
+       *  @endcode
+       *
+       *  Additional l10n notes are at
+       *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/localization.html
+      */
+      char
+      narrow(char_type __c, char __dfault) const
+      { return __check_facet(_M_ctype).narrow(__c, __dfault); }
+
+      /**
+       *  @brief  Widens characters.
+       *  @param  c  The character to widen.
+       *  @return  The widened character.
+       *
+       *  Maps a character of @c char to a character of @c char_type.
+       *
+       *  Returns the result of
+       *  @code
+       *    std::use_facet<ctype<char_type> >(getloc()).widen(c)
+       *  @endcode
+       *
+       *  Additional l10n notes are at
+       *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/localization.html
+      */
+      char_type
+      widen(char __c) const
+      { return __check_facet(_M_ctype).widen(__c); }
+
+    protected:
+      // 27.4.5.1  basic_ios constructors
+      /**
+       *  @brief  Empty.
+       *
+       *  The default constructor does nothing and is not normally
+       *  accessible to users.
+      */
+      basic_ios()
+      : ios_base(), _M_tie(0), _M_fill(char_type()), _M_fill_init(false), 
+	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+      { }
+
+      /**
+       *  @brief  All setup is performed here.
+       *
+       *  This is called from the public constructor.  It is not virtual and
+       *  cannot be redefined.
+      */
+      void
+      init(basic_streambuf<_CharT, _Traits>* __sb);
+
+      void
+      _M_cache_locale(const locale& __loc);
+    };
+
+_GLIBCXX_END_NAMESPACE
+
+#ifndef _GLIBCXX_EXPORT_TEMPLATE
+#include <bits/basic_ios.tcc>
+#endif
+
+#endif /* _BASIC_IOS_H */
+                                                                                          // hashtable.h header -*- C++ -*-
+
+// Copyright (C) 2007 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+// Boston, MA 02110-1301, USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file bits/hashtable.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+#ifndef _HASHTABLE_H
+#define _HASHTABLE_H 1
+
+#pragma GCC system_header
+
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+# include <c++0x_warning.h>
+#endif
+
+#if defined(_GLIBCXX_INCLUDE_AS_TR1)
+#  error C++0x header cannot be included from TR1 header
+#endif
+
+#if defined(_GLIBCXX_INCLUDE_AS_CXX0X)
+#  include <tr1_impl/hashtable>
+#else
+#  define _GLIBCXX_INCLUDE_AS_CXX0X
+#  define _GLIBCXX_BEGIN_NAMESPACE_TR1
+#  define _GLIBCXX_END_NAMESPACE_TR1
+#  define _GLIBCXX_TR1
+#  include <tr1_impl/hashtable>
+#  undef _GLIBCXX_TR1
+#  undef _GLIBCXX_END_NAMESPACE_TR1
+#  undef _GLIBCXX_END_NAMESPACE_TR1
+#  undef _GLIBCXX_INCLUDE_AS_CXX0X
+#endif
+
+#endif // _HASHTABLE_H
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      // The template and inlines for the -*- C++ -*- mask_array class.
+
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2004, 2005
+//  Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file mask_array.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+// Written by Gabriel Dos Reis <Gabriel.Dos-Reis@DPTMaths.ENS-Cachan.Fr>
+
+#ifndef _MASK_ARRAY_H
+#define _MASK_ARRAY_H 1
+
+#pragma GCC system_header
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  /**
+   *  @brief  Reference to selected subset of an array.
+   *
+   *  A mask_array is a reference to the actual elements of an array specified
+   *  by a bitmask in the form of an array of bool.  The way to get a
+   *  mask_array is to call operator[](valarray<bool>) on a valarray.  The
+   *  returned mask_array then permits carrying operations out on the
+   *  referenced subset of elements in the original valarray.
+   *
+   *  For example, if a mask_array is obtained using the array (false, true,
+   *  false, true) as an argument, the mask array has two elements referring
+   *  to array[1] and array[3] in the underlying array.
+   *
+   *  @param  Tp  Element type.
+   */
+  template <class _Tp>
+    class mask_array
+    {
+    public:
+      typedef _Tp value_type;
+
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 253. valarray helper functions are almost entirely useless
+
+      ///  Copy constructor.  Both slices refer to the same underlying array.
+      mask_array (const mask_array&);
+      
+      ///  Assignment operator.  Assigns elements to corresponding elements
+      ///  of @a a.
+      mask_array& operator=(const mask_array&);
+
+      void operator=(const valarray<_Tp>&) const;
+      ///  Multiply slice elements by corresponding elements of @a v.
+      void operator*=(const valarray<_Tp>&) const;
+      ///  Divide slice elements by corresponding elements of @a v.
+      void operator/=(const valarray<_Tp>&) const;
+      ///  Modulo slice elements by corresponding elements of @a v.
+      void operator%=(const valarray<_Tp>&) const;
+      ///  Add corresponding elements of @a v to slice elements.
+      void operator+=(const valarray<_Tp>&) const;
+      ///  Subtract corresponding elements of @a v from slice elements.
+      void operator-=(const valarray<_Tp>&) const;
+      ///  Logical xor slice elements with corresponding elements of @a v.
+      void operator^=(const valarray<_Tp>&) const;
+      ///  Logical and slice elements with corresponding elements of @a v.
+      void operator&=(const valarray<_Tp>&) const;
+      ///  Logical or slice elements with corresponding elements of @a v.
+      void operator|=(const valarray<_Tp>&) const;
+      ///  Left shift slice elements by corresponding elements of @a v.
+      void operator<<=(const valarray<_Tp>&) const;
+      ///  Right shift slice elements by corresponding elements of @a v.
+      void operator>>=(const valarray<_Tp>&) const;
+      ///  Assign all slice elements to @a t.
+      void operator=(const _Tp&) const;
+
+        //        ~mask_array ();
+
+      template<class _Dom>
+        void operator=(const _Expr<_Dom,_Tp>&) const;
+      template<class _Dom>
+        void operator*=(const _Expr<_Dom,_Tp>&) const;
+      template<class _Dom>
+        void operator/=(const _Expr<_Dom,_Tp>&) const;
+      template<class _Dom>
+        void operator%=(const _Expr<_Dom,_Tp>&) const;
+      template<class _Dom>
+        void operator+=(const _Expr<_Dom,_Tp>&) const;
+      template<class _Dom>
+        void operator-=(const _Expr<_Dom,_Tp>&) const;
+      template<class _Dom>
+        void operator^=(const _Expr<_Dom,_Tp>&) const;
+      template<class _Dom>
+        void operator&=(const _Expr<_Dom,_Tp>&) const;
+      template<class _Dom>
+        void operator|=(const _Expr<_Dom,_Tp>&) const;
+      template<class _Dom>
+        void operator<<=(const _Expr<_Dom,_Tp>&) const;
+      template<class _Dom>
+        void operator>>=(const _Expr<_Dom,_Tp>&) const;
+
+    private:
+      mask_array(_Array<_Tp>, size_t, _Array<bool>);
+      friend class valarray<_Tp>;
+
+      const size_t       _M_sz;
+      const _Array<bool> _M_mask;
+      const _Array<_Tp>  _M_array;
+
+      // not implemented
+      mask_array();
+    };
+
+  template<typename _Tp>
+    inline mask_array<_Tp>::mask_array(const mask_array<_Tp>& a)
+    : _M_sz(a._M_sz), _M_mask(a._M_mask), _M_array(a._M_array) {}
+
+  template<typename _Tp>
+    inline
+    mask_array<_Tp>::mask_array(_Array<_Tp> __a, size_t __s, _Array<bool> __m)
+    : _M_sz(__s), _M_mask(__m), _M_array(__a) {}
+
+  template<typename _Tp>
+    inline mask_array<_Tp>&
+    mask_array<_Tp>::operator=(const mask_array<_Tp>& __a)
+    {
+      std::__valarray_copy(__a._M_array, __a._M_mask,
+			   _M_sz, _M_array, _M_mask);
+      return *this;
+    }
+
+  template<typename _Tp>
+    inline void
+    mask_array<_Tp>::operator=(const _Tp& __t) const
+    { std::__valarray_fill(_M_array, _M_sz, _M_mask, __t); }
+
+  template<typename _Tp>
+    inline void
+    mask_array<_Tp>::operator=(const valarray<_Tp>& __v) const
+    { std::__valarray_copy(_Array<_Tp>(__v), __v.size(), _M_array, _M_mask); }
+
+  template<typename _Tp>
+    template<class _Ex>
+      inline void
+      mask_array<_Tp>::operator=(const _Expr<_Ex, _Tp>& __e) const
+      { std::__valarray_copy(__e, __e.size(), _M_array, _M_mask); }
+
+#undef _DEFINE_VALARRAY_OPERATOR
+#define _DEFINE_VALARRAY_OPERATOR(_Op, _Name)				\
+  template<typename _Tp>						\
+    inline void								\
+    mask_array<_Tp>::operator _Op##=(const valarray<_Tp>& __v) const	\
+    {									\
+      _Array_augmented_##_Name(_M_array, _M_mask,			\
+			       _Array<_Tp>(__v), __v.size());		\
+    }									\
+									\
+  template<typename _Tp>                                                \
+    template<class _Dom>			                        \
+      inline void							\
+      mask_array<_Tp>::operator _Op##=(const _Expr<_Dom, _Tp>& __e) const\
+      {									\
+	_Array_augmented_##_Name(_M_array, _M_mask, __e, __e.size());   \
+      }
+
+_DEFINE_VALARRAY_OPERATOR(*, __multiplies)
+_DEFINE_VALARRAY_OPERATOR(/, __divides)
+_DEFINE_VALARRAY_OPERATOR(%, __modulus)
+_DEFINE_VALARRAY_OPERATOR(+, __plus)
+_DEFINE_VALARRAY_OPERATOR(-, __minus)
+_DEFINE_VALARRAY_OPERATOR(^, __bitwise_xor)
+_DEFINE_VALARRAY_OPERATOR(&, __bitwise_and)
+_DEFINE_VALARRAY_OPERATOR(|, __bitwise_or)
+_DEFINE_VALARRAY_OPERATOR(<<, __shift_left)
+_DEFINE_VALARRAY_OPERATOR(>>, __shift_right)
+
+#undef _DEFINE_VALARRAY_OPERATOR
+
+_GLIBCXX_END_NAMESPACE
+
+#endif /* _MASK_ARRAY_H */
+                                                                                                                                                                                                                                                                                                                                                                                                      // List implementation -*- C++ -*-
+
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/*
+ *
+ * Copyright (c) 1994
+ * Hewlett-Packard Company
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Hewlett-Packard Company makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ *
+ *
+ * Copyright (c) 1996,1997
+ * Silicon Graphics Computer Systems, Inc.
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Silicon Graphics makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ */
+
+/** @file stl_list.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+#ifndef _STL_LIST_H
+#define _STL_LIST_H 1
+
+#include <bits/concept_check.h>
+
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
+
+  // Supporting structures are split into common and templated types; the
+  // latter publicly inherits from the former in an effort to reduce code
+  // duplication.  This results in some "needless" static_cast'ing later on,
+  // but it's all safe downcasting.
+
+  /// Common part of a node in the %list. 
+  struct _List_node_base
+  {
+    _List_node_base* _M_next;
+    _List_node_base* _M_prev;
+
+    static void
+    swap(_List_node_base& __x, _List_node_base& __y);
+
+    void
+    transfer(_List_node_base * const __first,
+	     _List_node_base * const __last);
+
+    void
+    reverse();
+
+    void
+    hook(_List_node_base * const __position);
+
+    void
+    unhook();
+  };
+
+  /// An actual node in the %list.
+  template<typename _Tp>
+    struct _List_node : public _List_node_base
+    {
+      ///< User's data.
+      _Tp _M_data;
+    };
+
+  /**
+   *  @brief A list::iterator.
+   *
+   *  All the functions are op overloads.
+  */
+  template<typename _Tp>
+    struct _List_iterator
+    {
+      typedef _List_iterator<_Tp>                _Self;
+      typedef _List_node<_Tp>                    _Node;
+
+      typedef ptrdiff_t                          difference_type;
+      typedef std::bidirectional_iterator_tag    iterator_category;
+      typedef _Tp                                value_type;
+      typedef _Tp*                               pointer;
+      typedef _Tp&                               reference;
+
+      _List_iterator()
+      : _M_node() { }
+
+      explicit
+      _List_iterator(_List_node_base* __x)
+      : _M_node(__x) { }
+
+      // Must downcast from List_node_base to _List_node to get to _M_data.
+      reference
+      operator*() const
+      { return static_cast<_Node*>(_M_node)->_M_data; }
+
+      pointer
+      operator->() const
+      { return &static_cast<_Node*>(_M_node)->_M_data; }
+
+      _Self&
+      operator++()
+      {
+	_M_node = _M_node->_M_next;
+	return *this;
+      }
+
+      _Self
+      operator++(int)
+      {
+	_Self __tmp = *this;
+	_M_node = _M_node->_M_next;
+	return __tmp;
+      }
+
+      _Self&
+      operator--()
+      {
+	_M_node = _M_node->_M_prev;
+	return *this;
+      }
+
+      _Self
+      operator--(int)
+      {
+	_Self __tmp = *this;
+	_M_node = _M_node->_M_prev;
+	return __tmp;
+      }
+
+      bool
+      operator==(const _Self& __x) const
+      { return _M_node == __x._M_node; }
+
+      bool
+      operator!=(const _Self& __x) const
+      { return _M_node != __x._M_node; }
+
+      // The only member points to the %list element.
+      _List_node_base* _M_node;
+    };
+
+  /**
+   *  @brief A list::const_iterator.
+   *
+   *  All the functions are op overloads.
+  */
+  template<typename _Tp>
+    struct _List_const_iterator
+    {
+      typedef _List_const_iterator<_Tp>          _Self;
+      typedef const _List_node<_Tp>              _Node;
+      typedef _List_iterator<_Tp>                iterator;
+
+      typedef ptrdiff_t                          difference_type;
+      typedef std::bidirectional_iterator_tag    iterator_category;
+      typedef _Tp                                value_type;
+      typedef const _Tp*                         pointer;
+      typedef const _Tp&                         reference;
+
+      _List_const_iterator()
+      : _M_node() { }
+
+      explicit
+      _List_const_iterator(const _List_node_base* __x)
+      : _M_node(__x) { }
+
+      _List_const_iterator(const iterator& __x)
+      : _M_node(__x._M_node) { }
+
+      // Must downcast from List_node_base to _List_node to get to
+      // _M_data.
+      reference
+      operator*() const
+      { return static_cast<_Node*>(_M_node)->_M_data; }
+
+      pointer
+      operator->() const
+      { return &static_cast<_Node*>(_M_node)->_M_data; }
+
+      _Self&
+      operator++()
+      {
+	_M_node = _M_node->_M_next;
+	return *this;
+      }
+
+      _Self
+      operator++(int)
+      {
+	_Self __tmp = *this;
+	_M_node = _M_node->_M_next;
+	return __tmp;
+      }
+
+      _Self&
+      operator--()
+      {
+	_M_node = _M_node->_M_prev;
+	return *this;
+      }
+
+      _Self
+      operator--(int)
+      {
+	_Self __tmp = *this;
+	_M_node = _M_node->_M_prev;
+	return __tmp;
+      }
+
+      bool
+      operator==(const _Self& __x) const
+      { return _M_node == __x._M_node; }
+
+      bool
+      operator!=(const _Self& __x) const
+      { return _M_node != __x._M_node; }
+
+      // The only member points to the %list element.
+      const _List_node_base* _M_node;
+    };
+
+  template<typename _Val>
+    inline bool
+    operator==(const _List_iterator<_Val>& __x,
+	       const _List_const_iterator<_Val>& __y)
+    { return __x._M_node == __y._M_node; }
+
+  template<typename _Val>
+    inline bool
+    operator!=(const _List_iterator<_Val>& __x,
+               const _List_const_iterator<_Val>& __y)
+    { return __x._M_node != __y._M_node; }
+
+
+  /// See bits/stl_deque.h's _Deque_base for an explanation.
+  template<typename _Tp, typename _Alloc>
+    class _List_base
+    {
+    protected:
+      // NOTA BENE
+      // The stored instance is not actually of "allocator_type"'s
+      // type.  Instead we rebind the type to
+      // Allocator<List_node<Tp>>, which according to [20.1.5]/4
+      // should probably be the same.  List_node<Tp> is not the same
+      // size as Tp (it's two pointers larger), and specializations on
+      // Tp may go unused because List_node<Tp> is being bound
+      // instead.
+      //
+      // We put this to the test in the constructors and in
+      // get_allocator, where we use conversions between
+      // allocator_type and _Node_alloc_type. The conversion is
+      // required by table 32 in [20.1.5].
+      typedef typename _Alloc::template rebind<_List_node<_Tp> >::other
+        _Node_alloc_type;
+
+      typedef typename _Alloc::template rebind<_Tp>::other _Tp_alloc_type;
+
+      struct _List_impl 
+      : public _Node_alloc_type
+      {
+	_List_node_base _M_node;
+
+	_List_impl()
+	: _Node_alloc_type(), _M_node()
+	{ }
+
+	_List_impl(const _Node_alloc_type& __a)
+	: _Node_alloc_type(__a), _M_node()
+	{ }
+      };
+
+      _List_impl _M_impl;
+
+      _List_node<_Tp>*
+      _M_get_node()
+      { return _M_impl._Node_alloc_type::allocate(1); }
+      
+      void
+      _M_put_node(_List_node<_Tp>* __p)
+      { _M_impl._Node_alloc_type::deallocate(__p, 1); }
+      
+  public:
+      typedef _Alloc allocator_type;
+
+      _Node_alloc_type&
+      _M_get_Node_allocator()
+      { return *static_cast<_Node_alloc_type*>(&this->_M_impl); }
+
+      const _Node_alloc_type&
+      _M_get_Node_allocator() const
+      { return *static_cast<const _Node_alloc_type*>(&this->_M_impl); }
+
+      _Tp_alloc_type
+      _M_get_Tp_allocator() const
+      { return _Tp_alloc_type(_M_get_Node_allocator()); }
+
+      allocator_type
+      get_allocator() const
+      { return allocator_type(_M_get_Node_allocator()); }
+
+      _List_base()
+      : _M_impl()
+      { _M_init(); }
+
+      _List_base(const allocator_type& __a)
+      : _M_impl(__a)
+      { _M_init(); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      _List_base(_List_base&& __x)
+      : _M_impl(__x._M_get_Node_allocator())
+      {
+	_M_init();
+	_List_node_base::swap(this->_M_impl._M_node, __x._M_impl._M_node);	
+      }
+#endif
+
+      // This is what actually destroys the list.
+      ~_List_base()
+      { _M_clear(); }
+
+      void
+      _M_clear();
+
+      void
+      _M_init()
+      {
+        this->_M_impl._M_node._M_next = &this->_M_impl._M_node;
+        this->_M_impl._M_node._M_prev = &this->_M_impl._M_node;
+      }
+    };
+
+  /**
+   *  @brief A standard container with linear time access to elements,
+   *  and fixed time insertion/deletion at any point in the sequence.
+   *
+   *  @ingroup Containers
+   *  @ingroup Sequences
+   *
+   *  Meets the requirements of a <a href="tables.html#65">container</a>, a
+   *  <a href="tables.html#66">reversible container</a>, and a
+   *  <a href="tables.html#67">sequence</a>, including the
+   *  <a href="tables.html#68">optional sequence requirements</a> with the
+   *  %exception of @c at and @c operator[].
+   *
+   *  This is a @e doubly @e linked %list.  Traversal up and down the
+   *  %list requires linear time, but adding and removing elements (or
+   *  @e nodes) is done in constant time, regardless of where the
+   *  change takes place.  Unlike std::vector and std::deque,
+   *  random-access iterators are not provided, so subscripting ( @c
+   *  [] ) access is not allowed.  For algorithms which only need
+   *  sequential access, this lack makes no difference.
+   *
+   *  Also unlike the other standard containers, std::list provides
+   *  specialized algorithms %unique to linked lists, such as
+   *  splicing, sorting, and in-place reversal.
+   *
+   *  A couple points on memory allocation for list<Tp>:
+   *
+   *  First, we never actually allocate a Tp, we allocate
+   *  List_node<Tp>'s and trust [20.1.5]/4 to DTRT.  This is to ensure
+   *  that after elements from %list<X,Alloc1> are spliced into
+   *  %list<X,Alloc2>, destroying the memory of the second %list is a
+   *  valid operation, i.e., Alloc1 giveth and Alloc2 taketh away.
+   *
+   *  Second, a %list conceptually represented as
+   *  @code
+   *    A <---> B <---> C <---> D
+   *  @endcode
+   *  is actually circular; a link exists between A and D.  The %list
+   *  class holds (as its only data member) a private list::iterator
+   *  pointing to @e D, not to @e A!  To get to the head of the %list,
+   *  we start at the tail and move forward by one.  When this member
+   *  iterator's next/previous pointers refer to itself, the %list is
+   *  %empty. 
+w&  x&  y&  z&  {&  |&  }&  ~&  &  Ä&  Å&  Ç&  É&  Ñ&  Ö&  Ü&  á&  à&  â&  ä&  ã&  å&  ç&  é&  è&  ê&  ë&  í&  ì&  î&  ï&  ñ&  ó&  ò&                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            */
+  template<typename _Tp, typename _Alloc = std::allocator<_Tp> >
+    class list : protected _List_base<_Tp, _Alloc>
+    {
+      // concept requirements
+      typedef typename _Alloc::value_type                _Alloc_value_type;
+      __glibcxx_class_requires(_Tp, _SGIAssignableConcept)
+      __glibcxx_class_requires2(_Tp, _Alloc_value_type, _SameTypeConcept)
+
+      typedef _List_base<_Tp, _Alloc>                    _Base;
+      typedef typename _Base::_Tp_alloc_type		 _Tp_alloc_type;
+
+    public:
+      typedef _Tp                                        value_type;
+      typedef typename _Tp_alloc_type::pointer           pointer;
+      typedef typename _Tp_alloc_type::const_pointer     const_pointer;
+      typedef typename _Tp_alloc_type::reference         reference;
+      typedef typename _Tp_alloc_type::const_reference   const_reference;
+      typedef _List_iterator<_Tp>                        iterator;
+      typedef _List_const_iterator<_Tp>                  const_iterator;
+      typedef std::reverse_iterator<const_iterator>      const_reverse_iterator;
+      typedef std::reverse_iterator<iterator>            reverse_iterator;
+      typedef size_t                                     size_type;
+      typedef ptrdiff_t                                  difference_type;
+      typedef _Alloc                                     allocator_type;
+
+    protected:
+      // Note that pointers-to-_Node's can be ctor-converted to
+      // iterator types.
+      typedef _List_node<_Tp>				 _Node;
+
+      using _Base::_M_impl;
+      using _Base::_M_put_node;
+      using _Base::_M_get_node;
+      using _Base::_M_get_Tp_allocator;
+      using _Base::_M_get_Node_allocator;
+
+      /**
+       *  @param  x  An instance of user data.
+       *
+       *  Allocates space for a new node and constructs a copy of @a x in it.
+       */
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+      _Node*
+      _M_create_node(const value_type& __x)
+      {
+	_Node* __p = this->_M_get_node();
+	try
+	  {
+	    _M_get_Tp_allocator().construct(&__p->_M_data, __x);
+	  }
+	catch(...)
+	  {
+	    _M_put_node(__p);
+	    __throw_exception_again;
+	  }
+	return __p;
+      }
+#else
+      template<typename... _Args>
+        _Node*
+        _M_create_node(_Args&&... __args)
+	{
+	  _Node* __p = this->_M_get_node();
+	  try
+	    {
+	      _M_get_Tp_allocator().construct(&__p->_M_data,
+					      std::forward<_Args>(__args)...);
+	    }
+	  catch(...)
+	    {
+	      _M_put_node(__p);
+	      __throw_exception_again;
+	    }
+	  return __p;
+	}
+#endif
+
+    public:
+      // [23.2.2.1] construct/copy/destroy
+      // (assign() and get_allocator() are also listed in this section)
+      /**
+       *  @brief  Default constructor creates no elements.
+       */
+      list()
+      : _Base() { }
+
+      /**
+       *  @brief  Creates a %list with no elements.
+       *  @param  a  An allocator object.
+       */
+      explicit
+      list(const allocator_type& __a)
+      : _Base(__a) { }
+
+      /**
+       *  @brief  Creates a %list with copies of an exemplar element.
+       *  @param  n  The number of elements to initially create.
+       *  @param  value  An element to copy.
+       *  @param  a  An allocator object.
+       *
+       *  This constructor fills the %list with @a n copies of @a value.
+       */
+      explicit
+      list(size_type __n, const value_type& __value = value_type(),
+	   const allocator_type& __a = allocator_type())
+      : _Base(__a)
+      { _M_fill_initialize(__n, __value); }
+
+      /**
+       *  @brief  %List copy constructor.
+       *  @param  x  A %list of identical element and allocator types.
+       *
+       *  The newly-created %list uses a copy of the allocation object used
+       *  by @a x.
+       */
+      list(const list& __x)
+      : _Base(__x._M_get_Node_allocator())
+      { _M_initialize_dispatch(__x.begin(), __x.end(), __false_type()); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  %List move constructor.
+       *  @param  x  A %list of identical element and allocator types.
+       *
+       *  The newly-created %list contains the exact contents of @a x.
+       *  The contents of @a x are a valid, but unspecified %list.
+       */
+      list(list&& __x)
+      : _Base(std::forward<_Base>(__x)) { }
+#endif
+
+      /**
+       *  @brief  Builds a %list from a range.
+       *  @param  first  An input iterator.
+       *  @param  last  An input iterator.
+       *  @param  a  An allocator object.
+       *
+       *  Create a %list consisting of copies of the elements from
+       *  [@a first,@a last).  This is linear in N (where N is
+       *  distance(@a first,@a last)).
+       */
+      template<typename _InputIterator>
+        list(_InputIterator __first, _InputIterator __last,
+	     const allocator_type& __a = allocator_type())
+        : _Base(__a)
+        { 
+	  // Check whether it's an integral type.  If so, it's not an iterator.
+	  typedef typename std::__is_integer<_InputIterator>::__type _Integral;
+	  _M_initialize_dispatch(__first, __last, _Integral());
+	}
+
+      /**
+       *  No explicit dtor needed as the _Base dtor takes care of
+       *  things.  The _Base dtor only erases the elements, and note
+       *  that if the elements themselves are pointers, the pointed-to
+       *  memory is not touched in any way.  Managing the pointer is
+       *  the user's responsibility.
+       */
+
+      /**
+       *  @brief  %List assignment operator.
+       *  @param  x  A %list of identical element and allocator types.
+       *
+       *  All the elements of @a x are copied, but unlike the copy
+       *  constructor, the allocator object is not copied.
+       */
+      list&
+      operator=(const list& __x);
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  %List move assignment operator.
+       *  @param  x  A %list of identical element and allocator types.
+       *
+       *  The contents of @a x are moved into this %list (without copying).
+       *  @a x is a valid, but unspecified %list
+       */
+      list&
+      operator=(list&& __x)
+      {
+	// NB: DR 675.
+	this->clear();
+	this->swap(__x); 
+	return *this;
+      }
+#endif
+
+      /**
+       *  @brief  Assigns a given value to a %list.
+       *  @param  n  Number of elements to be assigned.
+       *  @param  val  Value to be assigned.
+       *
+       *  This function fills a %list with @a n copies of the given
+       *  value.  Note that the assignment completely changes the %list
+       *  and that the resulting %list's size is the same as the number
+       *  of elements assigned.  Old data may be lost.
+       */
+      void
+      assign(size_type __n, const value_type& __val)
+      { _M_fill_assign(__n, __val); }
+
+      /**
+       *  @brief  Assigns a range to a %list.
+       *  @param  first  An input iterator.
+       *  @param  last   An input iterator.
+       *
+       *  This function fills a %list with copies of the elements in the
+       *  range [@a first,@a last).
+       *
+       *  Note that the assignment completely changes the %list and
+       *  that the resulting %list's size is the same as the number of
+       *  elements assigned.  Old data may be lost.
+       */
+      template<typename _InputIterator>
+        void
+        assign(_InputIterator __first, _InputIterator __last)
+        {
+	  // Check whether it's an integral type.  If so, it's not an iterator.
+	  typedef typename std::__is_integer<_InputIterator>::__type _Integral;
+	  _M_assign_dispatch(__first, __last, _Integral());
+	}
+
+      /// Get a copy of the memory allocation object.
+      allocator_type
+      get_allocator() const
+      { return _Base::get_allocator(); }
+
+      // iterators
+      /**
+       *  Returns a read/write iterator that points to the first element in the
+       *  %list.  Iteration is done in ordinary element order.
+       */
+      iterator
+      begin()
+      { return iterator(this->_M_impl._M_node._M_next); }
+
+      /**
+       *  Returns a read-only (constant) iterator that points to the
+       *  first element in the %list.  Iteration is done in ordinary
+       *  element order.
+       */
+      const_iterator
+      begin() const
+      { return const_iterator(this->_M_impl._M_node._M_next); }
+
+      /**
+       *  Returns a read/write iterator that points one past the last
+       *  element in the %list.  Iteration is done in ordinary element
+       *  order.
+       */
+      iterator
+      end()
+      { return iterator(&this->_M_impl._M_node); }
+
+      /**
+       *  Returns a read-only (constant) iterator that points one past
+       *  the last element in the %list.  Iteration is done in ordinary
+       *  element order.
+       */
+      const_iterator
+      end() const
+      { return const_iterator(&this->_M_impl._M_node); }
+
+      /**
+       *  Returns a read/write reverse iterator that points to the last
+       *  element in the %list.  Iteration is done in reverse element
+       *  order.
+       */
+      reverse_iterator
+      rbegin()
+      { return reverse_iterator(end()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points to
+       *  the last element in the %list.  Iteration is done in reverse
+       *  element order.
+       */
+      const_reverse_iterator
+      rbegin() const
+      { return const_rever

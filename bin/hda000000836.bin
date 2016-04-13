@@ -1,0 +1,1798 @@
+value of 1 and values < 0 are reserved for future use.
+
+    Usually there is no need to change these parameters.
+
+    =-=
+
+    config("redc2", int)
+
+    Redc2 specifies the sizes of numbers at which calc switches from
+    its first to its second algorithm when using the REDC algorithm.
+    The first algorithm performs a multiply and a modular reduction
+    together in one loop which runs in O(N^2).	The second algorithm
+    does the REDC calculation using three multiplies, and runs in
+    O(N^1.585).	 The argument for redc2 is the size of the modulus at
+    which the second algorithm begins to be used.
+
+    Units refer to internal calculation digits where each digit
+    is BASEB bits in length.  The value of BASEB is returned by
+    config("baseb").
+
+    The default value for config("redc2") is 220.  This default was
+    established as 5/4 (the historical ratio of config("pow2") to
+    config("pow2")) of the config("pow2") value.  This means that if
+    config("baseb") is 32, then by default numbers up to (220*32)+31 =
+    7071 bits in length (< 2128 decimal digits) use the REDC algorithm,
+    for calculating powers modulo another number.
+
+    A value of zero resets the parameter back to their default values.
+
+    The value of 1 and values < 0 are reserved for future use.
+
+    Usually there is no need to change these parameters.
+
+    =-=
+
+    config("tilde", boolean)
+
+    Config("tilde") controls whether or not a leading tilde ('~') is
+    printed to indicate that a number has not been printed exactly
+    because the number of decimal digits required would exceed the
+    specified maximum number.  The initial "tilde" value is 1.
+
+    =-=
+
+    config("tab", boolean)
+
+    Config ("tab") controls the printing of a tab before results
+    automatically displayed when working interactively.	 It does not
+    affect the printing by the functions print, printf, etc.  The initial
+    "tab" value is 1.
+
+    =-=
+
+    config("quomod", bitflag)
+    config("quo", bitflag)
+    config("mod", bitflag)
+    config("sqrt", bitflag)
+    config("appr", bitflag)
+    config("cfappr", bitflag)
+    config("cfsim", bitflag)
+    config("outround", bitflag)
+    config("round", bitflag)
+
+    The "quomod", "quo", "mod", "sqrt", "appr", "cfappr", "cfsim", and
+    "round" control the way in which any necessary rounding occurs.
+    Rounding occurs when for some reason, a calculated or displayed
+    value (the "approximation") has to differ from the "true value",
+    e.g. for quomod and quo, the quotient is to be an integer, for sqrt
+    and appr, the approximation is to be a multiple of an explicit or
+    implicit "epsilon", for round and bround (both controlled by
+    config("round")) the number of decimal places or fractional bits
+    in the approximation is limited.  Zero value for any of these
+    parameters indicates that the true value is greater than the approximation,
+    i.e. the rounding is "down", or in the case of mod, that the
+    residue has the same sign as the divisor.  If bit 4 of the
+    parameter is set, the rounding of to the nearest acceptable candidate
+    when this is uniquely determined; in the remaining ambiguous cases,
+    the type of rounding is determined by the lower bits of the parameter
+    value.  If bit 3 is set, the rounding for quo, appr and sqrt,
+    is to the nearest even integer or the nearest even multiple of epsilon,
+    and for round to the nearest even "last decimal place".  The effects
+    of the 3 lowest bits of the parameter value are as follows:
+
+	Bit 0: Unconditional reversal (down to up, even to odd, etc.)
+	Bit 1: Reversal if the exact value is negative
+	Bit 2: Reversal if the divisor or epsilon is negative
+
+    (Bit 2 is irrelevant for the functions round and bround since the
+    equivalent epsilon (a power of 1/10 or 1/2) is always positive.)
+
+    For quomod, the quotient is rounded to an integer value as if
+    evaluating quo with config("quo") == config("quomod").  Similarly,
+    quomod and mod give the same residues if config("mod") == config("quomod").
+
+    For the sqrt function, if bit 5 of config("sqrt") is set, the exact
+    square-root is returned when this is possible; otherwise the
+    result is rounded to a multiple of epsilon as determined by the
+    five lower order bits.  Bit 6 of config("sqrt") controls whether the
+    principal or non-principal square-root is returned.
+
+    For the functions cfappr and cfsim, whether the "rounding" is down
+    or up, etc. is controlled by the appropriate bits of config("cfappr")
+    and config("cfsim") as for quomod, quo, etc.
+
+    The "outround" parameter determines the type of rounding to be used
+    by the various kinds of printing to the output: bits 0, 1, 3 and 4
+    are used in the same way as for the functions round and bround.
+
+    The C language method of modulus and integer division is:
+
+	    config("quomod", 2)
+	    config("quo", 2)
+	    config("mod", 2)
+
+    =-=
+
+    config("leadzero", boolean)
+
+    The "leadzero" parameter controls whether or not a 0 is printed
+    before the decimal point in non-zero fractions with absolute value
+    less than 1, e.g. whether 1/2 is printed as 0.5 or .5.   The
+    initial value is 0, corresponding to the printing .5.
+
+    =-=
+
+    config("fullzero", boolean)
+
+    The "fullzero" parameter controls whether or not in decimal floating-
+    point printing, the digits are padded with zeros to reach the
+    number of digits specified by config("display") or by a precision
+    specification in formatted printing.  The initial value for this
+    parameter is 0, so that, for example, if config("display") >= 2,
+    5/4 will print in "real" mode as 1.25.
+
+    =-=
+
+    config("maxscan", int)
+
+    The maxscan value controls how many scan errors are allowed
+    before the compiling phase of a computation is aborted.  The initial
+    value of "maxscan" is 20.  Setting maxscan to 0 disables this feature.
+
+    =-=
+
+    config("prompt", str)
+
+    The default prompt when in interactive mode is "> ".  One may change
+    this prompt to a more cut-and-paste friendly prompt by:
+
+	    config("prompt", "; ")
+
+    On windowing systems that support cut/paste of a line, one may
+    cut/copy an input line and paste it directly into input.  The
+    leading ';' will be ignored.
+
+    =-=
+
+    config("more", str)
+
+    When inside multi-line input, the more prompt is used.  One may
+    change it by:
+
+	    config("more", ";; ")
+
+    =-=
+
+    config("blkmaxprint", int)
+
+    The "blkmaxprint" config value limits the number of octets to print
+    for a block.  A "blkmaxprint" of 0 means to print all octets of a
+    block, regardless of size.
+
+    The default is to print only the first 256 octets.
+
+    =-=
+
+    config("blkverbose", boolean)
+
+    The "blkverbose" determines if all lines, including duplicates
+    should be printed.	If TRUE, then all lines are printed.  If false,
+    duplicate lines are skipped and only a "*" is printed in a style
+    similar to od.  This config value has not meaning if "blkfmt" is "str".
+
+    The default value for "blkverbose" is FALSE: duplicate lines are
+    not printed.
+
+    =-=
+
+    config("blkbase", "blkbase_string")
+
+    The "blkbase" determines the base in which octets of a block
+    are printed.  Possible values are:
+
+	"hexadecimal"		Octets printed in 2 digit hex
+	"hex"
+	"default"
+
+	"octal"			Octets printed in 3 digit octal
+	"oct"
+
+	"character"		Octets printed as chars with non-printing
+	"char"			    chars as \123 or \n, \t, \r
+
+	"binary"		Octets printed as 0 or 1 chars
+	"bin"
+
+	"raw"			Octets printed as is, i.e. raw binary
+	"none"
+
+    Where multiple strings are given, the first string listed is what
+    config("blkbase") will return.
+
+    The default "blkbase" is "hexadecimal".
+
+    =-=
+
+    config("blkfmt", "blkfmt_string")
+
+    The "blkfmt" determines for format of how block are printed:
+
+	"lines"		print in lines of up to 79 chars + newline
+	"line"
+
+	"strings"	print as one long string
+	"string"
+	"str"
+
+	"od_style"	print in od-like format, with leading offset,
+	"odstyle"	   followed by octets in the given base
+	"od"
+
+	"hd_style"	print in hex dump format, with leading offset,
+	"hdstyle"	   followed by octets in the given base, followed
+	"hd"		   by chars or '.' if no-printable or blank
+	"default"
+
+    Where multiple strings are given, the first string listed is what
+    config("blkfmt") will return.
+
+    The default "blkfmt" is "hd_style".
+
+    =-=
+
+    config("calc_debug", bitflag)
+
+    The "calc_debug" is intended for controlling internal calc routines
+    that test its operation, or collect or display information that
+    might be useful for debug purposes.	 Much of the output from these
+    will make sense only to calc wizards.   Zero value (the default for
+    both oldstd and newstd) of config("resource_debug") corresponds to
+    switching off all these routines.  For nonzero value, particular
+    bits currently have the following meanings:
+
+	n		Meaning of bit n of config("calc_debug")
+
+	0	outputs shell commands prior to execution
+
+	1	outputs currently active functions when a quit instruction
+		is executed
+
+	2	some details of hash states are included in the output
+		when these are printed
+
+	3	when a function constructs a block value, tests are
+		made that the result has the properties required for use of
+		that block, e.g. that the pointer to the start of the
+		block is not NULL, and that its "length" is not negative.
+		A failure will result in a runtime error.
+
+	4	Report on changes to the state of stdin as well as changes
+		to internal variables that control the setting and restoring
+		of stdin.
+
+	5	Report on changes to the run state of calc.
+
+	6	Report on rand() subtractive 100 shuffle generator issues.
+
+	7	Report on custom function issues.
+
+    Bits >= 8 are reserved for future use and should not be used at this time.
+
+    By default, "calc_debug" is 0.  The initial value may be overridden
+    by the -D command line option.
+
+    =-=
+
+    config("resource_debug", bitflag)
+    config("lib_debug", bitflag)
+
+    The "resource_debug" parameter is intended for controlling the possible
+    display of special information relating to functions, objects, and
+    other structures created by instructions in calc scripts.
+    Zero value of config("resource_debug") means that no such information
+    is displayed.  For other values, the non-zero bits which currently
+    have meanings are as follows:
+
+	n		Meaning of bit n of config("resource_debug")
+
+	0	When a function is defined, redefined or undefined at
+		interactive level, a message saying what has been done
+		is displayed.
+
+	1	When a function is defined, redefined or undefined during
+		the reading of a file, a message saying what has been done
+		is displayed.
+
+	2	Show func will display more information about a functions
+		arguments and argument summary information.
+
+	3	During execution, allow calc standard resource files
+		to output additional debugging information.
+
+    The value for config("resource_debug") in both oldstd and newstd
+    is 3, but if calc is invoked with the -d flag, its initial value
+    is zero.  Thus, if calc is started without the -d flag, until
+    config("resource_debug") is changed, a message will be output when
+    a function is defined either interactively or during the reading of
+    a file.
+
+    The name config("lib_debug") is equivalent to config("resource_debug")
+    and is included for backward compatibility.
+
+    By default, "resource_debug" is 3.	The -d flag changes this default to 0.
+    The initial value may be overridden by the -D command line option.
+
+    =-=
+
+    config("user_debug", int)
+
+    The "user_debug" is provided for use by users.  Calc ignores this value
+    other than to set it to 0 by default (for both "oldstd" and "newstd").
+    No calc code or standard resource should change this value.	 Users
+    should feel free to use it in any way.   In particular they may
+    use particular bits for special purposes as with "calc_debug", or
+    they may use it to indicate a debug level with larger values
+    indicating more stringent and more informative tests with presumably
+    slower operation or more memory usage, and a particular value (like
+    -1 or 0) corresponding to "no tests".
+
+    By default, "user_debug" is 0.  The initial value may be overridden
+    by the -D command line option.
+
+    =-=
+
+    config("verbose_quit", boolean)
+
+    The "verbose_quit" controls the print of the message:
+
+	quit or abort executed
+
+    when a non-interactive quit or abort without an argument is encountered.
+    A quit of abort without an argument does not display a message when
+    invoked at the interactive level.
+
+    By default, "verbose_quit" is false.
+
+    =-=
+
+    config("ctrl_d", "ctrl_d_string")
+
+    For calc that is using the calc binding (not GNU-readline) facility:
+
+	The "ctrl_d" controls the interactive meaning of ^D (Control D):
+
+	    "virgin_eof"  If ^D is the only character that has been typed
+	    "virgineof"	  on a line, then calc will exit.  Otherwise ^D
+	    "virgin"	  will act according to the calc binding, which
+	    "default"	  by default is a Emacs-style delete-char.
+
+	    "never_eof"	  The ^D never exits calc and only acts according
+	    "nevereof"	  calc binding, which by default is a Emacs-style
+	    "never"	  delete-char.
+
+	    "empty_eof"	  The ^D always exits calc if typed on an empty line.
+	    "emptyeof"	  This condition occurs when ^D either the first
+	    "empty"	  character typed, or when all other characters on
+			  the line have been removed (say by deleting them).
+
+	Where multiple strings are given, the first string listed is what
+	config("ctrl_d") will return.
+
+	Note that config("ctrl_d") actually controls each and every character
+	that is bound to ``delete_char''.  By default, ``delete_char'' is
+	Control D.  Any character(s) bound to ``delete_char'' will cause calc
+	to exit (or not exit) as directed by config("ctrl_d").
+
+	See the ``binding'' help for information on the default calc bindings.
+
+	The default "ctrl_d", without GNU-readline is "virgin_eof".
+
+    For calc that was compiled with the GNU-readline facility:
+
+	The "ctrl_d" controls the interactive meaning of ^D (Control D):
+
+	    "virgin_eof"  Same as "empty_eof"
+	    "virgineof"
+	    "virgin"
+	    "default"
+
+	    "never_eof"	  The ^D never exits calc and only acts according
+	    "nevereof"	  calc binding, which by default is a Emacs-style
+	    "never"	  delete-char.
+
+	    "empty_eof"	  The ^D always exits calc if typed on an empty line.
+	    "emptyeof"	  This condition occurs when ^D either the first
+	    "empty"	  character typed, or when all other characters on
+
+	Where multiple strings are given, the first string listed is what
+	config("ctrl_d") will return.
+
+	The default "ctrl_d", with GNU-readline is effectively "empty_eof".
+
+	Literally it is "virgin_eof", but since "virgin_eof" is the
+	same as "empty_eof", the default is effectively "empty_eof".
+
+    Emacs users may find the default behavior objectionable, particularly
+    when using the GNU-readline facility.  Such users may want to add the line:
+
+	config("ctrl_d", "never_eof"),;
+
+    to their ~/.calcrc startup file to prevent ^D from causing calc to exit.
+
+    =-=
+
+    config("program")		<== NOTE: This is a read-only config value
+
+    The full path to the calc program, or the calc shell script can be
+    obtained by:
+
+	config("program")
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("basename")		<== NOTE: This is a read-only config value
+
+    The calc program, or the calc shell script basename can be obtained by:
+
+	config("basename")
+
+    The config("basename") is the config("program") without any leading
+    path.  If config("program") has a / in it, config("basename") is
+    everything after the last /, otherwise config("basename") is the
+    same as config("program").
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("windows")		<== NOTE: This is a read-only config value
+
+    Returns TRUE if you are running on a MS windows system, false if you
+    are running on an operating system that does not hate you.
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("cygwin")		<== NOTE: This is a read-only config value
+
+    Returns TRUE if you calc was compiled with cygwin, false otherwise.
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("compile_custom")	<== NOTE: This is a read-only config value
+
+    Returns TRUE if you calc was compiled with -DCUSTOM.  By default,
+    the calc Makefile uses ALLOW_CUSTOM= -DCUSTOM so by default
+    config("compile_custom") is TRUE.  If, however, calc is compiled
+    without -DCUSTOM, then config("compile_custom") will be FALSE.
+
+    The config("compile_custom") value is only affected by compile
+    flags.   The calc -D runtime command line option does not change
+    the config("compile_custom") value.
+
+    See also config("allow_custom").
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("allow_custom")	<== NOTE: This is a read-only config value
+
+    Returns TRUE if you custom functions are enabled.  To allow the use
+    of custom functions, calc must be compiled with -DCUSTOM (which it
+    is by default) AND calc run be run with the -D runtime command line
+    option (which it is not by default).
+
+    If config("allow_custom") is TRUE, then custom functions are allowed.
+    If config("allow_custom") is FALSE, then custom functions are not
+    allowed.
+
+    See also config("compile_custom").
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("version")		<== NOTE: This is a read-only config value
+
+    The version string of the calc program can be obtained by:
+
+	config("version")
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("baseb")		<== NOTE: This is a read-only config value
+
+    Returns the number of bits in the fundamental base in which
+    internal calculations are performed.  For example, a value of
+    32 means that calc will perform many internal calculations in
+    base 2^32 with digits that are 32 bits in length.
+
+    For libcalc programmers, this is the value of BASEB as defined
+    in the zmath.h header file.
+
+    This config parameter is read-only and cannot be set.
+
+    =-=
+
+    config("redecl_warn", boolean)
+
+    Config("redecl_warn") controls whether or not a warning is issued
+    when redeclaring variables.
+
+    The initial "redecl_warn" value is 1.
+
+    =-=
+
+    config("dupvar_warn", boolean)
+
+    Config("dupvar_warn") controls whether or not a warning is issued
+    when a variable name collides with an exist name of a higher scope.
+    Examples of collisions are when:
+
+    	* both local and static variables have the same name
+    	* both local and global variables have the same name
+    	* both function parameter and local variables have the same name
+    	* both function parameter and global variables have the same name
+
+    The initial "redecl_warn" value is 1.
+
+    =-=
+
+    config("hz")		<== NOTE: This is a read-only config value
+
+    Returns the rate at which the operating system advances the clock
+    on POSIX based systems.  Returns 0 on non-POSIX based systems.
+    The non-zero value returned is in Hetrz.
+
+    This config parameter is read-only and cannot be set.
+
+
+EXAMPLE
+    ; current_cfg = config("all");
+    ; config("tilde", off),;
+    ; config("calc_debug", 15),;
+    ; config("all") == current_cfg
+	0
+    ; config("all", current_cfg),;
+    ; config("all") == current_cfg
+	1
+
+    ; config("version")
+    		"2.12.0"
+
+    ; config("all")
+	mode            "real"
+	mode2           "off"
+	display         20
+	epsilon         0.00000000000000000001
+	trace           0
+	maxprint        16
+	mul2            20
+	sq2             20
+	pow2            40
+	redc2           50
+	tilde           1
+	tab             1
+	quomod          0
+	quo             2
+	mod             0
+	sqrt            24
+	appr            24
+	cfappr          0
+	cfsim           8
+	outround        24
+	round           24
+	leadzero        1
+	fullzero        0
+	maxscan         20
+	prompt          "; "
+	more            ";; "
+	blkmaxprint     256
+	blkverbose      0
+	blkbase         "hexadecimal"
+	blkfmt          "hd_style"
+	resource_debug  3
+	lib_debug       3
+	calc_debug      0
+	user_debug      0
+	verbose_quit    0
+	ctrl_d          "virgin_eof"
+	program         "calc"
+	basename        "calc"
+	windows         0
+	cygwin          0
+	compile_custom  1
+	allow_custom    0
+	version         "2.12.0"
+	baseb		32
+	redecl_warn	1
+	dupvar_warn	1
+	hz		100
+
+    ; display()
+	20
+    ; config("display", 50),;
+    ; display()
+	50
+
+LIMITS
+    none
+
+LINK LIBRARY
+     n/a
+
+SEE ALSO
+     usage, custom, custom_cal, usage, epsilon, display
+
+## Copyright (C) 1999-2007  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.3 $
+## @(#) $Id: config,v 30.3 2007/09/21 01:27:27 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/config,v $
+##
+## Under source code control:	1991/07/21 04:37:17
+## File existed as early as:	1991
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      Variable declarations
+
+    Variables can be declared as either being global, local, or static.
+    Global variables are visible to all functions and on the command
+    line, and are permanent.  Local variables are visible only within
+    a single function or command sequence.  When the function or command
+    sequence returns, the local variables are deleted.	Static variables
+    are permanent like global variables, but are only visible within the
+    same input file or function where they are defined.
+
+    To declare one or more variables, the 'local', 'global', or 'static'
+    keywords are used, followed by the desired list of variable names,
+    separated by commas.  The definition is terminated with a semicolon.
+    Examples of declarations are:
+
+	    local	x, y, z;
+	    global	fred;
+	    local	foo, bar;
+	    static	var1, var2, var3;
+
+    Variables may have initializations applied to them.	 This is done
+    by following the variable name by an equals sign and an expression.
+    Global and local variables are initialized each time that control
+    reaches them (e.g., at the entry to a function which contains them).
+    Static variables are initialized once only, at the time that control
+    first reaches them (but in future releases the time of initialization
+    may change).  Unlike in C, expressions for static variables may
+    contain function calls and refer to variables.  Examples of such
+    initializations are:
+
+	    local	a1 = 7, a2 = 3;
+	    static	b = a1 + sin(a2);
+
+    Within function declarations, all variables must be defined.
+    But on the top level command line, assignments automatically define
+    global variables as needed.	 For example, on the top level command
+    line, the following defines the global variable x if it had not
+    already been defined:
+
+	    x = 7
+
+    The static keyword may be used at the top level command level to
+    define a variable which is only accessible interactively, or within
+    functions defined interactively.
+
+    Variables have no fixed type, thus there is no need or way to
+    specify the types of variables as they are defined.	 Instead, the
+    types of variables change as they are assigned to or are specified
+    in special statements such as 'mat' and 'obj'.  When a variable is
+    first defined using 'local', 'global', or 'static', it has the
+    value of zero.
+
+    If a procedure defines a local or static variable name which matches
+    a global variable name, or has a parameter name which matches a
+    global variable name, then the local variable or parameter takes
+    precedence within that procedure, and the global variable is not
+    directly accessible.
+
+    The MAT and OBJ keywords may be used within a declaration statement
+    in order to initially define variables as that type.  Initialization
+    of these variables are also allowed.  Examples of such declarations
+    are:
+
+	    static mat table[3] = {5, 6, 7};
+	    local obj point p1, p2;
+
+    When working with user-defined functions, the syntax for passing an
+    lvalue by reference rather than by value is to precede an expression
+    for the lvalue by a backquote. For example, if the function invert is
+    defined by:
+
+	    define invert(x) {x = inverse(x)}
+
+    then invert(`A) achieves the effect of A = inverse(A).  In other
+    words, passing and argument of `variable (with a back-quote)
+    will cause and changes to the function argument to be applied to
+    the calling variable.  Calling invert(A) (without the ` backquote)
+    assigns inverse(A) to the temporary function parameter x and leaves
+    A unchanged.
+
+    In an argument, a backquote before other than an lvalue is ignored.
+    Consider, for example:
+
+	    ; define logplus(x,y,z) {return log(++x + ++y + ++z);}
+
+	    ; eh = 55;
+	    ; mi = 25;
+	    ; answer = logplus(eh, `mi, `17);
+
+	    ; print eh, mi, answer;
+	    55 26 2
+
+    The value of eh is was not changed because eh was used as
+    an argument without a back-quote (`).  However, mi was incremented
+    because it was passed as `mi (with a back-quote).  Passing 17
+    (not an lvalue) as `17 has not effect on the value 17.
+
+    The back-quote should only be used before arguments to a function.
+    In all other contexts, a backquote causes a compile error.
+
+    Another method is to pass the address of the lvalue explicitly and
+    use the indirection operator * (star) to refer to the lvalue in the
+    function body.  Consider the following function:
+
+	    ; define ten(a) { *a = 10; }
+
+	    ; n = 17;
+	    ; ten(n);
+	    ; print n;
+	    17
+
+	    ; ten(`n);
+	    ; print n;
+	    17
+
+	    ; ten(&n);
+	    ; print n;
+	    10
+
+    Passing an argument with a & (ampersand) allows the tenmore()
+    function to modify the calling variable:
+
+	    ; wa = tenmore(&vx);
+	    ; print vx, wa;
+	    65 65
+
+    Great care should be taken when using a pointer to a local variable
+    or element of a matrix, list or object, since the lvalue pointed to
+    is deleted when evaluation of the function is completed or the lvalue
+    whose value is the matrix, list or object is assigned another value.
+
+    As both of the above methods (using & arguments (ampersand) *value
+    (star) function values or by using ` arguments (back quote) alone)
+    copy the address rather than the value of the argument to the function
+    parameter, they allow for faster calls of functions when the memory
+    required for the value is huge (such as for a large matrix).
+
+    As the built-in functions and object functions always accept their
+    arguments as addresses, there is no gain in using the backquote when
+    calling these functions.
+
+## Copyright (C) 1999-2006  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: variable,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/variable,v $
+##
+## Under source code control:	1991/07/21 04:37:25
+## File existed as early as:	1991
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                               NAME
+    count - count elements of list or matrix satisfying a stated condition
+
+SYNOPSIS
+    count(x, y)
+
+TYPES
+    x		list or matrix
+    y		string
+
+    return	integer
+
+DESCRIPTION
+    For count(x, y), y is to be the name of a user-defined function;
+    count(x,y) then returns the number of elements of x for which y
+    tests as "true".
+
+EXAMPLE
+    ; define f(a) = (a < 5)
+    ; A = list(1,2,7,6,4,8)
+    ; count(A, "f")
+	3
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    select, modify
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: count,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/count,v $
+##
+## Under source code control:	1995/07/10 02:09:31
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                          NAME
+    isrel - whether two values are relatively prime
+
+SYNOPSIS
+    isrel(x, y)
+
+TYPES
+    x		int
+    y		int
+
+    return	int
+
+DESCRIPTION
+    Determine if x and y are relatively prime.	If gcd(x,y) == 1, then
+    return 1, otherwise return 0.
+
+EXAMPLE
+    ; print isrel(6, 5), isrel(5, 6), isrel(-5, 6)
+    1 1 1
+
+    ; print isrel(6, 2), isrel(2, 6), isrel(-2, 6)
+    0 0 0
+
+LIMITS
+    none
+
+LINK LIBRARY
+    BOOL zrelprime(ZVALUE x, y)
+
+SEE ALSO
+    gcd,
+    isassoc, isatty, isblk, isconfig, isdefined, iserror, iseven, isfile,
+    ishash, isident, isint, islist, ismat, ismult, isnull, isnum, isobj,
+    isobjtype, isodd, isprime, isrand, israndom, isreal,
+    issimple, issq, isstr, istype
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: isrel,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/isrel,v $
+##
+## Under source code control:	1994/10/21 02:21:30
+## File existed as early as:	1994
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                  NAME
+    sort - sort a copy of a list or matrix
+
+SYNOPSIS
+    sort(x)
+
+TYPES
+    x		list or matrix
+
+    return	same type as x
+
+DESCRIPTION
+    For a list or matrix x, sort(x) returns a list or
+    matrix y of the same size as x in which the elements
+    have been sorted into order completely or partly determined by
+    a user-defined function precedes(a,b), or if this has not been
+    defined, by a default "precedes" function which for numbers or
+    strings is as equivalent to (a < b).   More detail on this default
+    is given below.  For most of the following discussion
+    it is assumed that calling the function precedes(a,b) does not
+    change the value of either a or b.
+
+    If x is a matrix, the matrix returned by sort(x) has the same
+    dimension and index limits as x, but for the sorting, x is treated
+    as a one-dimensional array indexed only by the double- bracket
+    notation.	Then for both lists and matrices, if x has size n, it
+    may be identified with the array:
+
+		(x[[0]], x[[1]], ..., x[[n-1]])
+
+    which we will here display as:
+
+		(x_0, x_1, ..., x_n-1).
+
+    The value y = sort(x) will similarly be identified with:
+
+		(y_0, y_1, ..., x_n-1),
+
+    where, for some permutation p() of the integers (0, 1, ..., n-1):
+
+		y_p(i) = x_i.
+
+    In the following i1 and i2 will be taken to refer to different
+    indices for x, and j1 and j2 will denote p(i1) and p(i2).
+
+    The algorithm for evaluating y = sort(x) first makes a copy of x;
+    x remains unchanged, but the copy may be considered as a first
+    version of y.  Successive values a in this y are read and compared
+    with earlier values b using the integer-valued function precedes();
+    if precedes(a,b) is nonzero, which we may consider as "true",
+    a is "moved" to just before b; if precedes(a,b) is zero, i.e. "false",
+    a remains after b.	Until the sorting is completed, other similar
+    pairs (a,b) are compared and if and only if precedes(a,b) is true,
+    a is moved to before b or b is moved to after a.  We may
+    say that the intention of precedes(a,b) being nonzero is that a should
+    precede b, while precedes(a,b) being zero intends that the order
+    of a and b is to be as in the original x.  For any integer-valued
+    precedes() function, the algorithm will return a result for sort(x),
+    but to guarantee fulfilment of the intentions just described,
+    precedes() should satisfy the conditions:
+
+    (1) For all a, b, c, precedes(a,b) implies precedes(a,c) || precedes (c,b),
+
+    (2) For all a, b, precedes(a,b) implies !precedes(b,a).
+
+    Condition (1) is equivalent to transitivity of !precedes():
+
+    (1)' For all a,b,c, !precedes(a,b) && !precedes(b,c) implies !precedes(a,c).
+
+    (1) and (2) together imply transitivity of precedes():
+
+    (3) For all a,b,c, precedes(a,b) && precedes(b,c) implies precedes(a,c).
+
+    Condition (2) expresses the obvious fact that if a and b are distinct
+    values in x, there is no permutation in which every occurrence of
+    a both precedes and follows every occurrence of b.
+
+    Condition (1) indicates that if a, b, c occur
+    in the order  b c a, moving a to before b or b to after a must change
+    the order of either a and c or c and b.
+
+    Conditions (2) and (3) together are not sufficient to ensure a
+    result satisfying the intentions of nonzero and zero values of
+    precedes() as described above.  For example, consider:
+
+		precedes(a,b) = a is a proper divisor of b,
+
+    and x = list(4, 3, 2).  The only pair for which precedes(a,b) is
+    nonzero is (2,4),  but x cannot be rearranged so that 2 is before
+    4 without changing the order of one of the pairs (4,3) and (3,2).
+
+    If precedes() does not satisfy the antisymmetry condition (2),
+    i.e. there exist a, b for which both precedes(a, b)
+    and precedes(b, a), and if x_i1 = a, x_i2 = b, whether or
+    not y_j1 precedes or follows y_j2 will be determined by the
+    sorting algorithm by methods that are difficult to describe;
+    such a situation may be acceptable to a user not concerned with
+    the order of occurrences of a and b in the result.	To permit
+    this, we may now describe the role of precedes(a,b) by the rules:
+
+	precedes(a,b) && !precedes(b,a):  a is to precede b;
+
+	!precedes(a,b) && !precedes(b,a):  order of a and b not to be changed;
+
+	precedes(a,b) && precedes(b,a):	 order of a and b may be changed.
+
+    Under the condition (1), the result of sort(x) will accord with these rules.
+
+    Default precedes():
+
+	If precedes(a,b) has not been defined by a define command,
+	the effect is as if precedes(a,b) were determined by:
+
+	If a and b are are not of the same type, they are ordered by
+
+		null values < numbers < strings < objects.
+
+	If a and b are of the same type, this type being
+	null, numbers or strings, precedes(a,b) is given by (a < b).
+	(If a and b are both null, they are considered to be equal, so
+	a < b then returns zero.)  For null values, numbers and
+	strings, this definition has the properties (1) and (2)
+	discussed above.
+
+	If a and b are both xx-objects, a < b is defined to mean
+	xx_rel(a,b) < 0; such a definition does not
+	necessarily give < the properties usually expected -
+	transitivity and antisymmetry.	In such cases, sort(x)
+	may not give the results expected by the "intentions" of
+	the comparisons expressed by "a < b".
+
+    In many sorting applications, appropriate precedes() functions
+    have definitions equivalent to:
+
+		define precedes(a,b) = (key(a) < key(b))
+
+    where key() maps possible values to a set totally ordered by <.
+    Such a precedes() function has the properties (1) and (2),
+    so the elements of the result returned by sort(x) will be in
+    nondecreasing order of their key-values, elements with equal keys
+    retaining the order they had in x.
+
+    For two-stage sorting where elements are first to be sorted by
+    key1() and elements with equal key1-values then sorted by key2(),
+    an appropriate precedes() function is given by:
+
+	define precedes(a,b) = (key(a) < key(b)) ||
+			(key(a) == key(b)) && (key2(a) < key2(b)).
+
+    When precedes(a.b) is called, the addresses of a and b rather
+    than their values are passed to the function.  This permits
+    a and b to be changed when they are being compared, as in:
+
+	define precedes(a,b) = ((a = round(a)) < (b = round(b)));
+
+    (A more efficient way of achieving the same result would be to
+    use sort(round(x)).)
+
+    Examples of effects of various precedes functions for sorting
+    lists of integers:
+
+	a > b			Sorts into nonincreasing order.
+
+	abs(a) < abs(b)		Sorts into nondecreasing order of
+				absolute values, numbers with the
+				same absolute value retaining
+				their order.
+
+	abs(a) <= abs(b)	Sorts into nondecreasing order of
+				absolute values, possibly
+				changing the order of numbers
+				with the same absolute value.
+
+	abs(a) < abs(b) || abs(a) == abs(b) && a < b
+				Sorts into nondecreasing order of
+				absolute values, numbers with the
+				same absolute value being in
+				nondecreasing order.
+
+	iseven(a)		Even numbers in possibly changed order
+				before odd numbers in unchanged order.
+
+	iseven(a) && isoddd(b)	Even numbers in unchanged order before
+				odd numbers in unchanged order.
+
+	iseven(a) ? iseven(b) ? a < b : 1 : 0
+				Even numbers in nondecreasing order
+				before odd numbers in unchanged order.
+
+	a < b && a < 10		Numbers less than 10 in nondecreasing
+				order before numbers not less than 10
+				in unchanged order.
+
+	!ismult(a,b)		Divisors d of any integer i for which
+				i is not also a divisor of d will
+				precede occurrences of i; the order of
+				integers which divide each other will
+				remain the same; the order of pairs of
+				integers neither of which divides the
+				other may be changed.  Thus occurrences
+				of 1 and -1 will precede all other
+				integers; 2 and -2 will precede all
+				even integers; the order of occurrences
+				of 2 and 3 may change; occurrences of 0
+				will follow all other integers.
+
+	1			The order of the elements is reversed
+
+EXAMPLES
+    ; A = list(1, 7, 2, 4, 2)
+    ; print sort(A)
+
+    list (5 elements, 5 nonzero):
+	  [[0]] = 1
+	  [[1]] = 2
+	  [[2]] = 2
+	  [[3]] = 4
+	  [[4]] = 7
+
+    ; B = list("pear", 2, null(), -3, "orange", null(), "apple", 0)
+    ; print sort(B)
+
+    list (8 elements, 7 nonzero):
+	  [[0]] = NULL
+	  [[1]] = NULL
+	  [[2]] = -3
+	  [[3]] = 0
+	  [[4]] = 2
+	  [[5]] = "apple"
+	  [[6]] = "orange"
+	  [[7]] = "pear"
+
+    ; define precedes(a,b) = (iseven(a) && isodd(b))
+    ; print sort(A)
+
+    list (5 elements, 5 nonzero):
+	  [[0]] = 2
+	  [[1]] = 4
+	  [[2]] = 2
+	  [[3]] = 1
+	  [[4]] = 7
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    join, reverse
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: sort,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/sort,v $
+##
+## Under source code control:	1995/07/09 19:41:26
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                           NAME
+    version - return the calc version string
+
+SYNOPSIS
+    version()
+
+TYPES
+    return	string
+
+DESCRIPTION
+    Returns the calc version string.
+
+    Calc version strings can be of the form:
+
+    	x.y.z.w
+    	x.y.z
+    	x.y
+
+    where x, y, z, w, v are integers (without leading 0's) and,
+    t is the the liternal character 't'.
+
+EXAMPLE
+    ; version()
+    	    "2.11.5.4"
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    n/a
+
+## Copyright (C) 2001  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: version,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/version,v $
+##
+## Under source code control:	2001/05/28 17:38:01
+## File existed as early as:	2001
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 NAME
+    seed - return a value that may be used to seed a pseudo-random generator
+
+SYNOPSIS
+    seed()
+
+TYPES
+    return	integer
+
+DESCRIPTION
+    Generate a pseudo-random seed based on a collection of system and process
+    information.  The seed() builtin function returns a value:
+
+		0 <= seed < 2^64
+
+    IMPORTANT WARNING:
+
+	It should be pointed out that the information collected by seed
+	is almost certainly non-chaotic.  This function is likely not
+	suitable for applications (such as cryptographic applications)
+	where the unpredictability of seeds is critical.  For such critical
+	applications, LavaRnd should be used.	See the URL:
+
+		http://www.LavaRnd.org/
+
+	for information about seeding a pseudo-random number generator
+	(such as rand() or random()) with the cryptographic hash of the
+	digitization of chaotic system.
+
+    Given the above warning, this builtin function produces a seed that is
+    suitable for most applications that desire a different pseudo-random
+    sequence each time they are run.
+
+    The return value of this builtin function should NOT be considered
+    a random or pseudo-random value.  The return value should be used
+    as an argument to a seed function such as srand() or srandom().
+
+EXAMPLE
+    ; print srand(seed())
+    RAND state
+
+    ; print srandom(seed())
+    RAND state
+
+LIMITS
+    none
+
+LINK LIBRARY
+    NUMBER *pseudo_seed(void)
+
+SEE ALSO
+    seed, srand, randbit, isrand, rand, random, srandom, israndom
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: seed,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/seed,v $
+##
+## Under source code control:	1999/10/03 10:04:29
+## File existed as early as:	1999
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           NAME
+    rcin - encode for REDC algorithms
+
+SYNOPSIS
+    rcin(x, m)
+
+TYPES
+    x		integer
+    m		odd positive integer
+
+    return	integer v, 0 <= v < m.
+
+DESCRIPTION
+    Let B be the base calc uses for representing integers internally
+    (B = 2^16 for 32-bit machines, 2^32 for 64-bit machines) and N the
+    number of words (base-B digits) in the representation of m.	 Then
+    rcin(x,m) returns the value of B^N * x % m, where the modulus
+    operator % here gives the least nonnegative residue.
+
+    If y = rcin(x,m), x % m may be evaluated by x % m = rcout(y, m).
+
+    The "encoding" method of using rcmul(), rcsq(), and rcpow() for
+    evaluating products, squares and powers modulo m correspond to the
+    formulae:
+
+	    rcin(x * y, m) = rcmul(rcin(x,m), rcin(y,m), m);
+
+	    rcin(x^2, m) = rcsq(rcin(x,m), m);
+
+	    rcin(x^k, m) = rcpow(rcin(x,m), k, m).
+
+    Here k is any nonnegative integer.	Using these formulae may be
+    faster than direct evaluation of x * y % m, x^2 % m, x^k % m.
+    Some encoding and decoding may be bypassed by formulae like:
+
+	    x * y % m = rcin(rcmul(x, y, m), m).
+
+    If m is a divisor of B^N - h for some integer h, rcin(x,m) may be
+    computed by using rcin(x,m) = h * x % m.  In particular, if
+    m is a divisor of B^N - 1 and 0 <= x < m, then rcin(x,m) = x.
+    For example if B = 2^16 or 2^32, this is so for m = (B^N - 1)/d
+    for the divisors d = 3, 5, 15, 17, ...
+
+RUNTIME
+    The first time a particular value for m is used in rcin(x, m),
+    the information required for the REDC algorithms is
+    calculated and stored for future use in a table covering up to
+    5 (i.e. MAXREDC) values of m.  The runtime required for this is about
+    two that required for multiplying two N-word integers.
+
+    Two algorithms are available for evaluating rcin(x, m), the one
+    which is usually faster for small N is used when N <
+    config("pow2"); the other is usually faster for larger N. If
+    config("pow2") is set at about 200 and x has both been reduced
+    modulo m, the runtime required for rcin(x, m) is at most about f
+    times the runtime required for an N-word by N-word multiplication,
+    where f increases from about 1.3 for N = 1 to near 2 for N > 200.
+    More runtime may be required if x has to be reduced modulo m.
+
+EXAMPLE
+    Using a 64-bit machine with B = 2^32:
+
+    ; for (i = 0; i < 9; i++) print rcin(x, 9),:; print;
+    0 4 8 3 7 2 6 1 5
+
+LIMITS
+    none
+
+LINK LIBRARY
+    void zredcencode(REDC *rp, ZVALUE z1, ZVALUE *res)
+
+SEE ALSO
+   rcout, rcmul, rcsq, rcpow
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: rcin,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/rcin,v $
+##
+## Under source code control:	1996/02/25 02:22:21
+## File existed as early as:	1996
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                 NAME
+    sec - trigonometric secant function
+
+SYNOPSIS
+    sec(x [,eps])
+
+TYPES
+    x		real
+    eps		nonzero real, defaults to epsilon()
+
+    return	real
+
+DESCRIPTION
+    Calculate the secant of x to a multiple of eps, with error less
+    in absolute value than .75 * eps.
+
+EXAMPLE
+    ; print sec(1, 1e-5), sec(1, 1e-10), sec(1, 1e-15), sec(1, 1e-20)
+    1.85082 1.8508157177 1.850815717680926 1.85081571768092561791
+
+LIMITS
+    unlike sin and cos, x must be real
+    eps > 0
+
+LINK LIBRARY
+    NUMBER *qsec(NUMBER *x, NUMBER *eps)
+
+SEE ALSO
+    sin, cos, tan, csc, cot, epsilon
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: sec,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/sec,v $
+##
+## Under source code control:	1995/11/13 03:49:00
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                            NAME
+    eval - evaluate a string
+
+SYNOPSIS
+    eval(str)
+
+TYPES
+    str		string
+
+    return	any
+
+DESCRIPTION
+   For eval(str), the value of str is to be a string that could be the body
+   of the definition of a function f().	 This string may declare local
+   variables and include keywords (while, for, ...) other than the
+   reserved keywords (define, show, help, read, write, show, cd) intended
+   for interactive use or for reading from a file.
+
+   If str is the empty string "", eval(str) returns the null value.
+
+   The call to eval(str) may return a value by explicit use of a return
+   statement: "return;" returns the null value, "return expr;" returns the
+   value of expr.  If execution reaches the end of str and the
+   value on the execution stack is not null, eval(str) returns that value;
+   otherwise eval(str) returns the most recently saved value.
+
+   Each time eval(str) is called, a temporary function is compiled from
+   the commands in str, and if there are no syntax errors, this function
+   is then evaluated.  If str contains syntax errors, eval(str) displays
+   the scanerror messages and returns the value error(49).
+
+EXAMPLE
+   ; str1 = "2 + 3"; print eval(str1);
+   5
+
+   ; i = 10; str2 = "local i = 0; 7; while (i++ < 5) print i^2,:;"
+   ; print i, eval(str2), i
+   10 1 4 9 16 25 7 10
+
+   (The print statements in str2 return the null value, so execution of
+   eval(str2) ends by returning the saved value 7.  The global variable
+   i is unchanged.)
+
+   ; eval("2 + ");
+   Missing expression
+	49
+
+LIMITS
+   The string str in eval(str) should not include a call to itself as in
+
+	str = "2 + eval(str)"
+
+   For this str, eval(str) causes an "Evaluation stack depth exceeded" error.
+   Similarly, if str1 = "2 + eval(str2)", str2 should not include a call
+   to eval(str1), etc.
+
+LINK LIBRARY
+   none
+
+SEE ALSO
+    command, expression, define, prompt
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: eval,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/eval,v $
+##
+## Under source code control:	1995/12/18 03:30:59
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                      NAME
+    arg - argument (the angle or phase) of a complex number
+
+SYNOPSIS
+    arg(x [,eps])
+
+TYPES
+    x		number
+    eps		nonzero real, defaults to epsilon()
+
+    return	real
+
+DESCRIPTION
+    Returns the argument of x to the nearest or next to nearest multiple of
+    eps; the error will be less in absolute value than 0.75 * abs(eps),
+    but usually less than 0.5 * abs(eps).
+
+EXAMPLE
+    ; print arg(2), arg(2+3i, 1e-5), arg(2+3i, 1e-10), arg(2+3i, 1e-20)
+    0 .98279 .9827937232 .98279372324732906799
+
+    ; pi = pi(1e-10); deg = pi/180; eps = deg/10000
+    ; print arg(2+3i, eps)/deg, arg(-1 +1i, eps)/deg, arg(-1 - 1i,eps)/deg
+    56.3099 135 -135
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    conj, im, polar, re
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: arg,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/arg,v $
+##
+## Under source code control:	1994/09/25 20:22:31
+## File existed as early as:	1994
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                     NAME
+   tail - create a list of specified size from the tail of a list
+
+SYNOPSIS
+   tail(x, y)
+
+TYPES
+    x		list
+    y		int
+
+    return	list
+
+DESCRIPTION
+    If 0 <= y <= size(x) == n, tail(x,y) returns a list of size y whose
+    elements in succession have values x[[n - y]]. x[[1]], ..., x[[n - 1]].
+
+    If y > size(x), tail(x,y) is a copy of x.
+
+    If -size(x) < y < 0, tail(x,y) returns a list of size (size(x) + y)
+    whose elements in succession have values x[[-y]]. x[[-y + 1]], ...,
+    x[[size(x) - 1]], i.e. a copy of x from which the first -y members
+    have been deleted.
+
+    If y <= -size(x), tail(x,y) returns a list with no members.
+
+    For any integer y, x == join(head(x,-y), tail(x,y)).
+
+EXAMPLE
+    ; A = list(2, 3, 5, 7, 11)
+    ; tail(A, 2)
+
+    list (2 members, 2 nonzero):
+	  [[0]] = 7
+	  [[1]] = 11
+
+    ; tail(A, -2)
+
+    list (3 members, 3 nonzero):
+	  [[0]] = 5
+	  [[1]] = 7
+	  [[2]] = 11
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    head, segment
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: tail,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/tail,v $
+##
+## Under source code control:	1995/07/10 02:09:30
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              NAME
+    scale - scale a number or numbers in a value by a power of 2
+
+SYNOPSIS
+    scale(x, n)
+
+TYPES
+    If x is an xx-object, scale(x, n) requires xx_scale() to have been
+    defined; conditions on x and n and the type of value returned are
+    determined by the definition of xx_scale().
+
+    For other x:
+
+    x		number (real or complex) or matrix
+    n		integer
+
+    return	same type as x
+
+DESCRIPTION
+    Returns the value of 2^n * x.
+
+    scale(x,n) returns the same as x << n and x >> -n if x is an integer
+    for which 2^n * x is an integer.
+
+EXAMPLE
+    ; print scale(3, 2), scale(3,1), scale(3,0), scale(3,-1), scale(3,-2)
+    12 6 3 1.5 .75
+
+LIMITS
+    For non-object x, abs(n) < 2^31
+
+LINK LIBRARY
+    NUMBER *qscale(NUMBER *x, long n)
+    COMPLEX *c_scale(COMPLEX *x, long n)
+    MATRIX *matscale(MATRIX *x, long n)
+
+SEE ALSO
+    obj
+
+## Copyright (C) 1999-2006  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: scale,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/scale,v $
+##
+## Under source code control:	1995/12/18 12:34:58
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                    

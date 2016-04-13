@@ -1,0 +1,2313 @@
+    } while (tlen < 1.0);
+
+    /*
+     * determine the 2nd algorithm rate
+     */
+    loops = max(1, ceil(loops * test_time / tlen));
+    if (loops < 8) {
+	if (config("user_debug") > 1) {
+	    printf("    we must expand loop test time to more than %d secs\n",
+		ceil(test_time * (8 / loops)));
+	}
+	loops = 8;
+    }
+    tlen = sq_loop(loops, &x);
+    if (config("user_debug") > 3) {
+	printf("\t    alg2 time = %.3f secs\n", tlen);
+    }
+    tover = sq_loop(loops, &one);
+    if (config("user_debug") > 3) {
+	printf("\t    alg2 overhead look %.3f secs\n", tover);
+    }
+    if (tlen <= tover) {
+	quit "sq_ratio: overhead >= loop time";
+    }
+    alg2_rate = loops / (tlen - tover);
+    if (config("user_debug") > 2) {
+	printf("\tsquare alg2 rate = %.3f loopsets/sec\n", alg2_rate);
+    }
+    if (alg2_rate <= 0.0) {
+	quit "sq_ratio: alg2 rate was <= 0.0";
+    }
+
+    /*
+     * restore old config
+     */
+    config("all", orig_cfg),;
+
+    /*
+     * return alg1 / alg2 rate ratio
+     */
+    return (alg1_rate / alg2_rate);
+}
+
+
+/*
+ * best_sq2 - determine the best config("sq2") parameter
+ *
+ * NOTE: Due to precision problems with CPU measurements, it is not
+ *	 unusual for the output of this function to vary slightly
+ *	 from run to run.
+ *
+ * NOTE: This function is designed to take a long time to run.
+ *	  We recommend setting:
+ *
+ *		config("user_debug", 2)
+ *
+ *	  so that yon can watch the progress of this function.
+ */
+define best_sq2()
+{
+    local ratio;	/* previously calculated alg1/alg2 ratio */
+    local low;		/* low loop value tested */
+    local high;		/* low loop value tested */
+    local expand;	/* how fast to expand the length */
+
+    /*
+     * setup
+     */
+    test_time = 15.0;
+    if (config("user_debug") > 0) {
+	printf("will start with loop test time of %d secs\n", test_time);
+    }
+
+    /*
+     * firewall - must have a >1 ratio for the initial length
+     */
+    high = 16;
+    if (config("user_debug") > 0) {
+	printf("testing square alg1/alg2 ratio for len = %d\n", high);
+    }
+    ratio = sq_ratio(high);
+    if (config("user_debug") > 1) {
+	printf("    square alg1/alg2 ratio = %.3f\n", ratio);
+    }
+    if (ratio <= 1.0) {
+	quit "best_sq2: tests imply config(\"sq2\") should be < 4";
+    }
+
+    /*
+     * expand lengths until the ratio flips
+     */
+    do {
+	/*
+	 * determine the paramters of the next ratio test
+	 *
+	 * We will multiplicatively expand our test level until
+	 * the ratio drops below 1.0.
+	 */
+	expand = ((ratio >= 3.5) ? 16 : 2^round(ratio));
+	low = high;
+	high *= expand;
+	if (config("user_debug") > 1) {
+	    printf("    expand the next test range by a factor of %d\n",
+	           expand);
+	}
+
+	/*
+	 * determine the alg1/alg2 test ratio for this new length
+	 */
+	if (high >= 2^31) {
+	    quit "best_sq2: tests imply config(\"sq2\") should be >= 2^31";
+	}
+	if (config("user_debug") > 0) {
+	    printf("testing square alg1/alg2 ratio for len = %d\n", high);
+	}
+	ratio = sq_ratio(high);
+	if (config("user_debug") > 1) {
+	    printf("    square alg1/alg2 ratio = %.3f\n", ratio);
+	}
+    } while (ratio >= 1.0);
+    if (config("user_debug") > 0) {
+	printf("alg1/alg2 ratio now < 1.0, starting binary search between %d and %d\n",
+	    low, high);
+    }
+
+    /*
+     * binary search between low and high, for where ratio is just under 1.0
+     */
+    while (low+1 < high) {
+
+    	/* try the mid-point */
+	if (config("user_debug") > 0) {
+	    printf("testing square alg1/alg2 ratio for len = %d\n",
+	    	int((low+high)/2));
+	}
+	ratio = sq_ratio(int((low+high)/2));
+	if (config("user_debug") > 1) {
+	    printf("    square alg1/alg2 ratio = %.3f\n", ratio);
+	}
+
+	/* bump lower range up if we went over */
+	if (ratio >= 1.0) {
+	    if (config("user_debug") > 2) {
+	    	printf("\tmove low from %d up to %d\n",
+		    low, int((low+high)/2));
+	    }
+	    low = int((low+high)/2);
+
+	/* drop higher range down if we went under */
+	} else {
+	    if (config("user_debug") > 2) {
+	    	printf("\tmove high from %d down to %d\n",
+		     high, int((low+high)/2));
+	    }
+	    high = int((low+high)/2);
+	}
+    }
+
+    /*
+     * return on the suggested config("sq2") value
+     */
+    if (config("user_debug") > 0) {
+	printf("best value of config(\"sq2\") is %d\n",
+	    (ratio >= 1.0) ? high : low);
+    }
+    return ((ratio >= 1.0) ? high : low);
+}
+
+
+/*
+ * pow_loop - measure the CPU time to perform a set of pmod loops
+ *
+ * given:
+ *	repeat	number of pmod loops to perform
+ *	x	array of 5 values, each the same length in BASEB-bit words
+ *
+ *		NOTE: When their lengths are 1 BASEB-bit word, then a
+ *		      dummy loop of simple constants are used.  Thus the
+ *		      length == 1 is an approximation of loop overhead.
+ *
+ *	ex	exponent for pmod value
+ *
+ * returns:
+ *	approximate runtime to perform a pmod loop
+ *
+ * NOTE: This is an internal support function that is normally
+ *	 not called directly from the command line.  Call the
+ *	 function best_pow2() instead.
+ */
+define pow_loop(repeat, x, ex)
+{
+    local start;	/* start of execution */
+    local end;		/* end of execution */
+    local answer;	/* pmod value */
+    local len;		/* length of each element */
+    local baseb_bytes;	/* bytes in a BASEB-bit word */
+    local i;
+
+    /* firewall */
+    if (!isint(repeat) || repeat < 0) {
+	quit "pow_loop: 1st arg: repeat must be an integer > 0";
+    }
+    if (size(*x) != 5) {
+	quit "pow_loop: 2nd arg matrix does not have 5 elements";
+    }
+    if (matdim(*x) != 1) {
+	quit "pow_loop: 2nd arg matrix is not 1 dimensional";
+    }
+    if (matmin(*x, 1) != 0) {
+	quit "pow_loop: 2nd arg matrix index range does not start with 0";
+    }
+    if (matmax(*x, 1) != 4) {
+	quit "pow_loop: 2nd arg matrix index range does not end with 4";
+    }
+    baseb_bytes = config("baseb") / 8;
+    len = sizeof((*x)[0]) / baseb_bytes;
+    for (i=1; i < 4; ++i) {
+	if ((sizeof((*x)[i]) / baseb_bytes) != len) {
+	    quit "pow_loop: 2nd arg matrix elements are not of equal BASEB-bit word length";
+	}
+    }
+    if (!isint(ex) || ex < 3) {
+	quit" pow_loop: 3rd arg ex is not an integer > 2";
+    }
+
+    /* pmod pairwise, all sets of a given length */
+    start = usertime();
+    for (i=0; i < repeat; ++i) {
+
+	if (len == 1) {
+	    /* we use len == 1 to test this tester loop overhead */
+	    answer = pmod(0,0,0); answer = pmod(0,0,0);
+	    answer = pmod(0,0,0); answer = pmod(0,0,0);
+	    /**/
+	    answer = pmod(0,0,0); answer = pmod(0,0,0);
+	    answer = pmod(0,0,0); answer = pmod(0,0,0);
+	    /**/
+	    answer = pmod(0,0,0); answer = pmod(0,0,0);
+	    answer = pmod(0,0,0); answer = pmod(0,0,0);
+	    /**/
+	    answer = pmod(0,0,0); answer = pmod(0,0,0);
+	    answer = pmod(0,0,0); answer = pmod(0,0,0);
+	    /**/
+	    answer = pmod(0,0,0); answer = pmod(0,0,0);
+	    answer = pmod(0,0,0); answer = pmod(0,0,0);
+	    /**/
+	    answer = pmod(0,0,0); answer = pmod(0,0,0);
+	    answer = pmod(0,0,0); answer = pmod(0,0,0);
+	} else {
+	    answer = pmod((*x)[0], ex, (*x)[1]);
+	    answer = pmod((*x)[0], ex, (*x)[2]);
+	    answer = pmod((*x)[0], ex, (*x)[3]);
+	    answer = pmod((*x)[0], ex, (*x)[4]);
+	    /**/
+	    answer = pmod((*x)[1], ex, (*x)[0]);
+	    answer = pmod((*x)[1], ex, (*x)[2]);
+	    answer = pmod((*x)[1], ex, (*x)[3]);
+	    answer = pmod((*x)[1], ex, (*x)[4]);
+	    /**/
+	    answer = pmod((*x)[2], ex, (*x)[0]);
+	    answer = pmod((*x)[2], ex, (*x)[1]);
+	    answer = pmod((*x)[2], ex, (*x)[3]);
+	    answer = pmod((*x)[2], ex, (*x)[4]);
+	    /**/
+	    answer = pmod((*x)[3], ex, (*x)[0]);
+	    answer = pmod((*x)[3], ex, (*x)[1]);
+	    answer = pmod((*x)[3], ex, (*x)[2]);
+	    answer = pmod((*x)[3], ex, (*x)[4]);
+	    /**/
+	    answer = pmod((*x)[4], ex, (*x)[0]);
+	    answer = pmod((*x)[4], ex, (*x)[1]);
+	    answer = pmod((*x)[4], ex, (*x)[2]);
+	    answer = pmod((*x)[4], ex, (*x)[3]);
+	}
+    }
+
+    /*
+     * return duration
+     */
+    end = usertime();
+    return end-start;
+}
+
+
+/*
+ * pow_ratio - ratio of rates of 1st and 2nd pmod algorithms
+ *
+ * given:
+ *	len	length in BASEB-bit words to pmod
+ *
+ * return:
+ *	ratio of (1st / 2nd) algorithm rates
+ *
+ * When want to determine a rate to a precision of 1 part in 1000.
+ * Most systems today return CPU time to at least 10 msec precision.
+ * So to get rates to that precision, we need to time loops to at
+ * least 1000 times as long as the precision (10 msec * 1000)
+ * which usually requires timing of loops that last 10 seconds or more.
+ *
+ * NOTE: This is an internal support function that is normally
+ *	 not called directly from the command line.  Call the
+ *	 function best_pow2() instead.
+ */
+define pow_ratio(len)
+{
+    local mat x[5];		/* array of values for pow_loop to pmod */
+    local mat one[5];		/* array if single BASEB-bit values */
+    local baseb;		/* calc word size in bits */
+    local orig_cfg;		/* caller configuration */
+    local loops;		/* number of pmod loops to time */
+    local tlen;			/* time to perform some number of loops */
+    local tover;		/* est of time for loop overhead */
+    local alg1_rate;		/* loop rate of 1st algorithm */
+    local alg2_rate;		/* loop rate of 2nd algorithm */
+    local ex;			/* exponent to use in pow_loop() */
+    local i;
+
+    /*
+     * firewall
+     */
+    if (!isint(len) || len < 2) {
+	quit "pow_ratio: 1st arg: len is not an integer > 1";
+    }
+
+    /*
+     * remember the caller's config state
+     */
+    orig_cfg = config("all");
+    config("mul2", 0),;
+    config("sq2", 0),;
+    config("pow2", 0),;
+    config("redc2", 0),;
+    config("tilde", 0),;
+
+    /*
+     * setup
+     */
+    ex = 5;
+
+    /*
+     * initialize x, the values we will pmod
+     *
+     * We want these tests to be repeatable as possible, so we will seed
+     * the PRNG in a deterministic way.
+     */
+    baseb = config("baseb");
+    srand(sha1(sha1(ex, baseb, config("version"))));
+    for (i=0; i < 5; ++i) {
+	/* force the values to be a full len words long */
+	x[i] = ((1<<(((len-1) * baseb) + baseb-1)) |
+		    randbit(((len-1) * baseb) + baseb-2));
+	/* single BASEB-bit values */
+        one[i] = 1;
+    }
+
+    /*
+     * determine the number of loops needed to test 1st alg
+     */
+    config("pow2", 2^31-1),;
+    config("redc2", 2^31-1),;
+    loops = 1/2;
+    do {
+	loops *= 2;
+	tlen = pow_loop(loops, &x, ex);
+	if (config("user_debug") > 3) {
+	    printf("\t    alg1 loops %d took %.3f sec\n", loops, tlen);
+	}
+    } while (tlen < 1.0);
+
+    /*
+     * determine the 1st algorithm rate
+     */
+    loops = max(1, ceil(loops * test_time / tlen));
+    if (loops < 8) {
+	if (config("user_debug") > 1) {
+	    printf("    we must expand loop test time to more than %d secs\n",
+		ceil(test_time * (8 / loops)));
+	}
+	loops = 8;
+    }
+    tlen = pow_loop(loops, &x, ex);
+    if (config("user_debug") > 3) {
+	printf("\t    alg1 time = %.3f secs\n", tlen);
+    }
+    tover = pow_loop(loops, &one, ex);
+    if (config("user_debug") > 3) {
+	printf("\t    alg1 overhead look %.3f secs\n", tover);
+    }
+    if (tlen <= tover) {
+	quit "pow_ratio: overhead >= loop time";
+    }
+    alg1_rate = loops / (tlen - tover);
+    if (config("user_debug") > 2) {
+	printf("\tpmod alg1 rate = %.3f loopsets/sec\n", alg1_rate);
+    }
+    if (alg1_rate <= 0.0) {
+	quit "pow_ratio: alg1 rate was <= 0.0";
+    }
+
+    /*
+     * determine the number of loops needed to test 1st alg
+     */
+    config("pow2", 2),;
+    config("redc2", 2^31-1),;
+    loops = 1/2;
+    do {
+	loops *= 2;
+	tlen = pow_loop(loops, &x, ex);
+	if (config("user_debug") > 3) {
+	    printf("\t    alg2 loops %d took %.3f sec\n", loops, tlen);
+	}
+    } while (tlen < 1.0);
+
+    /*
+     * determine the 2nd algorithm rate
+     */
+    loops = max(1, ceil(loops * test_time / tlen));
+    if (loops < 8) {
+	if (config("user_debug") > 1) {
+	    printf("    we must expand loop test time to more than %d secs\n",
+		ceil(test_time * (8 / loops)));
+	}
+	loops = 8;
+    }
+    tlen = pow_loop(loops, &x, ex);
+    if (config("user_debug") > 3) {
+	printf("\t    alg2 time = %.3f secs\n", tlen);
+    }
+    tover = pow_loop(loops, &one, ex);
+    if (config("user_debug") > 3) {
+	printf("\t    alg2 overhead look %.3f secs\n", tover);
+    }
+    if (tlen <= tover) {
+	quit "pow_ratio: overhead >= loop time";
+    }
+    alg2_rate = loops / (tlen - tover);
+    if (config("user_debug") > 2) {
+	printf("\tpmod alg2 rate = %.3f loopsets/sec\n", alg2_rate);
+    }
+    if (alg2_rate <= 0.0) {
+	quit "pow_ratio: alg2 rate was <= 0.0";
+    }
+
+    /*
+     * restore old config
+     */
+    config("all", orig_cfg),;
+
+    /*
+     * return alg1 / alg2 rate ratio
+     */
+    return (alg1_rate / alg2_rate);
+}
+
+
+/*
+ * best_pow2 - determine the best config("pow2") parameter w/o REDC2
+ *
+ * NOTE: Due to precision problems with CPU measurements, it is not
+ *	 unusual for the output of this function to vary slightly
+ *	 from run to run.
+ *
+ * NOTE: This function is designed to take a long time to run.
+ *	  We recommend setting:
+ *
+ *		config("user_debug", 2)
+ *
+ *	  so that yon can watch the progress of this function.
+ */
+define best_pow2()
+{
+    local ratio;	/* previously calculated alg1/alg2 ratio */
+    local low;		/* low loop value tested */
+    local high;		/* low loop value tested */
+    local expand;	/* how fast to expand the length */
+    local looped;	/* 1 ==> we have expanded lengths before */
+
+    /*
+     * setup
+     */
+    test_time = 15.0;
+    if (config("user_debug") > 0) {
+	printf("will start with loop test time of %d secs\n", test_time);
+    }
+
+    /*
+     * firewall - must have a >1.02 ratio for the initial length
+     *
+     * We select 1.02 because of the precision of the CPU timing.  We
+     * want to firt move into an area where the 1st algoritm clearly
+     * dominates.
+     */
+    low = 4;
+    high = 4;
+    do {
+	high *= 4;
+	if (config("user_debug") > 0) {
+	    printf("testing pmod alg1/alg2 ratio for len = %d\n", high);
+	}
+	ratio = pow_ratio(high);
+	if (config("user_debug") > 1) {
+	    printf("    pmod alg1/alg2 ratio = %.3f\n", ratio);
+	    if (ratio > 1.0 && ratio <= 1.02) {
+	    printf("    while alg1 is slightly better than alg2, it is not clearly better\n");
+	    }
+	}
+    } while (ratio <= 1.02);
+    if (config("user_debug") > 0) {
+	printf("starting the pow2 search above %d\n", high);
+    }
+
+    /*
+     * expand lengths until the ratio flips
+     */
+    looped = 0;
+    do {
+	/*
+	 * determine the paramters of the next ratio test
+	 *
+	 * We will multiplicatively expand our test level until
+	 * the ratio drops below 1.0.
+	 *
+	 * NOTE: At low lengths, the ratios seen to be very small
+	 *	 so we force an expansion of 4 to speed us on our
+	 *	 way to larger lengths.  At these somewhat larger
+	 *	 lengths, the ratios usually don't get faster than
+	 *	 1.25, so we need to expand force a more rapid
+	 *	 expansion than normal.  At lengths longer than
+	 *	 2k, the time to test becomes very long, so we
+	 *	 want to slow down at these higher lengths.
+	 */
+	expand = 2;
+	if (looped) {
+	    low = high;
+	}
+	high *= expand;
+	if (config("user_debug") > 1) {
+	    printf("    expand the next test range by a factor of %d\n",
+	    	   expand);
+	}
+
+	/*
+	 * determine the alg1/alg2 test ratio for this new length
+	 */
+	if (high >= 2^31) {
+	    quit "best_pow2: tests imply config(\"pow2\") should be >= 2^31";
+	}
+	if (config("user_debug") > 0) {
+	    printf("testing pmod alg1/alg2 ratio for len = %d\n", high);
+	}
+	ratio = pow_ratio(high);
+	if (config("user_debug") > 1) {
+	    printf("    pmod alg1/alg2 ratio = %.3f\n", ratio);
+	}
+	looped = 1;
+    } while (ratio >= 1.0);
+    if (config("user_debug") > 0) {
+	printf("alg1/alg2 ratio now < 1.0, starting binary search between %d and %d\n",
+	    low, high);
+    }
+
+    /*
+     * binary search between low and high, for where ratio is just under 1.0
+     */
+    while (low+1 < high) {
+
+    	/* try the mid-point */
+	if (config("user_debug") > 0) {
+	    printf("testing pmod alg1/alg2 ratio for len = %d\n",
+	    	int((low+high)/2));
+	}
+	ratio = pow_ratio(int((low+high)/2));
+	if (config("user_debug") > 1) {
+	    printf("    pmod alg1/alg2 ratio = %.3f\n", ratio);
+	}
+
+	/* bump lower range up if we went over */
+	if (ratio >= 1.0) {
+	    if (config("user_debug") > 2) {
+	    	printf("\tmove low from %d up to %d\n",
+		    low, int((low+high)/2));
+	    }
+	    low = int((low+high)/2);
+
+	/* drop higher range down if we went under */
+	} else {
+	    if (config("user_debug") > 2) {
+	    	printf("\tmove high from %d down to %d\n",
+		     high, int((low+high)/2));
+	    }
+	    high = int((low+high)/2);
+	}
+    }
+
+    /*
+     * return on the suggested config("pow2") value
+     */
+    if (config("user_debug") > 0) {
+	printf("best value of config(\"pow2\") is %d\n",
+	    (ratio >= 1.0) ? high : low);
+    }
+    return ((ratio >= 1.0) ? high : low);
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         /*
+ * test4100 - 4100 series of the regress.cal test suite
+ *
+ * Copyright (C) 1999  Ernest Bowen and Landon Curt Noll
+ *
+ * Primary author:  Ernest Bowen
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: test4100.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/test4100.cal,v $
+ *
+ * Under source code control:	1996/03/13 03:53:22
+ * File existed as early as:	1996
+ *
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+/*
+ * Some severe tests and timing functions for REDC functions and pmod.
+ *
+ * testall(str,n,N,M,verbose)
+ *	performs n tests using arguments x, y, ...
+ *	randomly selected from [-N, N) or when nonnegative values are
+ *	required, [0, N), and m an odd positive integer in [1,N],
+ *	and where a "small" (say less than 10000) exponent k is to be
+ *	used (when computing x^k % m directly) k is random in [0,M).
+ *	Default values for N and M are 1e20 and 100.
+ *
+ * times(str,N,n,verbose)
+ *	gives times for n evaluations of rcin, etc. with
+ *	N-word arguments; default n is ceil(K1/power(N,1.585).
+ *
+ * powtimes(str, N1,N2,n, verbose)
+ *	gives times for n evaluations of pmod(x,k,m)
+ *	for the three algorithms "small", "normal", "bignum" that
+ *	pmod may use, and equivalent functions rcpow(xr,k,m) for
+ *	"small" or "bignum" cases, where xr = rcin(x,m).  The
+ *	modulus m is a random positive odd N1-word number; x has
+ *	random integer values in [0, m-1]; k has random N2-word values.
+ *	N2 defaults to 1; n defaults to ceil(K2/power(N1,1.585)/N2).
+ *
+ * inittimes(str, N, n, verbose)
+ *	displays the times and tests n evaluations of rcin(x,m)
+ *	and rcout(x,m) where m is a random positive odd N-word integer,
+ *	x is a random integer in [0, m-1]; n defaults to ceil(K1/N^2).
+ *
+ * rlen_4100(N)
+ *	generates a random positive N-word integer.  The global
+ *	BASEB should be set to the word-size for the computer being
+ *	used.  The parameters K1, K2 which control the default n
+ *	should be adjusted to give reasonable runtimes.
+ *
+ * olen(N)
+ *	generates a random odd positive N-word number.
+ *
+ */
+
+
+defaultverbose = 1;	/* default verbose value */
+
+/*
+ * test defaults
+ */
+global test4100_K1 = 2^17;
+global test4100_K2 = 2^12;
+global test4100_BASE = 2^config("baseb");
+
+define rlen_4100(N) = rand(test4100_BASE^(N-1), test4100_BASE^N);
+
+define olen(N)
+{
+	local v;
+
+	v = rlen_4100(N);
+	if (iseven(v))
+		v++;
+	return v;
+}
+
+define test4101(x,y,m,k,z1,z2,verbose)
+{
+	local xr, yr, v, w, oneone;
+
+	if (isnull(verbose))
+		verbose = defaultverbose;
+	xr = rcin(x,m);
+	yr = rcin(y,m);
+	oneone = rcin(rcin(1,m),m);
+
+	if (xr >= m || xr < 0) {
+		if (verbose > 1)
+			printf("Failure 1 for x = %d, m = %d\n", x, m);
+		return 1;
+	}
+	if (rcin(x * y, m) != mod(xr * y, m, 0)) {
+		if (verbose > 1) {
+			printf("Failure 2 for x = %d, y = %d, m = %d\n",
+				x, y, m);
+		}
+		return 2;
+	}
+	if (rcout(xr, m) != x % m) {
+		if (verbose > 1)
+			printf("Failure 3 for x = %d, m = %d\n", x, m);
+		return 3;
+	}
+	if (rcout(rcmul(xr,yr,m),m) != mod(x * y, m, 0)) {
+		if (verbose > 1)
+			printf("Failure 4 for x = %d, y = %d, m = %d\n",
+				 x, y, m);
+		return 4;
+	}
+	if (rcmul(x,yr,m) != mod(x * y, m, 0)) {
+		if (verbose > 1)
+			printf("Failure 5 for x = %d, y = %d, m = %d\n",
+				 x, y, m);
+		return 5;
+	}
+	if (rcin(rcmul(x,y,m),m) != mod(x * y, m, 0)) {
+		if (verbose > 1)
+			printf("Failure 6 for x = %d, y = %d, m = %d\n",
+				x, y, m);
+		return 6;
+	}
+	if (rcout(rcsq(xr,m),m) != mod(x^2, m, 0)) {
+		if (verbose > 1)
+			printf("Failure 7 for x = %d, m = %d\n", x, m);
+		return 7;
+	}
+	if (rcin(rcsq(x,m),m) != mod(x^2, m, 0)) {
+		if (verbose > 1)
+			printf("Failure 8 for x = %d, m = %d\n",
+				x, y, m);
+		return 8;
+	}
+	if (rcout(rcpow(xr,k,m),m) != mod(x^k, m, 0)) {
+		if (verbose > 1)
+			printf("Failure 9 for x = %d, m = %d, k = %d\n",
+				x, m, k);
+		return 9;
+	}
+	if (rcpow(x,k,m) != rcin(rcout(x,m)^k, m)) {
+		if (verbose > 1)
+			printf("Failure 10: x = %d, k = %d, m = %d\n",
+				x, k, m);
+		return 10;
+	}
+	if (rcpow(x, z1 * z2, m) != rcpow(rcpow(x,z1,m), z2, m)) {
+		if (verbose > 1)
+			printf("Failure 11: x = %d, z1 = %d, z2 = %d, m = %d\n",
+			x, z1, z2, m);
+		return 11;
+	}
+	if (xr != rcmul(oneone, x, m)) {
+		if (verbose > 1)
+			printf("Failure 12: x = %d, m = %d\n", x, m);
+		return 12;
+	}
+
+	return 0;
+}
+
+define testall(str,n,N,M,verbose)
+{
+	local i, p, x, y, z1, z2, c, k, m;
+
+	if (isnull(verbose))
+		verbose = defaultverbose;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	m = 0;
+	if (isnull(N))
+		N = 1e20;
+	if (isnull(M))
+		M = 100;
+	c = 0;
+	for (i = 0; i < n; i++) {
+		x = rand(-N, N);
+		y = rand(-N, N);
+		z1 = rand(N);
+		z2 = rand(N);
+		c = rand(N);
+		if (iseven(c))
+			c++;
+		k = rand(M);
+		if (verbose > 1)
+			printf("x = %d, y = %d, c = %d, k = %d\n", x, y, c, k);
+		p = test4101(x,y,c,k,z1,z2);
+		if (p) {
+			m++;
+			if (verbose > 0) {
+				printf("*** Failure %d in test %d\n", p, i);
+			}
+		}
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)\n", m);
+		} else {
+			printf("passed %d tests\n", n);
+		}
+	}
+	return m;
+}
+
+define times(str,N,n,verbose)
+{
+	local m, m2, A, B, C, x, y, t, i, z;
+	local trcin, trcout, trcmul, trcsq;
+	local tmul, tsq, tmod, tquomod;
+
+	if (isnull(verbose))
+		verbose = defaultverbose;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	m = olen(N);
+	m2 = m^2;
+	if (isnull(n)) {
+		n = ceil(test4100_K1/power(N,1.585));
+		if (verbose > 1)
+			printf("n = %d\n", n);
+	}
+	mat A[n];
+	mat B[n];
+	mat C[n];
+	for (i = 0; i < n; i++) {
+		A[i] = rand(m);
+		B[i] = rand(m);
+		C[i] = rand(m2);
+	}
+	z = rcin(0,m);	/* to initialize redc and maybe lastmod information */
+	t = usertime();
+	for (i = 0; i < n; i++)
+		z = rcin(A[i],m);
+	trcin = round(usertime() - t, 3);
+	t = usertime();
+	for (i = 0; i < n; i++)
+		z = rcout(A[i],m);
+	trcout = round(usertime() - t, 3);
+	t = usertime();
+	for (i = 0; i < n; i++)
+		z = rcmul(A[i],B[i],m);
+	trcmul = round(usertime() - t, 3);
+	t = usertime();
+	for (i = 0; i < n; i++)
+		z = rcsq(A[i],m);
+	trcsq = round(usertime() - t, 3);
+	t = usertime();
+	for (i = 0; i < n; i++)
+		z = A[i] * B[i];
+	tmul = round(usertime() - t, 3);
+	t = usertime();
+	for (i = 0; i < n; i++)
+		z = A[i]^2;
+	tsq = round(usertime() - t, 3);
+	t = usertime();
+	for (i = 0; i < n; i++)
+		z = C[i] % A[i];
+	tmod = round(usertime() - t, 3);
+	t = usertime();
+	for (i = 0; i < n; i++)
+		quomod(C[i], A[i], x, y);
+	tquomod = round(usertime() - t,3);
+
+	if (verbose > 1) {
+		printf("rcin: %d, rcout: %d, rcmul: %d, rcsq: %d\n",
+			trcin, trcout, trcmul, trcsq);
+		printf("%s: mul: %d, sq: %d, mod: %d, quomod: %d\n",
+			str, tmul, tsq, tmod, tquomod);
+	} else if (verbose > 0) {
+		printf("no error(s)\n");
+	}
+	return 0;
+}
+
+
+define powtimes(str, N1, N2, n, verbose)
+{
+	local A, Ar, B, v, i, t, z1, z2, z3, z4, z5, cp, crc;
+	local tsmall, tnormal, tbignum, trcsmall, trcbig, m;
+
+	if (isnull(verbose))
+		verbose = defaultverbose;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	m = 0;
+
+	if (isnull(N2))
+		N2 = 1;
+
+	if (isnull(n)) {
+		n = ceil(test4100_K2/power(N1, 1.585)/N2);
+		printf ("n  = %d\n", n);
+	}
+	mat A[n];
+	mat Ar[n];
+	mat B[n];
+	v = olen(N1);
+
+	cp = config("pow2", 2);
+	crc = config("redc2", 2);
+
+	/* initialize redc and lastmod info */
+
+	z1 = z2 = z3 = z4 = z5 = rcin(0,v);
+
+	for (i = 0; i < n; i++) {
+		A[i] = rand(v);
+		Ar[i] = rcin(A[i], v);
+		B[i] = rlen_4100(N2);
+	}
+	t = usertime();
+	for (i = 0; i < n; i++)
+		z1 += pmod(A[i], B[i], v);
+	tbignum = round(usertime() - t, 4);
+	config("pow2", 1e6);
+	t = usertime();
+	for (i = 0; i < n; i++)
+		z2 += pmod(A[i], B[i], v);
+	tnormal = round(usertime() - t, 4);
+	config("redc2",1e6);
+	t = usertime();
+	for (i = 0; i < n; i++)
+		z3 += pmod(A[i], B[i], v);
+	tsmall = round(usertime() - t, 4);
+	t = usertime();
+	for (i = 0; i < n; i++)
+		z4 += rcpow(Ar[i], B[i], v);
+	trcsmall = round(usertime() - t, 4);
+	config("redc2", 2);
+	t = usertime();
+	for (i = 0; i < n; i++)
+		z5 += rcpow(Ar[i], B[i], v);
+	trcbig = round(usertime() - t, 4);
+
+	if (z1 != z2) {
+		++m;
+		if (verbose > 0) {
+			print "*** z1 != z2";
+		}
+	} else if (z1 != z3) {
+		++m;
+		if (verbose > 0) {
+			print "*** z1 != z3";
+		}
+	} else if (z2 != z3) {
+		++m;
+		if (verbose > 0) {
+			print "*** z2 != z3";
+		}
+	} else if (rcout(z4, v) != z1 % v) {
+		++m;
+		if (verbose > 0) {
+			print "*** z4 != z1";
+		}
+	} else if (z4 != z5) {
+		++m;
+		if (verbose > 0) {
+			print "*** z4 != z5";
+		}
+	}
+	config("pow2", cp);
+	config("redc2", crc);
+	if (verbose > 1) {
+	}
+	if (verbose > 1) {
+		printf("Small: %d, normal: %d, bignum: %d\n",
+			tsmall, tnormal, tbignum);
+		printf("%s: rcsmall: %d, rcbig: %d\n",
+			str, trcsmall, trcbig);
+	} else if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)\n", m);
+		} else {
+			printf("passed\n");
+		}
+	}
+	return 0;
+}
+
+define inittimes(str,N,n,verbose)
+{
+	local A, M, B, R, i, t, trcin, trcout, m;
+
+	if (isnull(verbose))
+		verbose = defaultverbose;
+	if (verbose > 0) {
+		print str:":",:;
+	}
+	m = 0;
+	if (isnull(n)) {
+		n = ceil(test4100_K1/N^2);
+		if (verbose > 1) {
+			printf ("n = %d\n", n);
+		}
+	}
+	mat A[n];
+	mat M[n];
+	mat B[n];
+	mat R[n];
+	for (i = 0; i < n; i++) {
+		M[i] = olen(N);
+		A[i] = rand(M[i]);
+	}
+	t = usertime();
+	for (i = 0; i < n; i++)
+		R[i] = rcin(A[i], M[i]);
+	trcin = round(usertime() - t, 4);
+	for (i = 0; i < n; i++)
+		B[i] = rcout(R[i], M[i]);
+	trcout = round(usertime() - t, 4);
+	for (i = 0; i < n; i++) {
+		if (B[i] != A[i]) {
+			++m;
+			if (verbose > 0) {
+				print "*** Error!!!";
+			}
+			break;
+		}
+	}
+	if (verbose > 0) {
+		if (m) {
+			printf("*** %d error(s)?\n", m);
+		} else {
+			if (verbose > 1) {
+			    printf("%d successful tests: rcin: %d, rcout: %d\n",
+			      n, trcin, trcout);
+			} else {
+			    printf("%d successful tests: passed\n", n);
+			}
+		}
+	}
+	return m;
+}
+
+/*
+ * test4100 - perform all of the above tests a bunch of times
+ */
+define test4100(v, tnum)
+{
+	local n;	/* test parameter */
+
+	/*
+	 * set test parameters
+	 */
+	srand(4100e4100);
+
+	/*
+	 * test a lot of stuff
+	 */
+	err += testall(strcat(str(tnum++),": testall(10,,500)"), 10,, 500, v);
+	err += testall(strcat(str(tnum++),": testall(200)"), 200,,, v);
+
+	err += times(strcat(str(tnum++),": times(3,3000)"), 3, 3000, v);
+	err += times(strcat(str(tnum++),": times(30,300)"), 30, 300, v);
+	err += times(strcat(str(tnum++),": times(300,30)"), 300, 30, v);
+	err += times(strcat(str(tnum++),": times(1000,3)"), 1000, 3, v);
+
+	err += powtimes(strcat(str(tnum++),": powtimes(100)"),100,,v);
+	err += powtimes(strcat(str(tnum++),": powtimes(250)"),250,,v);
+
+	err += inittimes(strcat(str(tnum++),": inittimes(10)"),10,,v);
+	err += inittimes(strcat(str(tnum++),": inittimes(100,70)"),100,70,v);
+	err += inittimes(strcat(str(tnum++),": inittimes(1000,4)"),1000,4,v);
+
+	/*
+	 * report results
+	 */
+	if (v > 1) {
+		if (err) {
+			print "***", err, "error(s) found in testall";
+		} else {
+			print "no errors in testall";
+		}
+	}
+	return tnum;
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            /*
+ * test1700 - 1700 series of the regress.cal test suite
+ *
+ * Copyright (C) 1999  Landon Curt Noll
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: test1700.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/test1700.cal,v $
+ *
+ * Under source code control:	1994/03/14 23:12:51
+ * File existed as early as:	1994
+ *
+ * chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+
+++value;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  /*
+ * chi - chi^2 probabilities with degrees of freedom for null hypothesis
+ *
+ * Copyright (C) 2001  Landon Curt Noll
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: chi.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/chi.cal,v $
+ *
+ * Under source code control:	2001/03/27 14:10:11
+ * File existed as early as:	2001
+ *
+ * chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+
+/*
+ * Z(x)
+ *
+ * From Handbook of Mathematical Functions
+ *	10th printing, Dec 1972 with corrections
+ *	National Bureau of Standards
+ *
+ * Section 26.2.1, p931.
+ */
+define Z(x, eps_term)
+{
+    local eps;		/* error term */
+
+    /* obtain the error term */
+    if (isnull(eps_term)) {
+    	eps = epsilon();
+    } else {
+	eps = eps_term;
+    }
+
+    /* compute Z(x) value */
+    return exp(-x*x/2, eps) / sqrt(2*pi(eps), eps);
+}
+
+
+/*
+ * P(x[, eps]) asymtotic P(x) expansion for x>0 to an given epsilon error term
+ *
+ * NOTE: If eps is omitted, the stored epsilon value is used.
+ *
+ * From Handbook of Mathematical Functions
+ *	10th printing, Dec 1972 with corrections
+ *	National Bureau of Standards
+ *
+ * 26.2.11, p932:
+ *
+ *	P(x) = 1/2 + Z(x) * sum(n=0; n < infinity){x^(2*n+1)/(1*3*5*...(2*n+1)};
+ *
+ * We continue the fraction until it is less than epsilon error term.
+ *
+ * Also note 26.2.5:
+ *
+ *	P(x) + Q(x) = 1
+ */
+define P(x, eps_term)
+{
+    local eps;		/* error term */
+    local s;		/* sum */
+    local x2;		/* x^2 */
+    local x_term;	/* x^(2*r+1) */
+    local odd_prod;	/* 1*3*5* ... */
+    local odd_term;	/* next odd value to multiply into odd_prod */
+    local term;		/* the recent term added to the sum */
+
+    /* obtain the error term */
+    if (isnull(eps_term)) {
+    	eps = epsilon();
+    } else {
+	eps = eps_term;
+    }
+
+    /* firewall */
+    if (x <= 0) {
+	if (x == 0) {
+	    return 0;	/* hack */
+	} else {
+	    quit "Q(x[,eps]) 1st argument must be >= 0";
+	}
+    }
+    if (eps <= 0) {
+	quit "Q(x[,eps]) 2nd argument must be > 0";
+    }
+
+    /*
+     * aproximate sum(n=0; n < infinity){x^(2*n+1)/(1*3*5*...(2*n+1)}
+     */
+    x2 = x*x;
+    x_term = x;
+    s = x_term;	/* 1st term */
+    odd_term = 1;
+    odd_prod = 1;
+    do {
+
+	/* compute the term */
+	odd_term += 2;
+	odd_prod *= odd_term;
+	x_term *= x2;
+	term = x_term / odd_prod;
+	s += term;
+
+    } while (term >= eps);
+
+    /* apply term and factor */
+    return 0.5 + Z(x,eps)*s;
+}
+
+
+/*
+ * chi_prob(chi_sq, v[, eps]) -  Prob of >= chi^2 with v degrees of freedom
+ *
+ *    Computes the Probability, given the Null Hypothesis, that a given
+ *    Chi squared values >= chi_sq with v degrees of freedom.
+ *
+ *    The chi_prob() function does not work well with odd degrees of freedom.
+ *    It is reasonable with even degrees of freedom, although one must give
+ *    a sifficently small error term as the degress gets large (>100).
+ *
+ * NOTE: This function does not work well with odd degrees of freedom.
+ *	 Can somebody help / find a bug / provide a better method of
+ *	 this odd degrees of freedom case?
+ *
+ * NOTE: This function works well with even degrees of freedom.  However
+ *	 when the even degrees gets large (say, as you approach 100), you
+ *	 need to increase your error term.
+ *
+ * From Handbook of Mathematical Functions
+ *	10th printing, Dec 1972 with corrections
+ *	National Bureau of Standards
+ *
+ * Section 26.4.4, p941:
+ *
+ *   For odd v:
+ *
+ *	Q(chi_sq, v) = 2*Q(chi) + 2*Z(chi) * (
+ *		     sum(r=1, r<=(r-1)/2) {(chi_sq^r/chi) / (1*3*5*...(2*r-1)});
+ *
+ *	chi = sqrt(chi_sq)
+ *
+ *	NOTE: Q(x) = 1-P(x)
+ *
+ * Section 26.4.5, p941.
+ *
+ *   For even v:
+ *
+ *	Q(chi_sq, v) = sqrt(2*pi()) * Z(chi) * ( 1 +
+ *		       sum(r=1, r=((v-2)/2)) { chi_sq^r / (2*4*...*(2r)) } );
+ *
+ *	chi = sqrt(chi_sq)
+ *
+ * Observe that:
+ *
+ *	Z(x) = exp(-x*x/2) / sqrt(2*pi());	(Section 26.2.1, p931)
+ *
+ * and thus:
+ *
+ *	sqrt(2*pi()) * Z(chi) =
+ *	sqrt(2*pi()) * Z(sqrt(chi_sq)) =
+ *	sqrt(2*pi()) * exp(-sqrt(chi_sq)*sqrt(chi_sq)/2) / sqrt(2*pi()) =
+ *	exp(-sqrt(chi_sq)*sqrt(chi_sq)/2) =
+ *	exp(-sqrt(-chi_sq/2)
+ *
+ * So:
+ *
+ *	Q(chi_sq, v) = exp(-sqrt(-chi_sq/2) * ( 1 + sum(....){...} );
+ */
+define chi_prob(chi_sq, v, eps_term)
+{
+    local eps;		/* error term */
+    local r;		/* index in finite sum */
+    local r_lim;	/* limit value for r */
+    local s;		/* sum */
+    local d;		/* demoninator (2*4*6*... or 1*3*5...) */
+    local chi_term;	/* chi_sq^r */
+    local ret;		/* return value */
+
+    /* obtain the error term */
+    if (isnull(eps_term)) {
+	eps = epsilon();
+    } else {
+	eps = eps_term;
+    }
+
+    /*
+     * odd degrees of freedom
+     */
+    if (isodd(v)) {
+
+	local chi;		/* sqrt(chi_sq) */
+
+	/* setup for sum */
+	s = 1;
+	d = 1;
+	chi = sqrt(abs(chi_sq), eps);
+	chi_term = chi;
+	r_lim = (v-1)/2;
+
+	/* compute sum(r=1, r=((v-1)/2)) {(chi_sq^r/chi) / (1*3*5...*(2r-1))} */
+	for (r=2; r <= r_lim; ++r) {
+	    chi_term *= chi_sq;
+	    d *= (2*r)-1;
+	    s += chi_term/d;
+	}
+
+	/* apply term and factor, Q(x) = 1-P(x) */
+	ret = 2*(1-P(chi)) + 2*Z(chi)*s;
+
+    /*
+     * even degrees of freedom
+     */
+    } else {
+
+	/* setup for sum */
+	s =1;
+	d = 1;
+	chi_term = 1;
+	r_lim = (v-2)/2;
+
+	/* compute sum(r=1, r=((v-2)/2)) { chi_sq^r / (2*4*...*(2r)) } */
+	for (r=1; r <= r_lim; ++r) {
+	    chi_term *= chi_sq;
+	    d *= r*2;
+	    s += chi_term/d;
+	}
+
+	/* apply factor - see observation in the main comment above */
+	ret = exp(-chi_sq/2, eps) * s;
+    }
+
+    return ret;
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       /*
+ * randmprime - generate a random prime of the form h*2^n-1
+ *
+ * Copyright (C) 1999  Landon Curt Noll
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: randmprime.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/randmprime.cal,v $
+ *
+ * Under source code control:	1994/03/14 23:11:21
+ * File existed as early as:	1994
+ *
+ * chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+
+/* obtain our required libs */
+read -once "lucas.cal"
+
+/*
+ * randmprime - find a random prime of the form h*2^n-1 of a given size
+ *
+ * given:
+ *	bits	minimum bits in prime to return
+ *	seed	random seed for srandom()
+ *	[dbg]	if given, enable debugging
+ *
+ * returns:
+ *	a prime of the form h*2^n-1
+ */
+define
+randmprime(bits, seed, dbg)
+{
+    local n;		/* n as in h*2^n-1 */
+    local h;		/* h as in h*2^n-1 */
+    local plush;	/* value added to h since the beginning */
+    local init;		/* initial cpu time */
+    local start;	/* cpu time before last test */
+    local stop;		/* cpu time afte last test */
+    local tmp;		/* just a tmp place holder value */
+    local ret;		/* h*2^n-1 that is prime */
+
+    /* firewall */
+    if (param(0) < 2 || param(0) > 3) {
+	quit "bad usage: rndprime(dig, seed [,dbg])";
+    }
+    if (!isint(bits) || bits < 0 || !isint(seed) || seed < 0) {
+	quit "args must be non-negative integers";
+    }
+    if (bits < 1) {
+	bits = 1;
+    }
+    if (param(0) == 2 || dbg < 0) {
+	dbg = 0;
+    }
+
+    /* seed generator */
+    tmp = srandom(seed, 13);
+
+    /* determine initial h and n values */
+    n = random(bits>>1, highbit(bits)+bits>>1+1);
+    h = randombit(n);
+    h += iseven(h);
+    while (highbit(h) >= n) {
+       ++n;
+    }
+    if (dbg >= 1) {
+	print "DEBUG3: initial h =", h;
+	print "DEBUG3: initial n =", n;
+    }
+
+    /*
+     * loop until we find a prime
+     */
+    if (dbg >= 1) {
+	start = usertime();
+	init = usertime();
+	plush = 0;
+	print "DEBUG1: testing (h+" : plush : ")*2^" : n : "-1";
+    }
+    while (lucas(h,n) == 0) {
+
+	/* bump h, and n if needed */
+	if (dbg >= 2) {
+	    stop = usertime();
+	    print "DEBUG2: last test:", stop-start, "	total time:", stop-init;
+	}
+	if (dbg >= 1) {
+	    print "DEBUG1: composite: (h+" : plush : ")*2^" : n : "-1";
+	    plush += 2;
+	}
+	h += 2;
+	while (highbit(h) >= n) {
+	   ++n;
+	}
+	if (dbg >= 1) {
+	    print "DEBUG1: testing (h+" : plush : ")*2^" : n : "-1";
+	    start = stop;
+	}
+    }
+
+    /* found a prime */
+    if (dbg >= 2) {
+	stop = usertime();
+	print "DEBUG2: last test:", stop-start, "   total time:", stop-init;
+	print "DEBUG3: " : h : "*2^" : n : "-1 is prime";
+    }
+    if (dbg >= 1) {
+	print "DEBUG1: prime: (h+" : plush : ")*2^" : n : "-1";
+    }
+    ret = h*2^n-1;
+    if (dbg >= 3) {
+	print "DEBUG3: highbit(h):", highbit(h);
+	print "DEBUG3: digits(h):", digits(h);
+	print "DEBUG3: highbit(n):", highbit(n);
+	print "DEBUG3: digits(2^n):", int(n*ln(10)/ln(2)+1);
+	print "DEBUG3: highbit(h*2^n-1):", highbit(ret);
+	print "DEBUG3: digits(h*2^n)-1:", digits(ret);
+    }
+    return ret;
+}
+                                                                                                                                                                                                                                                                                        /*
+ * beer - 99 bottles of beer
+ *
+ * Copyright (C) 1999  Landon Curt Noll
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: beer.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/beer.cal,v $
+ *
+ * Under source code control:	1996/11/13 13:21:05
+ * File existed as early as:	1996
+ *
+ * chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+/*
+ * See: http://www.ionet.net/~timtroyr/funhouse/beer.html#calc
+ */
+
+
+for (i=99; i > 0;) {
+	/* current wall state */
+	some_bottles = (i != 1) ? "bottles" : "bottle";
+	print i, some_bottles, "of beer on the wall,",;
+	print i, some_bottles, "of beer!";
+
+	/* glug, glug */
+	--i;
+	print "Take one down and pass it around,",;
+
+	/* new wall state */
+	less = (i > 0) ? i : "no";
+	bottles = (i!=1) ? "bottles" : "bottle";
+	print less, bottles, "of beer on the wall!\n";
+}
+                                                                                                                                                                                                                                                                                                                                                                                                             /*
+ * poly - calculate with polynomials of one variable
+ *
+ * Copyright (C) 1999  Ernest Bowen
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: poly.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/poly.cal,v $
+ *
+ * Under source code control:	1990/02/15 01:50:35
+ * File existed as early as:	before 1990
+ *
+ * Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+ */
+
+/*
+ * A collection of functions designed for calculations involving
+ *	polynomials in one variable (by Ernest W. Bowen).
+ *
+ * On starting the program the independent variable has identifier x
+ *	and name "x", i.e. the user can refer to it as x, the
+ *	computer displays it as "x".  The name of the independent
+ *	variable is stored as varname, so, for example, varname = "alpha"
+ *	will change its name to "alpha".  At any time, the independent
+ *	variable has only one name.  For some purposes, a name like
+ *	"sin(t)" or "(a + b)" or "\lambda" might be useful;
+ *	names like "*" or "-27" are legal but might give expressions
+ *	that are difficult to intepret.
+ *
+ * Polynomial expressions may be constructed from numbers and the
+ *	independent variable and other polynomials by the algebraic
+ *	operations +, -, *, ^, and if the result is a polynomial /.
+ *	The operations // and % are defined to have the quotient and
+ *	remainder meanings as usually defined for polynomials.
+ *
+ * When polynomials are assigned to idenfifiers, it is convenient to
+ *	think of the polynomials as values.  For example, p = (x - 1)^2
+ *	assigns to p a polynomial value in the same way as q = (7 - 1)^2
+ *	would assign to q a number value.  As with number expressions
+ *	involving operations, the expression used to define the
+ *	polynomial is usually lost; in the above example, the normal
+ *	computer display for p will be	x^2 - 2x + 1.  Different
+ *	identifiers may of course have the same polynomial value.
+ *
+ * The polynomial we think of as a_0 + a_1 * x + ... + a_n * x^n,
+ *	for number coefficients a_0, a_1, ... a_n may also be
+ *	constructed as pol(a_0, a_1, ..., a_n).	 Note that here the
+ *	coefficients are to be in ascending power order.  The independent
+ *	variable is pol(0,1), so to use t, say, as an identifier for
+ *	this, one may assign  t = pol(0,1).  To simultaneously specify
+ *	an identifier and a name for the independent variable, there is
+ *	the instruction var, used as in identifier = var(name).	 For
+ *	example, to use "t" in the way "x" is initially, one may give
+ *	the instruction	 t = var("t").
+ *
+ * There are four parameters pmode, order, iod and ims for controlling
+ *	the format in which polynomials are displayed.
+ *	The parameter pmode may have values "alg" or "list": the
+ *	former gives a display as an algebraic formula, while
+ *	the latter only lists the coefficients.	 Whether the terms or
+ *	coefficients are in ascending or descending power order is
+ *	controlled by order being "up" or "down".  If the
+ *	parameter iod (for integer-only display), the polynomial
+ *	is expressed in terms of a polynomial whose coefficients are
+ *	integers with gcd = 1, the leading coefficient having positive
+ *	real part, with where necessary a leading multiplying integer,
+ *	a Gaussian integer multiplier if the coefficients are complex
+ *	with a common complex factor, and a trailing divisor integer.
+ *	If a non-zero value is assigned to the parameter ims,
+ *	multiplication signs will be inserted where appropriate;
+ *	this may be useful if the expression is to be copied to a
+ *	program or a string to be used with eval.
+ *
+ * For evaluation of polynomials the standard function is ev(p, t).
+ *	If p is a polynomial and t anything for which the relevant
+ *	operations can be performed, this returns the value of p
+ *	at t.  The function ev(p, t) also accepts lists or matrices
+ *	as possible values for p; each element of p is then evaluated
+ *	at t.  For other p, t is ignored and the value of p is returned.
+ *	If an identifier, a, say, is used for the polynomial, list or
+ *	matrix p, the definition
+ *			define a(t) = ev(a, t);
+ *	permits a(t) to be used for the value of a at t as if the
+ *	polynomial, list or matrix were a function.  For example,
+ *	if a = 1 + x^2, a(2) will return the value 5, just as if
+ *			define a(t) = 1 + t^2;
+ *	had been used.	 However, when the polynomial definition is
+ *	used, changing the polynomial a will change a(t) to the value
+ *	of the new polynomial at t.  For example,
+ *	after
+ *		L = list(x, x^2, x^3, x^4);
+		define a(t) = ev(a, t);
+ *	the loop
+ *		for (i = 0; i < 4; i++)
+ *			print ev(L[[i]], 5);
+ *	may be replaced by
+ *		for (i = 0; i < 4; i++) {
+ *			a = L[[i]];
+ *			print a(5);
+ *		}
+ *
+ * Matrices with polynomial elements may be added, subtracted and
+ *	multiplied as long as the usual rules for compatibility are
+ *	observed.  Also, matrices may be multiplied by polynomials,
+ *	i.e. if p is a	polynomial and A a matrix whose elements
+ *	may be numbers or polynomials, p * A returns the matrix of
+ *	the same shape as A with each element multiplied by p.
+ *	Square matrices may also be 'substituted for the variable' in
+ *	polynomials, e.g. if A is an m x m matrix, and
+ *	p = x^2 + 3 * x + 2, ev(p, A) returns the same as
+ *	A^2 + 3 * A + 2 * I, where I is the unit m x m matrix.
+ *
+ * On starting this program, three demonstration polynomials a, b, c
+ *	have been defined.  The functions a(t), b(t), c(t) corresponding
+ *	to a, b, c, and x(t) corresponding to x, have also been
+ *	defined, so the usual function notation can be used for
+ *	evaluations of a, b, c and x.  For x, as long as x identifies
+ *	the independent variable, x(t) should return the value of t,
+ *	i.e. it acts as an identity function.
+ *
+ * Functions defined include:
+ *
+ *	monic(a) returns the monic multiple of a, i.e., if a != 0,
+ *		the multiple of a with leading coefficient 1
+ *	conj(a) returns the complex conjugate of a
+ *	ispmult(a,b) returns 1 or 0 according as a is or is not
+ *		a polynomial multiple of b
+ *	pgcd(a,b) returns the monic gcd of a and b
+ *	pfgcd(a,b) returns a list of three polynomials (g, u, v)
+ *		where g = pgcd(a,b) and g = u * a + v * b.
+ *	plcm(a,b) returns the monic lcm of a and b
+ *
+ *	interp(X,Y,t) returns the value at t of the polynomial given
+ *		by Newtonian divided difference interpolation, where
+ *		X is a list of x-values, Y a list of corresponding
+ *		y-values.  If t is omitted, the interpolating
+ *		polynomial is returned.	 A y-value may be replaced by
+ *		list (y, y_1, y_2, ...), where y_1, y_2, ... are
+ *		the reduced derivatives at the corresponding x;
+ *		i.e. y_r is the r-th derivative divided by fact(r).
+ *	mdet(A) returns the determinant of the square matrix A,
+ *		computed by an algorithm that does not require
+ *		inverses;  the built-in det function usually fails
+ *		for matrices with polynomial elements.
+ *	D(a,n) returns the n-th derivative of a; if n is omitted,
+ *		the first derivative is returned.
+ *
+ * A first-time user can see what the initially defined polynomials
+ *	a, b and c are, and experiment with the algebraic operations
+ *	and other functions that have been defined by giving
+ *	instructions like:
+ *			a
+ *			b
+ *			c
+ *			(x^2 + 1) * a
+ *			a^27
+ *			a * b
+ *			a % b
+ *			a // b
+ *			a(1 + x)
+ *			a(b)
+ *			conj(c)
+ *			g = pgcd(a, b)
+ *			g
+ *			a / g
+ *			D(a)
+ *			mat A[2,2] = {1 + x, x^2, 3, 4*x}
+ *			mdet(A)
+ *			D(A)
+ *			A^2
+ *			define A(t) = ev(A, t)
+ *			A(2)
+ *			A(1 + x)
+ *			define L(t) = ev(L, t)
+ *			L = list(x, x^2, x^3, x^4)
+ *			L(5)
+ *			a(L)
+ *			interp(list(0,1,2,3), list(2,3,5,7))
+ *			interp(list(0,1,2), list(0,list(1,0),2))
+ *
+ * One check on some of the functions is provided by the Cayley-Hamilton
+ *	theorem:  if A is any m x m matrix and I the m x m unit matrix,
+ *	and x is pol(0,1),
+ *			ev(mdet(x * I - A), A)
+ *	should return the zero m x m matrix.
+ */
+
+
+obj poly {p};
+
+define pol() {
+	local u,i,s;
+	obj poly u;
+	s = list();
+	for (i=1; i<= param(0); i++) append (s,param(i));
+	i=size(s) -1;
+	while (i>=0 && s[[i]]==0) {i--; remove(s)}
+	u.p = s;
+	return u;
+}
+
+define ispoly(a) {
+	local y;
+	obj poly y;
+	return istype(a,y);
+}
+
+define findlist(a) {
+	if (ispoly(a)) return a.p;
+	if (a) return list(a);
+	return list();
+}
+
+pmode = "alg";	/* The other acceptable pmode is "list" */
+ims = 0;	/* To be non-zero if multiplication signs to be inserted */
+iod = 0;	/* To be non-zero for integer-only display */
+order = "down"	/* Determines order in which coefficients displayed */
+
+define poly_print(a) {
+	local f, g, t;
+	if (size(a.p) == 0) {
+		print 0:;
+		return;
+	}
+	if (iod) {
+		g = gcdcoeffs(a);
+		t = a.p[[size(a.p) - 1]] / g;
+		if (re(t) < 0) { t = -t; g = -g;}
+		if (g != 1) {
+			if (!isreal(t)) {
+				if (im(t) > re(t)) g *= 1i;
+				else if (im(t) <= -re(t)) g *= -1i;
+			}
+			if (isreal(g)) f = g;
+			else f = gcd(re(g), im(g));
+			if (num(f) != 1) {
+				print num(f):;
+				if (ims) print"*":;
+			}
+			if (!isreal(g)) {
+				printf("(%d)", g/f);
+				if (ims) print"*":;
+			}
+			if (pmode == "alg") print"(":;
+			polyprint(1/g * a);
+			if (pmode == "alg") print")":;
+			if (den(f) > 1) print "/":den(f):;
+			return;
+		}
+	}
+	polyprint(a);
+}
+
+define polyprint(a) {
+	local s,n,i,c;
+	s = a.p;
+	n=size(s) - 1;
+	if (pmode=="alg") {
+		if (order == "up") {
+			i = 0;
+			while (!s[[i]]) i++;
+			pterm (s[[i]], i);
+			for (i++ ; i <= n; i++) {
+				c = s[[i]];
+				if (c) {
+					if (isreal(c)) {
+						if (c > 0) print" + ":;
+						else {
+							print" - ":;
+							c = -c;
+						}
+					}
+					else print " + ":;
+					pterm(c,i);
+				}
+			}
+			return;
+		}
+		if (order == "down") {
+			pterm(s[[n]],n);
+			for (i=n-1; i>=0; i--) {
+				c = s[[i]];
+				if (c) {
+					if (isreal(c)) {
+						if (c > 0) print" + ":;
+						else {
+							print" - ":;
+							c = -c;
+						}
+					}
+					else print " + ":;
+					pterm(c,i);
+				}
+			}
+			return;
+		}
+		quit "order to be up or down";
+	}
+	if (pmode=="list") {
+		plist(s);
+		return;
+	}
+	print pmode,:"is unknown mode";
+}
+
+
+define poly_neg(a) {
+	local s,i,y;
+	obj poly y;
+	s = a.p;
+	for (i=0; i< size(s); i++) s[[i]] = -s[[i]];
+	y.p = s;
+	return y;
+}
+
+define poly_conj(a) {
+	local s,i,y;
+	obj poly y;
+	s = a.p;
+	for (i=0; i < size(s); i++) s[[i]] = conj(s[[i]]);
+	y.p = s;
+	return y;
+}
+
+define poly_inv(a) = pol(1)/a;	/* This exists only for a of zero degree */
+
+define poly_add(a,b) {
+	local sa, sb, i, y;
+	obj poly y;
+	sa=findlist(a); sb=findlist(b);
+	if (size(sa) > size(sb)) swap(sa,sb);
+	for (i=0; i< size(sa); i++) sa[[i]] += sb[[i]];
+	while (i < size(sb)) append (sa, sb[[i++]]);
+	while (i > 0 && sa[[--i]]==0) remove (sa);
+	y.p = sa;
+	return y;
+}
+
+define poly_sub(a,b) {
+	 return a + (-b);
+}
+
+define poly_cmp(a,b) {
+	local sa, sb;
+	sa = findlist(a);
+	sb=findlist(b);
+	return	(sa != sb);
+}
+
+define poly_mul(a,b) {
+	local sa,sb,i, j, y;
+	if (ismat(a)) swap(a,b);
+	if (ismat(b)) {
+		y = b;
+		for (i=matmin(b,1); i <= matmax(b,1); i++)
+			for (j = matmin(b,2); j<= matmax(b,2); j++)
+				y[i,j] = a * b[i,j];
+		return y;
+	}
+	obj poly y;
+	sa=findlist(a); sb=findlist(b);
+	y.p = listmul(sa,sb);
+	return y;
+}
+
+define listmul(a,b) {
+	local da,db, s, i, j, u;
+	da=size(a)-1; db=size(b)-1;
+	s=list();
+	if (da >= 0 && db >= 0) {
+		for (i=0; i<= da+db; i++) { u=0;
+			for (j = max(0,i-db); j <= min(i, da); j++)
+			u += a[[j]]*b[[i-j]]; append (s,u);}}
+	return s;
+}
+
+define ev(a,t) {
+	local v, i, j;
+	if (ismat(a)) {
+		v = a;
+		for (i = matmin(a,1); i <= matmax(a,1); i++)
+			for (j = matmin(a,2); j <= matmax(a,2); j++)
+				v[i,j] = ev(a[i,j], t);
+		return v;
+	}
+	if (islist(a)) {
+		v = list();
+		for (i = 0; i < size(a); i++)
+			appyÒ  zÒ  {Ò  |Ò  }Ò  ~Ò                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          end(v, ev(a[[i]], t));
+		return v;
+	}
+	if (!ispoly(a)) return a;
+	if (islist(t)) {
+		v = list();
+		for (i = 0; i < size(t); i++)
+			append(v, ev(a, t[[i]]));
+		return v;
+	}
+	if (ismat(t)) return evpm(a.p, t);
+	return evp(a.p, t);
+}
+
+define evp(s,t) {
+	local n,v,i;
+	n = size(s);
+	if (!n) return 0;
+	v = s[[n-1]];
+	for (i = n - 2; i >= 0; i--) v=t * v +s[[i]];
+	return v;
+}
+
+define evpm(s,t) {
+	local m, n, V, i, I;
+	n = size(s);
+	m = matmax(t,1) - matmin(t,1);
+	if (matmax(t,2) - matmin(t,2) != m) quit "Non-square matrix";
+	mat V[m+1, m+1];
+	if (!n) return V;
+	mat I[m+1, m+1];
+	matfill(I, 0, 1);
+	V = s[[n-1]] * I;
+	for (i = n - 2; i >= 0; i--) V = t * V + s[[i]] * I;
+	return V;
+}
+pzero = pol(0);
+x = pol(0,1);
+varname = "x";
+define x(t) = ev(x, t);
+
+define iszero(a) {
+	if (ispoly(a))
+		return !size(a.p);
+	return a == 0;
+}
+
+define isstring(a) = istype(a, " ");
+
+define var(name) {
+	if (!isstring(name)) quit "Argument of var is to be a string";
+	varname = name;
+	return pol(0,1);
+}
+
+define pcoeff(a) {
+		if (isreal(a)) print a:;
+		else print "(":a:")":;
+}
+
+define pterm(a,n) {
+	if (n==0) {
+		pcoeff(a);
+		return;
+	}
+	if (n==1) {
+		if (a!=1) {
+			pcoeff(a);
+			if (ims) print"*":;
+		}
+		print varname:;
+		return;
+	}
+	if (a!=1) {
+		pcoeff(a);
+		if (ims) print"*":;
+	}
+	print varname:"^":n:;
+}
+
+define plist(s) {
+	local i, n;
+	n = size(s);
+	print "( ":;
+	if (order == "up") {
+		for (i=0; i< n-1 ; i++)
+			print s[[i]]:",",:;
+		if (n) print s[[i]],")":;
+		else print "0 )":;
+	}
+	else {
+		if (n) print s[[n-1]]:;
+		for (i = n - 2; i >= 0; i--)
+			print ", ":s[[i]]:;
+		print " )":;
+	}
+}
+
+define deg(a) = size(a.p) - 1;
+
+define polydiv(a,b) {
+	local d, u, i, m, n, sa, sb, sq;
+	local obj poly q;
+	local obj poly r;
+	sa=findlist(a); sb = findlist(b); sq = list();
+	m=size(sa)-1; n=size(sb)-1;
+	if (n<0) quit "Zero divisor";
+	if (m<n) return list(pzero, a);
+	d = sb[[n]];
+	while ( m >= n) { u = sa[[m]]/d;
+		for (i = 0; i< n; i++) sa[[m-n+i]] -= u*sb[[i]];
+		push(sq,u); remove(sa); m--;
+		while (m>=n && sa[[m]]==0) { m--; remove(sa); push(sq,0)}}
+	while (m>=0 && sa[[m]]==0) { m--; remove(sa);}
+	q.p = sq;  r.p = sa;
+	return list(q, r);}
+
+define poly_mod(a,b)  {
+	local u;
+	u=polydiv(a,b);
+	return u[[1]];
+}
+
+define poly_quo(a,b) {
+	local p;
+	p = polydiv(a,b);
+	return p[[0]];
+}
+
+define ispmult(a,b) = iszero(a % b);
+
+define poly_div(a,b) {
+	if (!ispmult(a,b)) quit "Result not a polynomial";
+	return poly_quo(a,b);
+}
+
+define pgcd(a,b) {
+	local r;
+	if (iszero(a) && iszero(b)) return pzero;
+	while (!iszero(b)) {
+		r = a % b;
+		a = b;
+		b = r;
+	}
+	return monic(a);
+}
+
+define plcm(a,b) = monic( a * b // pgcd(a,b));
+
+define pfgcd(a,b) {
+	local u, v, u1, v1, s, q, r, d, w;
+	u = v1 = pol(1); v = u1 = pol(0);
+	while (size(b.p) > 0) {s = polydiv(a,b);
+		q = s[[0]];
+		a = b; b = s[[1]]; u -= q*u1; v -= -q*v1;
+		swap(u,u1); swap(v,v1);}
+	d=size(a.p)-1; if (d>=0 && (w= 1/a.p[[d]]) !=1)
+		 { a *= w; u *= w; v *= w;}
+	return list(a,u,v);
+}
+
+define monic(a) {
+	local s, c, i, d, y;
+	if (iszero(a)) return pzero;
+	obj poly y;
+	s = findlist(a);
+	d = size(s)-1;
+	for (i=0; i<=d; i++) s[[i]] /= s[[d]];
+	y.p = s;
+	return y;
+}
+
+define coefficient(a,n) = (n < size(a.p)) ? a.p[[n]] : 0;
+
+define D(a, n) {
+	local i,j,v;
+	if (isnull(n)) n = 1;
+	if (!isint(n) || n < 1) quit "Bad order for derivative";
+	if (ismat(a)) {
+		v = a;
+		for (i = matmin(a,1); i <= matmax(a,1); i++)
+			for (j = matmin(a,2); j <= matmax(a,2); j++)
+				v[i,j] = D(a[i,j], n);
+		return v;
+	}
+	if (!ispoly(a)) return 0;
+	return Dp(a,n);
+}
+
+define Dp(a,n) {
+	local i, v;
+	if (n > 1) return Dp(Dp(a, n-1), 1);
+	obj poly v;
+	v.p=list();
+	for (i=1; i<size(a.p); i++) append (v.p, i*a.p[[i]]);
+	return v;
+}
+
+
+define cgcd(a,b) {
+	if (isreal(a) && isreal(b)) return gcd(a,b);
+	while (a) {
+		b -= bround(b/a) * a;
+		swap(a,b);
+	}
+	if (re(b) < 0) b = -b;
+	if (im(b) > re(b)) b *= -1i;
+	else if (im(b) <= -re(b)) b *= 1i;
+	return b;
+}
+
+define gcdcoeffs(a) {
+	local s,i,g, c;
+	s = a.p;
+	g=0;
+	for (i=0; i < size(s) && g != 1; i++)
+		if (c = s[[i]]) g = cgcd(g, c);
+	return g;
+}
+
+define interp(X, Y, t) = evalfd(makediffs(X,Y), t);
+
+define makediffs(X,Y) {
+	local U, D, d, x, y, i, j, k, m, n, s;
+	U = D = list();
+	n = size(X);
+	if (size(Y) != n) quit"Arguments to be lists of same size";
+	for (i = n-1; i >= 0; i--) {
+		x = X[[i]];
+		y = Y[[i]];
+		m = size(U);
+		if (isnum(y)) {
+			d = y;
+			for (j = 0; j < m; j++) {
+				d = D[[j]] = (D[[j]]-d)/(U[[j]] - x);
+			}
+			push(U, x);
+			push(D, y);
+		}
+		else {
+			s = size(y);
+			for (k = 0; k < s ; k++) {
+				d = y[[k]];
+				for (j = 0; j < m; j++) {
+					d = D[[j]] = (D[[j]] - d)/(U[[j]] - x);
+				}
+			}
+			for (j=s-1; j >=0; j--) {
+				push(U,x);
+				push(D, y[[j]]);
+			}
+		}
+	}
+	return list(U, D);
+}
+
+define evalfd(T, t) {
+	local U, D, n, i, v;
+	if (isnull(t)) t = pol(0,1);
+	U = T[[0]];
+	D = T[[1]];
+	n = size(U);
+	v = D[[n-1]];
+	for (i = n-2; i >= 0; i--)
+		v = v * (t - U[[i]]) + D[[i]];
+	return v;
+}
+
+
+define mdet(A) {
+	local n, i, j, k, I, J;
+	n = matmax(A,1) - (i = matmin(A,1));
+	if (matmax(A,2) - (j = matmin(A,2)) != n)
+		quit "Non-square matrix for mdet";
+	I = J = list();
+	k = n + 1;
+	while (k--) {
+		append(I,i++);
+		append(J,j++);
+	}
+	return M(A, n+1, I, J);
+}
+
+define M(A, n, I, J) {
+	local v, J0, i, j, j1;
+	if (n == 1) return A[ I[[0]], J[[0]] ];
+	v = 0;
+	i = remove(I);
+	for (j = 0; j < n; j++) {
+		J0 = J;
+		j1 = delete(J0, j);
+		v += (-1)^(n-1+j) * A[i, j1] * M(A, n-1, I, J0);
+	}
+	return v;
+}
+
+define mprint(A) {
+	local i,j;
+	if (!ismat(A)) quit "Argument to be a matrix";
+	for (i = matmin(A,1); i <= matmax(A,1); i++) {
+		for (j = matmin(A,2); j <= matmax(A,2); j++)
+			printf("%8.4d ", A[i,j]);
+		printf("\n");
+	}
+}
+
+obj poly a;
+obj poly b;
+obj poly c;
+
+define a(t) = ev(a,t);
+define b(t) = ev(b,t);
+define c(t) = ev(c,t);
+
+a=pol(1,4,4,2,3,1);
+b=pol(5,16,8,1);
+c=pol(1+2i,3+4i,5+6i);
+
+if (config("resource_debug") & 3) {
+	print "obj poly {p} defined";
+}
+                                                                                                                                                                                                                                                                          /*
+ * hello - print Hello World! forever
+ *
+ * Copyright (C) 1999  Landon Curt Noll
+ *
+ * Calc is open software; you can redistribute it and/or modify it under
+ * the terms of the version 2.1 of the GNU Lesser General Public License
+ * as published by the Free Software Foundation.
+ *
+ * Calc is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+ * Public License for more details.
+ *
+ * A copy of version 2.1 of the GNU Lesser General Public License is
+ * distributed with calc under the filename COPYING-LGPL.  You should have
+ * received a copy with calc; if not, write to Free Software Foundation, Inc.
+ * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @(#) $Revision: 30.1 $
+ * @(#) $Id: hello.cal,v 30.1 2007/03/16 11:09:54 chongo Exp $
+ * @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/hello.cal,v $
+ *
+ * Under source code control:	1996/11/13 13:25

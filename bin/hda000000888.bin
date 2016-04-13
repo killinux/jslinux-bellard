@@ -1,0 +1,2013 @@
+define CD_FRAMESIZE_RAW0 (CD_FRAMESIZE_RAW-CD_SYNC_SIZE-CD_HEAD_SIZE) /*2336*/
+
+#define CD_XA_HEAD        (CD_HEAD_SIZE+CD_SUBHEAD_SIZE) /* "before data" part of raw XA frame */
+#define CD_XA_TAIL        (CD_EDC_SIZE+CD_ECC_SIZE) /* "after data" part of raw XA frame */
+#define CD_XA_SYNC_HEAD   (CD_SYNC_SIZE+CD_XA_HEAD) /* sync bytes + header of XA frame */
+
+/* CD-ROM address types (cdrom_tocentry.cdte_format) */
+#define	CDROM_LBA 0x01 /* "logical block": first frame is #0 */
+#define	CDROM_MSF 0x02 /* "minute-second-frame": binary, not bcd here! */
+
+/* bit to tell whether track is data or audio (cdrom_tocentry.cdte_ctrl) */
+#define	CDROM_DATA_TRACK	0x04
+
+/* The leadout track is always 0xAA, regardless of # of tracks on disc */
+#define	CDROM_LEADOUT		0xAA
+
+/* audio states (from SCSI-2, but seen with other drives, too) */
+#define	CDROM_AUDIO_INVALID	0x00	/* audio status not supported */
+#define	CDROM_AUDIO_PLAY	0x11	/* audio play operation in progress */
+#define	CDROM_AUDIO_PAUSED	0x12	/* audio play operation paused */
+#define	CDROM_AUDIO_COMPLETED	0x13	/* audio play successfully completed */
+#define	CDROM_AUDIO_ERROR	0x14	/* audio play stopped due to error */
+#define	CDROM_AUDIO_NO_STATUS	0x15	/* no current audio status to return */
+
+/* capability flags used with the uniform CD-ROM driver */ 
+#define CDC_CLOSE_TRAY		0x1     /* caddy systems _can't_ close */
+#define CDC_OPEN_TRAY		0x2     /* but _can_ eject.  */
+#define CDC_LOCK		0x4     /* disable manual eject */
+#define CDC_SELECT_SPEED 	0x8     /* programmable speed */
+#define CDC_SELECT_DISC		0x10    /* select disc from juke-box */
+#define CDC_MULTI_SESSION 	0x20    /* read sessions>1 */
+#define CDC_MCN			0x40    /* Medium Catalog Number */
+#define CDC_MEDIA_CHANGED 	0x80    /* media changed */
+#define CDC_PLAY_AUDIO		0x100   /* audio functions */
+#define CDC_RESET               0x200   /* hard reset device */
+#define CDC_DRIVE_STATUS        0x800   /* driver implements drive status */
+#define CDC_GENERIC_PACKET	0x1000	/* driver implements generic packets */
+#define CDC_CD_R		0x2000	/* drive is a CD-R */
+#define CDC_CD_RW		0x4000	/* drive is a CD-RW */
+#define CDC_DVD			0x8000	/* drive is a DVD */
+#define CDC_DVD_R		0x10000	/* drive can write DVD-R */
+#define CDC_DVD_RAM		0x20000	/* drive can write DVD-RAM */
+#define CDC_MO_DRIVE		0x40000 /* drive is an MO device */
+#define CDC_MRW			0x80000 /* drive can read MRW */
+#define CDC_MRW_W		0x100000 /* drive can write MRW */
+#define CDC_RAM			0x200000 /* ok to open for WRITE */
+
+/* drive status possibilities returned by CDROM_DRIVE_STATUS ioctl */
+#define CDS_NO_INFO		0	/* if not implemented */
+#define CDS_NO_DISC		1
+#define CDS_TRAY_OPEN		2
+#define CDS_DRIVE_NOT_READY	3
+#define CDS_DISC_OK		4
+
+/* return values for the CDROM_DISC_STATUS ioctl */
+/* can also return CDS_NO_[INFO|DISC], from above */
+#define CDS_AUDIO		100
+#define CDS_DATA_1		101
+#define CDS_DATA_2		102
+#define CDS_XA_2_1		103
+#define CDS_XA_2_2		104
+#define CDS_MIXED		105
+
+/* User-configurable behavior options for the uniform CD-ROM driver */
+#define CDO_AUTO_CLOSE		0x1     /* close tray on first open() */
+#define CDO_AUTO_EJECT		0x2     /* open tray on last release() */
+#define CDO_USE_FFLAGS		0x4     /* use O_NONBLOCK information on open */
+#define CDO_LOCK		0x8     /* lock tray on open files */
+#define CDO_CHECK_TYPE		0x10    /* check type on open for data */
+
+/* Special codes used when specifying changer slots. */
+#define CDSL_NONE       	(INT_MAX-1)
+#define CDSL_CURRENT    	INT_MAX
+
+/* For partition based multisession access. IDE can handle 64 partitions
+ * per drive - SCSI CD-ROM's use minors to differentiate between the
+ * various drives, so we can't do multisessions the same way there.
+ * Use the -o session=x option to mount on them.
+ */
+#define CD_PART_MAX		64
+#define CD_PART_MASK		(CD_PART_MAX - 1)
+
+/*********************************************************************
+ * Generic Packet commands, MMC commands, and such
+ *********************************************************************/
+
+ /* The generic packet command opcodes for CD/DVD Logical Units,
+ * From Table 57 of the SFF8090 Ver. 3 (Mt. Fuji) draft standard. */
+#define GPCMD_BLANK			    0xa1
+#define GPCMD_CLOSE_TRACK		    0x5b
+#define GPCMD_FLUSH_CACHE		    0x35
+#define GPCMD_FORMAT_UNIT		    0x04
+#define GPCMD_GET_CONFIGURATION		    0x46
+#define GPCMD_GET_EVENT_STATUS_NOTIFICATION 0x4a
+#define GPCMD_GET_PERFORMANCE		    0xac
+#define GPCMD_INQUIRY			    0x12
+#define GPCMD_LOAD_UNLOAD		    0xa6
+#define GPCMD_MECHANISM_STATUS		    0xbd
+#define GPCMD_MODE_SELECT_10		    0x55
+#define GPCMD_MODE_SENSE_10		    0x5a
+#define GPCMD_PAUSE_RESUME		    0x4b
+#define GPCMD_PLAY_AUDIO_10		    0x45
+#define GPCMD_PLAY_AUDIO_MSF		    0x47
+#define GPCMD_PLAY_AUDIO_TI		    0x48
+#define GPCMD_PLAY_CD			    0xbc
+#define GPCMD_PREVENT_ALLOW_MEDIUM_REMOVAL  0x1e
+#define GPCMD_READ_10			    0x28
+#define GPCMD_READ_12			    0xa8
+#define GPCMD_READ_BUFFER		    0x3c
+#define GPCMD_READ_BUFFER_CAPACITY	    0x5c
+#define GPCMD_READ_CDVD_CAPACITY	    0x25
+#define GPCMD_READ_CD			    0xbe
+#define GPCMD_READ_CD_MSF		    0xb9
+#define GPCMD_READ_DISC_INFO		    0x51
+#define GPCMD_READ_DVD_STRUCTURE	    0xad
+#define GPCMD_READ_FORMAT_CAPACITIES	    0x23
+#define GPCMD_READ_HEADER		    0x44
+#define GPCMD_READ_TRACK_RZONE_INFO	    0x52
+#define GPCMD_READ_SUBCHANNEL		    0x42
+#define GPCMD_READ_TOC_PMA_ATIP		    0x43
+#define GPCMD_REPAIR_RZONE_TRACK	    0x58
+#define GPCMD_REPORT_KEY		    0xa4
+#define GPCMD_REQUEST_SENSE		    0x03
+#define GPCMD_RESERVE_RZONE_TRACK	    0x53
+#define GPCMD_SEND_CUE_SHEET		    0x5d
+#define GPCMD_SCAN			    0xba
+#define GPCMD_SEEK			    0x2b
+#define GPCMD_SEND_DVD_STRUCTURE	    0xbf
+#define GPCMD_SEND_EVENT		    0xa2
+#define GPCMD_SEND_KEY			    0xa3
+#define GPCMD_SEND_OPC			    0x54
+#define GPCMD_SET_READ_AHEAD		    0xa7
+#define GPCMD_SET_STREAMING		    0xb6
+#define GPCMD_START_STOP_UNIT		    0x1b
+#define GPCMD_STOP_PLAY_SCAN		    0x4e
+#define GPCMD_TEST_UNIT_READY		    0x00
+#define GPCMD_VERIFY_10			    0x2f
+#define GPCMD_WRITE_10			    0x2a
+#define GPCMD_WRITE_12			    0xaa
+#define GPCMD_WRITE_AND_VERIFY_10	    0x2e
+#define GPCMD_WRITE_BUFFER		    0x3b
+/* This is listed as optional in ATAPI 2.6, but is (curiously) 
+ * missing from Mt. Fuji, Table 57.  It _is_ mentioned in Mt. Fuji
+ * Table 377 as an MMC command for SCSi devices though...  Most ATAPI
+ * drives support it. */
+#define GPCMD_SET_SPEED			    0xbb
+/* This seems to be a SCSI specific CD-ROM opcode 
+ * to play data at track/index */
+#define GPCMD_PLAYAUDIO_TI		    0x48
+/*
+ * From MS Media Status Notification Support Specification. For
+ * older drives only.
+ */
+#define GPCMD_GET_MEDIA_STATUS		    0xda
+
+/* Mode page codes for mode sense/set */
+#define GPMODE_VENDOR_PAGE		0x00
+#define GPMODE_R_W_ERROR_PAGE		0x01
+#define GPMODE_WRITE_PARMS_PAGE		0x05
+#define GPMODE_WCACHING_PAGE		0x08
+#define GPMODE_AUDIO_CTL_PAGE		0x0e
+#define GPMODE_POWER_PAGE		0x1a
+#define GPMODE_FAULT_FAIL_PAGE		0x1c
+#define GPMODE_TO_PROTECT_PAGE		0x1d
+#define GPMODE_CAPABILITIES_PAGE	0x2a
+#define GPMODE_ALL_PAGES		0x3f
+/* Not in Mt. Fuji, but in ATAPI 2.6 -- deprecated now in favor
+ * of MODE_SENSE_POWER_PAGE */
+#define GPMODE_CDROM_PAGE		0x0d
+
+
+
+/* DVD struct types */
+#define DVD_STRUCT_PHYSICAL	0x00
+#define DVD_STRUCT_COPYRIGHT	0x01
+#define DVD_STRUCT_DISCKEY	0x02
+#define DVD_STRUCT_BCA		0x03
+#define DVD_STRUCT_MANUFACT	0x04
+
+struct dvd_layer {
+	__u8 book_version	: 4;
+	__u8 book_type		: 4;
+	__u8 min_rate		: 4;
+	__u8 disc_size		: 4;
+	__u8 layer_type		: 4;
+	__u8 track_path		: 1;
+	__u8 nlayers		: 2;
+	__u8 track_density	: 4;
+	__u8 linear_density	: 4;
+	__u8 bca		: 1;
+	__u32 start_sector;
+	__u32 end_sector;
+	__u32 end_sector_l0;
+};
+
+#define DVD_LAYERS	4
+
+struct dvd_physical {
+	__u8 type;
+	__u8 layer_num;
+	struct dvd_layer layer[DVD_LAYERS];
+};
+
+struct dvd_copyright {
+	__u8 type;
+
+	__u8 layer_num;
+	__u8 cpst;
+	__u8 rmi;
+};
+
+struct dvd_disckey {
+	__u8 type;
+
+	unsigned agid		: 2;
+	__u8 value[2048];
+};
+
+struct dvd_bca {
+	__u8 type;
+
+	int len;
+	__u8 value[188];
+};
+
+struct dvd_manufact {
+	__u8 type;
+
+	__u8 layer_num;
+	int len;
+	__u8 value[2048];
+};
+
+typedef union {
+	__u8 type;
+
+	struct dvd_physical	physical;
+	struct dvd_copyright	copyright;
+	struct dvd_disckey	disckey;
+	struct dvd_bca		bca;
+	struct dvd_manufact	manufact;
+} dvd_struct;
+
+/*
+ * DVD authentication ioctl
+ */
+
+/* Authentication states */
+#define DVD_LU_SEND_AGID	0
+#define DVD_HOST_SEND_CHALLENGE	1
+#define DVD_LU_SEND_KEY1	2
+#define DVD_LU_SEND_CHALLENGE	3
+#define DVD_HOST_SEND_KEY2	4
+
+/* Termination states */
+#define DVD_AUTH_ESTABLISHED	5
+#define DVD_AUTH_FAILURE	6
+
+/* Other functions */
+#define DVD_LU_SEND_TITLE_KEY	7
+#define DVD_LU_SEND_ASF		8
+#define DVD_INVALIDATE_AGID	9
+#define DVD_LU_SEND_RPC_STATE	10
+#define DVD_HOST_SEND_RPC_STATE	11
+
+/* State data */
+typedef __u8 dvd_key[5];		/* 40-bit value, MSB is first elem. */
+typedef __u8 dvd_challenge[10];	/* 80-bit value, MSB is first elem. */
+
+struct dvd_lu_send_agid {
+	__u8 type;
+	unsigned agid		: 2;
+};
+
+struct dvd_host_send_challenge {
+	__u8 type;
+	unsigned agid		: 2;
+
+	dvd_challenge chal;
+};
+
+struct dvd_send_key {
+	__u8 type;
+	unsigned agid		: 2;
+
+	dvd_key key;
+};
+
+struct dvd_lu_send_challenge {
+	__u8 type;
+	unsigned agid		: 2;
+
+	dvd_challenge chal;
+};
+
+#define DVD_CPM_NO_COPYRIGHT	0
+#define DVD_CPM_COPYRIGHTED	1
+
+#define DVD_CP_SEC_NONE		0
+#define DVD_CP_SEC_EXIST	1
+
+#define DVD_CGMS_UNRESTRICTED	0
+#define DVD_CGMS_SINGLE		2
+#define DVD_CGMS_RESTRICTED	3
+
+struct dvd_lu_send_title_key {
+	__u8 type;
+	unsigned agid		: 2;
+
+	dvd_key title_key;
+	int lba;
+	unsigned cpm		: 1;
+	unsigned cp_sec		: 1;
+	unsigned cgms		: 2;
+};
+
+struct dvd_lu_send_asf {
+	__u8 type;
+	unsigned agid		: 2;
+
+	unsigned asf		: 1;
+};
+
+struct dvd_host_send_rpcstate {
+	__u8 type;
+	__u8 pdrc;
+};
+
+struct dvd_lu_send_rpcstate {
+	__u8 type		: 2;
+	__u8 vra		: 3;
+	__u8 ucca		: 3;
+	__u8 region_mask;
+	__u8 rpc_scheme;
+};
+
+typedef union {
+	__u8 type;
+
+	struct dvd_lu_send_agid		lsa;
+	struct dvd_host_send_challenge	hsc;
+	struct dvd_send_key		lsk;
+	struct dvd_lu_send_challenge	lsc;
+	struct dvd_send_key		hsk;
+	struct dvd_lu_send_title_key	lstk;
+	struct dvd_lu_send_asf		lsasf;
+	struct dvd_host_send_rpcstate	hrpcs;
+	struct dvd_lu_send_rpcstate	lrpcs;
+} dvd_authinfo;
+
+struct request_sense {
+#if defined(__BIG_ENDIAN_BITFIELD)
+	__u8 valid		: 1;
+	__u8 error_code		: 7;
+#elif defined(__LITTLE_ENDIAN_BITFIELD)
+	__u8 error_code		: 7;
+	__u8 valid		: 1;
+#endif
+	__u8 segment_number;
+#if defined(__BIG_ENDIAN_BITFIELD)
+	__u8 reserved1		: 2;
+	__u8 ili		: 1;
+	__u8 reserved2		: 1;
+	__u8 sense_key		: 4;
+#elif defined(__LITTLE_ENDIAN_BITFIELD)
+	__u8 sense_key		: 4;
+	__u8 reserved2		: 1;
+	__u8 ili		: 1;
+	__u8 reserved1		: 2;
+#endif
+	__u8 information[4];
+	__u8 add_sense_len;
+	__u8 command_info[4];
+	__u8 asc;
+	__u8 ascq;
+	__u8 fruc;
+	__u8 sks[3];
+	__u8 asb[46];
+};
+
+/*
+ * feature profile
+ */
+#define CDF_RWRT	0x0020	/* "Random Writable" */
+#define CDF_HWDM	0x0024	/* "Hardware Defect Management" */
+#define CDF_MRW 	0x0028
+
+/*
+ * media status bits
+ */
+#define CDM_MRW_NOTMRW			0
+#define CDM_MRW_BGFORMAT_INACTIVE	1
+#define CDM_MRW_BGFORMAT_ACTIVE		2
+#define CDM_MRW_BGFORMAT_COMPLETE	3
+
+/*
+ * mrw address spaces
+ */
+#define MRW_LBA_DMA			0
+#define MRW_LBA_GAA			1
+
+/*
+ * mrw mode pages (first is deprecated) -- probed at init time and
+ * cdi->mrw_mode_page is set
+ */
+#define MRW_MODE_PC_PRE1		0x2c
+#define MRW_MODE_PC			0x03
+
+struct mrw_feature_desc {
+	__be16 feature_code;
+#if defined(__BIG_ENDIAN_BITFIELD)
+	__u8 reserved1		: 2;
+	__u8 feature_version	: 4;
+	__u8 persistent		: 1;
+	__u8 curr		: 1;
+#elif defined(__LITTLE_ENDIAN_BITFIELD)
+	__u8 curr		: 1;
+	__u8 persistent		: 1;
+	__u8 feature_version	: 4;
+	__u8 reserved1		: 2;
+#endif
+	__u8 add_len;
+#if defined(__BIG_ENDIAN_BITFIELD)
+	__u8 reserved2		: 7;
+	__u8 write		: 1;
+#elif defined(__LITTLE_ENDIAN_BITFIELD)
+	__u8 write		: 1;
+	__u8 reserved2		: 7;
+#endif
+	__u8 reserved3;
+	__u8 reserved4;
+	__u8 reserved5;
+};
+
+/* cf. mmc4r02g.pdf 5.3.10 Random Writable Feature (0020h) pg 197 of 635 */
+struct rwrt_feature_desc {
+	__be16 feature_code;
+#if defined(__BIG_ENDIAN_BITFIELD)
+	__u8 reserved1		: 2;
+	__u8 feature_version	: 4;
+	__u8 persistent		: 1;
+	__u8 curr		: 1;
+#elif defined(__LITTLE_ENDIAN_BITFIELD)
+	__u8 curr		: 1;
+	__u8 persistent		: 1;
+	__u8 feature_version	: 4;
+	__u8 reserved1		: 2;
+#endif
+	__u8 add_len;
+	__u32 last_lba;
+	__u32 block_size;
+	__u16 blocking;
+#if defined(__BIG_ENDIAN_BITFIELD)
+	__u8 reserved2		: 7;
+	__u8 page_present	: 1;
+#elif defined(__LITTLE_ENDIAN_BITFIELD)
+	__u8 page_present	: 1;
+	__u8 reserved2		: 7;
+#endif
+	__u8 reserved3;
+};
+
+typedef struct {
+	__be16 disc_information_length;
+#if defined(__BIG_ENDIAN_BITFIELD)
+	__u8 reserved1			: 3;
+        __u8 erasable			: 1;
+        __u8 border_status		: 2;
+        __u8 disc_status		: 2;
+#elif defined(__LITTLE_ENDIAN_BITFIELD)
+        __u8 disc_status		: 2;
+        __u8 border_status		: 2;
+        __u8 erasable			: 1;
+	__u8 reserved1			: 3;
+#else
+#error "Please fix <asm/byteorder.h>"
+#endif
+	__u8 n_first_track;
+	__u8 n_sessions_lsb;
+	__u8 first_track_lsb;
+	__u8 last_track_lsb;
+#if defined(__BIG_ENDIAN_BITFIELD)
+	__u8 did_v			: 1;
+        __u8 dbc_v			: 1;
+        __u8 uru			: 1;
+        __u8 reserved2			: 2;
+	__u8 dbit			: 1;
+	__u8 mrw_status			: 2;
+#elif defined(__LITTLE_ENDIAN_BITFIELD)
+	__u8 mrw_status			: 2;
+	__u8 dbit			: 1;
+        __u8 reserved2			: 2;
+        __u8 uru			: 1;
+        __u8 dbc_v			: 1;
+	__u8 did_v			: 1;
+#endif
+	__u8 disc_type;
+	__u8 n_sessions_msb;
+	__u8 first_track_msb;
+	__u8 last_track_msb;
+	__u32 disc_id;
+	__u32 lead_in;
+	__u32 lead_out;
+	__u8 disc_bar_code[8];
+	__u8 reserved3;
+	__u8 n_opc;
+} disc_information;
+
+typedef struct {
+	__be16 track_information_length;
+	__u8 track_lsb;
+	__u8 session_lsb;
+	__u8 reserved1;
+#if defined(__BIG_ENDIAN_BITFIELD)
+	__u8 reserved2			: 2;
+        __u8 damage			: 1;
+        __u8 copy			: 1;
+        __u8 track_mode			: 4;
+	__u8 rt				: 1;
+	__u8 blank			: 1;
+	__u8 packet			: 1;
+	__u8 fp				: 1;
+	__u8 data_mode			: 4;
+	__u8 reserved3			: 6;
+	__u8 lra_v			: 1;
+	__u8 nwa_v			: 1;
+#elif defined(__LITTLE_ENDIAN_BITFIELD)
+        __u8 track_mode			: 4;
+        __u8 copy			: 1;
+        __u8 damage			: 1;
+	__u8 reserved2			: 2;
+	__u8 data_mode			: 4;
+	__u8 fp				: 1;
+	__u8 packet			: 1;
+	__u8 blank			: 1;
+	__u8 rt				: 1;
+	__u8 nwa_v			: 1;
+	__u8 lra_v			: 1;
+	__u8 reserved3			: 6;
+#endif
+	__be32 track_start;
+	__be32 next_writable;
+	__be32 free_blocks;
+	__be32 fixed_packet_size;
+	__be32 track_size;
+	__be32 last_rec_address;
+} track_information;
+
+struct feature_header {
+	__u32 data_len;
+	__u8 reserved1;
+	__u8 reserved2;
+	__u16 curr_profile;
+};
+
+struct mode_page_header {
+	__be16 mode_data_length;
+	__u8 medium_type;
+	__u8 reserved1;
+	__u8 reserved2;
+	__u8 reserved3;
+	__be16 desc_length;
+};
+
+
+#endif  /* _LINUX_CDROM_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               /*
+ *	Linux ethernet bridge
+ *
+ *	Authors:
+ *	Lennert Buytenhek		<buytenh@gnu.org>
+ *
+ *	This program is free software; you can redistribute it and/or
+ *	modify it under the terms of the GNU General Public License
+ *	as published by the Free Software Foundation; either version
+ *	2 of the License, or (at your option) any later version.
+ */
+
+#ifndef _LINUX_IF_BRIDGE_H
+#define _LINUX_IF_BRIDGE_H
+
+#include <linux/types.h>
+
+#define SYSFS_BRIDGE_ATTR	"bridge"
+#define SYSFS_BRIDGE_FDB	"brforward"
+#define SYSFS_BRIDGE_PORT_SUBDIR "brif"
+#define SYSFS_BRIDGE_PORT_ATTR	"brport"
+#define SYSFS_BRIDGE_PORT_LINK	"bridge"
+
+#define BRCTL_VERSION 1
+
+#define BRCTL_GET_VERSION 0
+#define BRCTL_GET_BRIDGES 1
+#define BRCTL_ADD_BRIDGE 2
+#define BRCTL_DEL_BRIDGE 3
+#define BRCTL_ADD_IF 4
+#define BRCTL_DEL_IF 5
+#define BRCTL_GET_BRIDGE_INFO 6
+#define BRCTL_GET_PORT_LIST 7
+#define BRCTL_SET_BRIDGE_FORWARD_DELAY 8
+#define BRCTL_SET_BRIDGE_HELLO_TIME 9
+#define BRCTL_SET_BRIDGE_MAX_AGE 10
+#define BRCTL_SET_AGEING_TIME 11
+#define BRCTL_SET_GC_INTERVAL 12
+#define BRCTL_GET_PORT_INFO 13
+#define BRCTL_SET_BRIDGE_STP_STATE 14
+#define BRCTL_SET_BRIDGE_PRIORITY 15
+#define BRCTL_SET_PORT_PRIORITY 16
+#define BRCTL_SET_PATH_COST 17
+#define BRCTL_GET_FDB_ENTRIES 18
+
+#define BR_STATE_DISABLED 0
+#define BR_STATE_LISTENING 1
+#define BR_STATE_LEARNING 2
+#define BR_STATE_FORWARDING 3
+#define BR_STATE_BLOCKING 4
+
+struct __bridge_info {
+	__u64 designated_root;
+	__u64 bridge_id;
+	__u32 root_path_cost;
+	__u32 max_age;
+	__u32 hello_time;
+	__u32 forward_delay;
+	__u32 bridge_max_age;
+	__u32 bridge_hello_time;
+	__u32 bridge_forward_delay;
+	__u8 topology_change;
+	__u8 topology_change_detected;
+	__u8 root_port;
+	__u8 stp_enabled;
+	__u32 ageing_time;
+	__u32 gc_interval;
+	__u32 hello_timer_value;
+	__u32 tcn_timer_value;
+	__u32 topology_change_timer_value;
+	__u32 gc_timer_value;
+};
+
+struct __port_info {
+	__u64 designated_root;
+	__u64 designated_bridge;
+	__u16 port_id;
+	__u16 designated_port;
+	__u32 path_cost;
+	__u32 designated_cost;
+	__u8 state;
+	__u8 top_change_ack;
+	__u8 config_pending;
+	__u8 unused0;
+	__u32 message_age_timer_value;
+	__u32 forward_delay_timer_value;
+	__u32 hold_timer_value;
+};
+
+struct __fdb_entry {
+	__u8 mac_addr[6];
+	__u8 port_no;
+	__u8 is_local;
+	__u32 ageing_timer_value;
+	__u8 port_hi;
+	__u8 pad0;
+	__u16 unused;
+};
+
+
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      /*
+ * Copyright (c) 2008 Oracle.  All rights reserved.
+ *
+ * This software is available to you under a choice of one of two
+ * licenses.  You may choose to be licensed under the terms of the GNU
+ * General Public License (GPL) Version 2, available from the file
+ * COPYING in the main directory of this source tree, or the
+ * OpenIB.org BSD license below:
+ *
+ *     Redistribution and use in source and binary forms, with or
+ *     without modification, are permitted provided that the following
+ *     conditions are met:
+ *
+ *      - Redistributions of source code must retain the above
+ *        copyright notice, this list of conditions and the following
+ *        disclaimer.
+ *
+ *      - Redistributions in binary form must reproduce the above
+ *        copyright notice, this list of conditions and the following
+ *        disclaimer in the documentation and/or other materials
+ *        provided with the distribution.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#ifndef _LINUX_RDS_H
+#define _LINUX_RDS_H
+
+#include <linux/types.h>
+
+#define RDS_IB_ABI_VERSION		0x301
+
+/*
+ * setsockopt/getsockopt for SOL_RDS
+ */
+#define RDS_CANCEL_SENT_TO      	1
+#define RDS_GET_MR			2
+#define RDS_FREE_MR			3
+/* deprecated: RDS_BARRIER 4 */
+#define RDS_RECVERR			5
+#define RDS_CONG_MONITOR		6
+#define RDS_GET_MR_FOR_DEST		7
+
+/*
+ * Control message types for SOL_RDS.
+ *
+ * CMSG_RDMA_ARGS (sendmsg)
+ *	Request a RDMA transfer to/from the specified
+ *	memory ranges.
+ *	The cmsg_data is a struct rds_rdma_args.
+ * RDS_CMSG_RDMA_DEST (recvmsg, sendmsg)
+ *	Kernel informs application about intended
+ *	source/destination of a RDMA transfer
+ * RDS_CMSG_RDMA_MAP (sendmsg)
+ *	Application asks kernel to map the given
+ *	memory range into a IB MR, and send the
+ *	R_Key along in an RDS extension header.
+ *	The cmsg_data is a struct rds_get_mr_args,
+ *	the same as for the GET_MR setsockopt.
+ * RDS_CMSG_RDMA_STATUS (recvmsg)
+ *	Returns the status of a completed RDMA operation.
+ */
+#define RDS_CMSG_RDMA_ARGS		1
+#define RDS_CMSG_RDMA_DEST		2
+#define RDS_CMSG_RDMA_MAP		3
+#define RDS_CMSG_RDMA_STATUS		4
+#define RDS_CMSG_CONG_UPDATE		5
+#define RDS_CMSG_ATOMIC_FADD		6
+#define RDS_CMSG_ATOMIC_CSWP		7
+#define RDS_CMSG_MASKED_ATOMIC_FADD	8
+#define RDS_CMSG_MASKED_ATOMIC_CSWP	9
+
+#define RDS_INFO_FIRST			10000
+#define RDS_INFO_COUNTERS		10000
+#define RDS_INFO_CONNECTIONS		10001
+/* 10002 aka RDS_INFO_FLOWS is deprecated */
+#define RDS_INFO_SEND_MESSAGES		10003
+#define RDS_INFO_RETRANS_MESSAGES       10004
+#define RDS_INFO_RECV_MESSAGES          10005
+#define RDS_INFO_SOCKETS                10006
+#define RDS_INFO_TCP_SOCKETS            10007
+#define RDS_INFO_IB_CONNECTIONS		10008
+#define RDS_INFO_CONNECTION_STATS	10009
+#define RDS_INFO_IWARP_CONNECTIONS	10010
+#define RDS_INFO_LAST			10010
+
+struct rds_info_counter {
+	uint8_t	name[32];
+	uint64_t	value;
+} __attribute__((packed));
+
+#define RDS_INFO_CONNECTION_FLAG_SENDING	0x01
+#define RDS_INFO_CONNECTION_FLAG_CONNECTING	0x02
+#define RDS_INFO_CONNECTION_FLAG_CONNECTED	0x04
+
+#define TRANSNAMSIZ	16
+
+struct rds_info_connection {
+	uint64_t	next_tx_seq;
+	uint64_t	next_rx_seq;
+	__be32		laddr;
+	__be32		faddr;
+	uint8_t	transport[TRANSNAMSIZ];		/* null term ascii */
+	uint8_t	flags;
+} __attribute__((packed));
+
+#define RDS_INFO_MESSAGE_FLAG_ACK               0x01
+#define RDS_INFO_MESSAGE_FLAG_FAST_ACK          0x02
+
+struct rds_info_message {
+	uint64_t	seq;
+	uint32_t	len;
+	__be32		laddr;
+	__be32		faddr;
+	__be16		lport;
+	__be16		fport;
+	uint8_t	flags;
+} __attribute__((packed));
+
+struct rds_info_socket {
+	uint32_t	sndbuf;
+	__be32		bound_addr;
+	__be32		connected_addr;
+	__be16		bound_port;
+	__be16		connected_port;
+	uint32_t	rcvbuf;
+	uint64_t	inum;
+} __attribute__((packed));
+
+struct rds_info_tcp_socket {
+	__be32          local_addr;
+	__be16          local_port;
+	__be32          peer_addr;
+	__be16          peer_port;
+	uint64_t       hdr_rem;
+	uint64_t       data_rem;
+	uint32_t       last_sent_nxt;
+	uint32_t       last_expected_una;
+	uint32_t       last_seen_una;
+} __attribute__((packed));
+
+#define RDS_IB_GID_LEN	16
+struct rds_info_rdma_connection {
+	__be32		src_addr;
+	__be32		dst_addr;
+	uint8_t		src_gid[RDS_IB_GID_LEN];
+	uint8_t		dst_gid[RDS_IB_GID_LEN];
+
+	uint32_t	max_send_wr;
+	uint32_t	max_recv_wr;
+	uint32_t	max_send_sge;
+	uint32_t	rdma_mr_max;
+	uint32_t	rdma_mr_size;
+};
+
+/*
+ * Congestion monitoring.
+ * Congestion control in RDS happens at the host connection
+ * level by exchanging a bitmap marking congested ports.
+ * By default, a process sleeping in poll() is always woken
+ * up when the congestion map is updated.
+ * With explicit monitoring, an application can have more
+ * fine-grained control.
+ * The application installs a 64bit mask value in the socket,
+ * where each bit corresponds to a group of ports.
+ * When a congestion update arrives, RDS checks the set of
+ * ports that are now uncongested against the list bit mask
+ * installed in the socket, and if they overlap, we queue a
+ * cong_notification on the socket.
+ *
+ * To install the congestion monitor bitmask, use RDS_CONG_MONITOR
+ * with the 64bit mask.
+ * Congestion updates are received via RDS_CMSG_CONG_UPDATE
+ * control messages.
+ *
+ * The correspondence between bits and ports is
+ *	1 << (portnum % 64)
+ */
+#define RDS_CONG_MONITOR_SIZE	64
+#define RDS_CONG_MONITOR_BIT(port)  (((unsigned int) port) % RDS_CONG_MONITOR_SIZE)
+#define RDS_CONG_MONITOR_MASK(port) (1ULL << RDS_CONG_MONITOR_BIT(port))
+
+/*
+ * RDMA related types
+ */
+
+/*
+ * This encapsulates a remote memory location.
+ * In the current implementation, it contains the R_Key
+ * of the remote memory region, and the offset into it
+ * (so that the application does not have to worry about
+ * alignment).
+ */
+typedef uint64_t	rds_rdma_cookie_t;
+
+struct rds_iovec {
+	uint64_t	addr;
+	uint64_t	bytes;
+};
+
+struct rds_get_mr_args {
+	struct rds_iovec vec;
+	uint64_t	cookie_addr;
+	uint64_t	flags;
+};
+
+struct rds_get_mr_for_dest_args {
+	struct sockaddr_storage	dest_addr;
+	struct rds_iovec 	vec;
+	uint64_t		cookie_addr;
+	uint64_t		flags;
+};
+
+struct rds_free_mr_args {
+	rds_rdma_cookie_t cookie;
+	uint64_t	flags;
+};
+
+struct rds_rdma_args {
+	rds_rdma_cookie_t cookie;
+	struct rds_iovec remote_vec;
+	uint64_t	local_vec_addr;
+	uint64_t	nr_local;
+	uint64_t	flags;
+	uint64_t	user_token;
+};
+
+struct rds_atomic_args {
+	rds_rdma_cookie_t cookie;
+	uint64_t 	local_addr;
+	uint64_t 	remote_addr;
+	union {
+		struct {
+			uint64_t	compare;
+			uint64_t	swap;
+		} cswp;
+		struct {
+			uint64_t	add;
+		} fadd;
+		struct {
+			uint64_t	compare;
+			uint64_t	swap;
+			uint64_t	compare_mask;
+			uint64_t	swap_mask;
+		} m_cswp;
+		struct {
+			uint64_t	add;
+			uint64_t	nocarry_mask;
+		} m_fadd;
+	};
+	uint64_t	flags;
+	uint64_t	user_token;
+};
+
+struct rds_rdma_notify {
+	uint64_t	user_token;
+	int32_t		status;
+};
+
+#define RDS_RDMA_SUCCESS	0
+#define RDS_RDMA_REMOTE_ERROR	1
+#define RDS_RDMA_CANCELED	2
+#define RDS_RDMA_DROPPED	3
+#define RDS_RDMA_OTHER_ERROR	4
+
+/*
+ * Common set of flags for all RDMA related structs
+ */
+#define RDS_RDMA_READWRITE	0x0001
+#define RDS_RDMA_FENCE		0x0002	/* use FENCE for immediate send */
+#define RDS_RDMA_INVALIDATE	0x0004	/* invalidate R_Key after freeing MR */
+#define RDS_RDMA_USE_ONCE	0x0008	/* free MR after use */
+#define RDS_RDMA_DONTWAIT	0x0010	/* Don't wait in SET_BARRIER */
+#define RDS_RDMA_NOTIFY_ME	0x0020	/* Notify when operation completes */
+#define RDS_RDMA_SILENT		0x0040	/* Do not interrupt remote */
+
+#endif /* IB_RDS_H */
+                                                                                                                                                                                                                                                                                                                                   #ifndef _LINUX_POSIX_TYPES_H
+#define _LINUX_POSIX_TYPES_H
+
+#include <linux/stddef.h>
+
+/*
+ * This allows for 1024 file descriptors: if NR_OPEN is ever grown
+ * beyond that you'll have to change this too. But 1024 fd's seem to be
+ * enough even for such "real" unices like OSF/1, so hopefully this is
+ * one limit that doesn't have to be changed [again].
+ *
+ * Note that POSIX wants the FD_CLEAR(fd,fdsetp) defines to be in
+ * <sys/time.h> (and thus <linux/time.h>) - but this is a more logical
+ * place for them. Solved by having dummy defines in <sys/time.h>.
+ */
+
+/*
+ * Those macros may have been defined in <gnu/types.h>. But we always
+ * use the ones here. 
+ */
+#undef __NFDBITS
+#define __NFDBITS	(8 * sizeof(unsigned long))
+
+#undef __FD_SETSIZE
+#define __FD_SETSIZE	1024
+
+#undef __FDSET_LONGS
+#define __FDSET_LONGS	(__FD_SETSIZE/__NFDBITS)
+
+#undef __FDELT
+#define	__FDELT(d)	((d) / __NFDBITS)
+
+#undef __FDMASK
+#define	__FDMASK(d)	(1UL << ((d) % __NFDBITS))
+
+typedef struct {
+	unsigned long fds_bits [__FDSET_LONGS];
+} __kernel_fd_set;
+
+/* Type of a signal handler.  */
+typedef void (*__kernel_sighandler_t)(int);
+
+/* Type of a SYSV IPC key.  */
+typedef int __kernel_key_t;
+typedef int __kernel_mqd_t;
+
+#include <asm/posix_types.h>
+
+#endif /* _LINUX_POSIX_TYPES_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          #ifndef _LINUX_FB_H
+#define _LINUX_FB_H
+
+#include <linux/types.h>
+#include <linux/i2c.h>
+
+/* Definitions of frame buffers						*/
+
+#define FB_MAX			32	/* sufficient for now */
+
+/* ioctls
+   0x46 is 'F'								*/
+#define FBIOGET_VSCREENINFO	0x4600
+#define FBIOPUT_VSCREENINFO	0x4601
+#define FBIOGET_FSCREENINFO	0x4602
+#define FBIOGETCMAP		0x4604
+#define FBIOPUTCMAP		0x4605
+#define FBIOPAN_DISPLAY		0x4606
+#define FBIO_CURSOR            _IOWR('F', 0x08, struct fb_cursor)
+/* 0x4607-0x460B are defined below */
+/* #define FBIOGET_MONITORSPEC	0x460C */
+/* #define FBIOPUT_MONITORSPEC	0x460D */
+/* #define FBIOSWITCH_MONIBIT	0x460E */
+#define FBIOGET_CON2FBMAP	0x460F
+#define FBIOPUT_CON2FBMAP	0x4610
+#define FBIOBLANK		0x4611		/* arg: 0 or vesa level + 1 */
+#define FBIOGET_VBLANK		_IOR('F', 0x12, struct fb_vblank)
+#define FBIO_ALLOC              0x4613
+#define FBIO_FREE               0x4614
+#define FBIOGET_GLYPH           0x4615
+#define FBIOGET_HWCINFO         0x4616
+#define FBIOPUT_MODEINFO        0x4617
+#define FBIOGET_DISPINFO        0x4618
+#define FBIO_WAITFORVSYNC	_IOW('F', 0x20, __u32)
+
+#define FB_TYPE_PACKED_PIXELS		0	/* Packed Pixels	*/
+#define FB_TYPE_PLANES			1	/* Non interleaved planes */
+#define FB_TYPE_INTERLEAVED_PLANES	2	/* Interleaved planes	*/
+#define FB_TYPE_TEXT			3	/* Text/attributes	*/
+#define FB_TYPE_VGA_PLANES		4	/* EGA/VGA planes	*/
+
+#define FB_AUX_TEXT_MDA		0	/* Monochrome text */
+#define FB_AUX_TEXT_CGA		1	/* CGA/EGA/VGA Color text */
+#define FB_AUX_TEXT_S3_MMIO	2	/* S3 MMIO fasttext */
+#define FB_AUX_TEXT_MGA_STEP16	3	/* MGA Millenium I: text, attr, 14 reserved bytes */
+#define FB_AUX_TEXT_MGA_STEP8	4	/* other MGAs:      text, attr,  6 reserved bytes */
+#define FB_AUX_TEXT_SVGA_GROUP	8	/* 8-15: SVGA tileblit compatible modes */
+#define FB_AUX_TEXT_SVGA_MASK	7	/* lower three bits says step */
+#define FB_AUX_TEXT_SVGA_STEP2	8	/* SVGA text mode:  text, attr */
+#define FB_AUX_TEXT_SVGA_STEP4	9	/* SVGA text mode:  text, attr,  2 reserved bytes */
+#define FB_AUX_TEXT_SVGA_STEP8	10	/* SVGA text mode:  text, attr,  6 reserved bytes */
+#define FB_AUX_TEXT_SVGA_STEP16	11	/* SVGA text mode:  text, attr, 14 reserved bytes */
+#define FB_AUX_TEXT_SVGA_LAST	15	/* reserved up to 15 */
+
+#define FB_AUX_VGA_PLANES_VGA4		0	/* 16 color planes (EGA/VGA) */
+#define FB_AUX_VGA_PLANES_CFB4		1	/* CFB4 in planes (VGA) */
+#define FB_AUX_VGA_PLANES_CFB8		2	/* CFB8 in planes (VGA) */
+
+#define FB_VISUAL_MONO01		0	/* Monochr. 1=Black 0=White */
+#define FB_VISUAL_MONO10		1	/* Monochr. 1=White 0=Black */
+#define FB_VISUAL_TRUECOLOR		2	/* True color	*/
+#define FB_VISUAL_PSEUDOCOLOR		3	/* Pseudo color (like atari) */
+#define FB_VISUAL_DIRECTCOLOR		4	/* Direct color */
+#define FB_VISUAL_STATIC_PSEUDOCOLOR	5	/* Pseudo color readonly */
+
+#define FB_ACCEL_NONE		0	/* no hardware accelerator	*/
+#define FB_ACCEL_ATARIBLITT	1	/* Atari Blitter		*/
+#define FB_ACCEL_AMIGABLITT	2	/* Amiga Blitter                */
+#define FB_ACCEL_S3_TRIO64	3	/* Cybervision64 (S3 Trio64)    */
+#define FB_ACCEL_NCR_77C32BLT	4	/* RetinaZ3 (NCR 77C32BLT)      */
+#define FB_ACCEL_S3_VIRGE	5	/* Cybervision64/3D (S3 ViRGE)	*/
+#define FB_ACCEL_ATI_MACH64GX	6	/* ATI Mach 64GX family		*/
+#define FB_ACCEL_DEC_TGA	7	/* DEC 21030 TGA		*/
+#define FB_ACCEL_ATI_MACH64CT	8	/* ATI Mach 64CT family		*/
+#define FB_ACCEL_ATI_MACH64VT	9	/* ATI Mach 64CT family VT class */
+#define FB_ACCEL_ATI_MACH64GT	10	/* ATI Mach 64CT family GT class */
+#define FB_ACCEL_SUN_CREATOR	11	/* Sun Creator/Creator3D	*/
+#define FB_ACCEL_SUN_CGSIX	12	/* Sun cg6			*/
+#define FB_ACCEL_SUN_LEO	13	/* Sun leo/zx			*/
+#define FB_ACCEL_IMS_TWINTURBO	14	/* IMS Twin Turbo		*/
+#define FB_ACCEL_3DLABS_PERMEDIA2 15	/* 3Dlabs Permedia 2		*/
+#define FB_ACCEL_MATROX_MGA2064W 16	/* Matrox MGA2064W (Millenium)	*/
+#define FB_ACCEL_MATROX_MGA1064SG 17	/* Matrox MGA1064SG (Mystique)	*/
+#define FB_ACCEL_MATROX_MGA2164W 18	/* Matrox MGA2164W (Millenium II) */
+#define FB_ACCEL_MATROX_MGA2164W_AGP 19	/* Matrox MGA2164W (Millenium II) */
+#define FB_ACCEL_MATROX_MGAG100	20	/* Matrox G100 (Productiva G100) */
+#define FB_ACCEL_MATROX_MGAG200	21	/* Matrox G200 (Myst, Mill, ...) */
+#define FB_ACCEL_SUN_CG14	22	/* Sun cgfourteen		 */
+#define FB_ACCEL_SUN_BWTWO	23	/* Sun bwtwo			*/
+#define FB_ACCEL_SUN_CGTHREE	24	/* Sun cgthree			*/
+#define FB_ACCEL_SUN_TCX	25	/* Sun tcx			*/
+#define FB_ACCEL_MATROX_MGAG400	26	/* Matrox G400			*/
+#define FB_ACCEL_NV3		27	/* nVidia RIVA 128              */
+#define FB_ACCEL_NV4		28	/* nVidia RIVA TNT		*/
+#define FB_ACCEL_NV5		29	/* nVidia RIVA TNT2		*/
+#define FB_ACCEL_CT_6555x	30	/* C&T 6555x			*/
+#define FB_ACCEL_3DFX_BANSHEE	31	/* 3Dfx Banshee			*/
+#define FB_ACCEL_ATI_RAGE128	32	/* ATI Rage128 family		*/
+#define FB_ACCEL_IGS_CYBER2000	33	/* CyberPro 2000		*/
+#define FB_ACCEL_IGS_CYBER2010	34	/* CyberPro 2010		*/
+#define FB_ACCEL_IGS_CYBER5000	35	/* CyberPro 5000		*/
+#define FB_ACCEL_SIS_GLAMOUR    36	/* SiS 300/630/540              */
+#define FB_ACCEL_3DLABS_PERMEDIA3 37	/* 3Dlabs Permedia 3		*/
+#define FB_ACCEL_ATI_RADEON	38	/* ATI Radeon family		*/
+#define FB_ACCEL_I810           39      /* Intel 810/815                */
+#define FB_ACCEL_SIS_GLAMOUR_2  40	/* SiS 315, 650, 740		*/
+#define FB_ACCEL_SIS_XABRE      41	/* SiS 330 ("Xabre")		*/
+#define FB_ACCEL_I830           42      /* Intel 830M/845G/85x/865G     */
+#define FB_ACCEL_NV_10          43      /* nVidia Arch 10               */
+#define FB_ACCEL_NV_20          44      /* nVidia Arch 20               */
+#define FB_ACCEL_NV_30          45      /* nVidia Arch 30               */
+#define FB_ACCEL_NV_40          46      /* nVidia Arch 40               */
+#define FB_ACCEL_XGI_VOLARI_V	47	/* XGI Volari V3XT, V5, V8      */
+#define FB_ACCEL_XGI_VOLARI_Z	48	/* XGI Volari Z7                */
+#define FB_ACCEL_OMAP1610	49	/* TI OMAP16xx                  */
+#define FB_ACCEL_TRIDENT_TGUI	50	/* Trident TGUI			*/
+#define FB_ACCEL_TRIDENT_3DIMAGE 51	/* Trident 3DImage		*/
+#define FB_ACCEL_TRIDENT_BLADE3D 52	/* Trident Blade3D		*/
+#define FB_ACCEL_TRIDENT_BLADEXP 53	/* Trident BladeXP		*/
+#define FB_ACCEL_CIRRUS_ALPINE   53	/* Cirrus Logic 543x/544x/5480	*/
+#define FB_ACCEL_NEOMAGIC_NM2070 90	/* NeoMagic NM2070              */
+#define FB_ACCEL_NEOMAGIC_NM2090 91	/* NeoMagic NM2090              */
+#define FB_ACCEL_NEOMAGIC_NM2093 92	/* NeoMagic NM2093              */
+#define FB_ACCEL_NEOMAGIC_NM2097 93	/* NeoMagic NM2097              */
+#define FB_ACCEL_NEOMAGIC_NM2160 94	/* NeoMagic NM2160              */
+#define FB_ACCEL_NEOMAGIC_NM2200 95	/* NeoMagic NM2200              */
+#define FB_ACCEL_NEOMAGIC_NM2230 96	/* NeoMagic NM2230              */
+#define FB_ACCEL_NEOMAGIC_NM2360 97	/* NeoMagic NM2360              */
+#define FB_ACCEL_NEOMAGIC_NM2380 98	/* NeoMagic NM2380              */
+#define FB_ACCEL_PXA3XX		 99	/* PXA3xx			*/
+
+#define FB_ACCEL_SAVAGE4        0x80	/* S3 Savage4                   */
+#define FB_ACCEL_SAVAGE3D       0x81	/* S3 Savage3D                  */
+#define FB_ACCEL_SAVAGE3D_MV    0x82	/* S3 Savage3D-MV               */
+#define FB_ACCEL_SAVAGE2000     0x83	/* S3 Savage2000                */
+#define FB_ACCEL_SAVAGE_MX_MV   0x84	/* S3 Savage/MX-MV              */
+#define FB_ACCEL_SAVAGE_MX      0x85	/* S3 Savage/MX                 */
+#define FB_ACCEL_SAVAGE_IX_MV   0x86	/* S3 Savage/IX-MV              */
+#define FB_ACCEL_SAVAGE_IX      0x87	/* S3 Savage/IX                 */
+#define FB_ACCEL_PROSAVAGE_PM   0x88	/* S3 ProSavage PM133           */
+#define FB_ACCEL_PROSAVAGE_KM   0x89	/* S3 ProSavage KM133           */
+#define FB_ACCEL_S3TWISTER_P    0x8a	/* S3 Twister                   */
+#define FB_ACCEL_S3TWISTER_K    0x8b	/* S3 TwisterK                  */
+#define FB_ACCEL_SUPERSAVAGE    0x8c    /* S3 Supersavage               */
+#define FB_ACCEL_PROSAVAGE_DDR  0x8d	/* S3 ProSavage DDR             */
+#define FB_ACCEL_PROSAVAGE_DDRK 0x8e	/* S3 ProSavage DDR-K           */
+
+struct fb_fix_screeninfo {
+	char id[16];			/* identification string eg "TT Builtin" */
+	unsigned long smem_start;	/* Start of frame buffer mem */
+					/* (physical address) */
+	__u32 smem_len;			/* Length of frame buffer mem */
+	__u32 type;			/* see FB_TYPE_*		*/
+	__u32 type_aux;			/* Interleave for interleaved Planes */
+	__u32 visual;			/* see FB_VISUAL_*		*/ 
+	__u16 xpanstep;			/* zero if no hardware panning  */
+	__u16 ypanstep;			/* zero if no hardware panning  */
+	__u16 ywrapstep;		/* zero if no hardware ywrap    */
+	__u32 line_length;		/* length of a line in bytes    */
+	unsigned long mmio_start;	/* Start of Memory Mapped I/O   */
+					/* (physical address) */
+	__u32 mmio_len;			/* Length of Memory Mapped I/O  */
+	__u32 accel;			/* Indicate to driver which	*/
+					/*  specific chip/card we have	*/
+	__u16 reserved[3];		/* Reserved for future compatibility */
+};
+
+/* Interpretation of offset for color fields: All offsets are from the right,
+ * inside a "pixel" value, which is exactly 'bits_per_pixel' wide (means: you
+ * can use the offset as right argument to <<). A pixel afterwards is a bit
+ * stream and is written to video memory as that unmodified.
+ *
+ * For pseudocolor: offset and length should be the same for all color
+ * components. Offset specifies the position of the least significant bit
+ * of the pallette index in a pixel value. Length indicates the number
+ * of available palette entries (i.e. # of entries = 1 << length).
+ */
+struct fb_bitfield {
+	__u32 offset;			/* beginning of bitfield	*/
+	__u32 length;			/* length of bitfield		*/
+	__u32 msb_right;		/* != 0 : Most significant bit is */ 
+					/* right */ 
+};
+
+#define FB_NONSTD_HAM		1	/* Hold-And-Modify (HAM)        */
+#define FB_NONSTD_REV_PIX_IN_B	2	/* order of pixels in each byte is reversed */
+
+#define FB_ACTIVATE_NOW		0	/* set values immediately (or vbl)*/
+#define FB_ACTIVATE_NXTOPEN	1	/* activate on next open	*/
+#define FB_ACTIVATE_TEST	2	/* don't set, round up impossible */
+#define FB_ACTIVATE_MASK       15
+					/* values			*/
+#define FB_ACTIVATE_VBL	       16	/* activate values on next vbl  */
+#define FB_CHANGE_CMAP_VBL     32	/* change colormap on vbl	*/
+#define FB_ACTIVATE_ALL	       64	/* change all VCs on this fb	*/
+#define FB_ACTIVATE_FORCE     128	/* force apply even when no change*/
+#define FB_ACTIVATE_INV_MODE  256       /* invalidate videomode */
+
+#define FB_ACCELF_TEXT		1	/* (OBSOLETE) see fb_info.flags and vc_mode */
+
+#define FB_SYNC_HOR_HIGH_ACT	1	/* horizontal sync high active	*/
+#define FB_SYNC_VERT_HIGH_ACT	2	/* vertical sync high active	*/
+#define FB_SYNC_EXT		4	/* external sync		*/
+#define FB_SYNC_COMP_HIGH_ACT	8	/* composite sync high active   */
+#define FB_SYNC_BROADCAST	16	/* broadcast video timings      */
+					/* vtotal = 144d/288n/576i => PAL  */
+					/* vtotal = 121d/242n/484i => NTSC */
+#define FB_SYNC_ON_GREEN	32	/* sync on green */
+
+#define FB_VMODE_NONINTERLACED  0	/* non interlaced */
+#define FB_VMODE_INTERLACED	1	/* interlaced	*/
+#define FB_VMODE_DOUBLE		2	/* double scan */
+#define FB_VMODE_ODD_FLD_FIRST	4	/* interlaced: top line first */
+#define FB_VMODE_MASK		255
+
+#define FB_VMODE_YWRAP		256	/* ywrap instead of panning     */
+#define FB_VMODE_SMOOTH_XPAN	512	/* smooth xpan possible (internally used) */
+#define FB_VMODE_CONUPDATE	512	/* don't update x/yoffset	*/
+
+/*
+ * Display rotation support
+ */
+#define FB_ROTATE_UR      0
+#define FB_ROTATE_CW      1
+#define FB_ROTATE_UD      2
+#define FB_ROTATE_CCW     3
+
+#define PICOS2KHZ(a) (1000000000UL/(a))
+#define KHZ2PICOS(a) (1000000000UL/(a))
+
+struct fb_var_screeninfo {
+	__u32 xres;			/* visible resolution		*/
+	__u32 yres;
+	__u32 xres_virtual;		/* virtual resolution		*/
+	__u32 yres_virtual;
+	__u32 xoffset;			/* offset from virtual to visible */
+	__u32 yoffset;			/* resolution			*/
+
+	__u32 bits_per_pixel;		/* guess what			*/
+	__u32 grayscale;		/* != 0 Graylevels instead of colors */
+
+	struct fb_bitfield red;		/* bitfield in fb mem if true color, */
+	struct fb_bitfield green;	/* else only length is significant */
+	struct fb_bitfield blue;
+	struct fb_bitfield transp;	/* transparency			*/	
+
+	__u32 nonstd;			/* != 0 Non standard pixel format */
+
+	__u32 activate;			/* see FB_ACTIVATE_*		*/
+
+	__u32 height;			/* height of picture in mm    */
+	__u32 width;			/* width of picture in mm     */
+
+	__u32 accel_flags;		/* (OBSOLETE) see fb_info.flags */
+
+	/* Timing: All values in pix)Þ  *Þ  +Þ  ,Þ                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  clocks, except pixclock (of course) */
+	__u32 pixclock;			/* pixel clock in ps (pico seconds) */
+	__u32 left_margin;		/* time from sync to picture	*/
+	__u32 right_margin;		/* time from picture to sync	*/
+	__u32 upper_margin;		/* time from sync to picture	*/
+	__u32 lower_margin;
+	__u32 hsync_len;		/* length of horizontal sync	*/
+	__u32 vsync_len;		/* length of vertical sync	*/
+	__u32 sync;			/* see FB_SYNC_*		*/
+	__u32 vmode;			/* see FB_VMODE_*		*/
+	__u32 rotate;			/* angle we rotate counter clockwise */
+	__u32 reserved[5];		/* Reserved for future compatibility */
+};
+
+struct fb_cmap {
+	__u32 start;			/* First entry	*/
+	__u32 len;			/* Number of entries */
+	__u16 *red;			/* Red values	*/
+	__u16 *green;
+	__u16 *blue;
+	__u16 *transp;			/* transparency, can be NULL */
+};
+
+struct fb_con2fbmap {
+	__u32 console;
+	__u32 framebuffer;
+};
+
+/* VESA Blanking Levels */
+#define VESA_NO_BLANKING        0
+#define VESA_VSYNC_SUSPEND      1
+#define VESA_HSYNC_SUSPEND      2
+#define VESA_POWERDOWN          3
+
+
+enum {
+	/* screen: unblanked, hsync: on,  vsync: on */
+	FB_BLANK_UNBLANK       = VESA_NO_BLANKING,
+
+	/* screen: blanked,   hsync: on,  vsync: on */
+	FB_BLANK_NORMAL        = VESA_NO_BLANKING + 1,
+
+	/* screen: blanked,   hsync: on,  vsync: off */
+	FB_BLANK_VSYNC_SUSPEND = VESA_VSYNC_SUSPEND + 1,
+
+	/* screen: blanked,   hsync: off, vsync: on */
+	FB_BLANK_HSYNC_SUSPEND = VESA_HSYNC_SUSPEND + 1,
+
+	/* screen: blanked,   hsync: off, vsync: off */
+	FB_BLANK_POWERDOWN     = VESA_POWERDOWN + 1
+};
+
+#define FB_VBLANK_VBLANKING	0x001	/* currently in a vertical blank */
+#define FB_VBLANK_HBLANKING	0x002	/* currently in a horizontal blank */
+#define FB_VBLANK_HAVE_VBLANK	0x004	/* vertical blanks can be detected */
+#define FB_VBLANK_HAVE_HBLANK	0x008	/* horizontal blanks can be detected */
+#define FB_VBLANK_HAVE_COUNT	0x010	/* global retrace counter is available */
+#define FB_VBLANK_HAVE_VCOUNT	0x020	/* the vcount field is valid */
+#define FB_VBLANK_HAVE_HCOUNT	0x040	/* the hcount field is valid */
+#define FB_VBLANK_VSYNCING	0x080	/* currently in a vsync */
+#define FB_VBLANK_HAVE_VSYNC	0x100	/* verical syncs can be detected */
+
+struct fb_vblank {
+	__u32 flags;			/* FB_VBLANK flags */
+	__u32 count;			/* counter of retraces since boot */
+	__u32 vcount;			/* current scanline position */
+	__u32 hcount;			/* current scandot position */
+	__u32 reserved[4];		/* reserved for future compatibility */
+};
+
+/* Internal HW accel */
+#define ROP_COPY 0
+#define ROP_XOR  1
+
+struct fb_copyarea {
+	__u32 dx;
+	__u32 dy;
+	__u32 width;
+	__u32 height;
+	__u32 sx;
+	__u32 sy;
+};
+
+struct fb_fillrect {
+	__u32 dx;	/* screen-relative */
+	__u32 dy;
+	__u32 width;
+	__u32 height;
+	__u32 color;
+	__u32 rop;
+};
+
+struct fb_image {
+	__u32 dx;		/* Where to place image */
+	__u32 dy;
+	__u32 width;		/* Size of image */
+	__u32 height;
+	__u32 fg_color;		/* Only used when a mono bitmap */
+	__u32 bg_color;
+	__u8  depth;		/* Depth of the image */
+	const char *data;	/* Pointer to image data */
+	struct fb_cmap cmap;	/* color map info */
+};
+
+/*
+ * hardware cursor control
+ */
+
+#define FB_CUR_SETIMAGE 0x01
+#define FB_CUR_SETPOS   0x02
+#define FB_CUR_SETHOT   0x04
+#define FB_CUR_SETCMAP  0x08
+#define FB_CUR_SETSHAPE 0x10
+#define FB_CUR_SETSIZE	0x20
+#define FB_CUR_SETALL   0xFF
+
+struct fbcurpos {
+	__u16 x, y;
+};
+
+struct fb_cursor {
+	__u16 set;		/* what to set */
+	__u16 enable;		/* cursor on/off */
+	__u16 rop;		/* bitop operation */
+	const char *mask;	/* cursor mask bits */
+	struct fbcurpos hot;	/* cursor hot spot */
+	struct fb_image	image;	/* Cursor image */
+};
+
+#ifdef CONFIG_FB_BACKLIGHT
+/* Settings for the generic backlight code */
+#define FB_BACKLIGHT_LEVELS	128
+#define FB_BACKLIGHT_MAX	0xFF
+#endif
+
+
+#endif /* _LINUX_FB_H */
+                                                                                                                                                                                                                                                                                                                                                                                                /* atmppp.h - RFC2364 PPPoATM */
+
+/* Written 2000 by Mitchell Blank Jr */
+
+#ifndef _LINUX_ATMPPP_H
+#define _LINUX_ATMPPP_H
+
+#include <linux/atm.h>
+
+#define PPPOATM_ENCAPS_AUTODETECT	(0)
+#define PPPOATM_ENCAPS_VC		(1)
+#define PPPOATM_ENCAPS_LLC		(2)
+
+/*
+ * This is for the ATM_SETBACKEND call - these are like socket families:
+ * the first element of the structure is the backend number and the rest
+ * is per-backend specific
+ */
+struct atm_backend_ppp {
+	atm_backend_t	backend_num;	/* ATM_BACKEND_PPP */
+	int		encaps;		/* PPPOATM_ENCAPS_* */
+};
+
+#endif	/* _LINUX_ATMPPP_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                #ifndef __LINUX_ARP_NETFILTER_H
+#define __LINUX_ARP_NETFILTER_H
+
+/* ARP-specific defines for netfilter.
+ * (C)2002 Rusty Russell IBM -- This code is GPL.
+ */
+
+#include <linux/netfilter.h>
+
+/* There is no PF_ARP. */
+#define NF_ARP		0
+
+/* ARP Hooks */
+#define NF_ARP_IN	0
+#define NF_ARP_OUT	1
+#define NF_ARP_FORWARD	2
+#define NF_ARP_NUMHOOKS	3
+
+#endif /* __LINUX_ARP_NETFILTER_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    /*
+ * <linux/patchkey.h> -- definition of _PATCHKEY macro
+ *
+ * Copyright (C) 2005 Stuart Brady
+ *
+ * This exists because awe_voice.h defined its own _PATCHKEY and it wasn't
+ * clear whether removing this would break anything in userspace.
+ *
+ * Do not include this file directly.  Please use <sys/soundcard.h> instead.
+ * For kernel code, use <linux/soundcard.h>
+ */
+
+#ifndef _LINUX_PATCHKEY_H_INDIRECT
+#error "patchkey.h included directly"
+#endif
+
+#ifndef _LINUX_PATCHKEY_H
+#define _LINUX_PATCHKEY_H
+
+/* Endian macros. */
+#  include <endian.h>
+
+#if   defined(__BYTE_ORDER)
+#  if __BYTE_ORDER == __BIG_ENDIAN
+#    define _PATCHKEY(id) (0xfd00|id)
+#  elif __BYTE_ORDER == __LITTLE_ENDIAN
+#    define _PATCHKEY(id) ((id<<8)|0x00fd)
+#  else
+#    error "could not determine byte order"
+#  endif
+#endif
+
+#endif /* _LINUX_PATCHKEY_H */
+                                                                                                                                                                                                 #ifndef _LINUX_IN_ROUTE_H
+#define _LINUX_IN_ROUTE_H
+
+/* IPv4 routing cache flags */
+
+#define RTCF_DEAD	RTNH_F_DEAD
+#define RTCF_ONLINK	RTNH_F_ONLINK
+
+/* Obsolete flag. About to be deleted */
+#define RTCF_NOPMTUDISC RTM_F_NOPMTUDISC
+
+#define RTCF_NOTIFY	0x00010000
+#define RTCF_DIRECTDST	0x00020000 /* unused */
+#define RTCF_REDIRECTED	0x00040000
+#define RTCF_TPROXY	0x00080000 /* unused */
+
+#define RTCF_FAST	0x00200000 /* unused */
+#define RTCF_MASQ	0x00400000 /* unused */
+#define RTCF_SNAT	0x00800000 /* unused */
+#define RTCF_DOREDIRECT 0x01000000
+#define RTCF_DIRECTSRC	0x04000000
+#define RTCF_DNAT	0x08000000
+#define RTCF_BROADCAST	0x10000000
+#define RTCF_MULTICAST	0x20000000
+#define RTCF_REJECT	0x40000000 /* unused */
+#define RTCF_LOCAL	0x80000000
+
+#define RTCF_NAT	(RTCF_DNAT|RTCF_SNAT)
+
+#define RT_TOS(tos)	((tos)&IPTOS_TOS_MASK)
+
+#endif /* _LINUX_IN_ROUTE_H */
+                                                                                                                                                       /*
+ *	Linux NET3:	Internet Group Management Protocol  [IGMP]
+ *
+ *	Authors:
+ *		Alan Cox <alan@lxorguk.ukuu.org.uk>
+ *
+ *	Extended to talk the BSD extended IGMP protocol of mrouted 3.6
+ *
+ *
+ *	This program is free software; you can redistribute it and/or
+ *	modify it under the terms of the GNU General Public License
+ *	as published by the Free Software Foundation; either version
+ *	2 of the License, or (at your option) any later version.
+ */
+
+#ifndef _LINUX_IGMP_H
+#define _LINUX_IGMP_H
+
+#include <linux/types.h>
+#include <asm/byteorder.h>
+
+/*
+ *	IGMP protocol structures
+ */
+
+/*
+ *	Header in on cable format
+ */
+
+struct igmphdr {
+	__u8 type;
+	__u8 code;		/* For newer IGMP */
+	__sum16 csum;
+	__be32 group;
+};
+
+/* V3 group record types [grec_type] */
+#define IGMPV3_MODE_IS_INCLUDE		1
+#define IGMPV3_MODE_IS_EXCLUDE		2
+#define IGMPV3_CHANGE_TO_INCLUDE	3
+#define IGMPV3_CHANGE_TO_EXCLUDE	4
+#define IGMPV3_ALLOW_NEW_SOURCES	5
+#define IGMPV3_BLOCK_OLD_SOURCES	6
+
+struct igmpv3_grec {
+	__u8	grec_type;
+	__u8	grec_auxwords;
+	__be16	grec_nsrcs;
+	__be32	grec_mca;
+	__be32	grec_src[0];
+};
+
+struct igmpv3_report {
+	__u8 type;
+	__u8 resv1;
+	__be16 csum;
+	__be16 resv2;
+	__be16 ngrec;
+	struct igmpv3_grec grec[0];
+};
+
+struct igmpv3_query {
+	__u8 type;
+	__u8 code;
+	__be16 csum;
+	__be32 group;
+#if defined(__LITTLE_ENDIAN_BITFIELD)
+	__u8 qrv:3,
+	     suppress:1,
+	     resv:4;
+#elif defined(__BIG_ENDIAN_BITFIELD)
+	__u8 resv:4,
+	     suppress:1,
+	     qrv:3;
+#else
+#error "Please fix <asm/byteorder.h>"
+#endif
+	__u8 qqic;
+	__be16 nsrcs;
+	__be32 srcs[0];
+};
+
+#define IGMP_HOST_MEMBERSHIP_QUERY	0x11	/* From RFC1112 */
+#define IGMP_HOST_MEMBERSHIP_REPORT	0x12	/* Ditto */
+#define IGMP_DVMRP			0x13	/* DVMRP routing */
+#define IGMP_PIM			0x14	/* PIM routing */
+#define IGMP_TRACE			0x15
+#define IGMPV2_HOST_MEMBERSHIP_REPORT	0x16	/* V2 version of 0x11 */
+#define IGMP_HOST_LEAVE_MESSAGE 	0x17
+#define IGMPV3_HOST_MEMBERSHIP_REPORT	0x22	/* V3 version of 0x11 */
+
+#define IGMP_MTRACE_RESP		0x1e
+#define IGMP_MTRACE			0x1f
+
+
+/*
+ *	Use the BSD names for these for compatibility
+ */
+
+#define IGMP_DELAYING_MEMBER		0x01
+#define IGMP_IDLE_MEMBER		0x02
+#define IGMP_LAZY_MEMBER		0x03
+#define IGMP_SLEEPING_MEMBER		0x04
+#define IGMP_AWAKENING_MEMBER		0x05
+
+#define IGMP_MINLEN			8
+
+#define IGMP_MAX_HOST_REPORT_DELAY	10	/* max delay for response to */
+						/* query (in seconds)	*/
+
+#define IGMP_TIMER_SCALE		10	/* denotes that the igmphdr->timer field */
+						/* specifies time in 10th of seconds	 */
+
+#define IGMP_AGE_THRESHOLD		400	/* If this host don't hear any IGMP V1	*/
+						/* message in this period of time,	*/
+						/* revert to IGMP v2 router.		*/
+
+#define IGMP_ALL_HOSTS		htonl(0xE0000001L)
+#define IGMP_ALL_ROUTER 	htonl(0xE0000002L)
+#define IGMPV3_ALL_MCR	 	htonl(0xE0000016L)
+#define IGMP_LOCAL_GROUP	htonl(0xE0000000L)
+#define IGMP_LOCAL_GROUP_MASK	htonl(0xFFFFFF00L)
+
+/*
+ * struct for keeping the multicast list in
+ */
+
+#endif
+                                                                                                                                                /******************************************************************************
+ *
+ *		telephony.h
+ *
+ *		Basic Linux Telephony Interface
+ *
+ *		(c) Copyright 1999-2001 Quicknet Technologies, Inc.
+ *
+ *		This program is free software; you can redistribute it and/or
+ *		modify it under the terms of the GNU General Public License
+ *		as published by the Free Software Foundation; either version
+ *		2 of the License, or (at your option) any later version.
+ *
+ *    Authors:       Ed Okerson, <eokerson@quicknet.net>
+ *                   Greg Herlein, <gherlein@quicknet.net>
+ *
+ *    Contributors:  Alan Cox, <alan@lxorguk.ukuu.org.uk>
+ *                   David W. Erhart, <derhart@quicknet.net>
+ *
+ * IN NO EVENT SHALL QUICKNET TECHNOLOGIES, INC. BE LIABLE TO ANY PARTY FOR
+ * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
+ * OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF QUICKNET
+ * TECHNOLOGIES, INC. HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * QUICKNET TECHNOLOGIES, INC. SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
+ * ON AN "AS IS" BASIS, AND QUICKNET TECHNOLOGIES, INC. HAS NO OBLIGATION
+ * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+ *
+ *****************************************************************************/
+
+#ifndef TELEPHONY_H
+#define TELEPHONY_H
+
+#define TELEPHONY_VERSION 3013
+
+#define PHONE_VENDOR_IXJ          1
+#define PHONE_VENDOR_QUICKNET	  PHONE_VENDOR_IXJ
+#define PHONE_VENDOR_VOICETRONIX  2
+#define PHONE_VENDOR_ACULAB       3
+#define PHONE_VENDOR_DIGI         4
+#define PHONE_VENDOR_FRANKLIN     5
+
+/******************************************************************************
+ *  Vendor Summary Information Area
+ *
+ *  Quicknet Technologies, Inc. - makes low density analog telephony cards
+ *    with audio compression, POTS and PSTN interfaces (www.quicknet.net)
+ *
+ *  (other vendors following this API shuld add a short description of
+ *  the telephony products they support under Linux)
+ *
+ *****************************************************************************/
+#define QTI_PHONEJACK		100
+#define QTI_LINEJACK		300
+#define QTI_PHONEJACK_LITE	400
+#define QTI_PHONEJACK_PCI	500
+#define QTI_PHONECARD		600
+
+/******************************************************************************
+*
+* The capabilities ioctls can inform you of the capabilities of each phone
+* device installed in your system.  The PHONECTL_CAPABILITIES ioctl
+* returns an integer value indicating the number of capabilities the   
+* device has.  The PHONECTL_CAPABILITIES_LIST will fill an array of 
+* capability structs with all of its capabilities.  The
+* PHONECTL_CAPABILITIES_CHECK takes a single capability struct and returns
+* a TRUE if the device has that capability, otherwise it returns false.
+* 
+******************************************************************************/
+typedef enum {
+	vendor = 0,
+	device,
+	port,
+	codec,
+	dsp
+} phone_cap;
+
+struct phone_capability {
+	char desc[80];
+	phone_cap captype;
+	int cap;
+	int handle;
+};
+
+typedef enum {
+	pots = 0,
+	pstn,
+	handset,
+	speaker
+} phone_ports;
+
+#define PHONE_CAPABILITIES              _IO  ('q', 0x80)
+#define PHONE_CAPABILITIES_LIST         _IOR ('q', 0x81, struct phone_capability *)
+#define PHONE_CAPABILITIES_CHECK        _IOW ('q', 0x82, struct phone_capability *)
+
+typedef struct {
+        char month[3];
+        char day[3];
+        char hour[3];
+        char min[3];
+        int numlen;
+        char number[11];
+        int namelen;
+        char name[80];
+} PHONE_CID;
+ 
+#define PHONE_RING			_IO  ('q', 0x83)
+#define PHONE_HOOKSTATE			_IO  ('q', 0x84)
+#define PHONE_MAXRINGS			_IOW ('q', 0x85, char)
+#define PHONE_RING_CADENCE		_IOW ('q', 0x86, short)
+#define OLD_PHONE_RING_START            _IO  ('q', 0x87)
+#define PHONE_RING_START		_IOW ('q', 0x87, PHONE_CID *)
+#define PHONE_RING_STOP			_IO  ('q', 0x88)
+
+#define USA_RING_CADENCE	 0xC0C0
+
+#define PHONE_REC_CODEC			_IOW ('q', 0x89, int)
+#define PHONE_REC_START			_IO  ('q', 0x8A)
+#define PHONE_REC_STOP			_IO  ('q', 0x8B)
+#define PHONE_REC_DEPTH			_IOW ('q', 0x8C, int)
+#define PHONE_FRAME			_IOW ('q', 0x8D, int)
+#define PHONE_REC_VOLUME		_IOW ('q', 0x8E, int)
+#define PHONE_REC_VOLUME_LINEAR		_IOW ('q', 0xDB, int)
+#define PHONE_REC_LEVEL			_IO  ('q', 0x8F)
+
+#define PHONE_PLAY_CODEC		_IOW ('q', 0x90, int)
+#define PHONE_PLAY_START		_IO  ('q', 0x91)
+#define PHONE_PLAY_STOP			_IO  ('q', 0x92)
+#define PHONE_PLAY_DEPTH		_IOW ('q', 0x93, int)
+#define PHONE_PLAY_VOLUME		_IOW ('q', 0x94, int)
+#define PHONE_PLAY_VOLUME_LINEAR	_IOW ('q', 0xDC, int)
+#define PHONE_PLAY_LEVEL		_IO  ('q', 0x95)
+#define PHONE_DTMF_READY		_IOR ('q', 0x96, int)
+#define PHONE_GET_DTMF			_IOR ('q', 0x97, int)
+#define PHONE_GET_DTMF_ASCII		_IOR ('q', 0x98, int)
+#define PHONE_DTMF_OOB			_IOW ('q', 0x99, int)
+#define PHONE_EXCEPTION			_IOR ('q', 0x9A, int)
+#define PHONE_PLAY_TONE			_IOW ('q', 0x9B, char)
+#define PHONE_SET_TONE_ON_TIME		_IOW ('q', 0x9C, int)
+#define PHONE_SET_TONE_OFF_TIME		_IOW ('q', 0x9D, int)
+#define PHONE_GET_TONE_ON_TIME		_IO  ('q', 0x9E)
+#define PHONE_GET_TONE_OFF_TIME		_IO  ('q', 0x9F)
+#define PHONE_GET_TONE_STATE		_IO  ('q', 0xA0)
+#define PHONE_BUSY			_IO  ('q', 0xA1)
+#define PHONE_RINGBACK			_IO  ('q', 0xA2)
+#define PHONE_DIALTONE			_IO  ('q', 0xA3)
+#define PHONE_CPT_STOP			_IO  ('q', 0xA4)
+
+#define PHONE_PSTN_SET_STATE		_IOW ('q', 0xA4, int)
+#define PHONE_PSTN_GET_STATE		_IO  ('q', 0xA5)
+
+#define PSTN_ON_HOOK		0
+#define PSTN_RINGING		1
+#define PSTN_OFF_HOOK		2
+#define PSTN_PULSE_DIAL		3
+
+/******************************************************************************
+* 
+* The wink duration is tunable with this ioctl.  The default wink duration  
+* is 320ms.  You do not need to use this ioctl if you do not require a
+* different wink duration.
+* 
+******************************************************************************/
+#define PHONE_WINK_DURATION		_IOW ('q', 0xA6, int)
+#define PHONE_WINK			_IOW ('q', 0xAA, int)
+
+/******************************************************************************
+* 
+*  Codec Definitions
+* 
+******************************************************************************/
+typedef enum {
+	G723_63 = 1,
+	G723_53 = 2,
+	TS85 = 3,
+	TS48 = 4,
+	TS41 = 5,
+	G728 = 6,
+	G729 = 7,
+	ULAW = 8,
+	ALAW = 9,
+	LINEAR16 = 10,
+	LINEAR8 = 11,
+	WSS = 12,
+	G729B = 13
+} phone_codec;
+
+struct phone_codec_data
+{
+        phone_codec type;
+        unsigned short buf_min, buf_opt, buf_max;
+};
+
+#define PHONE_QUERY_CODEC               _IOWR ('q', 0xA7, struct phone_codec_data *)
+#define PHONE_PSTN_LINETEST             _IO ('q', 0xA8)
+
+/******************************************************************************
+* 
+* This controls the VAD/CNG functionality of G.723.1.  The driver will
+* always pass full size frames, any unused bytes will be padded with zeros,
+* and frames passed to the driver should also be padded with zeros.  The
+* frame type is encoded in the least significant two bits of the first
+* WORD of the frame as follows:
+*
+* bits 1-0	Frame Type	Data Rate		Significant Words
+* 00		0		G.723.1 6.3		12
+* 01		1		G.723.1 5.3		10
+* 10		2		VAD/CNG			 2
+* 11		3		Repeat last CNG		 2 bits
+* 
+******************************************************************************/
+#define PHONE_VAD			_IOW ('q', 0xA9, int)
+
+
+/******************************************************************************
+*
+* The exception structure allows us to multiplex multiple events onto the
+* select() exception set.  If any of these flags are set select() will
+* return with a positive indication on the exception set.  The dtmf_ready
+* bit indicates if there is data waiting in the DTMF buffer.  The
+* hookstate bit is set if there is a change in hookstate status, it does not
+* indicate the current state of the hookswitch.  The pstn_ring bit
+* indicates that the DAA on a LineJACK card has detected ring voltage on
+* the PSTN port.  The caller_id bit indicates that caller_id data has been
+* received and is available.  The pstn_wink bit indicates that the DAA on
+* the LineJACK has received a wink from the telco switch.  The f0, f1, f2
+* and f3 bits indicate that the filter has been triggered by detecting the
+* frequency programmed into that filter.
+*
+* The remaining bits should be set to zero. They will become defined over time
+* for other interface cards and their needs.
+*
+******************************************************************************/
+struct phone_except
+{
+	unsigned int dtmf_ready:1;
+	unsigned int hookstate:1;
+	unsigned int pstn_ring:1;
+	unsigned int caller_id:1;
+	unsigned int pstn_wink:1;
+	unsigned int f0:1;
+	unsigned int f1:1;
+	unsigned int f2:1;
+	unsigned int f3:1;
+	unsigned int flash:1;
+	unsigned int fc0:1;
+	unsigned int fc1:1;
+	unsigned int fc2:1;
+	unsigned int fc3:1;
+	unsigned int reserved:18;
+};
+
+union telephony_exception {
+	struct phone_except bits;
+	unsigned int bytes;
+};
+
+
+#endif		/* TELEPHONY_H */
+
+                                                                                                                                                                     #ifndef _LINUX_ICMPV6_H
+#define _LINUX_ICMPV6_H
+
+#include <linux/types.h>
+#include <asm/byteorder.h>
+
+struct icmp6hdr {
+
+	__u8		icmp6_type;
+	__u8		icmp6_code;
+	__sum16		icmp6_cksum;
+
+
+	union {
+		__be32			un_data32[1];
+		__be16			un_data16[2];
+		__u8			un_data8[4];
+
+		struct icmpv6_echo {
+			__be16		identifier;
+			__be16		sequence;
+		} u_echo;
+
+                struct icmpv6_nd_advt {
+#if defined(__LITTLE_ENDIAN_BITFIELD)
+                        __u32		reserved:5,
+                        		override:1,
+                        		solicited:1,
+                        		router:1,
+					reserved2:24;
+#elif defined(__BIG_ENDIAN_BITFIELD)
+                        __u32		router:1,
+					solicited:1,
+                        		override:1,
+                        		reserved:29;
+#else
+#error	"Please fix <asm/byteorder.h>"
+#endif						
+                } u_nd_advt;
+
+                struct icmpv6_nd_ra {
+			__u8		hop_limit;
+#if defined(__LITTLE_ENDIAN_BITFIELD)
+			__u8		reserved:3,
+					router_pref:2,
+					home_agent:1,
+					other:1,
+					managed:1;
+
+#elif defined(__BIG_ENDIAN_BITFIELD)
+			__u8		managed:1,
+					other:1,
+					home_agent:1,
+					router_pref:2,
+					reserved:3;
+#else
+#error	"Please fix <asm/byteorder.h>"
+#endif
+			__be16		rt_lifetime;
+                } u_nd_ra;
+
+	} icmp6_dataun;
+
+#define icmp6_identifier	icmp6_dataun.u_echo.identifier
+#define icmp6_sequence		icmp6_dataun.u_echo.sequence
+#define icmp6_pointer		icmp6_dataun.un_data32[0]
+#define icmp6_mtu		icmp6_dataun.un_data32[0]
+#define icmp6_unused		icmp6_dataun.un_data32[0]
+#define icmp6_maxdelay		icmp6_dataun.un_data16[0]
+#define icmp6_router		icmp6_dataun.u_nd_advt.router
+#define icmp6_solicited		icmp6_dataun.u_nd_advt.solicited
+#define icmp6_override		icmp6_dataun.u_nd_advt.override
+#define icmp6_ndiscreserved	icmp6_dataun.u_nd_advt.reserved
+#define icmp6_hop_limit		icmp6_dataun.u_nd_ra.hop_limit
+#define icmp6_addrconf_managed	icmp6_dataun.u_nd_ra.managed
+#define icmp6_addrconf_other	icmp6_dataun.u_nd_ra.other
+#define icmp6_rt_lifetime	icmp6_dataun.u_nd_ra.rt_lifetime
+#define icmp6_router_pref	icmp6_dataun.u_nd_ra.router_pref
+};
+
+
+#define ICMPV6_ROUTER_PREF_LOW		0x3
+#define ICMPV6_ROUTER_PREF_MEDIUM	0x0
+#define ICMPV6_ROUTER_PREF_HIGH		0x1
+#define ICMPV6_ROUTER_PREF_INVALID	0x2
+
+#define ICMPV6_DEST_UNREACH		1
+#define ICMPV6_PKT_TOOBIG		2
+#define ICMPV6_TIME_EXCEED		3
+#define ICMPV6_PARAMPROB		4
+
+#define ICMPV6_INFOMSG_MASK		0x80
+
+#define ICMPV6_ECHO_REQUEST		128
+#define ICMPV6_ECHO_REPLY		129
+#define ICMPV6_MGM_QUERY		130
+#define ICMPV6_MGM_REPORT       	131
+#define ICMPV6_MGM_REDUCTION    	132
+
+#define ICMPV6_NI_QUERY			139
+#define ICMPV6_NI_REPLY			140
+
+#define ICMPV6_MLD2_REPORT		143
+
+#define ICMPV6_DHAAD_REQUEST		144
+#define ICMPV6_DHAAD_REPLY		145
+#define ICMPV6_MOBILE_PREFIX_SOL	146
+#define ICMPV6_MOBILE_PREFIX_ADV	147
+
+/*
+ *	Codes for Destination Unreachable
+ */
+#define ICMPV6_NOROUTE			0
+#define ICMPV6_ADM_PROHIBITED		1
+#define ICMPV6_NOT_NEIGHBOUR		2
+#define ICMPV6_ADDR_UNREACH		3
+#define ICMPV6_PORT_UNREACH		4
+
+/*
+ *	Codes for Time Exceeded
+ */
+#define ICMPV6

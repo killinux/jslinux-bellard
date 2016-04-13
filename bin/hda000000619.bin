@@ -1,0 +1,1593 @@
+     reads and/or writes to register variables.
+
+`-Wdisabled-optimization'
+     Warn if a requested optimization pass is disabled.  This warning
+     does not generally indicate that there is anything wrong with your
+     code; it merely indicates that GCC's optimizers were unable to
+     handle the code effectively.  Often, the problem is that your code
+     is too big or too complex; GCC will refuse to optimize programs
+     when the optimization itself is likely to take inordinate amounts
+     of time.
+
+`-Wpointer-sign (C and Objective-C only)'
+     Warn for pointer argument passing or assignment with different
+     signedness.  This option is only supported for C and Objective-C.
+     It is implied by `-Wall' and by `-pedantic', which can be disabled
+     with `-Wno-pointer-sign'.
+
+`-Wstack-protector'
+     This option is only active when `-fstack-protector' is active.  It
+     warns about functions that will not be protected against stack
+     smashing.
+
+`-Woverlength-strings'
+     Warn about string constants which are longer than the "minimum
+     maximum" length specified in the C standard.  Modern compilers
+     generally allow string constants which are much longer than the
+     standard's minimum limit, but very portable programs should avoid
+     using longer strings.
+
+     The limit applies _after_ string constant concatenation, and does
+     not count the trailing NUL.  In C89, the limit was 509 characters;
+     in C99, it was raised to 4095.  C++98 does not specify a normative
+     minimum maximum, so we do not diagnose overlength strings in C++.
+
+     This option is implied by `-pedantic', and can be disabled with
+     `-Wno-overlength-strings'.
+
+
+File: gcc.info,  Node: Debugging Options,  Next: Optimize Options,  Prev: Warning Options,  Up: Invoking GCC
+
+3.9 Options for Debugging Your Program or GCC
+=============================================
+
+GCC has various special options that are used for debugging either your
+program or GCC:
+
+`-g'
+     Produce debugging information in the operating system's native
+     format (stabs, COFF, XCOFF, or DWARF 2).  GDB can work with this
+     debugging information.
+
+     On most systems that use stabs format, `-g' enables use of extra
+     debugging information that only GDB can use; this extra information
+     makes debugging work better in GDB but will probably make other
+     debuggers crash or refuse to read the program.  If you want to
+     control for certain whether to generate the extra information, use
+     `-gstabs+', `-gstabs', `-gxcoff+', `-gxcoff', or `-gvms' (see
+     below).
+
+     GCC allows you to use `-g' with `-O'.  The shortcuts taken by
+     optimized code may occasionally produce surprising results: some
+     variables you declared may not exist at all; flow of control may
+     briefly move where you did not expect it; some statements may not
+     be executed because they compute constant results or their values
+     were already at hand; some statements may execute in different
+     places because they were moved out of loops.
+
+     Nevertheless it proves possible to debug optimized output.  This
+     makes it reasonable to use the optimizer for programs that might
+     have bugs.
+
+     The following options are useful when GCC is generated with the
+     capability for more than one debugging format.
+
+`-ggdb'
+     Produce debugging information for use by GDB.  This means to use
+     the most expressive format available (DWARF 2, stabs, or the
+     native format if neither of those are supported), including GDB
+     extensions if at all possible.
+
+`-gstabs'
+     Produce debugging information in stabs format (if that is
+     supported), without GDB extensions.  This is the format used by
+     DBX on most BSD systems.  On MIPS, Alpha and System V Release 4
+     systems this option produces stabs debugging output which is not
+     understood by DBX or SDB.  On System V Release 4 systems this
+     option requires the GNU assembler.
+
+`-feliminate-unused-debug-symbols'
+     Produce debugging information in stabs format (if that is
+     supported), for only symbols that are actually used.
+
+`-femit-class-debug-always'
+     Instead of emitting debugging information for a C++ class in only
+     one object file, emit it in all object files using the class.
+     This option should be used only with debuggers that are unable to
+     handle the way GCC normally emits debugging information for
+     classes because using this option will increase the size of
+     debugging information by as much as a factor of two.
+
+`-gstabs+'
+     Produce debugging information in stabs format (if that is
+     supported), using GNU extensions understood only by the GNU
+     debugger (GDB).  The use of these extensions is likely to make
+     other debuggers crash or refuse to read the program.
+
+`-gcoff'
+     Produce debugging information in COFF format (if that is
+     supported).  This is the format used by SDB on most System V
+     systems prior to System V Release 4.
+
+`-gxcoff'
+     Produce debugging information in XCOFF format (if that is
+     supported).  This is the format used by the DBX debugger on IBM
+     RS/6000 systems.
+
+`-gxcoff+'
+     Produce debugging information in XCOFF format (if that is
+     supported), using GNU extensions understood only by the GNU
+     debugger (GDB).  The use of these extensions is likely to make
+     other debuggers crash or refuse to read the program, and may cause
+     assemblers other than the GNU assembler (GAS) to fail with an
+     error.
+
+`-gdwarf-2'
+     Produce debugging information in DWARF version 2 format (if that is
+     supported).  This is the format used by DBX on IRIX 6.  With this
+     option, GCC uses features of DWARF version 3 when they are useful;
+     version 3 is upward compatible with version 2, but may still cause
+     problems for older debuggers.
+
+`-gvms'
+     Produce debugging information in VMS debug format (if that is
+     supported).  This is the format used by DEBUG on VMS systems.
+
+`-gLEVEL'
+`-ggdbLEVEL'
+`-gstabsLEVEL'
+`-gcoffLEVEL'
+`-gxcoffLEVEL'
+`-gvmsLEVEL'
+     Request debugging information and also use LEVEL to specify how
+     much information.  The default level is 2.
+
+     Level 0 produces no debug information at all.  Thus, `-g0' negates
+     `-g'.
+
+     Level 1 produces minimal information, enough for making backtraces
+     in parts of the program that you don't plan to debug.  This
+     includes descriptions of functions and external variables, but no
+     information about local variables and no line numbers.
+
+     Level 3 includes extra information, such as all the macro
+     definitions present in the program.  Some debuggers support macro
+     expansion when you use `-g3'.
+
+     `-gdwarf-2' does not accept a concatenated debug level, because
+     GCC used to support an option `-gdwarf' that meant to generate
+     debug information in version 1 of the DWARF format (which is very
+     different from version 2), and it would have been too confusing.
+     That debug format is long obsolete, but the option cannot be
+     changed now.  Instead use an additional `-gLEVEL' option to change
+     the debug level for DWARF2.
+
+`-feliminate-dwarf2-dups'
+     Compress DWARF2 debugging information by eliminating duplicated
+     information about each symbol.  This option only makes sense when
+     generating DWARF2 debugging information with `-gdwarf-2'.
+
+`-femit-struct-debug-baseonly'
+     Emit debug information for struct-like types only when the base
+     name of the compilation source file matches the base name of file
+     in which the struct was defined.
+
+     This option substantially reduces the size of debugging
+     information, but at significant potential loss in type information
+     to the debugger.  See `-femit-struct-debug-reduced' for a less
+     aggressive option.  See `-femit-struct-debug-detailed' for more
+     detailed control.
+
+     This option works only with DWARF 2.
+
+`-femit-struct-debug-reduced'
+     Emit debug information for struct-like types only when the base
+     name of the compilation source file matches the base name of file
+     in which the type was defined, unless the struct is a template or
+     defined in a system header.
+
+     This option significantly reduces the size of debugging
+     information, with some potential loss in type information to the
+     debugger.  See `-femit-struct-debug-baseonly' for a more
+     aggressive option.  See `-femit-struct-debug-detailed' for more
+     detailed control.
+
+     This option works only with DWARF 2.
+
+`-femit-struct-debug-detailed[=SPEC-LIST]'
+     Specify the struct-like types for which the compiler will generate
+     debug information.  The intent is to reduce duplicate struct debug
+     information between different object files within the same program.
+
+     This option is a detailed version of `-femit-struct-debug-reduced'
+     and `-femit-struct-debug-baseonly', which will serve for most
+     needs.
+
+     A specification has the syntax
+     [`dir:'|`ind:'][`ord:'|`gen:'](`any'|`sys'|`base'|`none')
+
+     The optional first word limits the specification to structs that
+     are used directly (`dir:') or used indirectly (`ind:').  A struct
+     type is used directly when it is the type of a variable, member.
+     Indirect uses arise through pointers to structs.  That is, when
+     use of an incomplete struct would be legal, the use is indirect.
+     An example is `struct one direct; struct two * indirect;'.
+
+     The optional second word limits the specification to ordinary
+     structs (`ord:') or generic structs (`gen:').  Generic structs are
+     a bit complicated to explain.  For C++, these are non-explicit
+     specializations of template classes, or non-template classes
+     within the above.  Other programming languages have generics, but
+     `-femit-struct-debug-detailed' does not yet implement them.
+
+     The third word specifies the source files for those structs for
+     which the compiler will emit debug information.  The values `none'
+     and `any' have the normal meaning.  The value `base' means that
+     the base of name of the file in which the type declaration appears
+     must match the base of the name of the main compilation file.  In
+     practice, this means that types declared in `foo.c' and `foo.h'
+     will have debug information, but types declared in other header
+     will not.  The value `sys' means those types satisfying `base' or
+     declared in system or compiler headers.
+
+     You may need to experiment to determine the best settings for your
+     application.
+
+     The default is `-femit-struct-debug-detailed=all'.
+
+     This option works only with DWARF 2.
+
+`-fno-merge-debug-strings'
+     Direct the linker to merge together strings which are identical in
+     different object files.  This is not supported by all assemblers or
+     linker.  This decreases the size of the debug information in the
+     output file at the cost of increasing link processing time.  This
+     is on by default.
+
+`-fdebug-prefix-map=OLD=NEW'
+     When compiling files in directory `OLD', record debugging
+     information describing them as in `NEW' instead.
+
+`-p'
+     Generate extra code to write profile information suitable for the
+     analysis program `prof'.  You must use this option when compiling
+     the source files you want data about, and you must also use it when
+     linking.
+
+`-pg'
+     Generate extra code to write profile information suitable for the
+     analysis program `gprof'.  You must use this option when compiling
+     the source files you want data about, and you must also use it when
+     linking.
+
+`-Q'
+     Makes the compiler print out each function name as it is compiled,
+     and print some statistics about each pass when it finishes.
+
+`-ftime-report'
+     Makes the compiler print some statistics about the time consumed
+     by each pass when it finishes.
+
+`-fmem-report'
+     Makes the compiler print some statistics about permanent memory
+     allocation when it finishes.
+
+`-fpre-ipa-mem-report'
+
+`-fpost-ipa-mem-report'
+     Makes the compiler print some statistics about permanent memory
+     allocation before or after interprocedural optimization.
+
+`-fprofile-arcs'
+     Add code so that program flow "arcs" are instrumented.  During
+     execution the program records how many times each branch and call
+     is executed and how many times it is taken or returns.  When the
+     compiled program exits it saves this data to a file called
+     `AUXNAME.gcda' for each source file.  The data may be used for
+     profile-directed optimizations (`-fbranch-probabilities'), or for
+     test coverage analysis (`-ftest-coverage').  Each object file's
+     AUXNAME is generated from the name of the output file, if
+     explicitly specified and it is not the final executable, otherwise
+     it is the basename of the source file.  In both cases any suffix
+     is removed (e.g. `foo.gcda' for input file `dir/foo.c', or
+     `dir/foo.gcda' for output file specified as `-o dir/foo.o').
+     *Note Cross-profiling::.
+
+`--coverage'
+     This option is used to compile and link code instrumented for
+     coverage analysis.  The option is a synonym for `-fprofile-arcs'
+     `-ftest-coverage' (when compiling) and `-lgcov' (when linking).
+     See the documentation for those options for more details.
+
+        * Compile the source files with `-fprofile-arcs' plus
+          optimization and code generation options.  For test coverage
+          analysis, use the additional `-ftest-coverage' option.  You
+          do not need to profile every source file in a program.
+
+        * Link your object files with `-lgcov' or `-fprofile-arcs' (the
+          latter implies the former).
+
+        * Run the program on a representative workload to generate the
+          arc profile information.  This may be repeated any number of
+          times.  You can run concurrent instances of your program, and
+          provided that the file system supports locking, the data
+          files will be correctly updated.  Also `fork' calls are
+          detected and correctly handled (double counting will not
+          happen).
+
+        * For profile-directed optimizations, compile the source files
+          again with the same optimization and code generation options
+          plus `-fbranch-probabilities' (*note Options that Control
+          Optimization: Optimize Options.).
+
+        * For test coverage analysis, use `gcov' to produce human
+          readable information from the `.gcno' and `.gcda' files.
+          Refer to the `gcov' documentation for further information.
+
+
+     With `-fprofile-arcs', for each function of your program GCC
+     creates a program flow graph, then finds a spanning tree for the
+     graph.  Only arcs that are not on the spanning tree have to be
+     instrumented: the compiler adds code to count the number of times
+     that these arcs are executed.  When an arc is the only exit or
+     only entrance to a block, the instrumentation code can be added to
+     the block; otherwise, a new basic block must be created to hold
+     the instrumentation code.
+
+`-ftest-coverage'
+     Produce a notes file that the `gcov' code-coverage utility (*note
+     `gcov'--a Test Coverage Program: Gcov.) can use to show program
+     coverage.  Each source file's note file is called `AUXNAME.gcno'.
+     Refer to the `-fprofile-arcs' option above for a description of
+     AUXNAME and instructions on how to generate test coverage data.
+     Coverage data will match the source files more closely, if you do
+     not optimize.
+
+`-fdbg-cnt-list'
+     Print the name and the counter upperbound for all debug counters.
+
+`-fdbg-cnt=COUNTER-VALUE-LIST'
+     Set the internal debug counter upperbound. COUNTER-VALUE-LIST is a
+     comma-separated list of NAME:VALUE pairs which sets the upperbound
+     of each debug counter NAME to VALUE.  All debug counters have the
+     initial upperbound of UINT_MAX, thus dbg_cnt() returns true always
+     unless the upperbound is set by this option.  e.g. With
+     -fdbg-cnt=dce:10,tail_call:0 dbg_cnt(dce) will return true only
+     for first 10 invocations and dbg_cnt(tail_call) will return false
+     always.
+
+`-dLETTERS'
+
+`-fdump-rtl-PASS'
+     Says to make debugging dumps during compilation at times specified
+     by LETTERS.    This is used for debugging the RTL-based passes of
+     the compiler.  The file names for most of the dumps are made by
+     appending a pass number and a word to the DUMPNAME.  DUMPNAME is
+     generated from the name of the output file, if explicitly
+     specified and it is not an executable, otherwise it is the
+     basename of the source file. These switches may have different
+     effects when `-E' is used for preprocessing.
+
+     Most debug dumps can be enabled either passing a letter to the `-d'
+     option, or with a long `-fdump-rtl' switch; here are the possible
+     letters for use in LETTERS and PASS, and their meanings:
+
+    `-dA'
+          Annotate the assembler output with miscellaneous debugging
+          information.
+
+    `-dB'
+    `-fdump-rtl-bbro'
+          Dump after block reordering, to `FILE.148r.bbro'.
+
+    `-dc'
+    `-fdump-rtl-combine'
+          Dump after the RTL instruction combination pass, to the file
+          `FILE.129r.combine'.
+
+    `-dC'
+    `-fdump-rtl-ce1'
+    `-fdump-rtl-ce2'
+          `-dC' and `-fdump-rtl-ce1' enable dumping after the first if
+          conversion, to the file `FILE.117r.ce1'.  `-dC' and
+          `-fdump-rtl-ce2' enable dumping after the second if
+          conversion, to the file `FILE.130r.ce2'.
+
+    `-dd'
+    `-fdump-rtl-btl'
+    `-fdump-rtl-dbr'
+          `-dd' and `-fdump-rtl-btl' enable dumping after branch target
+          load optimization, to `FILE.31.btl'.  `-dd' and
+          `-fdump-rtl-dbr' enable dumping after delayed branch
+          scheduling, to `FILE.36.dbr'.
+
+    `-dD'
+          Dump all macro definitions, at the end of preprocessing, in
+          addition to normal output.
+
+    `-dE'
+    `-fdump-rtl-ce3'
+          Dump after the third if conversion, to `FILE.146r.ce3'.
+
+    `-df'
+    `-fdump-rtl-cfg'
+    `-fdump-rtl-life'
+          `-df' and `-fdump-rtl-cfg' enable dumping after control and
+          data flow analysis, to `FILE.116r.cfg'.  `-df' and
+          `-fdump-rtl-cfg' enable dumping dump after life analysis, to
+          `FILE.128r.life1' and `FILE.135r.life2'.
+
+    `-dg'
+    `-fdump-rtl-greg'
+          Dump after global register allocation, to `FILE.139r.greg'.
+
+    `-dG'
+    `-fdump-rtl-gcse'
+    `-fdump-rtl-bypass'
+          `-dG' and `-fdump-rtl-gcse' enable dumping after GCSE, to
+          `FILE.114r.gcse'.  `-dG' and `-fdump-rtl-bypass' enable
+          dumping after jump bypassing and control flow optimizations,
+          to `FILE.115r.bypass'.
+
+    `-dh'
+    `-fdump-rtl-eh'
+          Dump after finalization of EH handling code, to `FILE.02.eh'.
+
+    `-di'
+    `-fdump-rtl-sibling'
+          Dump after sibling call optimizations, to `FILE.106r.sibling'.
+
+    `-dj'
+    `-fdump-rtl-jump'
+          Dump after the first jump optimization, to `FILE.112r.jump'.
+
+    `-dk'
+    `-fdump-rtl-stack'
+          Dump after conversion from GCC's "flat register file"
+          registers to the x87's stack-like registers, to
+          `FILE.152r.stack'.
+
+    `-dl'
+    `-fdump-rtl-lreg'
+          Dump after local register allocation, to `FILE.138r.lreg'.
+
+    `-dL'
+    `-fdump-rtl-loop2'
+          `-dL' and `-fdump-rtl-loop2' enable dumping after the loop
+          optimization pass, to `FILE.119r.loop2',
+          `FILE.120r.loop2_init', `FILE.121r.loop2_invariant', and
+          `FILE.125r.loop2_done'.
+
+    `-dm'
+    `-fdump-rtl-sms'
+          Dump after modulo scheduling, to `FILE.136r.sms'.
+
+    `-dM'
+    `-fdump-rtl-mach'
+          Dump after performing the machine dependent reorganization
+          pass, to `FILE.155r.mach' if that pass exists.
+
+    `-dn'
+    `-fdump-rtl-rnreg'
+          Dump after register renumbering, to `FILE.147r.rnreg'.
+
+    `-dN'
+    `-fdump-rtl-regmove'
+          Dump after the register move pass, to `FILE.132r.regmove'.
+
+    `-do'
+    `-fdump-rtl-postreload'
+          Dump after post-reload optimizations, to `FILE.24.postreload'.
+
+    `-dr'
+    `-fdump-rtl-expand'
+          Dump after RTL generation, to `FILE.104r.expand'.
+
+    `-dR'
+    `-fdump-rtl-sched2'
+          Dump after the second scheduling pass, to `FILE.149r.sched2'.
+
+    `-ds'
+    `-fdump-rtl-cse'
+          Dump after CSE (including the jump optimization that
+          sometimes follows CSE), to `FILE.113r.cse'.
+
+    `-dS'
+    `-fdump-rtl-sched1'
+          Dump after the first scheduling pass, to `FILE.136r.sched1'.
+
+    `-dt'
+    `-fdump-rtl-cse2'
+          Dump after the second CSE pass (including the jump
+          optimization that sometimes follows CSE), to `FILE.127r.cse2'.
+
+    `-dT'
+    `-fdump-rtl-tracer'
+          Dump after running tracer, to `FILE.118r.tracer'.
+
+    `-dV'
+    `-fdump-rtl-vpt'
+    `-fdump-rtl-vartrack'
+          `-dV' and `-fdump-rtl-vpt' enable dumping after the value
+          profile transformations, to `FILE.10.vpt'.  `-dV' and
+          `-fdump-rtl-vartrack' enable dumping after variable tracking,
+          to `FILE.154r.vartrack'.
+
+    `-dw'
+    `-fdump-rtl-flow2'
+          Dump after the second flow pass, to `FILE.142r.flow2'.
+
+    `-dz'
+    `-fdump-rtl-peephole2'
+          Dump after the peephole pass, to `FILE.145r.peephole2'.
+
+    `-dZ'
+    `-fdump-rtl-web'
+          Dump after live range splitting, to `FILE.126r.web'.
+
+    `-da'
+    `-fdump-rtl-all'
+          Produce all the dumps listed above.
+
+    `-dH'
+          Produce a core dump whenever an error occurs.
+
+    `-dm'
+          Print statistics on memory usage, at the end of the run, to
+          standard error.
+
+    `-dp'
+          Annotate the assembler output with a comment indicating which
+          pattern and alternative was used.  The length of each
+          instruction is also printed.
+
+    `-dP'
+          Dump the RTL in the assembler output as a comment before each
+          instruction.  Also turns on `-dp' annotation.
+
+    `-dv'
+          For each of the other indicated dump files (either with `-d'
+          or `-fdump-rtl-PASS'), dump a representation of the control
+          flow graph suitable for viewing with VCG to `FILE.PASS.vcg'.
+
+    `-dx'
+          Just generate RTL for a function instead of compiling it.
+          Usually used with `r' (`-fdump-rtl-expand').
+
+    `-dy'
+          Dump debugging information during parsing, to standard error.
+
+`-fdump-noaddr'
+     When doing debugging dumps (see `-d' option above), suppress
+     address output.  This makes it more feasible to use diff on
+     debugging dumps for compiler invocations with different compiler
+     binaries and/or different text / bss / data / heap / stack / dso
+     start locations.
+
+`-fdump-unnumbered'
+     When doing debugging dumps (see `-d' option above), suppress
+     instruction numbers and address output.  This makes it more
+     feasible to use diff on debugging dumps for compiler invocations
+     with different options, in particular with and without `-g'.
+
+`-fdump-translation-unit (C++ only)'
+`-fdump-translation-unit-OPTIONS (C++ only)'
+     Dump a representation of the tree structure for the entire
+     translation unit to a file.  The file name is made by appending
+     `.tu' to the source file name.  If the `-OPTIONS' form is used,
+     OPTIONS controls the details of the dump as described for the
+     `-fdump-tree' options.
+
+`-fdump-class-hierarchy (C++ only)'
+`-fdump-class-hierarchy-OPTIONS (C++ only)'
+     Dump a representation of each class's hierarchy and virtual
+     function table layout to a file.  The file name is made by
+     appending `.class' to the source file name.  If the `-OPTIONS'
+     form is used, OPTIONS controls the details of the dump as
+     described for the `-fdump-tree' options.
+
+`-fdump-ipa-SWITCH'
+     Control the dumping at various stages of inter-procedural analysis
+     language tree to a file.  The file name is generated by appending
+     a switch specific suffix to the source file name.  The following
+     dumps are possible:
+
+    `all'
+          Enables all inter-procedural analysis dumps.
+
+    `cgraph'
+          Dumps information about call-graph optimization, unused
+          function removal, and inlining decisions.
+
+    `inline'
+          Dump after function inlining.
+
+
+`-fdump-tree-SWITCH'
+`-fdump-tree-SWITCH-OPTIONS'
+     Control the dumping at various stages of processing the
+     intermediate language tree to a file.  The file name is generated
+     by appending a switch specific suffix to the source file name.  If
+     the `-OPTIONS' form is used, OPTIONS is a list of `-' separated
+     options that control the details of the dump.  Not all options are
+     applicable to all dumps, those which are not meaningful will be
+     ignored.  The following options are available
+
+    `address'
+          Print the address of each node.  Usually this is not
+          meaningful as it changes according to the environment and
+          source file.  Its primary use is for tying up a dump file
+          with a debug environment.
+
+    `slim'
+          Inhibit dumping of members of a scope or body of a function
+          merely because that scope has been reached.  Only dump such
+          items when they are directly reachable by some other path.
+          When dumping pretty-printed trees, this option inhibits
+          dumping the bodies of control structures.
+
+    `raw'
+          Print a raw representation of the tree.  By default, trees are
+          pretty-printed into a C-like representation.
+
+    `details'
+          Enable more detailed dumps (not honored by every dump option).
+
+    `stats'
+          Enable dumping various statistics about the pass (not honored
+          by every dump option).
+
+    `blocks'
+          Enable showing basic block boundaries (disabled in raw dumps).
+
+    `vops'
+          Enable showing virtual operands for every statement.
+
+    `lineno'
+          Enable showing line numbers for statements.
+
+    `uid'
+          Enable showing the unique ID (`DECL_UID') for each variable.
+
+    `all'
+          Turn on all options, except `raw', `slim' and `lineno'.
+
+     The following tree dumps are possible:
+    `original'
+          Dump before any tree based optimization, to `FILE.original'.
+
+    `optimized'
+          Dump after all tree based optimization, to `FILE.optimized'.
+
+    `gimple'
+          Dump each function before and after the gimplification pass
+          to a file.  The file name is made by appending `.gimple' to
+          the source file name.
+
+    `cfg'
+          Dump the control flow graph of each function to a file.  The
+          file name is made by appending `.cfg' to the source file name.
+
+    `vcg'
+          Dump the control flow graph of each function to a file in VCG
+          format.  The file name is made by appending `.vcg' to the
+          source file name.  Note that if the file contains more than
+          one function, the generated file cannot be used directly by
+          VCG.  You will need to cut and paste each function's graph
+          into its own separate file first.
+
+    `ch'
+          Dump each function after copying loop headers.  The file name
+          is made by appending `.ch' to the source file name.
+
+    `ssa'
+          Dump SSA related information to a file.  The file name is
+          made by appending `.ssa' to the source file name.
+
+    `salias'
+          Dump structure aliasing variable information to a file.  This
+          file name is made by appending `.salias' to the source file
+          name.
+
+    `alias'
+          Dump aliasing information for each function.  The file name
+          is made by appending `.alias' to the source file name.
+
+    `ccp'
+          Dump each function after CCP.  The file name is made by
+          appending `.ccp' to the source file name.
+
+    `storeccp'
+          Dump each function after STORE-CCP.  The file name is made by
+          appending `.storeccp' to the source file name.
+
+    `pre'
+          Dump trees after partial redundancy elimination.  The file
+          name is made by appending `.pre' to the source file name.
+
+    `fre'
+          Dump trees after full redundancy elimination.  The file name
+          is made by appending `.fre' to the source file name.
+
+    `copyprop'
+          Dump trees after copy propagation.  The file name is made by
+          appending `.copyprop' to the source file name.
+
+    `store_copyprop'
+          Dump trees after store copy-propagation.  The file name is
+          made by appending `.store_copyprop' to the source file name.
+
+    `dce'
+          Dump each function after dead code elimination.  The file
+          name is made by appending `.dce' to the source file name.
+
+    `mudflap'
+          Dump each function after adding mudflap instrumentation.  The
+          file name is made by appending `.mudflap' to the source file
+          name.
+
+    `sra'
+          Dump each function after performing scalar replacement of
+          aggregates.  The file name is made by appending `.sra' to the
+          source file name.
+
+    `sink'
+          Dump each function after performing code sinking.  The file
+          name is made by appending `.sink' to the source file name.
+
+    `dom'
+          Dump each function after applying dominator tree
+          optimizations.  The file name is made by appending `.dom' to
+          the source file name.
+
+    `dse'
+          Dump each function after applying dead store elimination.
+          The file name is made by appending `.dse' to the source file
+          name.
+
+    `phiopt'
+          Dump each function after optimizing PHI nodes into
+          straightline code.  The file name is made by appending
+          `.phiopt' to the source file name.
+
+    `forwprop'
+          Dump each function after forward propagating single use
+          variables.  The file name is made by appending `.forwprop' to
+          the source file name.
+
+    `copyrename'
+          Dump each function after applying the copy rename
+          optimization.  The file name is made by appending
+          `.copyrename' to the source file name.
+
+    `nrv'
+          Dump each function after applying the named return value
+          optimization on generic trees.  The file name is made by
+          appending `.nrv' to the source file name.
+
+    `vect'
+          Dump each function after applying vectorization of loops.
+          The file name is made by appending `.vect' to the source file
+          name.
+
+    `vrp'
+          Dump each function after Value Range Propagation (VRP).  The
+          file name is made by appending `.vrp' to the source file name.
+
+    `all'
+          Enable all the available tree dumps with the flags provided
+          in this option.
+
+`-ftree-vectorizer-verbose=N'
+     This option controls the amount of debugging output the vectorizer
+     prints.  This information is written to standard error, unless
+     `-fdump-tree-all' or `-fdump-tree-vect' is specified, in which
+     case it is output to the usual dump listing file, `.vect'.  For
+     N=0 no diagnostic information is reported.  If N=1 the vectorizer
+     reports each loop that got vectorized, and the total number of
+     loops that got vectorized.  If N=2 the vectorizer also reports
+     non-vectorized loops that passed the first analysis phase
+     (vect_analyze_loop_form) - i.e. countable, inner-most, single-bb,
+     single-entry/exit loops.  This is the same verbosity level that
+     `-fdump-tree-vect-stats' uses.  Higher verbosity levels mean
+     either more information dumped for each reported loop, or same
+     amount of information reported for more loops: If N=3, alignment
+     related information is added to the reports.  If N=4,
+     data-references related information (e.g. memory dependences,
+     memory access-patterns) is added to the reports.  If N=5, the
+     vectorizer reports also non-vectorized inner-most loops that did
+     not pass the first analysis phase (i.e., may not be countable, or
+     may have complicated control-flow).  If N=6, the vectorizer
+     reports also non-vectorized nested loops.  For N=7, all the
+     information the vectorizer generates during its analysis and
+     transformation is reported.  This is the same verbosity level that
+     `-fdump-tree-vect-details' uses.
+
+`-frandom-seed=STRING'
+     This option provides a seed that GCC uses when it would otherwise
+     use random numbers.  It is used to generate certain symbol names
+     that have to be different in every compiled file.  It is also used
+     to place unique stamps in coverage data files and the object files
+     that produce them.  You can use the `-frandom-seed' option to
+     produce reproducibly identical object files.
+
+     The STRING should be different for every file you compile.
+
+`-fsched-verbose=N'
+     On targets that use instruction scheduling, this option controls
+     the amount of debugging output the scheduler prints.  This
+     information is written to standard error, unless `-dS' or `-dR' is
+     specified, in which case it is output to the usual dump listing
+     file, `.sched' or `.sched2' respectively.  However for N greater
+     than nine, the output is always printed to standard error.
+
+     For N greater than zero, `-fsched-verbose' outputs the same
+     information as `-dRS'.  For N greater than one, it also output
+     basic block probabilities, detailed ready list information and
+     unit/insn info.  For N greater than two, it includes RTL at abort
+     point, control-flow and regions info.  And for N over four,
+     `-fsched-verbose' also includes dependence info.
+
+`-save-temps'
+     Store the usual "temporary" intermediate files permanently; place
+     them in the current directory and name them based on the source
+     file.  Thus, compiling `foo.c' with `-c -save-temps' would produce
+     files `foo.i' and `foo.s', as well as `foo.o'.  This creates a
+     preprocessed `foo.i' output file even though the compiler now
+     normally uses an integrated preprocessor.
+
+     When used in combination with the `-x' command line option,
+     `-save-temps' is sensible enough to avoid over writing an input
+     source file with the same extension as an intermediate file.  The
+     corresponding intermediate file may be obtained by renaming the
+     source file before using `-save-temps'.
+
+`-time'
+     Report the CPU time taken by each subprocess in the compilation
+     sequence.  For C source files, this is the compiler proper and
+     assembler (plus the linker if linking is done).  The output looks
+     like this:
+
+          # cc1 0.12 0.01
+          # as 0.00 0.01
+
+     The first number on each line is the "user time", that is time
+     spent executing the program itself.  The second number is "system
+     time", time spent executing operating system routines on behalf of
+     the program.  Both numbers are in seconds.
+
+`-fvar-tracking'
+     Run variable tracking pass.  It computes where variables are
+     stored at each position in code.  Better debugging information is
+     then generated (if the debugging information format supports this
+     information).
+
+     It is enabled by default when compiling with optimization (`-Os',
+     `-O', `-O2', ...), debugging information (`-g') and the debug info
+     format supports it.
+
+`-print-file-name=LIBRARY'
+     Print the full absolute name of the library file LIBRARY that
+     would be used when linking--and don't do anything else.  With this
+     option, GCC does not compile or link anything; it just prints the
+     file name.
+
+`-print-multi-directory'
+     Print the directory name corresponding to the multilib selected by
+     any other switches present in the command line.  This directory is
+     supposed to exist in `GCC_EXEC_PREFIX'.
+
+`-print-multi-lib'
+     Print the mapping from multilib directory names to compiler
+     switches that enable them.  The directory name is separated from
+     the switches by `;', and each switch starts with an `@' instead of
+     the `-', without spaces between multiple switches.  This is
+     supposed to ease shell-processing.
+
+`-print-prog-name=PROGRAM'
+     Like `-print-file-name', but searches for a program such as `cpp'.
+
+`-print-libgcc-file-name'
+     Same as `-print-file-name=libgcc.a'.
+
+     This is useful when you use `-nostdlib' or `-nodefaultlibs' but
+     you do want to link with `libgcc.a'.  You can do
+
+          gcc -nostdlib FILES... `gcc -print-libgcc-file-name`
+
+`-print-search-dirs'
+     Print the name of the configured installation directory and a list
+     of program and library directories `gcc' will search--and don't do
+     anything else.
+
+     This is useful when `gcc' prints the error message `installation
+     problem, cannot exec cpp0: No such file or directory'.  To resolve
+     this you either need to put `cpp0' and the other compiler
+     components where `gcc' expects to find them, or you can set the
+     environment variable `GCC_EXEC_PREFIX' to the directory where you
+     installed them.  Don't forget the trailing `/'.  *Note Environment
+     Variables::.
+
+`-print-sysroot-headers-suffix'
+     Print the suffix added to the target sysroot when searching for
+     headers, or give an error if the compiler is not configured with
+     such a suffix--and don't do anything else.
+
+`-dumpmachine'
+     Print the compiler's target machine (for example,
+     `i686-pc-linux-gnu')--and don't do anything else.
+
+`-dumpversion'
+     Print the compiler version (for example, `3.0')--and don't do
+     anything else.
+
+`-dumpspecs'
+     Print the compiler's built-in specs--and don't do anything else.
+     (This is used when GCC itself is being built.)  *Note Spec Files::.
+
+`-feliminate-unused-debug-types'
+     Normally, when producing DWARF2 output, GCC will emit debugging
+     information for all types declared in a compilation unit,
+     regardless of whether or not they are actually used in that
+     compilation unit.  Sometimes this is useful, such as if, in the
+     debugger, you want to cast a value to a type that is not actually
+     used in your program (but is declared).  More often, however, this
+     results in a significant amount of wasted space.  With this
+     option, GCC will avoid producing debug symbol output for types
+     that are nowhere used in the source file being compiled.
+
+
+File: gcc.info,  Node: Optimize Options,  Next: Preprocessor Options,  Prev: Debugging Options,  Up: Invoking GCC
+
+3.10 Options That Control Optimization
+======================================
+
+These options control various sorts of optimizations.
+
+ Without any optimization option, the compiler's goal is to reduce the
+cost of compilation and to make debugging produce the expected results.
+Statements are independent: if you stop the program with a breakpoint
+between statements, you can then assign a new value to any variable or
+change the program counter to any other statement in the function and
+get exactly the results you would expect from the source code.
+
+ Turning on optimization flags makes the compiler attempt to improve
+the performance and/or code size at the expense of compilation time and
+possibly the ability to debug the program.
+
+ The compiler performs optimization based on the knowledge it has of
+the program.  Optimization levels `-O' and above, in particular, enable
+_unit-at-a-time_ mode, which allows the compiler to consider
+information gained from later functions in the file when compiling a
+function.  Compiling multiple files at once to a single output file in
+_unit-at-a-time_ mode allows the compiler to use information gained
+from all of the files when compiling each of them.
+
+ Not all optimizations are controlled directly by a flag.  Only
+optimizations that have a flag are listed.
+
+`-O'
+`-O1'
+     Optimize.  Optimizing compilation takes somewhat more time, and a
+     lot more memory for a large function.
+
+     With `-O', the compiler tries to reduce code size and execution
+     time, without performing any optimizations that take a great deal
+     of compilation time.
+
+     `-O' turns on the following optimization flags:
+          -fauto-inc-dec
+          -fcprop-registers
+          -fdce
+          -fdefer-pop
+          -fdelayed-branch
+          -fdse
+          -fguess-branch-probability
+          -fif-conversion2
+          -fif-conversion
+          -finline-small-functions
+          -fipa-pure-const
+          -fipa-reference
+          -fmerge-constants
+          -fsplit-wide-types
+          -ftree-ccp
+          -ftree-ch
+          -ftree-copyrename
+          -ftree-dce
+          -ftree-dominator-opts
+          -ftree-dse
+          -ftree-fre
+          -ftree-sra
+          -ftree-ter
+          -funit-at-a-time
+
+     `-O' also turns on `-fomit-frame-pointer' on machines where doing
+     so does not interfere with debugging.
+
+`-O2'
+     Optimize even more.  GCC performs nearly all supported
+     optimizations that do not involve a space-speed tradeoff.  The
+     compiler does not perform loop unrolling or function inlining when
+     you specify `-O2'.  As compared to `-O', this option increases
+     both compilation time and the performance of the generated code.
+
+     `-O2' turns on all optimization flags specified by `-O'.  It also
+     turns on the following optimization flags:
+          -fthread-jumps
+          -falign-functions  -falign-jumps
+          -falign-loops  -falign-labels
+          -fcaller-saves
+          -fcrossjumping
+          -fcse-follow-jumps  -fcse-skip-blocks
+          -fdelete-null-pointer-checks
+          -fexpensive-optimizations
+          -fgcse  -fgcse-lm
+          -foptimize-sibling-calls
+          -fpeephole2
+          -fregmove
+          -freorder-blocks  -freorder-functions
+          -frerun-cse-after-loop
+          -fsched-interblock  -fsched-spec
+          -fschedule-insns  -fschedule-insns2
+          -fstrict-aliasing -fstrict-overflow
+          -ftree-pre
+          -ftree-vrp
+
+     Please note the warning under `-fgcse' about invoking `-O2' on
+     programs that use computed gotos.
+
+`-O3'
+     Optimize yet more.  `-O3' turns on all optimizations specified by
+     `-O2' and also turns on the `-finline-functions',
+     `-funswitch-loops', `-fpredictive-commoning',
+     `-fgcse-after-reload' and `-ftree-vectorize' options.
+
+`-O0'
+     Reduce compilation time and make debugging produce the expected
+     results.  This is the default.
+
+`-Os'
+     Optimize for size.  `-Os' enables all `-O2' optimizations that do
+     not typically increase code size.  It also performs further
+     optimizations designed to reduce code size.
+
+     `-Os' disables the following optimization flags:
+          -falign-functions  -falign-jumps  -falign-loops
+          -falign-labels  -freorder-blocks  -freorder-blocks-and-partition
+          -fprefetch-loop-arrays  -ftree-vect-loop-version
+
+     If you use multiple `-O' options, with or without level numbers,
+     the last such option is the one that is effective.
+
+ Options of the form `-fFLAG' specify machine-independent flags.  Most
+flags have both positive and negative forms; the negative form of
+`-ffoo' would be `-fno-foo'.  In the table below, only one of the forms
+is listed--the one you typically will use.  You can figure out the
+other form by either removing `no-' or adding it.
+
+ The following options control specific optimizations.  They are either
+activated by `-O' options or are related to ones that are.  You can use
+the following flags in the rare cases when "fine-tuning" of
+optimizations to be performed is desired.
+
+`-fno-default-inline'
+     Do not make member functions inline by default merely because they
+     are defined inside the class scope (C++ only).  Otherwise, when
+     you specify `-O', member functions defined inside class scope are
+     compiled inline by default; i.e., you don't need to add `inline'
+     in front of the member function name.
+
+`-fno-defer-pop'
+     Always pop the arguments to each function call as soon as that
+     function returns.  For machines which must pop arguments after a
+     function call, the compiler normally lets arguments accumulate on
+     the stack for several function calls and pops them all at once.
+
+     Disabled at levels `-O', `-O2', `-O3', `-Os'.
+
+`-fforward-propagate'
+     Perform a forward propagation pass on RTL.  The pass tries to
+     combine two instructions and checks if the result can be
+     simplified.  If loop unrolling is active, two passes are performed
+     and the second is scheduled after loop unrolling.
+
+     This option is enabled by default at optimization levels `-O2',
+     `-O3', `-Os'.
+
+`-fomit-frame-pointer'
+     Don't keep the frame pointer in a register for functions that
+     don't need one.  This avoids the instructions to save, set up and
+     restore frame pointers; it also makes an extra register available
+     in many functions.  *It also makes debugging impossible on some
+     machines.*
+
+     On some machines, such as the VAX, this flag has no effect, because
+     the standard calling sequence automatically handles the frame
+     pointer and nothing is saved by pretending it doesn't exist.  The
+     machine-description macro `FRAME_POINTER_REQUIRED' controls
+     whether a target machine supports this flag.  *Note Register
+     Usage: (gccint)Registers.
+
+     Enabled at levels `-O', `-O2', `-O3', `-Os'.
+
+`-foptimize-sibling-calls'
+     Optimize sibling and tail recursive calls.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-fno-inline'
+     Don't pay attention to the `inline' keyword.  Normally this option
+     is used to keep the compiler from expanding any functions inline.
+     Note that if you are not optimizing, no functions can be expanded
+     inline.
+
+`-finline-small-functions'
+     Integrate functions into their callers when their body is smaller
+     than expected function call code (so overall size of program gets
+     smaller).  The compiler heuristically decides which functions are
+     simple enough to be worth integrating in this way.
+
+     Enabled at level `-O2'.
+
+`-finline-functions'
+     Integrate all simple functions into their callers.  The compiler
+     heuristically decides which functions are simple enough to be worth
+     integrating in this way.
+
+     If all calls to a given function are integrated, and the function
+     is declared `static', then the function is normally not output as
+     assembler code in its own right.
+
+     Enabled at level `-O3'.
+
+`-finline-functions-called-once'
+     Consider all `static' functions called once for inlining into their
+     caller even if they are not marked `inline'.  If a call to a given
+     function is integrated, then the function is not output as
+     assembler code in its own right.
+
+     Enabled if `-funit-at-a-time' is enabled.
+
+`-fearly-inlining'
+     Inline functions marked by `always_inline' and functions whose
+     body seems smaller than the function call overhead early before
+     doing `-fprofile-generate' instrumentation and real inlining pass.
+     Doing so makes profiling significantly cheaper and usually
+     inlining faster on programs having large chains of nested wrapper
+     functions.
+
+     Enabled by default.
+
+`-finline-limit=N'
+     By default, GCC limits the size of functions that can be inlined.
+     This flag allows coarse control of this limit.  N is the size of
+     functions that can be inlined in number of pseudo instructions.
+
+     Inlining is actually controlled by a number of parameters, which
+     may be specified individually by using `--param NAME=VALUE'.  The
+     `-finline-limit=N' option sets some of these parameters as follows:
+
+    `max-inline-insns-single'
+          is set to N/2.
+
+    `max-inline-insns-auto'
+          is set to N/2.
+
+     See below for a documentation of the individual parameters
+     controlling inlining and for the defaults of these parameters.
+
+     _Note:_ there may be no value to `-finline-limit' that results in
+     default behavior.
+
+     _Note:_ pseudo instruction represents, in this particular context,
+     an abstract measurement of function's size.  In no way does it
+     represent a count of assembly instructions and as such its exact
+     meaning might change from one release to an another.
+
+`-fkeep-inline-functions'
+     In C, emit `static' functions that are declared `inline' into the
+     object file, even if the function has been inlined into all of its
+     callers.  This switch does not affect functions using the `extern
+     inline' extension in GNU C89.  In C++, emit any and all inline
+     functions into the object file.
+
+`-fkeep-static-consts'
+     Emit variables declared `static const' when optimization isn't
+     turned on, even if the variables aren't referenced.
+
+     GCC enables this option by default.  If you want to force the
+     compiler to check if the variable was referenced, regardless of
+     whether or not optimization is turned on, use the
+     `-fno-keep-static-consts' option.
+
+`-fmerge-constants'
+     Attempt to merge identical constants (string constants and
+     floating point constants) across compilation units.
+
+     This option is the default for optimized compilation if the
+     assembler and linker support it.  Use `-fno-merge-constants' to
+     inhibit this behavior.
+
+     Enabled at levels `-O', `-O2', `-O3', `-Os'.
+
+`-fmerge-all-constants'
+     Attempt to merge identical constants and identical variables.
+
+     This option implies `-fmerge-constants'.  In addition to
+     `-fmerge-constants' this considers e.g. even constant initialized
+     arrays or initialized constant variables with integral or floating
+     point types.  Languages like C or C++ require each variable,
+     including multiple instances of the same variable in recursive
+     calls, to have distinct locations, so using this option will
+     result in non-conforming behavior.
+
+`-fmodulo-sched'
+     Perform swing modulo scheduling immediately before the first
+     scheduling pass.  This pass looks at innermost loops and reorders
+     their instructions by overlapping different iterations.
+
+`-fmodulo-sched-allow-regmoves'
+     Perform more aggressive SMS based modulo scheduling with register
+     moves allowed.  By setting this flag certain anti-dependences
+     edges will be deleted which will trigger the generation of
+     reg-moves based on the life-range analysis.  This option is
+     effective only with `-fmodulo-sched' enabled.
+
+`-fno-branch-count-reg'
+     Do not use "decrement and branch" instructions on a count register,
+     but instead generate a sequence of instructions that decrement a
+     register, compare it against zero, then branch based upon the
+     result.  This option is only meaningful on architectures that
+     support such instructions, which include x86, PowerPC, IA-64 and
+     S/390.
+
+     The default is `-fbranch-count-reg'.
+
+`-fno-function-cse'
+     Do not put function addresses in registers; make each instruction
+     that calls a constant function contain the function's address
+     explicitly.
+
+     This option results in less efficient code, but some strange hacks
+     that alter the assembler output may be confused by the
+     optimizations performed when this option is not used.
+
+     The default is `-ffunction-cse'
+
+`-fno-zero-initialized-in-bss'
+     If the target supports a BSS section, GCC by default puts
+     variables that are initialized to zero into BSS.  This can save
+     space in the resulting code.
+
+     This option turns off this behavior because some programs
+     explicitly rely on variables going to the data section.  E.g., so
+     that the resulting executable can find the beginning of that
+     section and/or make assumptions based on that.
+
+     The default is `-fzero-initialized-in-bss'.
+
+`-fmudflap -fmudflapth -fmudflapir'
+     For front-ends that support it (C and C++), instrument all risky
+     pointer/array dereferencing operations, some standard library
+     string/heap functions, and some other associated constructs with
+     range/validity tests.  Modules so instrumented should be immune to
+     buffer overflows, invalid heap use, and some other classes of C/C++
+     programming errors.  The instrumentation relies on a separate
+     runtime library (`libmudflap'), which will be linked into a
+     program if `-fmudflap' is given at link time.  Run-time behavior
+     of the instrumented program is controlled by the `MUDFLAP_OPTIONS'
+     environment variable.  See `env MUDFLAP_OPTIONS=-help a.out' for
+     its options.
+
+     Use `-fmudflapth' instead of `-fmudflap' to compile and to link if
+     your program is multi-threaded.  Use `-fmudflapir', in addition to
+     `-fmudflap' or `-fmudflapth', if instrumentation should ignore
+     pointer reads.  This produces less instrumentation (and therefore
+     faster execution) and still provides some protection against
+     outright memory corrupting writes, but allows erroneously read
+     data to propagate within a program.
+
+`-fthread-jumps'
+     Perform optimizations where we check to see if a jump branches to a
+     location where another comparison subsumed by the first is found.
+     If so, the first branch is redirected to either the destination of
+     the second branch or a point immediately following it, depending
+     on whether the condition is known to be true or false.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-fsplit-wide-types'
+     When using a type that occupies multiple registers, such as `long
+     long' on a 32-bit system, split the registers apart and allocate
+     them independently.  This normally generates better code for those
+     types, but may make debugging more difficult.
+
+     Enabled at levels `-O', `-O2', `-O3', `-Os'.
+
+`-fcse-follow-jumps'
+     In common subexpression elimination (CSE), scan through jump
+     instructions when the target of the jump is not reached by any
+     other path.  For example, when CSE encounters an `if' statement
+     with an `else' clause, CSE will follow the jump when the condition
+     tested is false.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-fcse-skip-blocks'
+     This is similar to `-fcse-follow-jumps', but causes CSE to follow
+     jumps which conditionally skip over blocks.  When CSE encounters a
+     simple `if' statement with no else clause, `-fcse-skip-blocks'
+     causes CSE to follow the jump around the body of the `if'.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-frerun-cse-after-loop'
+     Re-run common subexpression elimination after loop optimizations
+     has been performed.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-fgcse'
+     Perform a global common subexpression elimination pass.  This pass
+     also performs global constant and copy propagation.
+
+     _Note:_ When compiling a program using computed gotos, a GCC
+     extension, you may get better runtime performance if you disable
+     the global common subexpression elimination pass by adding
+     `-fno-gcse' to the command line.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-fgcse-lm'
+     When `-fgcse-lm' is enabled, global common subexpression
+     elimination will attempt to move loads which are only killed by
+     stores into themselves.  This allows a loop containing a
+     load/store sequence to be changed to a load outside the loop, and
+     a copy/store within the loop.
+
+     Enabled by default when gcse is enabled.
+
+`-fgcse-sm'
+     When `-fgcse-sm' is enabled, a store motion pass is run after
+     global common subexpression elimination.  This pass will attempt
+     to move stores out of loops.  When used in conjunction with
+     `-fgcse-lm', loops containing a load/store sequence can be changed
+     to a load before the loop and a store after the loop.
+
+     Not enabled at any optimization level.
+
+`-fgcse-las'
+     When `-fgcse-las' is enabled, the global common subexpression
+     elimination pass eliminates redundant loads that come after stores
+     to the same memory location (both partial and full redundancies).
+
+     Not enabled at any optimization level.
+
+`-fgcse-after-reload'
+     When `-fgcse-after-reload' is enabled, a redundant load elimination
+     pass is performed after reload.  The purpose of this pass is to
+     cleanup redundant spilling.
+
+`-funsafe-loop-optimizations'
+     If given, the loop optimizer will assume that loop indices do not
+     overflow, and that the loops with nontrivial exit condition are not
+     infinite.  This enables a wider range of loop optimizations even if
+     the loop optimizer itself cannot prove that these assumptions are
+     valid.  Using `-Wunsafe-loop-optimizations', the compiler will
+     warn you if it finds this kind of loop.
+
+`-fcrossjumping'
+     Perform cross-jumping transformation.  This transformation unifies
+     equivalent code and save code size.  The resulting code may or may
+     not perform better than without cross-jumping.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-fauto-inc-dec'
+     Combine increments or decrements of addresses with memory accesses.
+     This pass is always skipped on architectures that do not have
+     instructions to support this.  Enabled by default at `-O' and
+     higher on architectures that support this.
+
+`-fdce'
+     Perform dead code elimination (DCE) on RTL.  Enabled by default at
+     `-O' and higher.
+
+`-fdse'
+     Perform dead store elimination (DSE) on RTL.  Enabled by default
+     at `-O' and higher.
+
+`-fif-conversion'
+     Attempt to transform conditional jumps into branch-less
+     equivalents.  This include use of conditional moves, min, max, set
+     flags and abs instructions, and some tricks doable by standard
+     arithmetics.  The use of conditional execution on chips where it
+     is available is controlled by `if-conversion2'.
+
+     Enabled at levels `-O', `-O2', `-O3', `-Os'.
+
+`-fif-conversion2'
+     Use conditional execution (where available) to transform
+     conditional jumps into branch-less equivalents.
+
+     Enabled at levels `-O', `-O2', `-O3', `-Os'.
+
+`-fdelete-null-pointer-checks'
+     Use global dataflow analysis to identify and eliminate useless
+     checks for null pointers.  The compiler assumes that dereferencing
+     a null pointer would have halted the program.  If a pointer is
+     checked after it has already been dereferenced, it cannot be null.
+
+     In some environments, this assumption is not true, and programs can
+     safely dereference null pointers.  Use
+     `-fno-delete-null-pointer-checks' to disable this optimization for
+     programs which depend on that behavior.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-fexpensive-optimizations'
+     Perform a number of minor optimizations that are relatively
+     expensive.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-foptimize-register-move'
+`-fregmove'
+     Attempt to reassign register numbers in move instructions and as
+     operands of other simple instructions in order to maximize the
+     amount of register tying.  This is especially helpful on machines
+     with two-operand instructions.
+
+     Note `-fregmove' and `-foptimize-register-move' are the same
+     optimization.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-fdelayed-branch'
+     If supported for the target machine, attempt to reorder
+     instructions to exploit instruction slots available after delayed
+     branch instructions.
+
+     Enabled at levels `-O', `-O2', `-O3', `-Os'.
+
+`-fschedule-insns'
+     If supported for the target machine, attempt to reorder
+     instructions to eliminate execution stalls due to required data
+     being unavailable.  This helps machines that have slow floating
+     point or memory load instructions by allowing other instructions
+     to be issued until the result of the load or floating point
+     instruction is required.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-fschedule-insns2'
+     Similar to `-fschedule-insns', but requests an additional pass of
+     instruction scheduling after register allocation has been done.
+     This is especially useful on machines with a relatively small
+     number of registers and where memory load instructions take more
+     than one cycle.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-fno-sched-interblock'
+     Don't schedule instructions across basic blocks.  This is normally
+     enabled by default when scheduling before register allocation, i.e.
+     with `-fschedule-insns' or at `-O2' or higher.
+
+`-fno-sched-spec'
+     Don't allow speculative motion of non-load instructions.  This is
+     normally enabled by default when scheduling before register
+     allocation, i.e.  with `-fschedule-insns' or at `-O2' or higher.
+
+`-fsched-spec-load'
+     Allow speculative motion of some load instructions.  This only
+     makes sense when scheduling before register allocation, i.e. with
+     `-fschedule-insns' or at `-O2' or higher.
+
+`-fsched-spec-load-dangerous'
+     Allow speculative motion of more load instructions.  This only
+     makes sense when scheduling before register allocation, i.e. with
+     `-fschedule-insns' or at `-O2' or higher.
+
+`-fsched-stalled-insns'
+`-fsched-stalled-insns=N'
+     Define how many insns (if any) can be moved prematurely from the
+     queue of stalled insns into the ready list, during the second
+     scheduling pass.  `-fno-sched-stalled-insns' means that no insns
+     will be moved prematurely, `-fsched-stalled-insns=0' means there
+     is no limit on how many queued insns can be moved prematurely.
+     `-fsched-stalled-insns' without a value is equivalent to
+     `-fsched-stalled-insns=1'.
+
+`-fsched-stalled-insns-dep'
+`-fsched-stalled-insns-dep=N'
+     Define how many insn groups (cycles) will be examined for a
+     dependency on a stalled insn that is candidate for premature
+     removal from the queue of stalled insns.  This has an effect only
+     during the second scheduling pass, and only if
+     `-fsched-stalled-insns' is used.  `-fno-sched-stalled-insns-dep'
+     is equivalent to `-fsched-stalled-insns-dep=0'.
+     `-fsched-stalled-insns-dep' without a value is equivalent to
+     `-fsched-stalled-insns-dep=1'.
+
+`-fsched2-use-superblocks'
+     When scheduling after register allocation, do use superblock
+     scheduling algorithm.  Superblock scheduling allows motion across
+     basic block boundaries resulting on faster schedules.  This option
+     is experimental, as not all machine descriptions used by GCC model
+     the CPU closely enough to avoid unreliable results from the
+     algorithm.
+
+     This only makes sense when scheduling after register allocation,
+     i.e. with `-fschedule-insns2' or at `-O2' or higher.
+
+`-fsched2-use-traces'
+     Use `-fsched2-use-superblocks' algorithm when scheduling after
+     register allocation and additionally perform code duplication in
+     order to increase the size of superblocks using tracer pass.  See
+     `-ftracer' for details on trace formation.
+
+     This mode should produce faster but significantly longer programs.
+     Also without `-fbranch-probabilities' the traces constructed may
+     not match the reality and hurt the performance.  This only makes
+     sense when scheduling after register allocation, i.e. with
+     `-fschedule-insns2' or at `-O2' or higher.
+
+`-fsee'
+     Eliminate redundant sign extension instructions and move the
+     non-redundant ones to optimal placement using lazy code motion
+     (LCM).
+
+`-freschedule-modulo-scheduled-loops'
+     The modulo scheduling comes before the traditional scheduling, if
+     a loop was modulo scheduled we may want to prevent the later
+     scheduling passes from changing its schedule, we use this option
+     to control that.
+
+`-fcaller-saves'
+     Enable values to be allocated in registers that will be clobbered
+     by function calls, by emitting extra instructions to save and
+     restore the registers around such calls.  Such allocation is done
+     only when it seems to result in better code than would otherwise
+     be produced.
+
+     This option is always enabled by default on certain machines,
+     usually those which have no call-preserved registers to use
+     instead.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-ftree-reassoc'
+     Perform reassociation on trees.  This flag is enabled by default
+     at `-O' and higher.
+
+`-ftree-pre'
+     Perform partial redundancy elimination (PRE) on trees.  This flag
+     is enabled by default at `-O2' and `-O3'.
+
+`-ftree-fre'
+     Perform full redundancy elimination (FRE) on trees.  The difference
+     between FRE and PRE is that FRE only considers expressions that
+     are computed on all paths leading to the redundant computation.
+     This analysis is faster than PRE, though it exposes fewer
+     redundancies.  This flag is enabled by default at `-O' and higher.
+
+`-ftree-copy-prop'
+     Perform copy propagation on trees.  This pass eliminates
+     unnecessary copy operations.  This flag is enabled by default at
+     `-O' and higher.
+
+`-ftree-salias'
+     Perform structural alias analysis on trees.  This flag is enabled
+     by default at `-O' and higher.
+
+`-fipa-pure-const'
+     Discover which functions are pure or constant.  Enabled by default
+     at `-O' and higher.
+
+`-fipa-reference'
+     Discover which static variables do not escape cannot escape the
+     compilation unit.  Enabled by default at `-O' and higher.
+
+`-fipa-struct-reorg'
+     Perform structure reorganization optimization, that change C

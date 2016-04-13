@@ -1,0 +1,1598 @@
+anything other than a comma.
+
+     eprintf ("success!\n")
+          ==> fprintf(stderr, "success!\n");
+
+The above explanation is ambiguous about the case where the only macro
+parameter is a variable arguments parameter, as it is meaningless to
+try to distinguish whether no argument at all is an empty argument or a
+missing argument.  In this case the C99 standard is clear that the
+comma must remain, however the existing GCC extension used to swallow
+the comma.  So CPP retains the comma when conforming to a specific C
+standard, and drops it otherwise.
+
+   C99 mandates that the only place the identifier `__VA_ARGS__' can
+appear is in the replacement list of a variadic macro.  It may not be
+used as a macro name, macro argument name, or within a different type
+of macro.  It may also be forbidden in open text; the standard is
+ambiguous.  We recommend you avoid using it except for its defined
+purpose.
+
+   Variadic macros are a new feature in C99.  GNU CPP has supported them
+for a long time, but only with a named variable argument (`args...',
+not `...' and `__VA_ARGS__').  If you are concerned with portability to
+previous versions of GCC, you should use only named variable arguments.
+On the other hand, if you are concerned with portability to other
+conforming implementations of C99, you should use only `__VA_ARGS__'.
+
+   Previous versions of CPP implemented the comma-deletion extension
+much more generally.  We have restricted it in this release to minimize
+the differences from C99.  To get the same effect with both this and
+previous versions of GCC, the token preceding the special `##' must be
+a comma, and there must be white space between that comma and whatever
+comes immediately before it:
+
+     #define eprintf(format, args...) fprintf (stderr, format , ##args)
+
+*Note Differences from previous versions::, for the gory details.
+
+
+File: cpp.info,  Node: Predefined Macros,  Next: Undefining and Redefining Macros,  Prev: Variadic Macros,  Up: Macros
+
+3.7 Predefined Macros
+=====================
+
+Several object-like macros are predefined; you use them without
+supplying their definitions.  They fall into three classes: standard,
+common, and system-specific.
+
+   In C++, there is a fourth category, the named operators.  They act
+like predefined macros, but you cannot undefine them.
+
+* Menu:
+
+* Standard Predefined Macros::
+* Common Predefined Macros::
+* System-specific Predefined Macros::
+* C++ Named Operators::
+
+
+File: cpp.info,  Node: Standard Predefined Macros,  Next: Common Predefined Macros,  Up: Predefined Macros
+
+3.7.1 Standard Predefined Macros
+--------------------------------
+
+The standard predefined macros are specified by the relevant language
+standards, so they are available with all compilers that implement
+those standards.  Older compilers may not provide all of them.  Their
+names all start with double underscores.
+
+`__FILE__'
+     This macro expands to the name of the current input file, in the
+     form of a C string constant.  This is the path by which the
+     preprocessor opened the file, not the short name specified in
+     `#include' or as the input file name argument.  For example,
+     `"/usr/local/include/myheader.h"' is a possible expansion of this
+     macro.
+
+`__LINE__'
+     This macro expands to the current input line number, in the form
+     of a decimal integer constant.  While we call it a predefined
+     macro, it's a pretty strange macro, since its "definition" changes
+     with each new line of source code.
+
+   `__FILE__' and `__LINE__' are useful in generating an error message
+to report an inconsistency detected by the program; the message can
+state the source line at which the inconsistency was detected.  For
+example,
+
+     fprintf (stderr, "Internal error: "
+                      "negative string length "
+                      "%d at %s, line %d.",
+              length, __FILE__, __LINE__);
+
+   An `#include' directive changes the expansions of `__FILE__' and
+`__LINE__' to correspond to the included file.  At the end of that
+file, when processing resumes on the input file that contained the
+`#include' directive, the expansions of `__FILE__' and `__LINE__'
+revert to the values they had before the `#include' (but `__LINE__' is
+then incremented by one as processing moves to the line after the
+`#include').
+
+   A `#line' directive changes `__LINE__', and may change `__FILE__' as
+well.  *Note Line Control::.
+
+   C99 introduces `__func__', and GCC has provided `__FUNCTION__' for a
+long time.  Both of these are strings containing the name of the
+current function (there are slight semantic differences; see the GCC
+manual).  Neither of them is a macro; the preprocessor does not know the
+name of the current function.  They tend to be useful in conjunction
+with `__FILE__' and `__LINE__', though.
+
+`__DATE__'
+     This macro expands to a string constant that describes the date on
+     which the preprocessor is being run.  The string constant contains
+     eleven characters and looks like `"Feb 12 1996"'.  If the day of
+     the month is less than 10, it is padded with a space on the left.
+
+     If GCC cannot determine the current date, it will emit a warning
+     message (once per compilation) and `__DATE__' will expand to
+     `"??? ?? ????"'.
+
+`__TIME__'
+     This macro expands to a string constant that describes the time at
+     which the preprocessor is being run.  The string constant contains
+     eight characters and looks like `"23:59:01"'.
+
+     If GCC cannot determine the current time, it will emit a warning
+     message (once per compilation) and `__TIME__' will expand to
+     `"??:??:??"'.
+
+`__STDC__'
+     In normal operation, this macro expands to the constant 1, to
+     signify that this compiler conforms to ISO Standard C.  If GNU CPP
+     is used with a compiler other than GCC, this is not necessarily
+     true; however, the preprocessor always conforms to the standard
+     unless the `-traditional-cpp' option is used.
+
+     This macro is not defined if the `-traditional-cpp' option is used.
+
+     On some hosts, the system compiler uses a different convention,
+     where `__STDC__' is normally 0, but is 1 if the user specifies
+     strict conformance to the C Standard.  CPP follows the host
+     convention when processing system header files, but when
+     processing user files `__STDC__' is always 1.  This has been
+     reported to cause problems; for instance, some versions of Solaris
+     provide X Windows headers that expect `__STDC__' to be either
+     undefined or 1.  *Note Invocation::.
+
+`__STDC_VERSION__'
+     This macro expands to the C Standard's version number, a long
+     integer constant of the form `YYYYMML' where YYYY and MM are the
+     year and month of the Standard version.  This signifies which
+     version of the C Standard the compiler conforms to.  Like
+     `__STDC__', this is not necessarily accurate for the entire
+     implementation, unless GNU CPP is being used with GCC.
+
+     The value `199409L' signifies the 1989 C standard as amended in
+     1994, which is the current default; the value `199901L' signifies
+     the 1999 revision of the C standard.  Support for the 1999
+     revision is not yet complete.
+
+     This macro is not defined if the `-traditional-cpp' option is
+     used, nor when compiling C++ or Objective-C.
+
+`__STDC_HOSTED__'
+     This macro is defined, with value 1, if the compiler's target is a
+     "hosted environment".  A hosted environment has the complete
+     facilities of the standard C library available.
+
+`__cplusplus'
+     This macro is defined when the C++ compiler is in use.  You can use
+     `__cplusplus' to test whether a header is compiled by a C compiler
+     or a C++ compiler.  This macro is similar to `__STDC_VERSION__', in
+     that it expands to a version number.  A fully conforming
+     implementation of the 1998 C++ standard will define this macro to
+     `199711L'.  The GNU C++ compiler is not yet fully conforming, so
+     it uses `1' instead.  It is hoped to complete the implementation
+     of standard C++ in the near future.
+
+`__OBJC__'
+     This macro is defined, with value 1, when the Objective-C compiler
+     is in use.  You can use `__OBJC__' to test whether a header is
+     compiled by a C compiler or a Objective-C compiler.
+
+`__ASSEMBLER__'
+     This macro is defined with value 1 when preprocessing assembly
+     language.
+
+
+
+File: cpp.info,  Node: Common Predefined Macros,  Next: System-specific Predefined Macros,  Prev: Standard Predefined Macros,  Up: Predefined Macros
+
+3.7.2 Common Predefined Macros
+------------------------------
+
+The common predefined macros are GNU C extensions.  They are available
+with the same meanings regardless of the machine or operating system on
+which you are using GNU C or GNU Fortran.  Their names all start with
+double underscores.
+
+`__COUNTER__'
+     This macro expands to sequential integral values starting from 0.
+     In conjunction with the `##' operator, this provides a convenient
+     means to generate unique identifiers.  Care must be taken to
+     ensure that `__COUNTER__' is not expanded prior to inclusion of
+     precompiled headers which use it.  Otherwise, the precompiled
+     headers will not be used.
+
+`__GFORTRAN__'
+     The GNU Fortran compiler defines this.
+
+`__GNUC__'
+`__GNUC_MINOR__'
+`__GNUC_PATCHLEVEL__'
+     These macros are defined by all GNU compilers that use the C
+     preprocessor: C, C++, Objective-C and Fortran.  Their values are
+     the major version, minor version, and patch level of the compiler,
+     as integer constants.  For example, GCC 3.2.1 will define
+     `__GNUC__' to 3, `__GNUC_MINOR__' to 2, and `__GNUC_PATCHLEVEL__'
+     to 1.  These macros are also defined if you invoke the
+     preprocessor directly.
+
+     `__GNUC_PATCHLEVEL__' is new to GCC 3.0; it is also present in the
+     widely-used development snapshots leading up to 3.0 (which identify
+     themselves as GCC 2.96 or 2.97, depending on which snapshot you
+     have).
+
+     If all you need to know is whether or not your program is being
+     compiled by GCC, or a non-GCC compiler that claims to accept the
+     GNU C dialects, you can simply test `__GNUC__'.  If you need to
+     write code which depends on a specific version, you must be more
+     careful.  Each time the minor version is increased, the patch
+     level is reset to zero; each time the major version is increased
+     (which happens rarely), the minor version and patch level are
+     reset.  If you wish to use the predefined macros directly in the
+     conditional, you will need to write it like this:
+
+          /* Test for GCC > 3.2.0 */
+          #if __GNUC__ > 3 || \
+              (__GNUC__ == 3 && (__GNUC_MINOR__ > 2 || \
+                                 (__GNUC_MINOR__ == 2 && \
+                                  __GNUC_PATCHLEVEL__ > 0))
+
+     Another approach is to use the predefined macros to calculate a
+     single number, then compare that against a threshold:
+
+          #define GCC_VERSION (__GNUC__ * 10000 \
+                               + __GNUC_MINOR__ * 100 \
+                               + __GNUC_PATCHLEVEL__)
+          ...
+          /* Test for GCC > 3.2.0 */
+          #if GCC_VERSION > 30200
+
+     Many people find this form easier to understand.
+
+`__GNUG__'
+     The GNU C++ compiler defines this.  Testing it is equivalent to
+     testing `(__GNUC__ && __cplusplus)'.
+
+`__STRICT_ANSI__'
+     GCC defines this macro if and only if the `-ansi' switch, or a
+     `-std' switch specifying strict conformance to some version of ISO
+     C, was specified when GCC was invoked.  It is defined to `1'.
+     This macro exists primarily to direct GNU libc's header files to
+     restrict their definitions to the minimal set found in the 1989 C
+     standard.
+
+`__BASE_FILE__'
+     This macro expands to the name of the main input file, in the form
+     of a C string constant.  This is the source file that was specified
+     on the command line of the preprocessor or C compiler.
+
+`__INCLUDE_LEVEL__'
+     This macro expands to a decimal integer constant that represents
+     the depth of nesting in include files.  The value of this macro is
+     incremented on every `#include' directive and decremented at the
+     end of every included file.  It starts out at 0, its value within
+     the base file specified on the command line.
+
+`__ELF__'
+     This macro is defined if the target uses the ELF object format.
+
+`__VERSION__'
+     This macro expands to a string constant which describes the
+     version of the compiler in use.  You should not rely on its
+     contents having any particular form, but it can be counted on to
+     contain at least the release number.
+
+`__OPTIMIZE__'
+`__OPTIMIZE_SIZE__'
+`__NO_INLINE__'
+     These macros describe the compilation mode.  `__OPTIMIZE__' is
+     defined in all optimizing compilations.  `__OPTIMIZE_SIZE__' is
+     defined if the compiler is optimizing for size, not speed.
+     `__NO_INLINE__' is defined if no functions will be inlined into
+     their callers (when not optimizing, or when inlining has been
+     specifically disabled by `-fno-inline').
+
+     These macros cause certain GNU header files to provide optimized
+     definitions, using macros or inline functions, of system library
+     functions.  You should not use these macros in any way unless you
+     make sure that programs will execute with the same effect whether
+     or not they are defined.  If they are defined, their value is 1.
+
+`__GNUC_GNU_INLINE__'
+     GCC defines this macro if functions declared `inline' will be
+     handled in GCC's traditional gnu89 mode.  Object files will contain
+     externally visible definitions of all functions declared `inline'
+     without `extern' or `static'.  They will not contain any
+     definitions of any functions declared `extern inline'.
+
+`__GNUC_STDC_INLINE__'
+     GCC defines this macro if functions declared `inline' will be
+     handled according to the ISO C99 standard.  Object files will
+     contain externally visible definitions of all functions declared
+     `extern inline'.  They will not contain definitions of any
+     functions declared `inline' without `extern'.
+
+     If this macro is defined, GCC supports the `gnu_inline' function
+     attribute as a way to always get the gnu89 behavior.  Support for
+     this and `__GNUC_GNU_INLINE__' was added in GCC 4.1.3.  If neither
+     macro is defined, an older version of GCC is being used: `inline'
+     functions will be compiled in gnu89 mode, and the `gnu_inline'
+     function attribute will not be recognized.
+
+`__CHAR_UNSIGNED__'
+     GCC defines this macro if and only if the data type `char' is
+     unsigned on the target machine.  It exists to cause the standard
+     header file `limits.h' to work correctly.  You should not use this
+     macro yourself; instead, refer to the standard macros defined in
+     `limits.h'.
+
+`__WCHAR_UNSIGNED__'
+     Like `__CHAR_UNSIGNED__', this macro is defined if and only if the
+     data type `wchar_t' is unsigned and the front-end is in C++ mode.
+
+`__REGISTER_PREFIX__'
+     This macro expands to a single token (not a string constant) which
+     is the prefix applied to CPU register names in assembly language
+     for this target.  You can use it to write assembly that is usable
+     in multiple environments.  For example, in the `m68k-aout'
+     environment it expands to nothing, but in the `m68k-coff'
+     environment it expands to a single `%'.
+
+`__USER_LABEL_PREFIX__'
+     This macro expands to a single token which is the prefix applied to
+     user labels (symbols visible to C code) in assembly.  For example,
+     in the `m68k-aout' environment it expands to an `_', but in the
+     `m68k-coff' environment it expands to nothing.
+
+     This macro will have the correct definition even if
+     `-f(no-)underscores' is in use, but it will not be correct if
+     target-specific options that adjust this prefix are used (e.g. the
+     OSF/rose `-mno-underscores' option).
+
+`__SIZE_TYPE__'
+`__PTRDIFF_TYPE__'
+`__WCHAR_TYPE__'
+`__WINT_TYPE__'
+`__INTMAX_TYPE__'
+`__UINTMAX_TYPE__'
+     These macros are defined to the correct underlying types for the
+     `size_t', `ptrdiff_t', `wchar_t', `wint_t', `intmax_t', and
+     `uintmax_t' typedefs, respectively.  They exist to make the
+     standard header files `stddef.h' and `wchar.h' work correctly.
+     You should not use these macros directly; instead, include the
+     appropriate headers and use the typedefs.
+
+`__CHAR_BIT__'
+     Defined to the number of bits used in the representation of the
+     `char' data type.  It exists to make the standard header given
+     numerical limits work correctly.  You should not use this macro
+     directly; instead, include the appropriate headers.
+
+`__SCHAR_MAX__'
+`__WCHAR_MAX__'
+`__SHRT_MAX__'
+`__INT_MAX__'
+`__LONG_MAX__'
+`__LONG_LONG_MAX__'
+`__INTMAX_MAX__'
+     Defined to the maximum value of the `signed char', `wchar_t',
+     `signed short', `signed int', `signed long', `signed long long',
+     and `intmax_t' types respectively.  They exist to make the
+     standard header given numerical limits work correctly.  You should
+     not use these macros directly; instead, include the appropriate
+     headers.
+
+`__SIZEOF_INT__'
+`__SIZEOF_LONG__'
+`__SIZEOF_LONG_LONG__'
+`__SIZEOF_SHORT__'
+`__SIZEOF_POINTER__'
+`__SIZEOF_FLOAT__'
+`__SIZEOF_DOUBLE__'
+`__SIZEOF_LONG_DOUBLE__'
+`__SIZEOF_SIZE_T__'
+`__SIZEOF_WCHAR_T__'
+`__SIZEOF_WINT_T__'
+`__SIZEOF_PTRDIFF_T__'
+     Defined to the number of bytes of the C standard data types: `int',
+     `long', `long long', `short', `void *', `float', `double', `long
+     double', `size_t', `wchar_t', `wint_t' and `ptrdiff_t'.
+
+`__DEPRECATED'
+     This macro is defined, with value 1, when compiling a C++ source
+     file with warnings about deprecated constructs enabled.  These
+     warnings are enabled by default, but can be disabled with
+     `-Wno-deprecated'.
+
+`__EXCEPTIONS'
+     This macro is defined, with value 1, when compiling a C++ source
+     file with exceptions enabled.  If `-fno-exceptions' is used when
+     compiling the file, then this macro is not defined.
+
+`__GXX_RTTI'
+     This macro is defined, with value 1, when compiling a C++ source
+     file with runtime type identification enabled.  If `-fno-rtti' is
+     used when compiling the file, then this macro is not defined.
+
+`__USING_SJLJ_EXCEPTIONS__'
+     This macro is defined, with value 1, if the compiler uses the old
+     mechanism based on `setjmp' and `longjmp' for exception handling.
+
+`__GXX_EXPERIMENTAL_CXX0X__'
+     This macro is defined when compiling a C++ source file with the
+     option `-std=c++0x' or `-std=gnu++0x'. It indicates that some
+     features likely to be included in C++0x are available. Note that
+     these features are experimental, and may change or be removed in
+     future versions of GCC.
+
+`__GXX_WEAK__'
+     This macro is defined when compiling a C++ source file.  It has the
+     value 1 if the compiler will use weak symbols, COMDAT sections, or
+     other similar techniques to collapse symbols with "vague linkage"
+     that are defined in multiple translation units.  If the compiler
+     will not collapse such symbols, this macro is defined with value
+     0.  In general, user code should not need to make use of this
+     macro; the purpose of this macro is to ease implementation of the
+     C++ runtime library provided with G++.
+
+`__NEXT_RUNTIME__'
+     This macro is defined, with value 1, if (and only if) the NeXT
+     runtime (as in `-fnext-runtime') is in use for Objective-C.  If
+     the GNU runtime is used, this macro is not defined, so that you
+     can use this macro to determine which runtime (NeXT or GNU) is
+     being used.
+
+`__LP64__'
+`_LP64'
+     These macros are defined, with value 1, if (and only if) the
+     compilation is for a target where `long int' and pointer both use
+     64-bits and `int' uses 32-bit.
+
+`__SSP__'
+     This macro is defined, with value 1, when `-fstack-protector' is in
+     use.
+
+`__SSP_ALL__'
+     This macro is defined, with value 2, when `-fstack-protector-all'
+     is in use.
+
+`__TIMESTAMP__'
+     This macro expands to a string constant that describes the date
+     and time of the last modification of the current source file. The
+     string constant contains abbreviated day of the week, month, day
+     of the month, time in hh:mm:ss form, year and looks like
+     `"Sun Sep 16 01:03:52 1973"'.  If the day of the month is less
+     than 10, it is padded with a space on the left.
+
+     If GCC cannot determine the current date, it will emit a warning
+     message (once per compilation) and `__TIMESTAMP__' will expand to
+     `"??? ??? ?? ??:??:?? ????"'.
+
+`__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1'
+`__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2'
+`__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4'
+`__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8'
+`__GCC_HAVE_SYNC_COMPARE_AND_SWAP_16'
+     These macros are defined when the target processor supports atomic
+     compare and swap operations on operands 1, 2, 4, 8 or 16 bytes in
+     length, respectively.
+
+
+
+File: cpp.info,  Node: System-specific Predefined Macros,  Next: C++ Named Operators,  Prev: Common Predefined Macros,  Up: Predefined Macros
+
+3.7.3 System-specific Predefined Macros
+---------------------------------------
+
+The C preprocessor normally predefines several macros that indicate what
+type of system and machine is in use.  They are obviously different on
+each target supported by GCC.  This manual, being for all systems and
+machines, cannot tell you what their names are, but you can use `cpp
+-dM' to see them all.  *Note Invocation::.  All system-specific
+predefined macros expand to the constant 1, so you can test them with
+either `#ifdef' or `#if'.
+
+   The C standard requires that all system-specific macros be part of
+the "reserved namespace".  All names which begin with two underscores,
+or an underscore and a capital letter, are reserved for the compiler and
+library to use as they wish.  However, historically system-specific
+macros have had names with no special prefix; for instance, it is common
+to find `unix' defined on Unix systems.  For all such macros, GCC
+provides a parallel macro with two underscores added at the beginning
+and the end.  If `unix' is defined, `__unix__' will be defined too.
+There will never be more than two underscores; the parallel of `_mips'
+is `__mips__'.
+
+   When the `-ansi' option, or any `-std' option that requests strict
+conformance, is given to the compiler, all the system-specific
+predefined macros outside the reserved namespace are suppressed.  The
+parallel macros, inside the reserved namespace, remain defined.
+
+   We are slowly phasing out all predefined macros which are outside the
+reserved namespace.  You should never use them in new programs, and we
+encourage you to correct older code to use the parallel macros whenever
+you find it.  We don't recommend you use the system-specific macros that
+are in the reserved namespace, either.  It is better in the long run to
+check specifically for features you need, using a tool such as
+`autoconf'.
+
+
+File: cpp.info,  Node: C++ Named Operators,  Prev: System-specific Predefined Macros,  Up: Predefined Macros
+
+3.7.4 C++ Named Operators
+-------------------------
+
+In C++, there are eleven keywords which are simply alternate spellings
+of operators normally written with punctuation.  These keywords are
+treated as such even in the preprocessor.  They function as operators in
+`#if', and they cannot be defined as macros or poisoned.  In C, you can
+request that those keywords take their C++ meaning by including
+`iso646.h'.  That header defines each one as a normal object-like macro
+expanding to the appropriate punctuator.
+
+   These are the named operators and their corresponding punctuators:
+
+Named Operator   Punctuator
+`and'            `&&'
+`and_eq'         `&='
+`bitand'         `&'
+`bitor'          `|'
+`compl'          `~'
+`not'            `!'
+`not_eq'         `!='
+`or'             `||'
+`or_eq'          `|='
+`xor'            `^'
+`xor_eq'         `^='
+
+
+File: cpp.info,  Node: Undefining and Redefining Macros,  Next: Directives Within Macro Arguments,  Prev: Predefined Macros,  Up: Macros
+
+3.8 Undefining and Redefining Macros
+====================================
+
+If a macro ceases to be useful, it may be "undefined" with the `#undef'
+directive.  `#undef' takes a single argument, the name of the macro to
+undefine.  You use the bare macro name, even if the macro is
+function-like.  It is an error if anything appears on the line after
+the macro name.  `#undef' has no effect if the name is not a macro.
+
+     #define FOO 4
+     x = FOO;        ==> x = 4;
+     #undef FOO
+     x = FOO;        ==> x = FOO;
+
+   Once a macro has been undefined, that identifier may be "redefined"
+as a macro by a subsequent `#define' directive.  The new definition
+need not have any resemblance to the old definition.
+
+   However, if an identifier which is currently a macro is redefined,
+then the new definition must be "effectively the same" as the old one.
+Two macro definitions are effectively the same if:
+   * Both are the same type of macro (object- or function-like).
+
+   * All the tokens of the replacement list are the same.
+
+   * If there are any parameters, they are the same.
+
+   * Whitespace appears in the same places in both.  It need not be
+     exactly the same amount of whitespace, though.  Remember that
+     comments count as whitespace.
+
+These definitions are effectively the same:
+     #define FOUR (2 + 2)
+     #define FOUR         (2    +    2)
+     #define FOUR (2 /* two */ + 2)
+   but these are not:
+     #define FOUR (2 + 2)
+     #define FOUR ( 2+2 )
+     #define FOUR (2 * 2)
+     #define FOUR(score,and,seven,years,ago) (2 + 2)
+
+   If a macro is redefined with a definition that is not effectively the
+same as the old one, the preprocessor issues a warning and changes the
+macro to use the new definition.  If the new definition is effectively
+the same, the redefinition is silently ignored.  This allows, for
+instance, two different headers to define a common macro.  The
+preprocessor will only complain if the definitions do not match.
+
+
+File: cpp.info,  Node: Directives Within Macro Arguments,  Next: Macro Pitfalls,  Prev: Undefining and Redefining Macros,  Up: Macros
+
+3.9 Directives Within Macro Arguments
+=====================================
+
+Occasionally it is convenient to use preprocessor directives within the
+arguments of a macro.  The C and C++ standards declare that behavior in
+these cases is undefined.
+
+   Versions of CPP prior to 3.2 would reject such constructs with an
+error message.  This was the only syntactic difference between normal
+functions and function-like macros, so it seemed attractive to remove
+this limitation, and people would often be surprised that they could
+not use macros in this way.  Moreover, sometimes people would use
+conditional compilation in the argument list to a normal library
+function like `printf', only to find that after a library upgrade
+`printf' had changed to be a function-like macro, and their code would
+no longer compile.  So from version 3.2 we changed CPP to successfully
+process arbitrary directives within macro arguments in exactly the same
+way as it would have processed the directive were the function-like
+macro invocation not present.
+
+   If, within a macro invocation, that macro is redefined, then the new
+definition takes effect in time for argument pre-expansion, but the
+original definition is still used for argument replacement.  Here is a
+pathological example:
+
+     #define f(x) x x
+     f (1
+     #undef f
+     #define f 2
+     f)
+
+which expands to
+
+     1 2 1 2
+
+with the semantics described above.
+
+
+File: cpp.info,  Node: Macro Pitfalls,  Prev: Directives Within Macro Arguments,  Up: Macros
+
+3.10 Macro Pitfalls
+===================
+
+In this section we describe some special rules that apply to macros and
+macro expansion, and point out certain cases in which the rules have
+counter-intuitive consequences that you must watch out for.
+
+* Menu:
+
+* Misnesting::
+* Operator Precedence Problems::
+* Swallowing the Semicolon::
+* Duplication of Side Effects::
+* Self-Referential Macros::
+* Argument Prescan::
+* Newlines in Arguments::
+
+
+File: cpp.info,  Node: Misnesting,  Next: Operator Precedence Problems,  Up: Macro Pitfalls
+
+3.10.1 Misnesting
+-----------------
+
+When a macro is called with arguments, the arguments are substituted
+into the macro body and the result is checked, together with the rest of
+the input file, for more macro calls.  It is possible to piece together
+a macro call coming partially from the macro body and partially from the
+arguments.  For example,
+
+     #define twice(x) (2*(x))
+     #define call_with_1(x) x(1)
+     call_with_1 (twice)
+          ==> twice(1)
+          ==> (2*(1))
+
+   Macro definitions do not have to have balanced parentheses.  By
+writing an unbalanced open parenthesis in a macro body, it is possible
+to create a macro call that begins inside the macro body but ends
+outside of it.  For example,
+
+     #define strange(file) fprintf (file, "%s %d",
+     ...
+     strange(stderr) p, 35)
+          ==> fprintf (stderr, "%s %d", p, 35)
+
+   The ability to piece together a macro call can be useful, but the
+use of unbalanced open parentheses in a macro body is just confusing,
+and should be avoided.
+
+
+File: cpp.info,  Node: Operator Precedence Problems,  Next: Swallowing the Semicolon,  Prev: Misnesting,  Up: Macro Pitfalls
+
+3.10.2 Operator Precedence Problems
+-----------------------------------
+
+You may have noticed that in most of the macro definition examples shown
+above, each occurrence of a macro argument name had parentheses around
+it.  In addition, another pair of parentheses usually surround the
+entire macro definition.  Here is why it is best to write macros that
+way.
+
+   Suppose you define a macro as follows,
+
+     #define ceil_div(x, y) (x + y - 1) / y
+
+whose purpose is to divide, rounding up.  (One use for this operation is
+to compute how many `int' objects are needed to hold a certain number
+of `char' objects.)  Then suppose it is used as follows:
+
+     a = ceil_div (b & c, sizeof (int));
+          ==> a = (b & c + sizeof (int) - 1) / sizeof (int);
+
+This does not do what is intended.  The operator-precedence rules of C
+make it equivalent to this:
+
+     a = (b & (c + sizeof (int) - 1)) / sizeof (int);
+
+What we want is this:
+
+     a = ((b & c) + sizeof (int) - 1)) / sizeof (int);
+
+Defining the macro as
+
+     #define ceil_div(x, y) ((x) + (y) - 1) / (y)
+
+provides the desired result.
+
+   Unintended grouping can result in another way.  Consider `sizeof
+ceil_div(1, 2)'.  That has the appearance of a C expression that would
+compute the size of the type of `ceil_div (1, 2)', but in fact it means
+something very different.  Here is what it expands to:
+
+     sizeof ((1) + (2) - 1) / (2)
+
+This would take the size of an integer and divide it by two.  The
+precedence rules have put the division outside the `sizeof' when it was
+intended to be inside.
+
+   Parentheses around the entire macro definition prevent such problems.
+Here, then, is the recommended way to define `ceil_div':
+
+     #define ceil_div(x, y) (((x) + (y) - 1) / (y))
+
+
+File: cpp.info,  Node: Swallowing the Semicolon,  Next: Duplication of Side Effects,  Prev: Operator Precedence Problems,  Up: Macro Pitfalls
+
+3.10.3 Swallowing the Semicolon
+-------------------------------
+
+Often it is desirable to define a macro that expands into a compound
+statement.  Consider, for example, the following macro, that advances a
+pointer (the argument `p' says where to find it) across whitespace
+characters:
+
+     #define SKIP_SPACES(p, limit)  \
+     { char *lim = (limit);         \
+       while (p < lim) {            \
+         if (*p++ != ' ') {         \
+           p--; break; }}}
+
+Here backslash-newline is used to split the macro definition, which must
+be a single logical line, so that it resembles the way such code would
+be laid out if not part of a macro definition.
+
+   A call to this macro might be `SKIP_SPACES (p, lim)'.  Strictly
+speaking, the call expands to a compound statement, which is a complete
+statement with no need for a semicolon to end it.  However, since it
+looks like a function call, it minimizes confusion if you can use it
+like a function call, writing a semicolon afterward, as in `SKIP_SPACES
+(p, lim);'
+
+   This can cause trouble before `else' statements, because the
+semicolon is actually a null statement.  Suppose you write
+
+     if (*p != 0)
+       SKIP_SPACES (p, lim);
+     else ...
+
+The presence of two statements--the compound statement and a null
+statement--in between the `if' condition and the `else' makes invalid C
+code.
+
+   The definition of the macro `SKIP_SPACES' can be altered to solve
+this problem, using a `do ... while' statement.  Here is how:
+
+     #define SKIP_SPACES(p, limit)     \
+     do { char *lim = (limit);         \
+          while (p < lim) {            \
+            if (*p++ != ' ') {         \
+              p--; break; }}}          \
+     while (0)
+
+   Now `SKIP_SPACES (p, lim);' expands into
+
+     do {...} while (0);
+
+which is one statement.  The loop executes exactly once; most compilers
+generate no extra code for it.
+
+
+File: cpp.info,  Node: Duplication of Side Effects,  Next: Self-Referential Macros,  Prev: Swallowing the Semicolon,  Up: Macro Pitfalls
+
+3.10.4 Duplication of Side Effects
+----------------------------------
+
+Many C programs define a macro `min', for "minimum", like this:
+
+     #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+
+   When you use this macro with an argument containing a side effect,
+as shown here,
+
+     next = min (x + y, foo (z));
+
+it expands as follows:
+
+     next = ((x + y) < (foo (z)) ? (x + y) : (foo (z)));
+
+where `x + y' has been substituted for `X' and `foo (z)' for `Y'.
+
+   The function `foo' is used only once in the statement as it appears
+in the program, but the expression `foo (z)' has been substituted twice
+into the macro expansion.  As a result, `foo' might be called two times
+when the statement is executed.  If it has side effects or if it takes
+a long time to compute, the results might not be what you intended.  We
+say that `min' is an "unsafe" macro.
+
+   The best solution to this problem is to define `min' in a way that
+computes the value of `foo (z)' only once.  The C language offers no
+standard way to do this, but it can be done with GNU extensions as
+follows:
+
+     #define min(X, Y)                \
+     ({ typeof (X) x_ = (X);          \
+        typeof (Y) y_ = (Y);          \
+        (x_ < y_) ? x_ : y_; })
+
+   The `({ ... })' notation produces a compound statement that acts as
+an expression.  Its value is the value of its last statement.  This
+permits us to define local variables and assign each argument to one.
+The local variables have underscores after their names to reduce the
+risk of conflict with an identifier of wider scope (it is impossible to
+avoid this entirely).  Now each argument is evaluated exactly once.
+
+   If you do not wish to use GNU C extensions, the only solution is to
+be careful when _using_ the macro `min'.  For example, you can
+calculate the value of `foo (z)', save it in a variable, and use that
+variable in `min':
+
+     #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+     ...
+     {
+       int tem = foo (z);
+       next = min (x + y, tem);
+     }
+
+(where we assume that `foo' returns type `int').
+
+
+File: cpp.info,  Node: Self-Referential Macros,  Next: Argument Prescan,  Prev: Duplication of Side Effects,  Up: Macro Pitfalls
+
+3.10.5 Self-Referential Macros
+------------------------------
+
+A "self-referential" macro is one whose name appears in its definition.
+Recall that all macro definitions are rescanned for more macros to
+replace.  If the self-reference were considered a use of the macro, it
+would produce an infinitely large expansion.  To prevent this, the
+self-reference is not considered a macro call.  It is passed into the
+preprocessor output unchanged.  Consider an example:
+
+     #define foo (4 + foo)
+
+where `foo' is also a variable in your program.
+
+   Following the ordinary rules, each reference to `foo' will expand
+into `(4 + foo)'; then this will be rescanned and will expand into `(4
++ (4 + foo))'; and so on until the computer runs out of memory.
+
+   The self-reference rule cuts this process short after one step, at
+`(4 + foo)'.  Therefore, this macro definition has the possibly useful
+effect of causing the program to add 4 to the value of `foo' wherever
+`foo' is referred to.
+
+   In most cases, it is a bad idea to take advantage of this feature.  A
+person reading the program who sees that `foo' is a variable will not
+expect that it is a macro as well.  The reader will come across the
+identifier `foo' in the program and think its value should be that of
+the variable `foo', whereas in fact the value is four greater.
+
+   One common, useful use of self-reference is to create a macro which
+expands to itself.  If you write
+
+     #define EPERM EPERM
+
+then the macro `EPERM' expands to `EPERM'.  Effectively, it is left
+alone by the preprocessor whenever it's used in running text.  You can
+tell that it's a macro with `#ifdef'.  You might do this if you want to
+define numeric constants with an `enum', but have `#ifdef' be true for
+each constant.
+
+   If a macro `x' expands to use a macro `y', and the expansion of `y'
+refers to the macro `x', that is an "indirect self-reference" of `x'.
+`x' is not expanded in this case either.  Thus, if we have
+
+     #define x (4 + y)
+     #define y (2 * x)
+
+then `x' and `y' expand as follows:
+
+     x    ==> (4 + y)
+          ==> (4 + (2 * x))
+
+     y    ==> (2 * x)
+          ==> (2 * (4 + y))
+
+Each macro is expanded when it appears in the definition of the other
+macro, but not when it indirectly appears in its own definition.
+
+
+File: cpp.info,  Node: Argument Prescan,  Next: Newlines in Arguments,  Prev: Self-Referential Macros,  Up: Macro Pitfalls
+
+3.10.6 Argument Prescan
+-----------------------
+
+Macro arguments are completely macro-expanded before they are
+substituted into a macro body, unless they are stringified or pasted
+with other tokens.  After substitution, the entire macro body, including
+the substituted arguments, is scanned again for macros to be expanded.
+The result is that the arguments are scanned _twice_ to expand macro
+calls in them.
+
+   Most of the time, this has no effect.  If the argument contained any
+macro calls, they are expanded during the first scan.  The result
+therefore contains no macro calls, so the second scan does not change
+it.  If the argument were substituted as given, with no prescan, the
+single remaining scan would find the same macro calls and produce the
+same results.
+
+   You might expect the double scan to change the results when a
+self-referential macro is used in an argument of another macro (*note
+Self-Referential Macros::): the self-referential macro would be
+expanded once in the first scan, and a second time in the second scan.
+However, this is not what happens.  The self-references that do not
+expand in the first scan are marked so that they will not expand in the
+second scan either.
+
+   You might wonder, "Why mention the prescan, if it makes no
+difference?  And why not skip it and make the preprocessor faster?"
+The answer is that the prescan does make a difference in three special
+cases:
+
+   * Nested calls to a macro.
+
+     We say that "nested" calls to a macro occur when a macro's argument
+     contains a call to that very macro.  For example, if `f' is a macro
+     that expects one argument, `f (f (1))' is a nested pair of calls to
+     `f'.  The desired expansion is made by expanding `f (1)' and
+     substituting that into the definition of `f'.  The prescan causes
+     the expected result to happen.  Without the prescan, `f (1)' itself
+     would be substituted as an argument, and the inner use of `f' would
+     appear during the main scan as an indirect self-reference and
+     would not be expanded.
+
+   * Macros that call other macros that stringify or concatenate.
+
+     If an argument is stringified or concatenated, the prescan does not
+     occur.  If you _want_ to expand a macro, then stringify or
+     concatenate its expansion, you can do that by causing one macro to
+     call another macro that does the stringification or concatenation.
+     For instance, if you have
+
+          #define AFTERX(x) X_ ## x
+          #define XAFTERX(x) AFTERX(x)
+          #define TABLESIZE 1024
+          #define BUFSIZE TABLESIZE
+
+     then `AFTERX(BUFSIZE)' expands to `X_BUFSIZE', and
+     `XAFTERX(BUFSIZE)' expands to `X_1024'.  (Not to `X_TABLESIZE'.
+     Prescan always does a complete expansion.)
+
+   * Macros used in arguments, whose expansions contain unshielded
+     commas.
+
+     This can cause a macro expanded on the second scan to be called
+     with the wrong number of arguments.  Here is an example:
+
+          #define foo  a,b
+          #define bar(x) lose(x)
+          #define lose(x) (1 + (x))
+
+     We would like `bar(foo)' to turn into `(1 + (foo))', which would
+     then turn into `(1 + (a,b))'.  Instead, `bar(foo)' expands into
+     `lose(a,b)', and you get an error because `lose' requires a single
+     argument.  In this case, the problem is easily solved by the same
+     parentheses that ought to be used to prevent misnesting of
+     arithmetic operations:
+
+          #define foo (a,b)
+     or
+          #define bar(x) lose((x))
+
+     The extra pair of parentheses prevents the comma in `foo''s
+     definition from being interpreted as an argument separator.
+
+
+
+File: cpp.info,  Node: Newlines in Arguments,  Prev: Argument Prescan,  Up: Macro Pitfalls
+
+3.10.7 Newlines in Arguments
+----------------------------
+
+The invocation of a function-like macro can extend over many logical
+lines.  However, in the present implementation, the entire expansion
+comes out on one line.  Thus line numbers emitted by the compiler or
+debugger refer to the line the invocation started on, which might be
+different to the line containing the argument causing the problem.
+
+   Here is an example illustrating this:
+
+     #define ignore_second_arg(a,b,c) a; c
+
+     ignore_second_arg (foo (),
+                        ignored (),
+                        syntax error);
+
+The syntax error triggered by the tokens `syntax error' results in an
+error message citing line three--the line of ignore_second_arg-- even
+though the problematic code comes from line five.
+
+   We consider this a bug, and intend to fix it in the near future.
+
+
+File: cpp.info,  Node: Conditionals,  Next: Diagnostics,  Prev: Macros,  Up: Top
+
+4 Conditionals
+**************
+
+A "conditional" is a directive that instructs the preprocessor to
+select whether or not to include a chunk of code in the final token
+stream passed to the compiler.  Preprocessor conditionals can test
+arithmetic expressions, or whether a name is defined as a macro, or both
+simultaneously using the special `defined' operator.
+
+   A conditional in the C preprocessor resembles in some ways an `if'
+statement in C, but it is important to understand the difference between
+them.  The condition in an `if' statement is tested during the
+execution of your program.  Its purpose is to allow your program to
+behave differently from run to run, depending on the data it is
+operating on.  The condition in a preprocessing conditional directive is
+tested when your program is compiled.  Its purpose is to allow different
+code to be included in the program depending on the situation at the
+time of compilation.
+
+   However, the distinction is becoming less clear.  Modern compilers
+often do test `if' statements when a program is compiled, if their
+conditions are known not to vary at run time, and eliminate code which
+can never be executed.  If you can count on your compiler to do this,
+you may find that your program is more readable if you use `if'
+statements with constant conditions (perhaps determined by macros).  Of
+course, you can only use this to exclude code, not type definitions or
+other preprocessing directives, and you can only do it if the code
+remains syntactically valid when it is not to be used.
+
+   GCC version 3 eliminates this kind of never-executed code even when
+not optimizing.  Older versions did it only when optimizing.
+
+* Menu:
+
+* Conditional Uses::
+* Conditional Syntax::
+* Deleted Code::
+
+
+File: cpp.info,  Node: Conditional Uses,  Next: Conditional Syntax,  Up: Conditionals
+
+4.1 Conditional Uses
+====================
+
+There are three general reasons to use a conditional.
+
+   * A program may need to use different code depending on the machine
+     or operating system it is to run on.  In some cases the code for
+     one operating system may be erroneous on another operating system;
+     for example, it might refer to data types or constants that do not
+     exist on the other system.  When this happens, it is not enough to
+     avoid executing the invalid code.  Its mere presence will cause
+     the compiler to reject the program.  With a preprocessing
+     conditional, the offending code can be effectively excised from
+     the program when it is not valid.
+
+   * You may want to be able to compile the same source file into two
+     different programs.  One version might make frequent time-consuming
+     consistency checks on its intermediate data, or print the values of
+     those data for debugging, and the other not.
+
+   * A conditional whose condition is always false is one way to
+     exclude code from the program but keep it as a sort of comment for
+     future reference.
+
+   Simple programs that do not need system-specific logic or complex
+debugging hooks generally will not need to use preprocessing
+conditionals.
+
+
+File: cpp.info,  Node: Conditional Syntax,  Next: Deleted Code,  Prev: Conditional Uses,  Up: Conditionals
+
+4.2 Conditional Syntax
+======================
+
+A conditional in the C preprocessor begins with a "conditional
+directive": `#if', `#ifdef' or `#ifndef'.
+
+* Menu:
+
+* Ifdef::
+* If::
+* Defined::
+* Else::
+* Elif::
+
+
+File: cpp.info,  Node: Ifdef,  Next: If,  Up: Conditional Syntax
+
+4.2.1 Ifdef
+-----------
+
+The simplest sort of conditional is
+
+     #ifdef MACRO
+
+     CONTROLLED TEXT
+
+     #endif /* MACRO */
+
+   This block is called a "conditional group".  CONTROLLED TEXT will be
+included in the output of the preprocessor if and only if MACRO is
+defined.  We say that the conditional "succeeds" if MACRO is defined,
+"fails" if it is not.
+
+   The CONTROLLED TEXT inside of a conditional can include
+preprocessing directives.  They are executed only if the conditional
+succeeds.  You can nest conditional groups inside other conditional
+groups, but they must be completely nested.  In other words, `#endif'
+always matches the nearest `#ifdef' (or `#ifndef', or `#if').  Also,
+you cannot start a conditional group in one file and end it in another.
+
+   Even if a conditional fails, the CONTROLLED TEXT inside it is still
+run through initial transformations and tokenization.  Therefore, it
+must all be lexically valid C.  Normally the only way this matters is
+that all comments and string literals inside a failing conditional group
+must still be properly ended.
+
+   The comment following the `#endif' is not required, but it is a good
+practice if there is a lot of CONTROLLED TEXT, because it helps people
+match the `#endif' to the corresponding `#ifdef'.  Older programs
+sometimes put MACRO directly after the `#endif' without enclosing it in
+a comment.  This is invalid code according to the C standard.  CPP
+accepts it with a warning.  It never affects which `#ifndef' the
+`#endif' matches.
+
+   Sometimes you wish to use some code if a macro is _not_ defined.
+You can do this by writing `#ifndef' instead of `#ifdef'.  One common
+use of `#ifndef' is to include code only the first time a header file
+is included.  *Note Once-Only Headers::.
+
+   Macro definitions can vary between compilations for several reasons.
+Here are some samples.
+
+   * Some macros are predefined on each kind of machine (*note
+     System-specific Predefined Macros::).  This allows you to provide
+     code specially tuned for a particular machine.
+
+   * System header files define more macros, associated with the
+     features they implement.  You can test these macros with
+     conditionals to avoid using a system feature on a machine where it
+     is not implemented.
+
+   * Macros can be defined or undefined with the `-D' and `-U' command
+     line options when you compile the program.  You can arrange to
+     compile the same source file into two different programs by
+     choosing a macro name to specify which program you want, writing
+     conditionals to test whether or how this macro is defined, and
+     then controlling the state of the macro with command line options,
+     perhaps set in the Makefile.  *Note Invocation::.
+
+   * Your program might have a special header file (often called
+     `config.h') that is adjusted when the program is compiled.  It can
+     define or not define macros depending on the features of the
+     system and the desired capabilities of the program.  The
+     adjustment can be automated by a tool such as `autoconf', or done
+     by hand.
+
+
+File: cpp.info,  Node: If,  Next: Defined,  Prev: Ifdef,  Up: Conditional Syntax
+
+4.2.2 If
+--------
+
+The `#if' directive allows you to test the value of an arithmetic
+expression, rather than the mere existence of one macro.  Its syntax is
+
+     #if EXPRESSION
+
+     CONTROLLED TEXT
+
+     #endif /* EXPRESSION */
+
+   EXPRESSION is a C expression of integer type, subject to stringent
+restrictions.  It may contain
+
+   * Integer constants.
+
+   * Character constants, which are interpreted as they would be in
+     normal code.
+
+   * Arithmetic operators for addition, subtraction, multiplication,
+     division, bitwise operations, shifts, comparisons, and logical
+     operations (`&&' and `||').  The latter two obey the usual
+     short-circuiting rules of standard C.
+
+   * Macros.  All macros in the expression are expanded before actual
+     computation of the expression's value begins.
+
+   * Uses of the `defined' operator, which lets you check whether macros
+     are defined in the middle of an `#if'.
+
+   * Identifiers that are not macros, which are all considered to be the
+     number zero.  This allows you to write `#if MACRO' instead of
+     `#ifdef MACRO', if you know that MACRO, when defined, will always
+     have a nonzero value.  Function-like macros used without their
+     function call parentheses are also treated as zero.
+
+     In some contexts this shortcut is undesirable.  The `-Wundef'
+     option causes GCC to warn whenever it encounters an identifier
+     which is not a macro in an `#if'.
+
+   The preprocessor does not know anything about types in the language.
+Therefore, `sizeof' operators are not recognized in `#if', and neither
+are `enum' constants.  They will be taken as identifiers which are not
+macros, and replaced by zero.  In the case of `sizeof', this is likely
+to cause the expression to be invalid.
+
+   The preprocessor calculates the value of EXPRESSION.  It carries out
+all calculations in the widest integer type known to the compiler; on
+most machines supported by GCC this is 64 bits.  This is not the same
+rule as the compiler uses to calculate the value of a constant
+expression, and may give different results in some cases.  If the value
+comes out to be nonzero, the `#if' succeeds and the CONTROLLED TEXT is
+included; otherwise it is skipped.
+
+
+File: cpp.info,  Node: Defined,  Next: Else,  Prev: If,  Up: Conditional Syntax
+
+4.2.3 Defined
+-------------
+
+The special operator `defined' is used in `#if' and `#elif' expressions
+to test whether a certain name is defined as a macro.  `defined NAME'
+and `defined (NAME)' are both expressions whose value is 1 if NAME is
+defined as a macro at the current point in the program, and 0
+otherwise.  Thus,  `#if defined MACRO' is precisely equivalent to
+`#ifdef MACRO'.
+
+   `defined' is useful when you wish to test more than one macro for
+existence at once.  For example,
+
+     #if defined (__vax__) || defined (__ns16000__)
+
+would succeed if either of the names `__vax__' or `__ns16000__' is
+defined as a macro.
+
+   Conditionals written like this:
+
+     #if defined BUFSIZE && BUFSIZE >= 1024
+
+can generally be simplified to just `#if BUFSIZE >= 1024', since if
+`BUFSIZE' is not defined, it will be interpreted as having the value
+zero.
+
+   If the `defined' operator appears as a result of a macro expansion,
+the C standard says the behavior is undefined.  GNU cpp treats it as a
+genuine `defined' operator and evaluates it normally.  It will warn
+wherever your code uses this feature if you use the command-line option
+`-pedantic', since other compilers may handle it differently.
+
+
+File: cpp.info,  Node: Else,  Next: Elif,  Prev: Defined,  Up: Conditional Syntax
+
+4.2.4 Else
+----------
+
+The `#else' directive can be added to a conditional to provide
+alternative text to be used if the condition fails.  This is what it
+looks like:
+
+     #if EXPRESSION
+     TEXT-IF-TRUE
+     #else /* Not EXPRESSION */
+     TEXT-IF-FALSE
+     #endif /* Not EXPRESSION */
+
+If EXPRESSION is nonzero, the TEXT-IF-TRUE is included and the
+TEXT-IF-FALSE is skipped.  If EXPRESSION is zero, the opposite happens.
+
+   You can use `#else' with `#ifdef' and `#ifndef', too.
+
+
+File: cpp.info,  Node: Elif,  Prev: Else,  Up: Conditional Syntax
+
+4.2.5 Elif
+----------
+
+One common case of nested conditionals is used to check for more than
+two possible alternatives.  For example, you might have
+
+     #if X == 1
+     ...
+     #else /* X != 1 */
+     #if X == 2
+     ...
+     #else /* X != 2 */
+     ...
+     #endif /* X != 2 */
+     #endif /* X != 1 */
+
+   Another conditional directive, `#elif', allows this to be
+abbreviated as follows:
+
+     #if X == 1
+     ...
+     #elif X == 2
+     ...
+     #else /* X != 2 and X != 1*/
+     ...
+     #endif /* X != 2 and X != 1*/
+
+   `#elif' stands for "else if".  Like `#else', it goes in the middle
+of a conditional group and subdivides it; it does not require a
+matching `#endif' of its own.  Like `#if', the `#elif' directive
+includes an expression to be tested.  The text following the `#elif' is
+processed only if the original `#if'-condition failed and the `#elif'
+condition succeeds.
+
+   More than one `#elif' can go in the same conditional group.  Then
+the text after each `#elif' is processed only if the `#elif' condition
+succeeds after the original `#if' and all previous `#elif' directives
+within it have failed.
+
+   `#else' is allowed after any number of `#elif' directives, but
+`#elif' may not follow `#else'.
+
+
+File: cpp.info,  Node: Deleted Code,  Prev: Conditional Syntax,  Up: Conditionals
+
+4.3 Deleted Code
+================
+
+If you replace or delete a part of the program but want to keep the old
+code around for future reference, you often cannot simply comment it
+out.  Block comments do not nest, so the first comment inside the old
+code will end the commenting-out.  The probable result is a flood of
+syntax errors.
+
+   One way to avoid this problem is to use an always-false conditional
+instead.  For instance, put `#if 0' before the deleted code and
+`#endif' after it.  This works even if the code being turned off
+contains conditionals, but they must be entire conditionals (balanced
+`#if' and `#endif').
+
+   Some people use `#ifdef notdef' instead.  This is risky, because
+`notdef' might be accidentally defined as a macro, and then the
+conditional would succeed.  `#if 0' can be counted on to fail.
+
+   Do not use `#if 0' for comments which are not C code.  Use a real
+comment, instead.  The interior of `#if 0' must consist of complete
+tokens; in particular, single-quote characters must balance.  Comments
+often contain unbalanced single-quote characters (known in English as
+apostrophes).  These confuse `#if 0'.  They don't confuse `/*'.
+
+
+File: cpp.info,  Node: Diagnostics,  Next: Line Control,  Prev: Conditionals,  Up: Top
+
+5 Diagnostics
+*************
+
+The directive `#error' causes the preprocessor to report a fatal error.
+The tokens forming the rest of the line following `#error' are used as
+the error message.
+
+   You would use `#error' inside of a conditional that detects a
+combination of parameters which you know the program does not properly
+support.  For example, if you know that the program will not run
+properly on a VAX, you might write
+
+     #ifdef __vax__
+     #error "Won't work on VAXen.  See comments at get_last_object."
+     #endif
+
+   If you have several configuration parameters that must be set up by
+the installation in a consistent way, you can use conditionals to detect
+an inconsistency and report it with `#error'.  For example,
+
+     #if !defined(UNALIGNED_INT_ASM_OP) && defined(DWARF2_DEBUGGING_INFO)
+     #error "DWARF2_DEBUGGING_INFO requires UNALIGNED_INT_ASM_OP."
+     #endif
+
+   The directive `#warning' is like `#error', but causes the
+preprocessor to issue a warning and continue preprocessing.  The tokens
+following `#warning' are used as the warning message.
+
+   You might use `#warning' in obsolete header files, with a message
+directing the user to the header file which should be used instead.
+
+   Neither `#error' nor `#warning' macro-expands its argument.
+Internal whitespace sequences are each replaced with a single space.
+The line must consist of complete tokens.  It is wisest to make the
+argument of these directives be a single string constant; this avoids
+problems with apostrophes and the like.
+
+
+File: cpp.info,  Node: Line Control,  Next: Pragmas,  Prev: Diagnostics,  Up: Top
+
+6 Line Control
+**************
+
+The C preprocessor informs the C compiler of the location in your source
+code where each token came from.  Presently, this is just the file name
+and line number.  All the tokens resulting from macro expansion are
+reported as having appeared on the line of the source file where the
+outermost macro was used.  We intend to be more accurate in the future.
+
+   If you write a program which generates source code, such as the
+`bison' parser generator, you may want to adjust the preprocessor's
+notion of the current file name and line number by hand.  Parts of the
+output from `bison' are generated from scratch, other parts come from a
+standard parser file.  The rest are copied verbatim from `bison''s
+input.  You would like compiler error messages and symbolic debuggers
+to be able to refer to `bison''s input file.
+
+   `bison' or any such program can arrange this by writing `#line'
+directives into the output file.  `#line' is a directive that specifies
+the original line number and source file name for subsequent input in
+the current preprocessor input file.  `#line' has three variants:
+
+`#line LINENUM'
+     LINENUM is a non-negative decimal integer constant.  It specifies
+     the line number which should be reported for the following line of
+     input.  Subsequent lines are counted from LINENUM.
+
+`#line LINENUM FILENAME'
+     LINENUM is the same as for the first form, and has the same
+     effect.  In addition, FILENAME is a string constant.  The
+     following line and all subsequent lines are reported to come from
+     the file it specifies, until something else happens to change that.
+     FILENAME is interpreted according to the normal rules for a string
+     constant: backslash escapes are interpreted.  This is different
+     from `#include'.
+
+     Previous versions of CPP did not interpret escapes in `#line'; we
+     have changed it because the standard requires they be interpreted,
+     and most other compilers do.
+
+`#line ANYTHING ELSE'
+     ANYTHING ELSE is checked for macro calls, which are expanded.  The
+     result should match one of the above two forms.
+
+   `#line' directives alter the results of the `__FILE__' and
+`__LINE__' predefined macros from that point on.  *Note Standard
+Predefined Macros::.  They do not have any effect on `#include''s idea
+of the directory containing the current file.  This is a change from
+GCC 2.95.  Previously, a file reading
+
+     #line 1 "../src/gram.y"
+     #include "gram.h"
+
+   would search for `gram.h' in `../src', then the `-I' chain; the
+directory containing the physical source file would not be searched.
+In GCC 3.0 and later, the `#include' is not affected by the presence of
+a `#line' referring to a different directory.
+
+   We made this change because the old behavior caused problems when
+generated source files were transported between machines.  For instance,
+it is common practice to ship generated parsers with a source release,
+so that people building the distribution do not need to have yacc or
+Bison installed.  These files frequently have `#line' directives
+referring to the directory tree of the system where the distribution was
+created.  If GCC tries to search for headers in those directories, the
+build is likely to fail.
+
+   The new behavior can cause failures too, if the generated file is not
+in the same directory as its source and it attempts to include a header
+which would be visible searching from the directory containing the
+source file.  However, this problem is easily solved with an additional
+`-I' switch on the command line.  The failures caused by the old
+semantics could sometimes be corrected only by editing the generated
+files, which is difficult and error-prone.
+
+
+File: cpp.info,  Node: Pragmas,  Next: Other Directives,  Prev: Line Control,  Up: Top
+
+7 Pragmas
+*********
+
+The `#pragma' directive is the method specified by the C standard for
+providing additional information to the compiler, beyond what is
+conveyed in the language itself.  Three forms of this directive
+(commonly known as "pragmas") are specified by the 1999 C standard.  A
+C compiler is free to attach any meaning it likes to other pragmas.
+
+   GCC has historically preferred to use extensions to the syntax of the
+language, such as `__attribute__', for this purpose.  However, GCC does
+define a few pragmas of its own.  These mostly have effects on the
+entire translation unit or source file.
+
+   In GCC version 3, all GNU-defined, supported pragmas have been given
+a `GCC' prefix.  This is in line with the `STDC' prefix on all pragmas
+defined by C99.  For backward compatibility, pragmas which were
+recognized by previous versions are still recognized without the `GCC'
+prefix, but that usage is deprecated.  Some older pragmas are
+deprecated in their entirety.  They are not recognized with the `GCC'
+prefix.  *Note Obsolete Features::.
+
+   C99 introduces the `_Pragma' operator.  This feature addresses a
+major problem with `#pragma': being a directive, it cannot be produced
+as the result of macro expansion.  `_Pragma' is an operator, much like
+`sizeof' or `defined', and can be embedded in a macro.
+
+   Its syntax is `_Pragma (STRING-LITERAL)', where STRING-LITERAL can
+be either a normal or wide-character string literal.  It is
+destringized, by replacing all `\\' with a single `\' and all `\"' with
+a `"'.  The result is then processed as if it had appeared as the right
+hand side of a `#pragma' directive.  For example,
+
+     _Pragma ("GCC dependency \"parse.y\"")
+
+has the same effect as `#pragma GCC dependency "parse.y"'.  The same
+effect could be achieved using macros, for example
+
+     #define DO_PRAGMA(x) _Pragma (#x)
+     DO_PRAGMA (GCC dependency "parse.y")
+
+   The standard is unclear on where a `_Pragma' operator can appear.
+The preprocessor does not accept it within a preprocessing conditional
+directive like `#if'.  To be safe, you are probably best keeping it out
+of directives other than `#define', and putting it on a line of its own.
+
+   This manual documents the pragmas which are meaningful to the
+preprocessor itself.  Other pragmas are meaningful to the C or C++
+compilers.  They are documented in the GCC manual.
+
+`#pragma GCC dependency'
+     `#pragma GCC dependency' allows you to check the relative dates of
+     the current file and another file.  If the other file is more
+     recent than the current file, a warning is issued.  This is useful
+     if the current file is derived from the other file, and should be
+     regenerated.  The other file is searched for using the normal
+     include search path.  Optional trailing text can be used to give
+     more information in the warning message.
+
+          #pragma GCC dependency "parse.y"
+          #pragma GCC dependency "/usr/include/time.h" rerun fixincludes
+
+`#pragma GCC poison'
+     Sometimes, there is an identifier that you want to remove
+     completely from your program, and make sure that it never creeps
+     back in.  To enforce this, you can "poison" the identifier with
+     this pragma.  `#pragma GCC poison' is followed by a list of
+     identifiers to poison.  If any of those identifiers appears
+     anywhere in the source after the directive, it is a hard error.
+     For example,
+
+          #pragma GCC poison printf sprintf fprintf
+          sprintf(some_string, "hello");
+
+     will produce an error.
+
+     If a poisoned identifier appears as part of the expansion of a
+     macro which was defined before the identifier was poisoned, it
+     will _not_ cause an error.  This lets you poison an identifier
+     without worrying about system headers defining macros that use it.
+
+     For example,
+
+          #define strrchr rindex
+          #pragma GCC poison rindex
+          strrchr(some_string, 'h');
+
+     will not produce an error.
+
+`#pragma GCC system_header'
+     This pragma takes no arguments.  It causes the rest of the code in
+     the current file to be treated as if it came fro

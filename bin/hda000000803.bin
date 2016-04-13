@@ -1,0 +1,1626 @@
+turns 0 if there is no remainder, and 1 if
+	there is a remainder.  For examples, quomod(10, 3, x, y) sets x to 3,
+	y to 1, and returns the value 1, and quomod(-4, 3.14159, x, y) sets x
+	to -2, y to 2.28318, and returns the value 1.
+
+	The eval function accepts a string argument and evaluates the
+	expression represented by the string and returns its value.
+	The expression can include function calls and variable references.
+	For example, eval("fact(3) + 7") returns 13.  When combined with
+	the prompt function, this allows the calculator to read values from
+	the user.  For example, x=eval(prompt("Number: ")) sets x to the
+	value input by the user.
+
+	The digit and bit functions return individual digits of a number,
+	either in base 10 or in base 2, where the lowest digit of a number
+	is at digit position 0.	 For example, digit(5678, 3) is 5, and
+	bit(0b1000100, 2) is 1.	 Negative digit positions indicate places
+	to the right of the decimal or binary point, so that for example,
+	digit(3.456, -1) is 4.
+
+	The ptest builtin is a primality testing function.  The
+	1st argument is the suspected prime to be tested.  The
+	absolute value of the 2nd argument is an iteration count.
+
+	If ptest is called with only 2 args, the 3rd argument is
+	assumed to be 0.  If ptest is called with only 1 arg, the
+	2nd argument is assumed to be 1.  Thus, the following
+	calls are equivalent:
+
+		ptest(a)
+		ptest(a,1)
+		ptest(a,1,0)
+
+	Normally ptest performs a some checks to determine if the
+	value is divisable by some trivial prime.  If the 2nd
+	argument is < 0, then the trivial check is omitted.
+
+	For example, ptest(a,10) performs the same work as:
+
+		ptest(a,-3)	(7 tests without trivial check)
+		ptest(a,-7,3)	(3 more tests without the trivial check)
+
+	The ptest function returns 0 if the number is definitely not
+	prime, and 1 is the number is probably prime.  The chance
+	of a number which is probably prime being actually composite
+	is less than 1/4 raised to the power of the iteration count.
+	For example, for a random number p, ptest(p, 10) incorrectly
+	returns 1 less than once in every million numbers, and you
+	will probably never find a number where ptest(p, 20) gives
+	the wrong answer.
+
+	The first 3 args of nextcand and prevcand functions are the same
+	arguments as ptest.  But unlike ptest, nextcand and prevcand return
+	the next and previous values for which ptest is true.
+
+	For example, nextcand(2^1000) returns 2^1000+297 because
+	2^1000+297 is the smallest value x > 2^1000 for which
+	ptest(x,1) is true.  And for example, prevcand(2^31-1,10,5)
+	returns 2147483629 (2^31-19) because 2^31-19 is the largest
+	value y < 2^31-1 for which ptest(y,10,5) is true.
+
+	The nextcand and prevcand functions also have a 5 argument form:
+
+		nextcand(num, count, skip, modval, modulus)
+		prevcand(num, count, skip, modval, modulus)
+
+	return the smallest (or largest) value ans > num (or < num) that
+	is also == modval % modulus for which ptest(ans,count,skip) is true.
+
+	The builtins nextprime(x) and prevprime(x) return the
+	next and previous primes with respect to x respectively.
+	As of this release, x must be < 2^32.  With one argument, they
+	will return an error if x is out of range.  With two arguments,
+	they will not generate an error but instead will return y.
+
+	The builtin function pix(x) returns the number of primes <= x.
+	As of this release, x must be < 2^32.  With one argument, pix(x)
+	will return an error if x is out of range.  With two arguments,
+	pix(x,y) will not generate an error but instead will return y.
+
+	The builtin function factor may be used to search for the
+	smallest factor of a given number.  The call factor(x,y)
+	will attempt to find the smallest factor of x < min(x,y).
+	As of this release, y must be < 2^32.  If y is omitted, y
+	is assumed to be 2^32-1.
+
+	If x < 0, factor(x,y) will return -1.  If no factor <
+	min(x,y) is found, factor(x,y) will return 1.  In all other
+	cases, factor(x,y) will return the smallest prime factor
+	of x.  Note except for the case when abs(x) == 1, factor(x,y)
+	will not return x.
+
+	If factor is called with y that is too large, or if x or y
+	is not an integer, calc will report an error.  If a 3rd argument
+	is given, factor will return that value instead.  For example,
+	factor(1/2,b,c) will return c instead of issuing an error.
+
+	The builtin lfactor(x,y) searches a number of primes instead
+	of below a limit.  As of this release, y must be <= 203280221
+	(y <= pix(2^32-1)).  In all other cases, lfactor is operates
+	in the same way as factor.
+
+	If lfactor is called with y that is too large, or if x or y
+	is not an integer, calc will report an error.  If a 3rd argument
+	is given, lfactor will return that value instead.  For example,
+	lfactor(1/2,b,c) will return c instead of issuing an error.
+
+	The lfactor function is slower than factor.  If possible factor
+	should be used instead of lfactor.
+
+	The builtin isprime(x) will attempt to determine if x is prime.
+	As of this release, x must be < 2^32.  With one argument, isprime(x)
+	will return an error if x is out of range.  With two arguments,
+	isprime(x,y) will not generate an error but instead will return y.
+
+	The functions rcin, rcmul, rcout, rcpow, and rcsq are used to
+	perform modular arithmetic calculations for large odd numbers
+	faster than the usual methods.	To do this, you first use the
+	rcin function to convert all input values into numbers which are
+	in a format called REDC format.	 Then you use rcmul, rcsq, and
+	rcpow to multiply such numbers together to produce results also
+	in REDC format.	 Finally, you use rcout to convert a number in
+	REDC format back to a normal number.  The addition, subtraction,
+	negation, and equality comparison between REDC numbers are done
+	using the normal modular methods.  For example, to calculate the
+	value 13 * 17 + 1 (mod 11), you could use:
+
+		p = 11;
+		t1 = rcin(13, p);
+		t2 = rcin(17, p);
+		t3 = rcin(1, p);
+		t4 = rcmul(t1, t2, p);
+		t5 = (t4 + t3) % p;
+		answer = rcout(t5, p);
+
+	The swap function exchanges the values of two variables without
+	performing copies.  For example, after:
+
+		x = 17;
+		y = 19;
+		swap(x, y);
+
+	then x is 19 and y is 17.  This function should not be used to
+	swap a value which is contained within another one.  If this is
+	done, then some memory will be lost.  For example, the following
+	should not be done:
+
+		mat x[5];
+		swap(x, x[0]);
+
+	The hash function returns a relatively small non-negative integer
+	for one or more input values.  The hash values should not be used
+	across runs of the calculator, since the algorithms used to generate
+	the hash value may change with different versions of the calculator.
+
+	The base function allows one to specify how numbers should be
+	printed.  The base function provides a numeric shorthand to the
+	config("mode") interface.  With no args, base() will return the
+	current mode.  With 1 arg, base(val) will set the mode according to
+	the arg and return the previous mode.
+
+	The following convention is used to declare modes:
+
+		 base	 config
+		value	 string
+
+		   2	"binary"	binary fractions
+		   8	"octal"		octal fractions
+		  10	"real"		decimal floating point
+		  16	"hex"		hexadecimal fractions
+		 -10	"int"		decimal integer
+		 1/3	"frac"		decimal fractions
+		1e20	"exp"		decimal exponential
+
+	For convenience, any non-integer value is assumed to mean "frac",
+	and any integer >= 2^64 is assumed to mean "exp".
+
+## Copyright (C) 1999-2007  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: builtin.end,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/builtin.end,v $
+##
+## Under source code control:	1995/07/10 01:17:53
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     NAME
+    floor - floor
+
+SYNOPSIS
+    floor(x)
+
+TYPES
+    x		real, complex, list, matrix
+
+    return	real or complex, list, matrix
+
+DESCRIPTION
+    For real x, floor(x) is the greatest integer not greater than x.
+
+    For complex, floor(x) returns the real or complex number v for
+    which re(v) = floor(re(x)), im(v) = floor(im(x)).
+
+    For list or matrix x, floor(x) returns the list or matrix of the
+    same structure as x for which each element t of x has been replaced
+    by floor(t).
+
+EXAMPLE
+    ; print floor(27), floor(1.23), floor(-4.56), floor(7.8 - 9.1i)
+    27 1 -5 7-10i
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    ceil, int
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: floor,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/floor,v $
+##
+## Under source code control:	1994/09/30 01:12:01
+## File existed as early as:	1994
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                               NAME
+    isdefined - whether a string names a defined function
+
+SYNOPSIS
+    isdefined(str)
+
+TYPES
+    str		string
+
+    return	0, 1, or 2
+
+DESCRIPTION
+    isdefined(str) returns 1 if str is the name of a builtin function,
+    2 if str is the name of a user-defined function, 0 otherwise.
+
+EXAMPLE
+    ; isdefined("abs")
+	1
+
+    ; isdefined("fun")
+	0
+
+    ; define fun() { }
+    fun() defined
+
+    ; isdefined("fun")
+	2
+
+    ; undefine fun
+    ; isdefined("fun")
+	0
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    define, undefine,
+    isassoc, isatty, isblk, isconfig, iserror, iseven, isfile,
+    ishash, isident, isint, islist, ismat, ismult, isnull, isnum, isobj,
+    isobjtype, isodd, isprime, isrand, israndom, isreal, isrel,
+    issimple, issq, isstr, istype
+
+## Copyright (C) 1999-2006  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: isdefined,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/isdefined,v $
+##
+## Under source code control:	1997/04/05 14:10:17
+## File existed as early as:	1997
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                           NAME
+    display - set and/or return decimal digits for displaying numbers
+
+SYNOPSIS
+    display([d])
+
+TYPES
+    d		integer >= 0
+
+    return	integer
+
+DESCRIPTION
+    When given an argument, this function sets the maximum number of
+    digits after the decimal point to be printed in real or exponential
+    mode in normal unformatted printing (print, strprint, fprint) or in
+    formatted printing (printf, strprintf, fprintf) when precision is
+    not specified.  The return value is the previous display digit value.
+
+    When given no arguments, this function returns the current
+    display digit value.
+
+    The builtin function:
+
+    	display(d)
+	display()
+
+    is an alias for:
+
+	config("display", d)
+	config("display")
+
+    The display digit value does not change the stored value of a number.
+    It only changes how a stored value is displayed.
+
+    Where rounding is necessary to display up to d decimal places,
+    the type of rounding to be used is controlled by config("outround").
+
+EXAMPLE
+    ; print display(), 2/3
+    20 ~0.66666666666666666667
+
+    ; print display(40), 2/3
+    20 ~0.6666666666666666666666666666666666666667
+
+    ; print display(5), 2/3
+    40 ~0.66667
+
+LIMITS
+    d >= 0
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    config
+
+## Copyright (C) 2004  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: display,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/display,v $
+##
+## Under source code control:	2004/07/25 23:50:40
+## File existed as early as:	2004
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   NAME
+    forall - to evaluate a function for all values of a list or matrix
+
+SYNOPSIS
+    forall(x, y)
+
+TYPES
+    x		list or matrix
+    y		string
+
+    return	null value
+
+DESCRIPTION
+    In forall(x,y), y is the name of a function; that function
+    is performed in succession for all elements of x.  This is similar
+    to modify(x, y) but x is not changed.
+
+EXAMPLE
+    ; global n = 0
+    ; define s(a) {n += a;}
+    ; A = list(1,2,3,4)
+    ; forall(A, "s")
+    ; n
+	    10
+
+    ; define e(a) {if (iseven(a)) print a;}
+    ; forall(A, "e")
+	    2
+	    4
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    modify
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: forall,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/forall,v $
+##
+## Under source code control:	1995/07/10 02:09:31
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                 Å   normÆ   	isobjtype   Ç   log È   custom  É   permÊ   round   Ë   
+custom_cal  Ì   fclose  Í   meq Î   headÏ   	errorcode   Ð   conjÑ   isrand  Ò   polar   Ó   base2   Ô   digits  Õ   matmax  Ö   acoth   ×   define  Ø   min Ù   	bernoulli   Ú   nearÛ   sechÜ   getenv  Ý   fscanf  Þ   fgetlineß   isodd   à   cot á   rcout   â   gcd ã   fprintf ä   freeredcå   fgetstr æ   isreal  ç   gd  è   select  é   
+expression  ê   todoë   swapì   pix í   protect î   	calclevel   ï   isfile  ð   fib ñ   charò   calc_ttyó   reverse ô   isatty  õ   nullö   strcpy  ÷   pfact   ø   	randombit   ù   prompt  ú   mminû   iseven  ü   mattransý   matmin  þ   cschÿ   atan2       scanf      bit    strncpy    euler      changes    name   acsch      strcat     num NAME
+    norm - calculate a norm of a value
+
+SYNOPSIS
+    norm(x)
+
+TYPES
+    If x is an object of type xx, the function xx_norm has to have been
+    defined; what this does will be determined by the definition.
+
+    For non-object x:
+
+    x		number (real or complex)
+
+    return	real
+
+DESCRIPTION
+    For real x, norm(x) returns:
+
+	 x^2.
+
+    For complex x, norm(x) returns:
+
+	re(x)^2 + im(x)^2.
+
+EXAMPLE
+    ; print norm(3.4), norm(-3.4), norm(3 + 4i), norm(4 - 5i)
+    11.56 11.56 25 41
+
+LIMITS
+    none
+
+LINK LIBRARY
+    void normvalue(VALUE *x, VALUE *result)
+
+SEE ALSO
+    cmp, epsilon, hypot, abs, near, obj
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: norm,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/norm,v $
+##
+## Under source code control:	1995/10/25 04:03:46
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                       NAME
+    isobjtype - whether a string names an object type
+
+SYNOPSIS
+    isobjtype(str)
+
+TYPES
+    str		string
+
+    return	0 or 1
+
+DESCRIPTION
+    isobjtype(str) returns 1 or 0 according as an object type with name
+    str has been defined or not defined.
+
+EXAMPLE
+    ; isobjtype("xy")
+	0
+
+    ; obj xy {x, y}
+    ; isobjtype("xy")
+	1
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    obj,
+    isassoc, isatty, isblk, isconfig, isdefined, iserror, iseven, isfile,
+    ishash, isident, isint, islist, ismat, ismult, isnull, isnum, isobj,
+    isodd, isprime, isrand, israndom, isreal, isrel,
+    issimple, issq, isstr, istype
+
+## Copyright (C) 1999-2006  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: isobjtype,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/isobjtype,v $
+##
+## Under source code control:	1997/04/05 14:10:17
+## File existed as early as:	1997
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                         NAME
+    log	-  base 10 logarithm
+
+SYNOPSIS
+    log(x [,eps])
+
+TYPES
+    x		nonzero real or complex
+    eps		nonzero real, defaults to epsilon()
+
+    return	real or complex
+
+DESCRIPTION
+    Approximate the base 10 logarithm function of x by a multiple of
+    epsilon, the error having absolute value less than 0.75 * eps.
+    If n is a positive integer, log(x, 10^-n) will usually be correct
+    to the n-th decimal place.
+
+EXAMPLE
+    ; print log(10), log(100), log(1e10), log(1e500)
+    1 2 10 500
+
+    ; print log(128), log(23209), log(2^17-19)
+    ~2.10720996964786836649 ~4.36565642852838930424 ~5.11744696704937330414
+
+    ; print log(2+3i, 1e-5)
+    ~0.55696845725899964822+~0.42681936428109216144i
+
+LIMITS
+    x != 0
+    eps > 0
+
+LINK LIBRARY
+    NUMBER *qlog(NUMBER *x, NUMBER *eps)
+    COMPLEX *c_log(COMPLEX *x, NUMBER *eps)
+
+SEE ALSO
+    ln
+
+## Copyright (C) 2006  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: log,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/log,v $
+##
+## Under source code control:	2006/05/06 23:56:04
+## File existed as early as:	2006
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                          NAME
+    custom - custom builtin interface
+
+SYNOPSIS
+    custom([custname [, arg ...]])
+
+TYPES
+    custname	string
+    arg		any
+
+    return	any
+
+DESCRIPTION
+    This function will invoke the custom function interface.  Custom
+    functions are accessed by the custname argument.  The remainder
+    of the args, if any, are passed to the custom function.  The
+    custom function may return any value, including null.  Calling
+    custom with no args is equivalent to the command 'show custom'.
+
+    In order to use the custom interface, two things must happen:
+
+	1) Calc must be built to allow custom functions.  By default,
+	   the master Makefile is shipped with ALLOW_CUSTOM= -DCUSTOM
+	   which causes custom functions to be compiled in.
+
+	2) Calc must be invoked with an argument of -C as in:
+
+		calc -C
+
+    In other words, explicit action must be taken in order to
+    enable the use of custom functions.	 By default (no -C arg)
+    custom functions are compiled in but disabled so that only
+    portable calc scripts may be used.
+
+    The main focus for calc is to provide a portable platform for
+    multi-precision calculations in a C-like environment.  You should
+    consider implementing algorithms in the calc language as a first
+    choice.  Sometimes an algorithm requires use of special hardware, a
+    non-portable OS or pre-compiled C library.	In these cases a custom
+    interface may be needed.
+
+    The custom function interface is intended to make is easy for
+    programmers to add functionality that would be otherwise
+    un-suitable for general distribution.  Functions that are
+    non-portable (machine, hardware or OS dependent) or highly
+    specialized are possible candidates for custom functions.
+
+    To add a new custom function requires access to calc source.
+    For information on how to add a new custom function, try:
+
+	    help new_custom
+
+    To serve as examples, calc is shipped with a few custom functions.
+    If calc if invoked with -C, then either of the following will
+    display information about the custom functions that are available:
+
+	    show custom
+    or:
+
+	    custom()
+
+    A few resource files that uses these function are also provided
+    to serve as usage examples.
+
+    We welcome submissions for new custom functions.  For information
+    on how to submit new custom functions for general distribution, see:
+
+	    help contrib
+
+EXAMPLE
+    If calc compiled with ALLOW_CUSTOM= (custom disabled):
+
+    ; print custom("sysinfo", "baseb")
+	    Calc was built with custom functions disabled
+    Error 10195
+
+    If calc compiled with ALLOW_CUSTOM= -DCUSTOM and is invoked without -C:
+
+    ; print custom("sysinfo", "baseb")
+	    Calc must be run with a -C argument to use custom function
+    Error 10194
+
+    If calc compiled with ALLOW_CUSTOM= -DCUSTOM and is invoked with -C:
+
+    ; print custom("sysinfo", "baseb")
+    32
+
+LIMITS
+    By default, custom is limited to 100 args.
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    custom_cal, new_custom, contrib
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: custom,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/custom,v $
+##
+## Under source code control:	1997/03/09 16:33:22
+## File existed as early as:	1997
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      NAME
+    perm - permutation number
+
+SYNOPSIS
+    perm(x, y)
+
+TYPES
+    x		int
+    y		int
+
+    return	int
+
+DESCRIPTION
+    Return the permutation number P(x,y) which is defined as:
+
+	       x!
+	    --------
+	     (x-y)!
+
+    This function computes the number of permutations in which y things
+    may be chosen from x items where order in which they are chosen matters.
+
+EXAMPLE
+    ; print perm(7,3), perm(7,4), perm(7,5), perm(3,0), perm(0,0)
+    210 840 2520 3 0
+
+    ; print perm(2^31+1,3)
+    9903520314283042197045510144
+
+LIMITS
+    x >= y >= 0
+    y < 2^24
+
+LINK LIBRARY
+    void zperm(NUMBER x, y, *ret)
+
+SEE ALSO
+    comb, fact, randperm
+
+## Copyright (C) 1999-2006  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: perm,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/perm,v $
+##
+## Under source code control:	1994/10/20 04:03:02
+## File existed as early as:	1994
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                  NAME
+    round - round numbers to a specified number of decimal places
+
+SYNOPSIS
+    round(x [,plcs [, rnd]])
+
+TYPES
+    If x is a matrix or a list, round(x[[i]], ...) is to return
+    a value for each element x[[i]] of x; the value returned will be
+    a matrix or list with the same structure as x.
+
+    Otherwise, if x is an object of type tt, or if x is not an object or
+    number but y is an object of type tt, and the function tt_round has
+    to be defined; the types for x, plcs, rnd, and the returned value, if
+    any, are as required or specified in the definition of tt_round.
+    In this object case, plcs and rnd default to the null value.
+
+    For other cases:
+
+    x		number (real or complex)
+    plcs	integer, defaults to zero
+    rnd		integer, defaults to config("round")
+
+    return	number
+
+DESCRIPTION
+    For real x, round(x, plcs, rnd) returns x rounded to either
+    plcs significant figures (if rnd & 32 is nonzero) or to plcs
+    decimal places (if rnd & 32 is zero).  In the significant-figure
+    case the rounding is to plcs - ilog10(x) - 1 decimal places.
+    If the number of decimal places is n and eps = 10^-n, the
+    result is the same as for appr(x, eps, rnd).  This will be
+    exactly x if x is a multiple of eps; otherwise rounding occurs
+    to one of the nearest multiples of eps on either side of x.	 Which
+    of these multiples is returned is determined by z = rnd & 31, i.e.
+    the five low order bits of rnd, as follows:
+
+	    z = 0 or 4:		round down, i.e. towards minus infinity
+	    z = 1 or 5:		round up, i.e. towards plus infinity
+	    z = 2 or 6:		round towards zero
+	    z = 3 or 7:		round away from zero
+	    z = 8 or 12:	round to the nearest even multiple of eps
+	    z = 9 or 13:	round to the nearest odd multiple of eps
+	    z = 10 or 14:	round to nearest even or odd multiple of eps
+				    according as x > or < 0
+	    z = 11 or 15:	round to nearest odd or even multiple of eps
+				    according as x > or < 0
+	    z = 16 to 31:	round to the nearest multiple of eps when
+				    this is uniquely determined.  Otherwise
+				    rounding is as if z is replaced by z - 16
+
+    For complex x:
+
+	The real and imaginary parts are rounded as for real x; if the
+	imaginary part rounds to zero, the result is real.
+
+    For matrix or list x:
+
+	The returned values has element round(x[[i]], plcs, rnd) in
+	the same position as x[[i]] in x.
+
+    For object x or plcs:
+
+	When round(x, plcs, rnd) is called, x is passed by address so may be
+	changed by assignments; plcs and rnd are copied to temporary
+	variables, so their values are not changed by the call.
+
+EXAMPLES
+    ; a = 7/32, b = -7/32
+
+    ; print a, b
+    .21875 -.21875
+
+    ; print round(a,3,0), round(a,3,1), round(a,3,2), print round(a,3,3)
+    .218, .219, .218, .219
+
+    ; print round(b,3,0), round(b,3,1), round(b,3,2), print round(b,3,3)
+    -.219, -.218, -.218, -.219
+
+    ; print round(a,3,16), round(a,3,17), round(a,3,18), print round(a,3,19)
+    .2188 .2188 .2188 .2188
+
+    ; print round(a,4,16), round(a,4,17), round(a,4,18), print round(a,4,19)
+    .2187 .2188 .2187 .2188
+
+    ; print round(a,2,8), round(a,3,8), round(a,4,8), round(a,5,8)
+    .22 .218 .2188 .21875
+
+    ; print round(a,2,24), round(a,3,24), round(a,4,24), round(a,5,24)
+    .22 .219 .2188 .21875
+
+    ; c = 21875
+    ; print round(c,-2,0), round(c,-2,1), round(c,-3,0), round(c,-3,16)
+    21800 21900 21000 22000
+
+    ; print round(c,2,32), round(c,2,33), round(c,2,56), round(c,4,56)
+    21000 22000 22000 21880
+
+    ; A = list(1/8, 2/8, 3/8, 4/8, 5/8, 6/8, 7/8)
+    ; print round(A,2,24)
+
+    list(7 elements, 7 nonzero):
+	[[0]] = .12
+	[[1]] = .25
+	[[3]] = .38
+	[[4]] = .5
+	[[5]] = .62
+	[[6]] = .75
+	[[7]] = .88
+
+LIMITS
+    For non-object case:
+	0 <= abs(plcs) < 2^31
+	0 <= abs(rnd) < 2^31
+
+LINK LIBRARY
+    void roundvalue(VALUE *x, VALUE *plcs, VALUE *rnd, VALUE *result)
+    MATRIX *matround(MATRIX *m, VALUE *plcs, VALUE *rnd);
+    LIST *listround(LIST *m, VALUE *plcs, VALUE *rnd);
+    NUMBER *qround(NUMBER *m, long plcs, long rnd);
+
+SEE ALSO
+    bround, btrunc, trunc, int, appr
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: round,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/round,v $
+##
+## Under source code control:	1994/09/30 00:52:38
+## File existed as early as:	1994
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          Custom calc resource files
+--------------------------
+
+The following custom calc resource files are provided because they serve
+as examples of how use the custom interface.  The custom interface
+allows for machine dependent and/or non-portable code to be added as
+builtins to the calc program.  A few example custom functions and
+resource files are shipped with calc to provide you with examples.
+
+By default, the custom builtin returns an error.  Calc have been
+built with:
+
+	ALLOW_CUSTOM= -DCUSTOM
+
+in the top level Makefile (this is the shipped default) and calc
+must be invoked with a -C argument:
+
+	calc -C
+
+when it is run.
+
+See the ../cal/README or "help resource" for information about
+calc resource standards and guidelines.
+
+=-=
+
+argv.cal
+
+    argv(var, ...)
+
+    print information about various args
+
+halflen.cal
+
+    halflen(num)
+
+    Calculate the length of a numeric value in HALF's.
+
+pzasusb8.cal
+
+    Run custom("pzasusb8") on a standard set of data, print Endian
+    related information and print value size information.
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: CUSTOM_CAL,v 30.1 2007/03/16 11:10:04 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/custom/RCS/CUSTOM_CAL,v $
+##
+## Under source code control:	1997/03/08 20:51:32
+## File existed as early as:	1997
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  NAME
+    fclose - close a file
+
+SYNOPSIS
+    fclose(fd)
+
+TYPES
+    fd		file
+
+    return	nul or int
+
+DESCRIPTION
+    This function closes the open file associated with the descriptor fd.
+    When this is done, the file value associated with the file remains
+    a file value, but appears 'closed', and cannot be used in further
+    file-related calls (except fclose) without causing errors.	This same
+    action occurs to all copies of the file value.  You do not need to
+    explicitly close all the copies of a file value.
+
+    Standard input, standard output and standard error are always opened
+    and cannot be closed.
+
+    The truth value of a closed file is FALSE.
+
+    The fclose function returns the numeric value of errno if
+    there had been an error using the file, or the null value if
+    there was no error.
+
+    Closing a closed file is permitted.	 Fclose returns null in
+    this case.
+
+EXAMPLE
+    ; fd = fopen("/etc/motd", "r")
+    ; if (fd) print "file is open";
+    file is open
+
+    ; err = fclose(fd);
+    ; if (isnull(err)) print "close successful"; else strerror(err);
+    close successful
+
+    ; if (!fd) print "file is closed";
+    file is closed
+
+LIMITS
+    fd != files(0) && fd != files(1) && fd != files(2)
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    errno, fclose, feof, ferror, fflush, fgetc, fgetline, fgets, files, fopen,
+    fprintf, fputc, fputs, fseek, fsize, ftell, isfile, printf, prompt
+
+## Copyright (C) 1999-2006  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: fclose,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/fclose,v $
+##
+## Under source code control:	1994/10/27 03:04:16
+## File existed as early as:	1994
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       NAME
+    meq - test for equality modulo a specifed number
+
+SYNOPSIS
+    meq(x, y, md)
+
+TYPES
+    x		real
+    y		real
+    md		real
+
+    return	0 or 1
+
+DESCRIPTION
+    Returns 1 if and only if for some integer n, x - y = n * md, i.e.
+    x is congruent to y modulo md.
+
+    If md = 0, this is equivalent to x == y.
+
+    For any x, y, md, meq(x, y, md) = ismult(x - y, md).
+
+EXAMPLE
+    ; print meq(5, 33, 7), meq(.05, .33, -.07), meq(5, 32, 7)
+    1 1 0
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    mne, ismult
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: meq,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/meq,v $
+##
+## Under source code control:	1995/11/09 03:27:51
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                         NAME
+    head - create a list of specified size from the head of a list
+
+SYNOPSIS
+    head(x, y)
+
+TYPES
+    x		list
+    y		int
+
+    return	list
+
+DESCRIPTION
+    If 0 <= y <= size(x), head(x,y) returns a list of size y whose
+    elements in succession have values x[[0]]. x[[1]], ..., x[[y - 1]].
+
+    If y > size(x), head(x,y) is a copy of x.
+
+    If -size(x) < y < 0, head(x,y) returns a list of size (size(x) + y)
+    whose elements in succession have values x[[0]]. x[[1]], ...,
+    i.e. a copy of x from which the last -y members have been deleted.
+
+    If y <= -size(x), head(x,y) returns a list with no members.
+
+    For any integer y, x == join(head(x,y), tail(x,-y)).
+
+EXAMPLE
+    ; A = list(2, 3, 5, 7, 11)
+    ; head(A, 2)
+
+    list (2 members, 2 nonzero):
+	  [[0]] = 2
+	  [[1]] = 3
+
+    ; head(A, -2)
+
+    list (3 members, 3 nonzero):
+	  [[0]] = 2
+	  [[1]] = 3
+	  [[2]] = 5
+
+LIMITS
+    none
+
+LINK LIBRARY
+    none
+
+SEE ALSO
+    tail, segment
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: head,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/head,v $
+##
+## Under source code control:	1995/07/10 02:09:30
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    Calc generated error codes (see the error help file):
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: errorcodes.hdr,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/errorcodes.hdr,v $
+##
+## Under source code control:	1995/12/18 03:19:11
+## File existed as early as:	1995
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+    10001	Division by zero
+    10002	Indeterminate (0/0)
+    10003	Bad arguments for +
+    10004	Bad arguments for binary -
+    10005	Bad arguments for *
+    10006	Bad arguments for /
+    10007	Bad argument for unary -
+    10008	Bad argument for squaring
+    10009	Bad argument for inverse
+    10010	Bad argument for ++
+    10011	Bad argument for --
+    10012	Bad argument for int
+    10013	Bad argument for frac
+    10014	Bad argument for conj
+    10015	Bad first argument for appr
+    10016	Bad second argument for appr
+    10017	Bad third argument for appr
+    10018	Bad first argument for round
+    10019	Bad second argument for round
+    10020	Bad third argument for round
+    10021	Bad first argument for bround
+    10022	Bad second argument for bround
+    10023	Bad third argument for bround
+    10024	Bad first argument for sqrt
+    10025	Bad second argument for sqrt
+    10026	Bad third argument for sqrt
+    10027	Bad first argument for root
+    10028	Bad second argument for root
+    10029	Bad third argument for root
+    10030	Bad argument for norm
+    10031	Bad first argument for << or >>
+    10032	Bad second argument for << or >>
+    10033	Bad first argument for scale
+    10034	Bad second argument for scale
+    10035	Bad first argument for ^
+    10036	Bad second argument for ^
+    10037	Bad first argument for power
+    10038	Bad second argument for power
+    10039	Bad third argument for power
+    10040	Bad first argument for quo or //
+    10041	Bad second argument for quo or //
+    10042	Bad third argument for quo
+    10043	Bad first argument for mod or %
+    10044	Bad second argument for mod or %
+    10045	Bad third argument for mod
+    10046	Bad argument for sgn
+    10047	Bad first argument for abs
+    10048	Bad second argument for abs
+    10049	Scan error in argument for eval
+    10050	Non-simple type for str
+    10051	Non-real epsilon for exp
+    10052	Bad first argument for exp
+    10053	Non-file first argument for fputc
+    10054	Bad second argument for fputc
+    10055	File not open for writing for fputc
+    10056	Non-file first argument for fgetc
+    10057	File not open for reading for fgetc
+    10058	Non-string arguments for fopen
+    10059	Unrecognized mode for fopen
+    10060	Non-file first argument for freopen
+    10061	Non-string or unrecognized mode for freopen
+    10062	Non-string third argument for freopen
+    10063	Non-file argument for fclose
+    10064	Non-file argument for fflush
+    10065	Non-file first argument for fputs
+    10066	Non-string argument after first for fputs
+    10067	File not open for writing for fputs
+    10068	Non-file argument for fgets
+    10069	File not open for reading for fgets
+    10070	Non-file first argument for fputstr
+    10071	Non-string argument after first for fputstr
+    10072	File not open for writing for fputstr
+    10073	Non-file first argument for fgetstr
+    10074	File not open for reading for fgetstr
+    10075	Non-file argument for fgetline
+    10076	File not open for reading for fgetline
+    10077	Non-file argument for fgetfield
+    10078	File not open for reading for fgetfield
+    10079	Non-file argument for rewind
+    10080	Non-integer argument for files
+    10081	Non-string fmt argument for fprint
+    10082	Stdout not open for writing to ???
+    10083	Non-file first argument for fprintf
+    10084	Non-string second (fmt) argument for fprintf
+    10085	File not open for writing for fprintf
+    10086	Non-string first (fmt) argument for strprintf
+    10087	Error in attempting strprintf ???
+    10088	Non-file first argument for fscan
+    10089	File not open for reading for fscan
+    10090	Non-string first argument for strscan
+    10091	Non-file first argument for fscanf
+    10092	Non-string second (fmt) argument for fscanf
+    10093	Non-lvalue argument after second for fscanf
+    10094	File not open for reading or other error for fscanf
+    10095	Non-string first argument for strscanf
+    10096	Non-string second (fmt) argument for strscanf
+    10097	Non-lvalue argument after second for strscanf
+    10098	Some error in attempting strscanf ???
+    10099	Non-string first (fmt) argument for scanf
+    10100	Non-lvalue argument after first for scanf
+    10101	Some error in attempting scanf ???
+    10102	Non-file argument for ftell
+    10103	File not open or other error for ftell
+    10104	Non-file first argument for fseek
+    10105	Non-integer or negative second argument for fseek
+    10106	File not open or other error for fseek
+    10107	Non-file argument for fsize
+    10108	File not open or other error for fsize
+    10109	Non-file argument for feof
+    10110	File not open or other error for feof
+    10111	Non-file argument for ferror
+    10112	File not open or other error for ferror
+    10113	Non-file argument for ungetc
+    10114	File not open for reading for ungetc
+    10115	Bad second argument or other error for ungetc
+    10116	Exponent too big in scanning
+    10117	E_ISATTY1 is no longer used
+    10118	E_ISATTY2 is no longer used
+    10119	Non-string first argument for access
+    10120	Bad second argument for access
+    10121	Bad first argument for search
+    10122	Bad second argument for search
+    10123	Bad third argument for search
+    10124	Bad fourth argument for search
+    10125	Cannot find fsize or fpos for search
+    10126	File not readable for search
+    10127	Bad first argument for rsearch
+    10128	Bad second argument for rsearch
+    10129	Bad third argument for rsearch
+    10130	Bad fourth argument for rsearch
+    10131	Cannot find fsize or fpos for rsearch
+    10132	File not readable for rsearch
+    10133	Too many open files
+    10134	Attempt to rewind a file that is not open
+    10135	Bad argument type for strerror
+    10136	Index out of range for strerror
+    10137	Bad epsilon for cos
+    10138	Bad first argument for cos
+    10139	Bad epsilon for sin
+    10140	Bad first argument for sin
+    10141	Non-string argument for eval
+    10142	Bad epsilon for arg
+    10143	Bad first argument for arg
+    10144	Non-real argument for polar
+    10145	Bad epsilon for polar
+    10146	Non-integral argument for fcnt
+    10147	Non-variable first argument for matfill
+    10148	Non-matrix first argument-value for matfill
+    10149	Non-matrix argument for matdim
+    10150	Non-matrix argument for matsum
+    10151	E_ISIDENT is no longer used
+    10152	Non-matrix argument for mattrans
+    10153	Non-two-dimensional matrix for mattrans
+    10154	Non-matrix argument for det
+    10155	Matrix for det not of dimension 2
+    10156	Non-square matrix for det
+    10157	Non-matrix first argument for matmin
+    10158	Non-positive-integer second argument for matmin
+    10159	Second argument for matmin exceeds dimension
+    10160	Non-matrix first argument for matmin
+    10161	Second argument for matmax not positive integer
+    10162	Second argument for matmax exceeds dimension
+    10163	Non-matrix argument for cp
+    10164	Non-one-dimensional matrix for cp
+    10165	Matrix size not 3 for cp
+    10166	Non-matrix argument for dp
+    10167	Non-one-dimensional matrix for dp
+    10168	Different-size matrices for dp
+    10169	Non-string argument for strlen
+    10170	Non-string argument for strcat
+    10171	Non-string first argument for strcat
+    10172	Non-non-negative integer second argument for strcat
+    10173	Bad argument for char
+    10174	Non-string argument for ord
+    10175	Non-list-variable first argument for insert
+    10176	Non-integral second argument for insert
+    10177	Non-list-variable first argument for push
+    10178	Non-list-variable first argument for append
+    10179	Non-list-variable first argument for delete
+    10180	Non-integral second argument for delete
+    10181	Non-list-variable argument for pop
+    10182	Non-list-variable argument for remove
+    10183	Bad epsilon argument for ln
+    10184	Non-numeric first argument for ln
+    10185	Non-integer argument for error
+    10186	Argument outside range for error
+    10187	Attempt to eval at maximum input depth
+    10188	Unable to open string for reading
+    10189	First argument for rm is not a non-empty string
+    10190	Unable to remove a file
+    10191	Operation allowed because calc mode disallows read operations
+    10192	Operation allowed because calc mode disallows write operations
+    10193	Operation allowed because calc mode disallows exec operations
+    10194	Unordered arguments for min
+    10195	Unordered arguments for max
+    10196	Unordered items for minimum of list
+    10197	Unordered items for maximum of list
+    10198	Size undefined for argument type
+    10199	Calc must be run with a -C argument to use custom function
+    10200	Calc was built with custom functions disabled
+    10201	Custom function unknown, try: show custom
+    10202	Non-integral length for block
+    10203	Negative or too-large length for block
+    10204	Non-integral chunksize for block
+    10205	Negative or too-large chunksize for block
+    10206	Named block does not exist for blkfree
+    10207	Non-integral id specification for blkfree
+    10208	Block with specified id does not exist
+    10209	Block already freed
+    10210	No-realloc protection prevents blkfree
+    10211	Non-integer argument for blocks
+    10212	Non-allocated index number for blocks
+    10213	Non-integer or negative source index for copy
+    10214	Source index too large for copy
+    10215	E_COPY3 is no longer used
+    10216	Non-integer or negative number for copy
+    10217	Number too large for copy
+    10218	Non-integer or negative destination index for copy
+    10219	Destination index too large for copy
+    10220	Freed block source for copy
+    10221	Unsuitable source type for copy
+    10222	Freed block destinction for copy
+    10223	Unsuitable destination type for copy
+    10224	Incompatible source and destination for copy
+    10225	No-copy-from source variable
+    10226	No-copy-to destination variable
+    10227	No-copy-from source named block
+    10228	No-copy-to destination named block
+    10229	No-relocate destination for copy
+    10230	File not open for copy
+    10231	fseek or fsize failure for copy
+    10232	fwrite error for copy
+    10233	fread error for copy
+    10234	Non-variable first argument for protect
+    10235	Bad second argument for protect
+    10236	Bad third argument for protect
+    10237	No-copy-to destination for matfill
+    10238	No-assign-from source for matfill
+    10239	Non-matrix argument for mattrace
+    10240	Non-two-dimensional argument for mattrace
+    10241	Non-square argument for mattrace
+    10242	Bad epsilon for tan
+    10243	Bad argument for tan
+    10244	Bad epsilon for cot
+    10245	Bad argument for cot
+    10246	Bad epsilon for sec
+    10247	Bad argument for sec
+    10248	Bad epsilon for csc
+    10249	Bad argument for csc
+    10250	Bad epsilon for sinh
+    10251	Bad argument for sinh
+    10252	Bad epsilon for cosh
+    10253	Bad argument for cosh
+    10254	Bad epsilon for tanh
+    10255	Bad argument for tanh
+    10256	Bad epsilon for coth
+    10257	Bad argument for coth
+    10258	Bad epsilon for sech
+    10259	Bad argument for sech
+    10260	Bad epsilon for csch
+    10261	Bad argumeþÈ  ÿÈ   É  É  É  É  É                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      nt for csch
+    10262	Bad epsilon for asin
+    10263	Bad argument for asin
+    10264	Bad epsilon for acos
+    10265	Bad argument for acos
+    10266	Bad epsilon for atan
+    10267	Bad argument for atan
+    10268	Bad epsilon for acot
+    10269	Bad argument for acot
+    10270	Bad epsilon for asec
+    10271	Bad argument for asec
+    10272	Bad epsilon for acsc
+    10273	Bad argument for acsc
+    10274	Bad epsilon for asin
+    10275	Bad argument for asinh
+    10276	Bad epsilon for acosh
+    10277	Bad argument for acosh
+    10278	Bad epsilon for atanh
+    10279	Bad argument for atanh
+    10280	Bad epsilon for acoth
+    10281	Bad argument for acoth
+    10282	Bad epsilon for asech
+    10283	Bad argument for asech
+    10284	Bad epsilon for acsch
+    10285	Bad argument for acsch
+    10286	Bad epsilon for gd
+    10287	Bad argument for gd
+    10288	Bad epsilon for agd
+    10289	Bad argument for agd
+    10290	Log of zero or infinity
+    10291	String addition failure
+    10292	String multiplication failure
+    10293	String reversal failure
+    10294	String subtraction failure
+    10295	Bad argument type for bit
+    10296	Index too large for bit
+    10297	Non-integer second argument for setbit
+    10298	Out-of-range index for setbit
+    10299	Non-string first argument for setbit
+    10300	Bad argument for or
+    10301	Bad argument for and
+    10302	Allocation failure for string or
+    10303	Allocation failure for string and
+    10304	Bad argument for xorvalue
+    10305	Bad argument for comp
+    10306	Allocation failure for string diff
+    10307	Allocation failure for string comp
+    10308	Bad first argument for segment
+    10309	Bad second argument for segment
+    10310	Bad third argument for segment
+    10311	Failure for string segment
+    10312	Bad argument type for highbit
+    10313	Non-integer argument for highbit
+    10314	Bad argument type for lowbit
+    10315	Non-integer argument for lowbit
+    10316	Bad argument type for unary hash op
+    10317	Bad argument type for binary hash op
+    10318	Bad first argument for head
+  

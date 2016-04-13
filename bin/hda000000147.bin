@@ -1,0 +1,1746 @@
+          {
+                difference_type num_chunks = (right - left + 1) / chunk_size;
+
+                for (int r = 0; r < num_threads; ++r)
+                  {
+                    reserved_left[r] = false;
+                    reserved_right[r] = false;
+                  }
+                leftover_left = 0;
+                leftover_right = 0;
+              } //implicit barrier
+
+            // Private.
+            difference_type thread_left, thread_left_border,
+                            thread_right, thread_right_border;
+            thread_left = left + 1;
+
+            // Just to satisfy the condition below.
+            thread_left_border = thread_left - 1;
+            thread_right = n - 1;
+            thread_right_border = thread_right + 1;
+
+            bool iam_finished = false;
+            while (!iam_finished)
+              {
+                if (thread_left > thread_left_border)
+                  {
+                    omp_set_lock(&result_lock);
+                    if (left + (chunk_size - 1) > right)
+                      iam_finished = true;
+                    else
+                      {
+                        thread_left = left;
+                        thread_left_border = left + (chunk_size - 1);
+                        left += chunk_size;
+                      }
+                    omp_unset_lock(&result_lock);
+                  }
+
+                if (thread_right < thread_right_border)
+                  {
+                    omp_set_lock(&result_lock);
+                    if (left > right - (chunk_size - 1))
+                      iam_finished = true;
+                    else
+                      {
+                        thread_right = right;
+                        thread_right_border = right - (chunk_size - 1);
+                        right -= chunk_size;
+                      }
+                    omp_unset_lock(&result_lock);
+                  }
+
+                if (iam_finished)
+                  break;
+
+                // Swap as usual.
+                while (thread_left < thread_right)
+                  {
+                    while (pred(begin[thread_left])
+                            && thread_left <= thread_left_border)
+                      ++thread_left;
+                    while (!pred(begin[thread_right])
+                            && thread_right >= thread_right_border)
+                      --thread_right;
+
+                    if (thread_left > thread_left_border
+                        || thread_right < thread_right_border)
+                      // Fetch new chunk(s).
+                      break;
+
+                    std::swap(begin[thread_left], begin[thread_right]);
+                    ++thread_left;
+                    --thread_right;
+                  }
+              }
+
+            // Now swap the leftover chunks to the right places.
+            if (thread_left <= thread_left_border)
+#             pragma omp atomic
+              ++leftover_left;
+            if (thread_right >= thread_right_border)
+#             pragma omp atomic
+              ++leftover_right;
+
+#           pragma omp barrier
+
+#           pragma omp single
+              {
+                leftnew = left - leftover_left * chunk_size;
+                rightnew = right + leftover_right * chunk_size;
+              }
+
+#           pragma omp barrier
+
+            // <=> thread_left_border + (chunk_size - 1) >= leftnew
+            if (thread_left <= thread_left_border
+                && thread_left_border >= leftnew)
+              {
+                // Chunk already in place, reserve spot.
+                reserved_left[(left - (thread_left_border + 1)) / chunk_size]
+                    = true;
+              }
+
+            // <=> thread_right_border - (chunk_size - 1) <= rightnew
+            if (thread_right >= thread_right_border
+                && thread_right_border <= rightnew)
+              {
+                // Chunk already in place, reserve spot.
+                reserved_right[((thread_right_border - 1) - right)
+			       / chunk_size] = true;
+              }
+
+#           pragma omp barrier
+
+            if (thread_left <= thread_left_border
+                && thread_left_border < leftnew)
+              {
+                // Find spot and swap.
+                difference_type swapstart = -1;
+                omp_set_lock(&result_lock);
+                for (int r = 0; r < leftover_left; ++r)
+                  if (!reserved_left[r])
+                    {
+                      reserved_left[r] = true;
+                      swapstart = left - (r + 1) * chunk_size;
+                      break;
+                    }
+                omp_unset_lock(&result_lock);
+
+#if _GLIBCXX_ASSERTIONS
+                _GLIBCXX_PARALLEL_ASSERT(swapstart != -1);
+#endif
+
+                std::swap_ranges(begin + thread_left_border
+				 - (chunk_size - 1),
+				 begin + thread_left_border + 1,
+				 begin + swapstart);
+              }
+
+            if (thread_right >= thread_right_border
+                && thread_right_border > rightnew)
+              {
+                // Find spot and swap
+                difference_type swapstart = -1;
+                omp_set_lock(&result_lock);
+                for (int r = 0; r < leftover_right; ++r)
+                  if (!reserved_right[r])
+                    {
+                      reserved_right[r] = true;
+                      swapstart = right + r * chunk_size + 1;
+                      break;
+                    }
+                omp_unset_lock(&result_lock);
+
+#if _GLIBCXX_ASSERTIONS
+                _GLIBCXX_PARALLEL_ASSERT(swapstart != -1);
+#endif
+
+                std::swap_ranges(begin + thread_right_border,
+				 begin + thread_right_border + chunk_size,
+				 begin + swapstart);
+              }
+#if _GLIBCXX_ASSERTIONS
+#             pragma omp barrier
+
+#             pragma omp single
+                {
+                  for (int r = 0; r < leftover_left; ++r)
+                    _GLIBCXX_PARALLEL_ASSERT(reserved_left[r]);
+                  for (int r = 0; r < leftover_right; ++r)
+                    _GLIBCXX_PARALLEL_ASSERT(reserved_right[r]);
+                }
+
+#             pragma omp barrier
+#endif
+
+#             pragma omp barrier
+
+              left = leftnew;
+              right = rightnew;
+          }
+#         pragma omp flush(left, right)
+      } // end "recursion" //parallel
+
+    difference_type final_left = left, final_right = right;
+
+    while (final_left < final_right)
+      {
+        // Go right until key is geq than pivot.
+        while (pred(begin[final_left]) && final_left < final_right)
+          ++final_left;
+
+        // Go left until key is less than pivot.
+        while (!pred(begin[final_right]) && final_left < final_right)
+          --final_right;
+
+        if (final_left == final_right)
+          break;
+        std::swap(begin[final_left], begin[final_right]);
+        ++final_left;
+        --final_right;
+      }
+
+    // All elements on the left side are < piv, all elements on the
+    // right are >= piv
+    delete[] reserved_left;
+    delete[] reserved_right;
+
+    omp_destroy_lock(&result_lock);
+
+    // Element "between" final_left and final_right might not have
+    // been regarded yet
+    if (final_left < n && !pred(begin[final_left]))
+      // Really swapped.
+      return final_left;
+    else
+      return final_left + 1;
+  }
+
+/**
+  *  @brief Parallel implementation of std::nth_element().
+  *  @param begin Begin iterator of input sequence.
+  *  @param nth Iterator of element that must be in position afterwards.
+  *  @param end End iterator of input sequence.
+  *  @param comp Comparator.
+  */
+template<typename RandomAccessIterator, typename Comparator>
+  void 
+  parallel_nth_element(RandomAccessIterator begin, RandomAccessIterator nth, 
+		       RandomAccessIterator end, Comparator comp)
+  {
+    typedef std::iterator_traits<RandomAccessIterator> traits_type;
+    typedef typename traits_type::value_type value_type;
+    typedef typename traits_type::difference_type difference_type;
+
+    _GLIBCXX_CALL(end - begin)
+
+    RandomAccessIterator split;
+    random_number rng;
+
+    difference_type minimum_length =
+      std::max<difference_type>(2, _Settings::get().partition_minimal_n);
+
+    // Break if input rangÉ$  Ê$  Ë$                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      e to small.
+    while (static_cast<sequence_index_t>(end - begin) >= minimum_length)
+      {
+        difference_type n = end - begin;
+
+        RandomAccessIterator pivot_pos = begin +  rng(n);
+
+        // Swap pivot_pos value to end.
+        if (pivot_pos != (end - 1))
+          std::swap(*pivot_pos, *(end - 1));
+        pivot_pos = end - 1;
+
+        // XXX Comparator must have first_value_type, second_value_type,
+	// result_type
+        // Comparator == __gnu_parallel::lexicographic<S, int,
+	// __gnu_parallel::less<S, S> >
+        // pivot_pos == std::pair<S, int>*
+        // XXX binder2nd only for RandomAccessIterators??
+        __gnu_parallel::binder2nd<Comparator, value_type, value_type, bool>
+	  pred(comp, *pivot_pos);
+
+        // Divide, leave pivot unchanged in last place.
+        RandomAccessIterator split_pos1, split_pos2;
+        split_pos1 = begin + parallel_partition(begin, end - 1, pred,
+						get_max_threads());
+
+        // Left side: < pivot_pos; right side: >= pivot_pos
+
+        // Swap pivot back to middle.
+        if (split_pos1 != pivot_pos)
+          std::swap(*split_pos1, *pivot_pos);
+        pivot_pos = split_pos1;
+
+        // In case all elements are equal, split_pos1 == 0
+        if ((split_pos1 + 1 - begin) < (n >> 7)
+	    || (end - split_pos1) < (n >> 7))
+          {
+            // Very unequal split, one part smaller than one 128th
+            // elements not strictly larger than the pivot.
+            __gnu_parallel::unary_negate<__gnu_parallel::
+	      binder1st<Comparator, value_type, value_type, bool>, value_type>
+	      pred(__gnu_parallel::binder1st<Comparator, value_type,
+		   value_type, bool>(comp, *pivot_pos));
+
+            // Find other end of pivot-equal range.
+            split_pos2 = __gnu_sequential::partition(split_pos1 + 1,
+						     end, pred);
+          }
+        else
+          // Only skip the pivot.
+          split_pos2 = split_pos1 + 1;
+
+        // Compare iterators.
+        if (split_pos2 <= nth)
+          begin = split_pos2;
+        else if (nth < split_pos1)
+          end = split_pos1;
+        else
+          break;
+      }
+
+    // Only at most _Settings::partition_minimal_n elements left.
+    __gnu_sequential::sort(begin, end, comp);
+  }
+
+/** @brief Parallel implementation of std::partial_sort().
+*  @param begin Begin iterator of input sequence.
+*  @param middle Sort until this position.
+*  @param end End iterator of input sequence.
+*  @param comp Comparator. */
+template<typename RandomAccessIterator, typename Comparator>
+  void
+  parallel_partial_sort(RandomAccessIterator begin,
+			RandomAccessIterator middle,
+			RandomAccessIterator end, Comparator comp)
+  {
+    parallel_nth_element(begin, middle, end, comp);
+    std::sort(begin, middle, comp);
+  }
+
+} //namespace __gnu_parallel
+
+#undef _GLIBCXX_VOLATILE
+
+#endif
+                                                                                                                                                                                                                                                                // -*- C++ -*-
+
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the terms
+// of the GNU General Public License as published by the Free Software
+// Foundation; either version 2, or (at your option) any later
+// version.
+
+// This library is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
+// MA 02111-1307, USA.
+
+// As a special exception, you may use this file as part of a free
+// software library without restriction.  Specifically, if other files
+// instantiate templates or use macros or inline functions from this
+// file, or you compile this file and link it with other files to
+// produce an executable, this file does not by itself cause the
+// resulting executable to be covered by the GNU General Public
+// License.  This exception does not however invalidate any other
+// reasons why the executable file might be covered by the GNU General
+// Public License.
+
+/** @file parallel/settings.h
+ *  @brief Runtime settings and tuning parameters, heuristics to decide
+ *  whether to use parallelized algorithms.
+ *  This file is a GNU parallel extension to the Standard C++ Library.
+ *
+ *  @section parallelization_decision 
+ *  The decision whether to run an algorithm in parallel.
+ *
+ *  There are several ways the user can switch on and off the parallel
+ *  execution of an algorithm, both at compile- and run-time.
+ *
+ *  Only sequential execution can be forced at compile-time.  This
+ *  reduces code size and protects code parts that have
+ *  non-thread-safe side effects.
+ *
+ *  Ultimately, forcing parallel execution at compile-time makes
+ *  sense.  Often, the sequential algorithm implementation is used as
+ *  a subroutine, so no reduction in code size can be achieved.  Also,
+ *  the machine the program is run on might have only one processor
+ *  core, so to avoid overhead, the algorithm is executed
+ *  sequentially.
+ *
+ *  To force sequential execution of an algorithm ultimately at
+ *  compile-time, the user must add the tag
+ *  __gnu_parallel::sequential_tag() to the end of the parameter list,
+ *  e. g.
+ *
+ *  \code
+ *  std::sort(v.begin(), v.end(), __gnu_parallel::sequential_tag());
+ *  \endcode
+ *
+ *  This is compatible with all overloaded algorithm variants.  No
+ *  additional code will be instantiated, at all.  The same holds for
+ *  most algorithm calls with iterators not providing random access.
+ *
+ *  If the algorithm call is not forced to be executed sequentially
+ *  at compile-time, the decision is made at run-time.
+ *  The global variable __gnu_parallel::_Settings::algorithm_strategy
+ *  is checked. It is a tristate variable corresponding to:
+ *
+ *  a. force_sequential, meaning the sequential algorithm is executed.
+ *  b. force_parallel, meaning the parallel algorithm is executed.
+ *  c. heuristic
+ *
+ *  For heuristic, the parallel algorithm implementation is called
+ *  only if the input size is sufficiently large.  For most
+ *  algorithms, the input size is the (combined) length of the input
+ *  sequence(s).  The threshold can be set by the user, individually
+ *  for each algorithm.  The according variables are called
+ *  __gnu_parallel::_Settings::[algorithm]_minimal_n .
+ *
+ *  For some of the algorithms, there are even more tuning options,
+ *  e. g. the ability to choose from multiple algorithm variants.  See
+ *  below for details.
+ */
+
+// Written by Johannes Singler and Felix Putze.
+
+#ifndef _GLIBCXX_PARALLEL_SETTINGS_H
+#define _GLIBCXX_PARALLEL_SETTINGS_H 1
+
+#include <parallel/types.h>
+
+/** 
+  * @brief Determine at compile(?)-time if the parallel variant of an
+  * algorithm should be called.
+  * @param c A condition that is convertible to bool that is overruled by
+  * __gnu_parallel::_Settings::algorithm_strategy. Usually a decision
+  * based on the input size.
+  */
+#define _GLIBCXX_PARALLEL_CONDITION(c) (__gnu_parallel::_Settings::get().algorithm_strategy != __gnu_parallel::force_sequential && ((__gnu_parallel::get_max_threads() > 1 && (c)) || __gnu_parallel::_Settings::get().algorithm_strategy == __gnu_parallel::force_parallel))
+
+/*
+inline bool
+parallel_condition(bool c)
+{
+  bool ret = false;
+  const _Settings& s = _Settings::get();
+  if (s.algorithm_strategy != force_seqential)
+    {
+      if (s.algorithm_strategy == force_parallel)
+	ret = true;
+      else
+	ret = get_max_threads() > 1 && c;
+    }
+  return ret;
+}
+*/
+
+namespace __gnu_parallel
+{
+  /// class _Settings 
+  /// Run-time settings for the parallel mode, including all tunable parameters.
+  struct _Settings
+  {
+    _AlgorithmStrategy 		algorithm_strategy;
+    
+    _SortAlgorithm 		sort_algorithm;
+    _PartialSumAlgorithm 	partial_sum_algorithm;
+    _MultiwayMergeAlgorithm 	multiway_merge_algorithm;
+    _FindAlgorithm 		find_algorithm;
+
+    _SplittingAlgorithm 	sort_splitting;
+    _SplittingAlgorithm 	merge_splitting;
+    _SplittingAlgorithm 	multiway_merge_splitting;
+
+    // Per-algorithm settings.
+
+    /// Minimal input size for accumulate.
+    sequence_index_t 		accumulate_minimal_n;
+
+    /// Minimal input size for adjacent_difference.
+    unsigned int 		adjacent_difference_minimal_n;
+
+    /// Minimal input size for count and count_if.
+    sequence_index_t 		count_minimal_n;
+
+    /// Minimal input size for fill.
+    sequence_index_t 		fill_minimal_n;
+
+    /// Block size increase factor for find.
+    double 			find_increasing_factor;
+
+    /// Initial block size for find.
+    sequence_index_t 		find_initial_block_size;
+
+    /// Maximal block size for find.
+    sequence_index_t 		find_maximum_block_size;
+
+    /// Start with looking for this many elements sequentially, for find.
+    sequence_index_t 		find_sequential_search_size;
+
+    /// Minimal input size for for_each.
+    sequence_index_t 		for_each_minimal_n;
+
+    /// Minimal input size for generate.
+    sequence_index_t 		generate_minimal_n;
+
+    /// Minimal input size for max_element.
+    sequence_index_t 		max_element_minimal_n;
+
+    /// Minimal input size for merge.
+    sequence_index_t 		merge_minimal_n;
+
+    /// Oversampling factor for merge.
+    unsigned int 		merge_oversampling;
+
+    /// Minimal input size for min_element.
+    sequence_index_t 		min_element_minimal_n;
+
+    /// Minimal input size for multiway_merge.
+    sequence_index_t 		multiway_merge_minimal_n;
+
+    /// Oversampling factor for multiway_merge.
+    int 			multiway_merge_minimal_k;
+
+    /// Oversampling factor for multiway_merge.
+    unsigned int 		multiway_merge_oversampling;
+
+    /// Minimal input size for nth_element.
+    sequence_index_t 		nth_element_minimal_n;
+
+    /// Chunk size for partition.
+    sequence_index_t 		partition_chunk_size;
+
+    /// Chunk size for partition, relative to input size.  If > 0.0,
+    /// this value overrides partition_chunk_size.
+    double 			partition_chunk_share;
+
+    /// Minimal input size for partition.
+    sequence_index_t 		partition_minimal_n;
+
+    /// Minimal input size for partial_sort.
+    sequence_index_t 		partial_sort_minimal_n;
+
+    /// Ratio for partial_sum. Assume "sum and write result" to be
+    /// this factor slower than just "sum".
+    float 			partial_sum_dilation;
+
+    /// Minimal input size for partial_sum.
+    unsigned int 		partial_sum_minimal_n;
+
+    /// Minimal input size for random_shuffle.
+    unsigned int 		random_shuffle_minimal_n;
+
+    /// Minimal input size for replace and replace_if.
+    sequence_index_t 		replace_minimal_n;
+
+    /// Minimal input size for set_difference.
+    sequence_index_t 		set_difference_minimal_n;
+
+    /// Minimal input size for set_intersection.
+    sequence_index_t 		set_intersection_minimal_n;
+
+    /// Minimal input size for set_symmetric_difference.
+    sequence_index_t 		set_symmetric_difference_minimal_n;
+
+    /// Minimal input size for set_union.
+    sequence_index_t 		set_union_minimal_n;
+
+    /// Minimal input size for parallel sorting.
+    sequence_index_t 		sort_minimal_n;
+
+    /// Oversampling factor for parallel std::sort (MWMS).
+    unsigned int 		sort_mwms_oversampling;
+
+    /// Such many samples to take to find a good pivot (quicksort).
+    unsigned int 		sort_qs_num_samples_preset;
+
+    /// Maximal subsequence length to switch to unbalanced base case.
+    /// Applies to std::sort with dynamically load-balanced quicksort.
+    sequence_index_t 		sort_qsb_base_case_maximal_n;
+
+    /// Minimal input size for parallel std::transform.
+    sequence_index_t 		transform_minimal_n;
+
+    /// Minimal input size for unique_copy. 
+    sequence_index_t 		unique_copy_minimal_n;
+
+    sequence_index_t 		workstealing_chunk_size;
+
+    // Hardware dependent tuning parameters.
+
+    /// Size of the L1 cache in bytes (underestimation).
+    unsigned long long 		L1_cache_size;
+
+    /// Size of the L2 cache in bytes (underestimation).
+    unsigned long long 		L2_cache_size;
+
+    /// Size of the Translation Lookaside Buffer (underestimation).
+    unsigned int 		TLB_size;
+
+    /// Overestimation of cache line size.  Used to avoid false
+    /// sharing, i. e. elements of different threads are at least this
+    /// amount apart.
+    unsigned int 		cache_line_size;
+
+    // Statistics.
+
+    /// The number of stolen ranges in load-balanced quicksort.
+    sequence_index_t 		qsb_steals;
+
+    /// Get the global settings.
+    static const _Settings&
+    get() throw();
+
+    /// Set the global settings.
+    static void
+    set(_Settings&) throw();
+
+    explicit 
+    _Settings() : algorithm_strategy(heuristic), sort_algorithm(MWMS), partial_sum_algorithm(LINEAR), multiway_merge_algorithm(LOSER_TREE), find_algorithm(CONSTANT_SIZE_BLOCKS), sort_splitting(EXACT), merge_splitting(EXACT), multiway_merge_splitting(EXACT), accumulate_minimal_n(1000), adjacent_difference_minimal_n(1000), count_minimal_n(1000), fill_minimal_n(1000), find_increasing_factor(2.0), find_initial_block_size(256), find_maximum_block_size(8192), find_sequential_search_size(256), for_each_minimal_n(1000), generate_minimal_n(1000), max_element_minimal_n(1000), merge_minimal_n(1000), merge_oversampling(10), min_element_minimal_n(1000), multiway_merge_minimal_n(1000), multiway_merge_minimal_k(2), multiway_merge_oversampling(10), nth_element_minimal_n(1000), partition_chunk_size(1000), partition_chunk_share(0.0), partition_minimal_n(1000), partial_sort_minimal_n(1000), partial_sum_dilation(1.0f), partial_sum_minimal_n(1000), random_shuffle_minimal_n(1000), replace_minimal_n(1000), set_difference_minimal_n(1000), set_intersection_minimal_n(1000), set_symmetric_difference_minimal_n(1000), set_union_minimal_n(1000), sort_minimal_n(1000), sort_mwms_oversampling(10), sort_qs_num_samples_preset(100), sort_qsb_base_case_maximal_n(100), transform_minimal_n(1000), unique_copy_minimal_n(10000), workstealing_chunk_size(100), L1_cache_size(16 << 10), L2_cache_size(256 << 10), TLB_size(128), cache_line_size(64), qsb_steals(0)
+    { }
+  };
+}
+
+#endif /* _GLIBCXX_SETTINGS_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          // Algorithm extensions -*- C++ -*-
+
+// Copyright (C) 2007
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file parallel/algorithm
+ *  This file is a GNU extension to the Standard C++ Library.
+ */
+
+#ifndef _PARALLEL_ALGORITHM
+#define _PARALLEL_ALGORITHM 1
+
+#pragma GCC system_header
+
+#include <algorithm>
+#include <parallel/algorithmfwd.h>
+#include <parallel/algobase.h>
+#include <parallel/algo.h>
+
+#endif
+                                                                                                                                                                                                                                                                                                                                  // -*- C++ -*-
+
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the terms
+// of the GNU General Public License as published by the Free Software
+// Foundation; either version 2, or (at your option) any later
+// version.
+
+// This library is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
+// MA 02111-1307, USA.
+
+// As a special exception, you may use this file as part of a free
+// software library without restriction.  Specifically, if other files
+// instantiate templates or use macros or inline functions from this
+// file, or you compile this file and link it with other files to
+// produce an executable, this file does not by itself cause the
+// resulting executable to be covered by the GNU General Public
+// License.  This exception does not however invalidate any other
+// reasons why the executable file might be covered by the GNU General
+// Public License.
+
+/** @file parallel/queue.h
+ *  @brief Lock-free double-ended queue.
+ *  This file is a GNU parallel extension to the Standard C++ Library.
+ */
+
+// Written by Johannes Singler.
+
+#ifndef _GLIBCXX_PARALLEL_QUEUE_H
+#define _GLIBCXX_PARALLEL_QUEUE_H 1
+
+#include <parallel/types.h>
+#include <parallel/base.h>
+#include <parallel/compatibility.h>
+
+/** @brief Decide whether to declare certain variable volatile in this file. */
+#define _GLIBCXX_VOLATILE volatile
+
+namespace __gnu_parallel
+{
+  /**@brief Double-ended queue of bounded size, allowing lock-free
+   *  atomic access.  push_front() and pop_front() must not be called
+   *  concurrently to each other, while pop_back() can be called
+   *  concurrently at all times.
+   *  @c empty(), @c size(), and @c top() are intentionally not provided.
+   *  Calling them would not make sense in a concurrent setting.
+   *  @param T Contained element type. */
+  template<typename T>
+    class RestrictedBoundedConcurrentQueue
+    {
+    private:
+      /** @brief Array of elements, seen as cyclic buffer. */
+      T* base;
+
+      /** @brief Maximal number of elements contained at the same time. */
+      sequence_index_t max_size;
+
+      /** @brief Cyclic begin and end pointers contained in one
+	  atomically changeable value. */
+      _GLIBCXX_VOLATILE lcas_t borders;
+
+    public:
+      /** @brief Constructor. Not to be called concurrent, of course.
+       *  @param max_size Maximal number of elements to be contained. */
+      RestrictedBoundedConcurrentQueue(sequence_index_t max_size)
+      {
+	this->max_size = max_size;
+	base = new T[max_size];
+	borders = encode2(0, 0);
+#pragma omp flush
+      }
+
+      /** @brief Destructor. Not to be called concurrent, of course. */
+      ~RestrictedBoundedConcurrentQueue()
+      { delete[] base; }
+
+      /** @brief Pushes one element into the queue at the front end.
+       *  Must not be called concurrently with pop_front(). */
+      void
+      push_front(const T& t)
+      {
+	lcas_t former_borders = borders;
+	int former_front, former_back;
+	decode2(former_borders, former_front, former_back);
+	*(base + former_front % max_size) = t;
+#if _GLIBCXX_ASSERTIONS
+	// Otherwise: front - back > max_size eventually.
+	_GLIBCXX_PARALLEL_ASSERT(((former_front + 1) - former_back)
+				 <= max_size);
+#endif
+	fetch_and_add(&borders, encode2(1, 0));
+      }
+
+      /** @brief Pops one element from the queue at the front end.
+       *  Must not be called concurrently with pop_front(). */
+      bool
+      pop_front(T& t)
+      {
+	int former_front, former_back;
+#pragma omp flush
+	decode2(borders, former_front, former_back);
+	while (former_front > former_back)
+	  {
+	    // Chance.
+	    lcas_t former_borders = encode2(former_front, former_back);
+	    lcas_t new_borders = encode2(former_front - 1, former_back);
+	    if (compare_and_swap(&borders, former_borders, new_borders))
+	      {
+		t = *(base + (former_front - 1) % max_size);
+		return true;
+	      }
+#pragma omp flush
+	    decode2(borders, former_front, former_back);
+	  }
+	return false;
+      }
+
+      /** @brief Pops one element from the queue at the front end.
+       *  Must not be called concurrently with pop_front(). */
+      bool
+      pop_back(T& t)	//queue behavior
+      {
+	int former_front, former_back;
+#pragma omp flush
+	decode2(borders, former_front, former_back);
+	while (former_front > former_back)
+	  {
+	    // Chance.
+	    lcas_t former_borders = encode2(former_front, former_back);
+	    lcas_t new_borders = encode2(former_front, former_back + 1);
+	    if (compare_and_swap(&borders, former_borders, new_borders))
+	      {
+		t = *(base + former_back % max_size);
+		return true;
+	      }
+#pragma omp flush
+	    decode2(borders, former_front, former_back);
+	  }
+	return false;
+      }
+  };
+}	//namespace __gnu_parallel
+
+#undef _GLIBCXX_VOLATILE
+
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    // -*- C++ -*-
+
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the terms
+// of the GNU General Public License as published by the Free Software
+// Foundation; either version 2, or (at your option) any later
+// version.
+
+// This library is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
+// MA 02111-1307, USA.
+
+// As a special exception, you may use this file as part of a free
+// software library without restriction.  Specifically, if other files
+// instantiate templates or use macros or inline functions from this
+// file, or you compile this file and link it with other files to
+// produce an executable, this file does not by itself cause the
+// resulting executable to be covered by the GNU General Public
+// License.  This exception does not however invalidate any other
+// reasons why the executable file might be covered by the GNU General
+// Public License.
+
+/**
+ * @file parallel/numeric
+*
+ * @brief Parallel STL function calls corresponding to stl_numeric.h.
+ * The functions defined here mainly do case switches and
+ * call the actual parallelized versions in other files.
+ * Inlining policy: Functions that basically only contain one function call,
+ * are declared inline.
+ *  This file is a GNU parallel extension to the Standard C++ Library.
+ */
+
+// Written by Johannes Singler and Felix Putze.
+
+#ifndef _GLIBCXX_PARALLEL_NUMERIC_H
+#define _GLIBCXX_PARALLEL_NUMERIC_H 1
+
+#include <numeric>
+#include <functional>
+#include <parallel/numericfwd.h>
+#include <parallel/iterator.h>
+#include <parallel/for_each.h>
+#include <parallel/for_each_selectors.h>
+#include <parallel/partial_sum.h>
+
+namespace std
+{
+namespace __parallel
+{
+  // Sequential fallback.
+  template<typename InputIterator, typename T>
+    inline T
+    accumulate(InputIterator begin, InputIterator end, T init, 
+	       __gnu_parallel::sequential_tag)
+    { return _GLIBCXX_STD_P::accumulate(begin, end, init); }
+
+  template<typename InputIterator, typename T, typename BinaryOperation>
+    inline T
+    accumulate(InputIterator begin, InputIterator end, T init,
+	       BinaryOperation binary_op, __gnu_parallel::sequential_tag)
+    { return _GLIBCXX_STD_P::accumulate(begin, end, init, binary_op); }
+
+  // Sequential fallback for input iterator case.
+  template<typename InputIterator, typename T, typename IteratorTag>
+    inline T
+    accumulate_switch(InputIterator begin, InputIterator end,
+		      T init, IteratorTag) 
+    { return accumulate(begin, end, init, __gnu_parallel::sequential_tag()); }
+
+  template<typename InputIterator, typename T, typename BinaryOperation,
+	   typename IteratorTag>
+    inline T
+    accumulate_switch(InputIterator begin, InputIterator end, T init, 
+		      BinaryOperation binary_op, IteratorTag)
+    { return accumulate(begin, end, init, binary_op, 
+			__gnu_parallel::sequential_tag()); }
+
+  // Parallel algorithm for random access iterators.
+  template<typename _RandomAccessIterator, typename T,
+	   typename BinaryOperation>
+    T
+    accumulate_switch(_RandomAccessIterator begin, _RandomAccessIterator end, 
+		      T init, BinaryOperation binary_op, 
+		      random_access_iterator_tag, 
+		      __gnu_parallel::_Parallelism parallelism_tag  
+		      = __gnu_parallel::parallel_unbalanced)
+    {
+      if (_GLIBCXX_PARALLEL_CONDITION(
+	    static_cast<__gnu_parallel::sequence_index_t>(end - begin)
+	    >= __gnu_parallel::_Settings::get().accumulate_minimal_n
+	    && __gnu_parallel::is_parallel(parallelism_tag)))
+	{
+	  T res = init;
+	  __gnu_parallel::accumulate_selector<_RandomAccessIterator>
+	    my_selector;
+	  __gnu_parallel::
+	    for_each_template_random_access_ed(begin, end,
+					    __gnu_parallel::nothing(),
+					    my_selector,
+					    __gnu_parallel::
+					    accumulate_binop_reduct
+					    <BinaryOperation>(binary_op),
+					    res, res, -1);
+	  return res;
+	}
+      else
+	return accumulate(begin, end, init, binary_op, 
+			  __gnu_parallel::sequential_tag());
+    }
+
+  // Public interface.
+  template<typename InputIterator, typename T>
+    inline T
+    accumulate(InputIterator begin, InputIterator end, T init, 
+	       __gnu_parallel::_Parallelism parallelism_tag)
+    {
+      typedef std::iterator_traits<InputIterator> iterator_traits;
+      typedef typename iterator_traits::value_type value_type;
+      typedef typename iterator_traits::iterator_category iterator_category;
+
+      return accumulate_switch(begin, end, init,
+			       __gnu_parallel::plus<T, value_type>(),
+			       iterator_category(), parallelism_tag);
+    }
+
+  template<typename InputIterator, typename T>
+    inline T
+    accumulate(InputIterator begin, InputIterator end, T init)
+    {
+      typedef std::iterator_traits<InputIterator> iterator_traits;
+      typedef typename iterator_traits::value_type value_type;
+      typedef typename iterator_traits::iterator_category iterator_category;
+
+      return accumulate_switch(begin, end, init,
+			       __gnu_parallel::plus<T, value_type>(),
+			       iterator_category());
+    }
+
+  template<typename InputIterator, typename T, typename BinaryOperation>
+    inline T
+    accumulate(InputIterator begin, InputIterator end, T init, 
+	       BinaryOperation binary_op, 
+	       __gnu_parallel::_Parallelism parallelism_tag)
+    {
+      typedef iterator_traits<InputIterator> iterator_traits;
+      typedef typename iterator_traits::iterator_category iterator_category;
+      return accumulate_switch(begin, end, init, binary_op, 
+			       iterator_category(), parallelism_tag);
+    }
+
+  template<typename InputIterator, typename T, typename BinaryOperation>
+    inline T
+    accumulate(InputIterator begin, InputIterator end, T init, 
+	       BinaryOperation binary_op) 
+    {
+      typedef iterator_traits<InputIterator> iterator_traits;
+      typedef typename iterator_traits::iterator_category iterator_category;
+      return accumulate_switch(begin, end, init, binary_op, 
+			       iterator_category());
+    }
+
+
+  // Sequential fallback.
+  template<typename InputIterator1, typename InputIterator2, typename T>
+    inline T
+    inner_product(InputIterator1 first1, InputIterator1 last1, 
+		  InputIterator2 first2, T init,
+		  __gnu_parallel::sequential_tag)
+    { return _GLIBCXX_STD_P::inner_product(first1, last1, first2, init); }
+
+  template<typename InputIterator1, typename InputIterator2, typename T,
+	   typename BinaryFunction1, typename BinaryFunction2>
+    inline T
+    inner_product(InputIterator1 first1, InputIterator1 last1, 
+		  InputIterator2 first2, T init, BinaryFunction1 binary_op1, 
+		  BinaryFunction2 binary_op2, __gnu_parallel::sequential_tag)
+    { return _GLIBCXX_STD_P::inner_product(first1, last1, first2, init, 
+					   binary_op1, binary_op2); }
+
+  // Parallel algorithm for random access iterators.
+  template<typename RandomAccessIterator1, typename RandomAccessIterator2,
+	   typename T, typename BinaryFunction1, typename BinaryFunction2>
+    T
+    inner_product_switch(RandomAccessIterator1 first1,
+			 RandomAccessIterator1 last1,
+			 RandomAccessIterator2 first2, T init,
+			 BinaryFunction1 binary_op1,
+			 BinaryFunction2 binary_op2,
+			 random_access_iterator_tag,
+			 random_access_iterator_tag,
+			 __gnu_parallel::_Parallelism parallelism_tag
+			 = __gnu_parallel::parallel_unbalanced)
+    {
+      if (_GLIBCXX_PARALLEL_CONDITION((last1 - first1)
+				      >= __gnu_parallel::_Settings::get().
+				      accumulate_minimal_n
+				      && __gnu_parallel::
+				      is_parallel(parallelism_tag)))
+	{
+	  T res = init;
+	  __gnu_parallel::
+	    inner_product_selector<RandomAccessIterator1,
+	    RandomAccessIterator2, T> my_selector(first1, first2);
+	  __gnu_parallel::
+	    for_each_template_random_access_ed(first1, last1, binary_op2,
+					    my_selector, binary_op1,
+					    res, res, -1);
+	  return res;
+	}
+      else
+	return inner_product(first1, last1, first2, init, 
+			     __gnu_parallel::sequential_tag());
+    }
+
+  // No parallelism for input iterators.
+  template<typename InputIterator1, typename InputIterator2, typename T,
+	   typename BinaryFunction1, typename BinaryFunction2,
+	   typename IteratorTag1, typename IteratorTag2>
+    inline T
+    inner_product_switch(InputIterator1 first1, InputIterator1 last1, 
+			 InputIterator2 first2, T init, 
+			 BinaryFunction1 binary_op1,
+			 BinaryFunction2 binary_op2, 
+			 IteratorTag1, IteratorTag2)
+    { return inner_product(first1, last1, first2, init,
+			   binary_op1, binary_op2,
+			   __gnu_parallel::sequential_tag()); }
+
+  template<typename InputIterator1, typename InputIterator2, typename T,
+	   typename BinaryFunction1, typename BinaryFunction2>
+    inline T
+    inner_product(InputIterator1 first1, InputIterator1 last1, 
+		  InputIterator2 first2, T init, BinaryFunction1 binary_op1, 
+		  BinaryFunction2 binary_op2, 
+		  __gnu_parallel::_Parallelism parallelism_tag)
+    {
+      typedef iterator_traits<InputIterator1> traits1_type;
+      typedef typename traits1_type::iterator_category iterator1_category;
+
+      typedef iterator_traits<InputIterator2> traits2_type;
+      typedef typename traits2_type::iterator_category iterator2_category;
+
+      return inner_product_switch(first1, last1, first2, init, binary_op1, 
+				  binary_op2, iterator1_category(), 
+				  iterator2_category(), parallelism_tag);
+    }
+
+  template<typename InputIterator1, typename InputIterator2, typename T,
+	   typename BinaryFunction1, typename BinaryFunction2>
+    inline T
+    inner_product(InputIterator1 first1, InputIterator1 last1, 
+		  InputIterator2 first2, T init, BinaryFunction1 binary_op1, 
+		  BinaryFunction2 binary_op2)
+    {
+      typedef iterator_traits<InputIterator1> traits1_type;
+      typedef typename traits1_type::iterator_category iterator1_category;
+
+      typedef iterator_traits<InputIterator2> traits2_type;
+      typedef typename traits2_type::iterator_category iterator2_category;
+
+      return inner_product_switch(first1, last1, first2, init, binary_op1, 
+				  binary_op2, iterator1_category(),
+				  iterator2_category());
+    }
+
+  template<typename InputIterator1, typename InputIterator2, typename T>
+    inline T
+    inner_product(InputIterator1 first1, InputIterator1 last1, 
+		  InputIterator2 first2, T init, 
+		  __gnu_parallel::_Parallelism parallelism_tag)
+    {
+      typedef iterator_traits<InputIterator1> traits_type1;
+      typedef typename traits_type1::value_type value_type1;
+      typedef iterator_traits<InputIterator2> traits_type2;
+      typedef typename traits_type2::value_type value_type2;
+
+      typedef typename
+	__gnu_parallel::multiplies<value_type1, value_type2>::result
+        multiplies_result_type;
+      return inner_product(first1, last1, first2, init,
+                           __gnu_parallel::plus<T, multiplies_result_type>(),
+                           __gnu_parallel::
+			   multiplies<value_type1, value_type2>(),
+                           parallelism_tag);
+    }
+
+  template<typename InputIterator1, typename InputIterator2, typename T>
+    inline T
+    inner_product(InputIterator1 first1, InputIterator1 last1, 
+		  InputIterator2 first2, T init)
+    {
+      typedef iterator_traits<InputIterator1> traits_type1;
+      typedef typename traits_type1::value_type value_type1;
+      typedef iterator_traits<InputIterator2> traits_type2;
+      typedef typename traits_type2::value_type value_type2;
+
+      typedef typename
+	__gnu_parallel::multiplies<value_type1, value_type2>::result
+        multiplies_result_type;
+      return inner_product(first1, last1, first2, init,
+                           __gnu_parallel::plus<T, multiplies_result_type>(),
+                           __gnu_parallel::
+			   multiplies<value_type1, value_type2>());
+    }
+
+  // Sequential fallback.
+  template<typename InputIterator, typename OutputIterator>
+    inline OutputIterator
+    partial_sum(InputIterator bí$  î$  ï$  ð$  ñ$  ò$  ó$  ô$                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  egin, InputIterator end, OutputIterator result,
+		__gnu_parallel::sequential_tag)
+    { return _GLIBCXX_STD_P::partial_sum(begin, end, result); }
+
+  // Sequential fallback.
+  template<typename InputIterator, typename OutputIterator,
+	   typename BinaryOperation>
+    inline OutputIterator
+    partial_sum(InputIterator begin, InputIterator end, OutputIterator result,
+		BinaryOperation bin_op, __gnu_parallel::sequential_tag)
+    { return _GLIBCXX_STD_P::partial_sum(begin, end, result, bin_op); }
+
+  // Sequential fallback for input iterator case.
+  template<typename InputIterator, typename OutputIterator,
+	   typename BinaryOperation, typename IteratorTag1,
+	   typename IteratorTag2>
+    inline OutputIterator
+    partial_sum_switch(InputIterator begin, InputIterator end,
+		       OutputIterator result, BinaryOperation bin_op,
+		       IteratorTag1, IteratorTag2)
+    { return _GLIBCXX_STD_P::partial_sum(begin, end, result, bin_op); }
+
+  // Parallel algorithm for random access iterators.
+  template<typename InputIterator, typename OutputIterator,
+	   typename BinaryOperation>
+    OutputIterator
+    partial_sum_switch(InputIterator begin, InputIterator end,
+		       OutputIterator result, BinaryOperation bin_op,
+		       random_access_iterator_tag, random_access_iterator_tag)
+    {
+      if (_GLIBCXX_PARALLEL_CONDITION(
+	    static_cast<__gnu_parallel::sequence_index_t>(end - begin)
+	    >= __gnu_parallel::_Settings::get().partial_sum_minimal_n))
+	return __gnu_parallel::parallel_partial_sum(begin, end,
+						    result, bin_op);
+      else
+	return partial_sum(begin, end, result, bin_op,
+			   __gnu_parallel::sequential_tag());
+    }
+
+  // Public interface.
+  template<typename InputIterator, typename OutputIterator>
+    inline OutputIterator
+    partial_sum(InputIterator begin, InputIterator end, OutputIterator result)
+    {
+      typedef typename iterator_traits<InputIterator>::value_type value_type;
+      return partial_sum(begin, end, result, std::plus<value_type>());
+    }
+
+  // Public interface
+  template<typename InputIterator, typename OutputIterator,
+	   typename BinaryOperation>
+    inline OutputIterator
+    partial_sum(InputIterator begin, InputIterator end, OutputIterator result,
+		BinaryOperation binary_op)
+    {
+      typedef iterator_traits<InputIterator> traitsi_type;
+      typedef typename traitsi_type::iterator_category iteratori_category;
+
+      typedef iterator_traits<OutputIterator> traitso_type;
+      typedef typename traitso_type::iterator_category iteratoro_category;
+
+      return partial_sum_switch(begin, end, result, binary_op,
+				iteratori_category(), iteratoro_category());
+    }
+
+  // Sequential fallback.
+  template<typename InputIterator, typename OutputIterator>
+    inline OutputIterator
+    adjacent_difference(InputIterator begin, InputIterator end,
+			OutputIterator result, __gnu_parallel::sequential_tag)
+    { return _GLIBCXX_STD_P::adjacent_difference(begin, end, result); }
+
+  // Sequential fallback.
+  template<typename InputIterator, typename OutputIterator,
+	   typename BinaryOperation>
+    inline OutputIterator
+    adjacent_difference(InputIterator begin, InputIterator end,
+			OutputIterator result, BinaryOperation bin_op,
+			__gnu_parallel::sequential_tag)
+    { return _GLIBCXX_STD_P::adjacent_difference(begin, end, result, bin_op); }
+
+  // Sequential fallback for input iterator case.
+  template<typename InputIterator, typename OutputIterator,
+	   typename BinaryOperation, typename IteratorTag1,
+	   typename IteratorTag2>
+    inline OutputIterator
+    adjacent_difference_switch(InputIterator begin, InputIterator end,
+			       OutputIterator result, BinaryOperation bin_op,
+			     IteratorTag1, IteratorTag2)
+    { return adjacent_difference(begin, end, result, bin_op,  
+				 __gnu_parallel::sequential_tag()); }
+
+  // Parallel algorithm for random access iterators.
+  template<typename InputIterator, typename OutputIterator,
+	   typename BinaryOperation>
+    OutputIterator
+    adjacent_difference_switch(InputIterator begin, InputIterator end,
+			       OutputIterator result, BinaryOperation bin_op,
+			       random_access_iterator_tag, 
+			       random_access_iterator_tag,
+			       __gnu_parallel::_Parallelism parallelism_tag
+			       = __gnu_parallel::parallel_balanced)
+    {
+      if (_GLIBCXX_PARALLEL_CONDITION(
+	    static_cast<__gnu_parallel::sequence_index_t>(end - begin)
+	    >= __gnu_parallel::_Settings::get().adjacent_difference_minimal_n
+	    && __gnu_parallel::is_parallel(parallelism_tag)))
+	{
+	  bool dummy = true;
+	  typedef __gnu_parallel::iterator_pair<InputIterator, OutputIterator,
+	    random_access_iterator_tag> ip;
+	  *result = *begin;
+	  ip begin_pair(begin + 1, result + 1),
+	    end_pair(end, result + (end - begin));
+	  __gnu_parallel::adjacent_difference_selector<ip> functionality;
+	  __gnu_parallel::
+	    for_each_template_random_access_ed(begin_pair, end_pair, bin_op,
+					    functionality,
+					    __gnu_parallel::dummy_reduct(),
+					    dummy, dummy, -1);
+	  return functionality.finish_iterator;
+	}
+      else
+	return adjacent_difference(begin, end, result, bin_op, 
+				   __gnu_parallel::sequential_tag());
+    }
+
+  // Public interface.
+  template<typename InputIterator, typename OutputIterator>
+    inline OutputIterator
+    adjacent_difference(InputIterator begin, InputIterator end,
+			OutputIterator result,
+			__gnu_parallel::_Parallelism parallelism_tag)
+    {
+      typedef iterator_traits<InputIterator> traits_type;
+      typedef typename traits_type::value_type value_type;
+      return adjacent_difference(begin, end, result, std::minus<value_type>(),
+				 parallelism_tag);
+    }
+
+  template<typename InputIterator, typename OutputIterator>
+    inline OutputIterator
+    adjacent_difference(InputIterator begin, InputIterator end,
+			OutputIterator result)
+    {
+      typedef iterator_traits<InputIterator> traits_type;
+      typedef typename traits_type::value_type value_type;
+      return adjacent_difference(begin, end, result, std::minus<value_type>());
+    }
+
+  template<typename InputIterator, typename OutputIterator,
+	   typename BinaryOperation>
+    inline OutputIterator
+    adjacent_difference(InputIterator begin, InputIterator end,
+			OutputIterator result, BinaryOperation binary_op,
+			__gnu_parallel::_Parallelism parallelism_tag)
+    {
+      typedef iterator_traits<InputIterator> traitsi_type;
+      typedef typename traitsi_type::iterator_category iteratori_category;
+
+      typedef iterator_traits<OutputIterator> traitso_type;
+      typedef typename traitso_type::iterator_category iteratoro_category;
+
+      return adjacent_difference_switch(begin, end, result, binary_op,
+					iteratori_category(), 
+					iteratoro_category(), parallelism_tag);
+    }
+
+  template<typename InputIterator, typename OutputIterator,
+	   typename BinaryOperation>
+    inline OutputIterator
+    adjacent_difference(InputIterator begin, InputIterator end,
+			OutputIterator result, BinaryOperation binary_op)
+    {
+      typedef iterator_traits<InputIterator> traitsi_type;
+      typedef typename traitsi_type::iterator_category iteratori_category;
+
+      typedef iterator_traits<OutputIterator> traitso_type;
+      typedef typename traitso_type::iterator_category iteratoro_category;
+
+      return adjacent_difference_switch(begin, end, result, binary_op,
+					iteratori_category(), 
+					iteratoro_category());
+    }
+} // end namespace
+} // end namespace
+
+#endif /* _GLIBCXX_NUMERIC_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               // -*- C++ -*-
+
+// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the terms
+// of the GNU General Public License as published by the Free Software
+// Foundation; either version 2, or (at your option) any later
+// version.
+
+// This library is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this library; see the file COPYING.  If not, write to
+// the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
+// MA 02111-1307, USA.
+
+// As a special exception, you may use this file as part of a free
+// software library without restriction.  Specifically, if other files
+// instantiate templates or use macros or inline functions from this
+// file, or you compile this file and link it with other files to
+// produce an executable, this file does not by itself cause the
+// resulting executable to be covered by the GNU General Public
+// License.  This exception does not however invalidate any other
+// reasons why the executable file might be covered by the GNU General
+// Public License.
+
+/**
+ * @file parallel/set_operations.h
+ * @brief Parallel implementations of set operations for random-access
+ * iterators.
+ *  This file is a GNU parallel extension to the Standard C++ Library.
+ */
+
+// Written by Marius Elvert and Felix Bondarenko.
+
+#ifndef _GLIBCXX_PARALLEL_SET_OPERATIONS_H
+#define _GLIBCXX_PARALLEL_SET_OPERATIONS_H 1
+
+#include <omp.h>
+
+#include <parallel/settings.h>
+#include <parallel/multiseq_selection.h>
+
+namespace __gnu_parallel
+{
+template<typename InputIterator, typename OutputIterator>
+  OutputIterator
+  copy_tail(std::pair<InputIterator, InputIterator> b,
+            std::pair<InputIterator, InputIterator> e, OutputIterator r)
+  {
+    if (b.first != e.first)
+      {
+        do
+          {
+            *r++ = *b.first++;
+          }
+        while (b.first != e.first);
+      }
+    else
+      {
+        while (b.second != e.second)
+          *r++ = *b.second++;
+      }
+    return r;
+  }
+
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename Comparator>
+  struct symmetric_difference_func
+  {
+    typedef std::iterator_traits<InputIterator> traits_type;
+    typedef typename traits_type::difference_type difference_type;
+    typedef typename std::pair<InputIterator, InputIterator> iterator_pair;
+
+    symmetric_difference_func(Comparator c) : comp(c) {}
+
+    Comparator comp;
+
+    OutputIterator
+    invoke(InputIterator a, InputIterator b,
+	   InputIterator c, InputIterator d,
+	   OutputIterator r) const
+    {
+      while (a != b && c != d)
+        {
+          if (comp(*a, *c))
+            {
+              *r = *a;
+              ++a;
+              ++r;
+            }
+          else if (comp(*c, *a))
+            {
+              *r = *c;
+              ++c;
+              ++r;
+            }
+          else
+            {
+              ++a;
+              ++c;
+            }
+        }
+      return std::copy(c, d, std::copy(a, b, r));
+    }
+
+    difference_type
+    count(InputIterator a, InputIterator b,
+	  InputIterator c, InputIterator d) const
+    {
+      difference_type counter = 0;
+
+      while (a != b && c != d)
+        {
+          if (comp(*a, *c))
+            {
+              ++a;
+              ++counter;
+            }
+          else if (comp(*c, *a))
+            {
+              ++c;
+              ++counter;
+            }
+          else
+            {
+              ++a;
+              ++c;
+            }
+        }
+
+      return counter + (b - a) + (d - c);
+    }
+
+    OutputIterator
+    first_empty(InputIterator c, InputIterator d, OutputIterator out) const
+    { return std::copy(c, d, out); }
+
+    OutputIterator
+    second_empty(InputIterator a, InputIterator b, OutputIterator out) const
+    { return std::copy(a, b, out); }
+  };
+
+
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename Comparator>
+  struct difference_func
+  {
+    typedef std::iterator_traits<InputIterator> traits_type;
+    typedef typename traits_type::difference_type difference_type;
+    typedef typename std::pair<InputIterator, InputIterator> iterator_pair;
+
+    difference_func(Comparator c) : comp(c) {}
+
+    Comparator comp;
+
+    OutputIterator
+    invoke(InputIterator a, InputIterator b, InputIterator c, InputIterator d,
+          OutputIterator r) const
+    {
+      while (a != b && c != d)
+        {
+          if (comp(*a, *c))
+            {
+              *r = *a;
+              ++a;
+              ++r;
+            }
+          else if (comp(*c, *a))
+            { ++c; }
+          else
+            {
+              ++a;
+              ++c;
+            }
+        }
+      return std::copy(a, b, r);
+    }
+
+    difference_type
+    count(InputIterator a, InputIterator b,
+	  InputIterator c, InputIterator d) const
+    {
+      difference_type counter = 0;
+
+      while (a != b && c != d)
+        {
+          if (comp(*a, *c))
+            {
+              ++a;
+              ++counter;
+            }
+          else if (comp(*c, *a))
+            { ++c; }
+          else
+            { ++a; ++c; }
+        }
+
+      return counter + (b - a);
+    }
+
+    inline OutputIterator
+    first_empty(InputIterator c, InputIterator d, OutputIterator out) const
+    { return out; }
+
+    inline OutputIterator
+    second_empty(InputIterator a, InputIterator b, OutputIterator out) const
+    { return std::copy(a, b, out); }
+  };
+
+
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename Comparator>
+  struct intersection_func
+  {
+    typedef std::iterator_traits<InputIterator> traits_type;
+    typedef typename traits_type::difference_type difference_type;
+    typedef typename std::pair<InputIterator, InputIterator> iterator_pair;
+
+    intersection_func(Comparator c) : comp(c) {}
+
+    Comparator comp;
+
+    OutputIterator
+    invoke(InputIterator a, InputIterator b, InputIterator c, InputIterator d,
+          OutputIterator r) const
+    {
+      while (a != b && c != d)
+        {
+          if (comp(*a, *c))
+            { ++a; }
+          else if (comp(*c, *a))
+            { ++c; }
+          else
+            {
+              *r = *a;
+              ++a;
+              ++c;
+              ++r;
+            }
+        }
+
+      return r;
+    }
+
+    difference_type
+    count(InputIterator a, InputIterator b,
+	  InputIterator c, InputIterator d) const
+    {
+      difference_type counter = 0;
+
+      while (a != b && c != d)
+        {
+          if (comp(*a, *c))
+            { ++a; }
+          else if (comp(*c, *a))
+            { ++c; }
+          else
+            {
+              ++a;
+              ++c;
+              ++counter;
+            }
+        }
+
+      return counter;
+    }
+
+    inline OutputIterator
+    first_empty(InputIterator c, InputIterator d, OutputIterator out) const
+    { return out; }
+
+    inline OutputIterator
+    second_empty(InputIterator a, InputIterator b, OutputIterator out) const
+    { return out; }
+  };
+
+template<class InputIterator, class OutputIterator, class Comparator>
+  struct union_func
+  {
+    typedef typename std::iterator_traits<InputIterator>::difference_type
+    difference_type;
+
+    union_func(Comparator c) : comp(c) {}
+
+    Comparator comp;
+
+    OutputIterator
+    invoke(InputIterator a, const InputIterator b, InputIterator c,
+          const InputIterator d, OutputIterator r) const
+    {
+      while (a != b && c != d)
+        {
+          if (comp(*a, *c))
+            {
+              *r = *a;
+              ++a;
+            }
+          else if (comp(*c, *a))
+            {
+              *r = *c;
+              ++c;
+            }
+          else
+            {
+              *r = *a;
+              ++a;
+              ++c;
+            }
+          ++r;
+        }
+      return std::copy(c, d, std::copy(a, b, r));
+    }
+
+    difference_type
+    count(InputIterator a, InputIterator b,
+	  InputIterator c, InputIterator d) const
+    {
+      difference_type counter = 0;
+
+      while (a != b && c != d)
+        {
+          if (comp(*a, *c))
+            { ++a; }
+          else if (comp(*c, *a))
+            { ++c; }
+          else
+            {
+              ++a;
+              ++c;
+            }
+          ++counter;
+        }
+
+      counter += (b - a);
+      counter += (d - c);
+      return counter;
+    }
+
+    inline OutputIterator
+    first_empty(InputIterator c, InputIterator d, OutputIterator out) const
+    { return std::copy(c, d, out); }
+
+    inline OutputIterator
+    second_empty(InputIterator a, InputIterator b, OutputIterator out) const
+    { return std::copy(a, b, out); }
+  };
+
+template<typename InputIterator,
+	 typename OutputIterator,
+	 typename Operation>
+  OutputIterator
+  parallel_set_operation(InputIterator begin1, InputIterator end1,
+                         InputIterator begin2, InputIterator end2,
+                         OutputIterator result, Operation op)
+  {
+    _GLIBCXX_CALL((end1 - begin1) + (end2 - begin2))
+
+    typedef std::iterator_traits<InputIterator> traits_type;
+    typedef typename traits_type::difference_type difference_type;
+    typedef typename std::pair<InputIterator, InputIterator> iterator_pair;
+
+    if (begin1 == end1)
+      return op.first_empty(begin2, end2, result);
+
+    if (begin2 == end2)
+      return op.second_empty(begin1, end1, result);
+
+    const difference_type size = (end1 - begin1) + (end2 - begin2);
+
+    const iterator_pair sequence[ 2 ] =
+        { std::make_pair(begin1, end1), std::make_pair(begin2, end2) } ;
+    OutputIterator return_value = result;
+    difference_type *borders;
+    iterator_pair *block_begins;
+    difference_type* lengths;
+
+    thread_index_t num_threads =
+        std::min<difference_type>(get_max_threads(),
+            std::min(end1 - begin1, end2 - begin2));
+
+#   pragma omp parallel num_threads(num_threads)
+      {
+#       pragma omp single
+          {
+            num_threads = omp_get_num_threads();
+
+            borders = new difference_type[num_threads + 2];
+            equally_split(size, num_threads + 1, borders);
+            block_begins = new iterator_pair[num_threads + 1];
+            // Very start.
+            block_begins[0] = std::make_pair(begin1, begin2);
+            lengths = new difference_type[num_threads];
+          } //single
+
+        thread_index_t iam = omp_get_thread_num();
+
+        // Result from multiseq_partition.
+        InputIterator offset[2];
+        const difference_type rank = borders[iam + 1];
+
+        multiseq_partition(sequence, sequence + 2, rank, offset, op.comp);
+
+        // allowed to read?
+        // together
+        // *(offset[ 0 ] - 1) == *offset[ 1 ]
+        if (offset[ 0 ] != begin1 && offset[ 1 ] != end2
+            && !op.comp(*(offset[ 0 ] - 1), *offset[ 1 ])
+            && !op.comp(*offset[ 1 ], *(offset[ 0 ] - 1)))
+          {
+            // Avoid split between globally equal elements: move one to
+            // front in first sequence.
+            --offset[ 0 ];
+          }
+
+        iterator_pair block_end = block_begins[ iam + 1 ] =
+            iterator_pair(offset[ 0 ], offse

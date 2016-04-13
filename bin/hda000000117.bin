@@ -1,0 +1,1769 @@
+_GNU_Power_ABI_Vector (8)
+     The vector ABI used by this object file.  The value will be:
+
+        * 0 for files not affected by the vector ABI.
+
+        * 1 for files using general purpose registers to pass vectors.
+
+        * 2 for files using AltiVec registers to pass vectors.
+
+        * 3 for files using SPE registers to pass vectors.
+
+
+File: as.info,  Node: Defining New Object Attributes,  Prev: GNU Object Attributes,  Up: Object Attributes
+
+8.2 Defining New Object Attributes
+==================================
+
+If you want to define a new GNU object attribute, here are the places
+you will need to modify.  New attributes should be discussed on the
+`binutils' mailing list.
+
+   * This manual, which is the official register of attributes.
+
+   * The header for your architecture `include/elf', to define the tag.
+
+   * The `bfd' support file for your architecture, to merge the
+     attribute and issue any appropriate link warnings.
+
+   * Test cases in `ld/testsuite' for merging and link warnings.
+
+   * `binutils/readelf.c' to display your attribute.
+
+   * GCC, if you want the compiler to mark the attribute automatically.
+
+
+File: as.info,  Node: Machine Dependencies,  Next: Reporting Bugs,  Prev: Object Attributes,  Up: Top
+
+9 Machine Dependent Features
+****************************
+
+The machine instruction sets are (almost by definition) different on
+each machine where `as' runs.  Floating point representations vary as
+well, and `as' often supports a few additional directives or
+command-line options for compatibility with other assemblers on a
+particular platform.  Finally, some versions of `as' support special
+pseudo-instructions for branch optimization.
+
+   This chapter discusses most of these differences, though it does not
+include details on any machine's instruction set.  For details on that
+subject, see the hardware manufacturer's manual.
+
+* Menu:
+
+
+* Alpha-Dependent::		Alpha Dependent Features
+
+* ARC-Dependent::               ARC Dependent Features
+
+* ARM-Dependent::               ARM Dependent Features
+
+* AVR-Dependent::               AVR Dependent Features
+
+* Blackfin-Dependent::		Blackfin Dependent Features
+
+* CR16-Dependent::              CR16 Dependent Features
+
+* CRIS-Dependent::              CRIS Dependent Features
+
+* D10V-Dependent::              D10V Dependent Features
+
+* D30V-Dependent::              D30V Dependent Features
+
+* H8/300-Dependent::            Renesas H8/300 Dependent Features
+
+* HPPA-Dependent::              HPPA Dependent Features
+
+* ESA/390-Dependent::           IBM ESA/390 Dependent Features
+
+* i386-Dependent::              Intel 80386 and AMD x86-64 Dependent Features
+
+* i860-Dependent::              Intel 80860 Dependent Features
+
+* i960-Dependent::              Intel 80960 Dependent Features
+
+* IA-64-Dependent::             Intel IA-64 Dependent Features
+
+* IP2K-Dependent::              IP2K Dependent Features
+
+* LM32-Dependent::              LM32 Dependent Features
+
+* M32C-Dependent::              M32C Dependent Features
+
+* M32R-Dependent::              M32R Dependent Features
+
+* M68K-Dependent::              M680x0 Dependent Features
+
+* M68HC11-Dependent::           M68HC11 and 68HC12 Dependent Features
+
+* MicroBlaze-Dependent::	MICROBLAZE Dependent Features
+
+* MIPS-Dependent::              MIPS Dependent Features
+
+* MMIX-Dependent::              MMIX Dependent Features
+
+* MSP430-Dependent::		MSP430 Dependent Features
+
+* SH-Dependent::                Renesas / SuperH SH Dependent Features
+* SH64-Dependent::              SuperH SH64 Dependent Features
+
+* PDP-11-Dependent::            PDP-11 Dependent Features
+
+* PJ-Dependent::                picoJava Dependent Features
+
+* PPC-Dependent::               PowerPC Dependent Features
+
+* RX-Dependent::                RX Dependent Features
+
+* S/390-Dependent::             IBM S/390 Dependent Features
+
+* SCORE-Dependent::             SCORE Dependent Features
+
+* Sparc-Dependent::             SPARC Dependent Features
+
+* TIC54X-Dependent::            TI TMS320C54x Dependent Features
+
+* TIC6X-Dependent ::            TI TMS320C6x Dependent Features
+
+* V850-Dependent::              V850 Dependent Features
+
+* Xtensa-Dependent::            Xtensa Dependent Features
+
+* Z80-Dependent::               Z80 Dependent Features
+
+* Z8000-Dependent::             Z8000 Dependent Features
+
+* Vax-Dependent::               VAX Dependent Features
+
+
+File: as.info,  Node: Alpha-Dependent,  Next: ARC-Dependent,  Up: Machine Dependencies
+
+9.1 Alpha Dependent Features
+============================
+
+* Menu:
+
+* Alpha Notes::                Notes
+* Alpha Options::              Options
+* Alpha Syntax::               Syntax
+* Alpha Floating Point::       Floating Point
+* Alpha Directives::           Alpha Machine Directives
+* Alpha Opcodes::              Opcodes
+
+
+File: as.info,  Node: Alpha Notes,  Next: Alpha Options,  Up: Alpha-Dependent
+
+9.1.1 Notes
+-----------
+
+The documentation here is primarily for the ELF object format.  `as'
+also supports the ECOFF and EVAX formats, but features specific to
+these formats are not yet documented.
+
+
+File: as.info,  Node: Alpha Options,  Next: Alpha Syntax,  Prev: Alpha Notes,  Up: Alpha-Dependent
+
+9.1.2 Options
+-------------
+
+`-mCPU'
+     This option specifies the target processor.  If an attempt is made
+     to assemble an instruction which will not execute on the target
+     processor, the assembler may either expand the instruction as a
+     macro or issue an error message.  This option is equivalent to the
+     `.arch' directive.
+
+     The following processor names are recognized: `21064', `21064a',
+     `21066', `21068', `21164', `21164a', `21164pc', `21264', `21264a',
+     `21264b', `ev4', `ev5', `lca45', `ev5', `ev56', `pca56', `ev6',
+     `ev67', `ev68'.  The special name `all' may be used to allow the
+     assembler to accept instructions valid for any Alpha processor.
+
+     In order to support existing practice in OSF/1 with respect to
+     `.arch', and existing practice within `MILO' (the Linux ARC
+     bootloader), the numbered processor names (e.g. 21064) enable the
+     processor-specific PALcode instructions, while the
+     "electro-vlasic" names (e.g. `ev4') do not.
+
+`-mdebug'
+`-no-mdebug'
+     Enables or disables the generation of `.mdebug' encapsulation for
+     stabs directives and procedure descriptors.  The default is to
+     automatically enable `.mdebug' when the first stabs directive is
+     seen.
+
+`-relax'
+     This option forces all relocations to be put into the object file,
+     instead of saving space and resolving some relocations at assembly
+     time.  Note that this option does not propagate all symbol
+     arithmetic into the object file, because not all symbol arithmetic
+     can be represented.  However, the option can still be useful in
+     specific applications.
+
+`-replace'
+`-noreplace'
+     Enables or disables the optimization of procedure calls, both at
+     assemblage and at link time.  These options are only available for
+     VMS targets and `-replace' is the default.  See section 1.4.1 of
+     the OpenVMS Linker Utility Manual.
+
+`-g'
+     This option is used when the compiler generates debug information.
+     When `gcc' is using `mips-tfile' to generate debug information
+     for ECOFF, local labels must be passed through to the object file.
+     Otherwise this option has no effect.
+
+`-GSIZE'
+     A local common symbol larger than SIZE is placed in `.bss', while
+     smaller symbols are placed in `.sbss'.
+
+`-F'
+`-32addr'
+     These options are ignored for backward compatibility.
+
+
+File: as.info,  Node: Alpha Syntax,  Next: Alpha Floating Point,  Prev: Alpha Options,  Up: Alpha-Dependent
+
+9.1.3 Syntax
+------------
+
+The assembler syntax closely follow the Alpha Reference Manual;
+assembler directives and general syntax closely follow the OSF/1 and
+OpenVMS syntax, with a few differences for ELF.
+
+* Menu:
+
+* Alpha-Chars::                Special Characters
+* Alpha-Regs::                 Register Names
+* Alpha-Relocs::               Relocations
+
+
+File: as.info,  Node: Alpha-Chars,  Next: Alpha-Regs,  Up: Alpha Syntax
+
+9.1.3.1 Special Characters
+..........................
+
+`#' is the line comment character.
+
+   `;' can be used instead of a newline to separate statements.
+
+
+File: as.info,  Node: Alpha-Regs,  Next: Alpha-Relocs,  Prev: Alpha-Chars,  Up: Alpha Syntax
+
+9.1.3.2 Register Names
+......................
+
+The 32 integer registers are referred to as `$N' or `$rN'.  In
+addition, registers 15, 28, 29, and 30 may be referred to by the
+symbols `$fp', `$at', `$gp', and `$sp' respectively.
+
+   The 32 floating-point registers are referred to as `$fN'.
+
+
+File: as.info,  Node: Alpha-Relocs,  Prev: Alpha-Regs,  Up: Alpha Syntax
+
+9.1.3.3 Relocations
+...................
+
+Some of these relocations are available for ECOFF, but mostly only for
+ELF.  They are modeled after the relocation format introduced in
+Digital Unix 4.0, but there are additions.
+
+   The format is `!TAG' or `!TAG!NUMBER' where TAG is the name of the
+relocation.  In some cases NUMBER is used to relate specific
+instructions.
+
+   The relocation is placed at the end of the instruction like so:
+
+     ldah  $0,a($29)    !gprelhigh
+     lda   $0,a($0)     !gprellow
+     ldq   $1,b($29)    !literal!100
+     ldl   $2,0($1)     !lituse_base!100
+
+`!literal'
+`!literal!N'
+     Used with an `ldq' instruction to load the address of a symbol
+     from the GOT.
+
+     A sequence number N is optional, and if present is used to pair
+     `lituse' relocations with this `literal' relocation.  The `lituse'
+     relocations are used by the linker to optimize the code based on
+     the final location of the symbol.
+
+     Note that these optimizations are dependent on the data flow of the
+     program.  Therefore, if _any_ `lituse' is paired with a `literal'
+     relocation, then _all_ uses of the register set by the `literal'
+     instruction must also be marked with `lituse' relocations.  This
+     is because the original `literal' instruction may be deleted or
+     transformed into another instruction.
+
+     Also note that there may be a one-to-many relationship between
+     `literal' and `lituse', but not a many-to-one.  That is, if there
+     are two code paths that load up the same address and feed the
+     value to a single use, then the use may not use a `lituse'
+     relocation.
+
+`!lituse_base!N'
+     Used with any memory format instruction (e.g. `ldl') to indicate
+     that the literal is used for an address load.  The offset field of
+     the instruction must be zero.  During relaxation, the code may be
+     altered to use a gp-relative load.
+
+`!lituse_jsr!N'
+     Used with a register branch format instruction (e.g. `jsr') to
+     indicate that the literal is used for a call.  During relaxation,
+     the code may be altered to use a direct branch (e.g. `bsr').
+
+`!lituse_jsrdirect!N'
+     Similar to `lituse_jsr', but also that this call cannot be vectored
+     through a PLT entry.  This is useful for functions with special
+     calling conventions which do not allow the normal call-clobbered
+     registers to be clobbered.
+
+`!lituse_bytoff!N'
+     Used with a byte mask instruction (e.g. `extbl') to indicate that
+     only the low 3 bits of the address are relevant.  During
+     relaxation, the code may be altered to use an immediate instead of
+     a register shift.
+
+`!lituse_addr!N'
+     Used with any other instruction to indicate that the original
+     address is in fact used, and the original `ldq' instruction may
+     not be altered or deleted.  This is useful in conjunction with
+     `lituse_jsr' to test whether a weak symbol is defined.
+
+          ldq  $27,foo($29)   !literal!1
+          beq  $27,is_undef   !lituse_addr!1
+          jsr  $26,($27),foo  !lituse_jsr!1
+
+`!lituse_tlsgd!N'
+     Used with a register branch format instruction to indicate that the
+     literal is the call to `__tls_get_addr' used to compute the
+     address of the thread-local storage variable whose descriptor was
+     loaded with `!tlsgd!N'.
+
+`!lituse_tlsldm!N'
+     Used with a register branch format instruction to indicate that the
+     literal is the call to `__tls_get_addr' used to compute the
+     address of the base of the thread-local storage block for the
+     current module.  The descriptor for the module must have been
+     loaded with `!tlsldm!N'.
+
+`!gpdisp!N'
+     Used with `ldah' and `lda' to load the GP from the current
+     address, a-la the `ldgp' macro.  The source register for the
+     `ldah' instruction must contain the address of the `ldah'
+     instruction.  There must be exactly one `lda' instruction paired
+     with the `ldah' instruction, though it may appear anywhere in the
+     instruction stream.  The immediate operands must be zero.
+
+          bsr  $26,foo
+          ldah $29,0($26)     !gpdisp!1
+          lda  $29,0($29)     !gpdisp!1
+
+`!gprelhigh'
+     Used with an `ldah' instruction to add the high 16 bits of a
+     32-bit displacement from the GP.
+
+`!gprellow'
+     Used with any memory format instruction to add the low 16 bits of a
+     32-bit displacement from the GP.
+
+`!gprel'
+     Used with any memory format instruction to add a 16-bit
+     displacement from the GP.
+
+`!samegp'
+     Used with any branch format instruction to skip the GP load at the
+     target address.  The referenced symbol must have the same GP as the
+     source object file, and it must be declared to either not use `$27'
+     or perform a standard GP load in the first two instructions via the
+     `.prologue' directive.
+
+`!tlsgd'
+`!tlsgd!N'
+     Used with an `lda' instruction to load the address of a TLS
+     descriptor for a symbol in the GOT.
+
+     The sequence number N is optional, and if present it used to pair
+     the descriptor load with both the `literal' loading the address of
+     the `__tls_get_addr' function and the `lituse_tlsgd' marking the
+     call to that function.
+
+     For proper relaxation, both the `tlsgd', `literal' and `lituse'
+     relocations must be in the same extended basic block.  That is,
+     the relocation with the lowest address must be executed first at
+     runtime.
+
+`!tlsldm'
+`!tlsldm!N'
+     Used with an `lda' instruction to load the address of a TLS
+     descriptor for the current module in the GOT.
+
+     Similar in other respects to `tlsgd'.
+
+`!gotdtprel'
+     Used with an `ldq' instruction to load the offset of the TLS
+     symbol within its module's thread-local storage block.  Also known
+     as the dynamic thread pointer offset or dtp-relative offset.
+
+`!dtprelhi'
+`!dtprello'
+`!dtprel'
+     Like `gprel' relocations except they compute dtp-relative offsets.
+
+`!gottprel'
+     Used with an `ldq' instruction to load the offset of the TLS
+     symbol from the thread pointer.  Also known as the tp-relative
+     offset.
+
+`!tprelhi'
+`!tprello'
+`!tprel'
+     Like `gprel' relocations except they compute tp-relative offsets.
+
+
+File: as.info,  Node: Alpha Floating Point,  Next: Alpha Directives,  Prev: Alpha Syntax,  Up: Alpha-Dependent
+
+9.1.4 Floating Point
+--------------------
+
+The Alpha family uses both IEEE and VAX floating-point numbers.
+
+
+File: as.info,  Node: Alpha Directives,  Next: Alpha Opcodes,  Prev: Alpha Floating Point,  Up: Alpha-Dependent
+
+9.1.5 Alpha Assembler Directives
+--------------------------------
+
+`as' for the Alpha supports many additional directives for
+compatibility with the native assembler.  This section describes them
+only briefly.
+
+   These are the additional directives in `as' for the Alpha:
+
+`.arch CPU'
+     Specifies the target processor.  This is equivalent to the `-mCPU'
+     command-line option.  *Note Options: Alpha Options, for a list of
+     values for CPU.
+
+`.ent FUNCTION[, N]'
+     Mark the beginning of FUNCTION.  An optional number may follow for
+     compatibility with the OSF/1 assembler, but is ignored.  When
+     generating `.mdebug' information, this will create a procedure
+     descriptor for the function.  In ELF, it will mark the symbol as a
+     function a-la the generic `.type' directive.
+
+`.end FUNCTION'
+     Mark the end of FUNCTION.  In ELF, it will set the size of the
+     symbol a-la the generic `.size' directive.
+
+`.mask MASK, OFFSET'
+     Indicate which of the integer registers are saved in the current
+     function's stack frame.  MASK is interpreted a bit mask in which
+     bit N set indicates that register N is saved.  The registers are
+     saved in a block located OFFSET bytes from the "canonical frame
+     address" (CFA) which is the value of the stack pointer on entry to
+     the function.  The registers are saved sequentially, except that
+     the return address register (normally `$26') is saved first.
+
+     This and the other directives that describe the stack frame are
+     currently only used when generating `.mdebug' information.  They
+     may in the future be used to generate DWARF2 `.debug_frame' unwind
+     information for hand written assembly.
+
+`.fmask MASK, OFFSET'
+     Indicate which of the floating-point registers are saved in the
+     current stack frame.  The MASK and OFFSET parameters are
+     interpreted as with `.mask'.
+
+`.frame FRAMEREG, FRAMEOFFSET, RETREG[, ARGOFFSET]'
+     Describes the shape of the stack frame.  The frame pointer in use
+     is FRAMEREG; normally this is either `$fp' or `$sp'.  The frame
+     pointer is FRAMEOFFSET bytes below the CFA.  The return address is
+     initially located in RETREG until it is saved as indicated in
+     `.mask'.  For compatibility with OSF/1 an optional ARGOFFSET
+     parameter is accepted and ignored.  It is believed to indicate the
+     offset from the CFA to the saved argument registers.
+
+`.prologue N'
+     Indicate that the stack frame is set up and all registers have been
+     spilled.  The argument N indicates whether and how the function
+     uses the incoming "procedure vector" (the address of the called
+     function) in `$27'.  0 indicates that `$27' is not used; 1
+     indicates that the first two instructions of the function use `$27'
+     to perform a load of the GP register; 2 indicates that `$27' is
+     used in some non-standard way and so the linker cannot elide the
+     load of the procedure vector during relaxation.
+
+`.usepv FUNCTION, WHICH'
+     Used to indicate the use of the `$27' register, similar to
+     `.prologue', but without the other semantics of needing to be
+     inside an open `.ent'/`.end' block.
+
+     The WHICH argument should be either `no', indicating that `$27' is
+     not used, or `std', indicating that the first two instructions of
+     the function perform a GP load.
+
+     One might use this directive instead of `.prologue' if you are
+     also using dwarf2 CFI directives.
+
+`.gprel32 EXPRESSION'
+     Computes the difference between the address in EXPRESSION and the
+     GP for the current object file, and stores it in 4 bytes.  In
+     addition to being smaller than a full 8 byte address, this also
+     does not require a dynamic relocation when used in a shared
+     library.
+
+`.t_floating EXPRESSION'
+     Stores EXPRESSION as an IEEE double precision value.
+
+`.s_floating EXPRESSION'
+     Stores EXPRESSION as an IEEE single precision value.
+
+`.f_floating EXPRESSION'
+     Stores EXPRESSION as a VAX F format value.
+
+`.g_floating EXPRESSION'
+     Stores EXPRESSION as a VAX G format value.
+
+`.d_floating EXPRESSION'
+     Stores EXPRESSION as a VAX D format value.
+
+`.set FEATURE'
+     Enables or disables various assembler features.  Using the positive
+     name of the feature enables while using `noFEATURE' disables.
+
+    `at'
+          Indicates that macro expansions may clobber the "assembler
+          temporary" (`$at' or `$28') register.  Some macros may not be
+          expanded without this and will generate an error message if
+          `noat' is in effect.  When `at' is in effect, a warning will
+          be generated if `$at' is used by the programmer.
+
+    `macro'
+          Enables the expansion of macro instructions.  Note that
+          variants of real instructions, such as `br label' vs `br
+          $31,label' are considered alternate forms and not macros.
+
+    `move'
+    `reorder'
+    `volatile'
+          These control whether and how the assembler may re-order
+          instructions.  Accepted for compatibility with the OSF/1
+          assembler, but `as' does not do instruction scheduling, so
+          these features are ignored.
+
+   The following directives are recognized for compatibility with the
+OSF/1 assembler but are ignored.
+
+     .proc           .aproc
+     .reguse         .livereg
+     .option         .aent
+     .ugen           .eflag
+     .alias          .noalias
+
+
+File: as.info,  Node: Alpha Opcodes,  Prev: Alpha Directives,  Up: Alpha-Dependent
+
+9.1.6 Opcodes
+-------------
+
+For detailed information on the Alpha machine instruction set, see the
+Alpha Architecture Handbook
+(ftp://ftp.digital.com/pub/Digital/info/semiconductor/literature/alphaahb.pdf).
+
+
+File: as.info,  Node: ARC-Dependent,  Next: ARM-Dependent,  Prev: Alpha-Dependent,  Up: Machine Dependencies
+
+9.2 ARC Dependent Features
+==========================
+
+* Menu:
+
+* ARC Options::              Options
+* ARC Syntax::               Syntax
+* ARC Floating Point::       Floating Point
+* ARC Directives::           ARC Machine Directives
+* ARC Opcodes::              Opcodes
+
+
+File: as.info,  Node: ARC Options,  Next: ARC Syntax,  Up: ARC-Dependent
+
+9.2.1 Options
+-------------
+
+`-marc[5|6|7|8]'
+     This option selects the core processor variant.  Using `-marc' is
+     the same as `-marc6', which is also the default.
+
+    `arc5'
+          Base instruction set.
+
+    `arc6'
+          Jump-and-link (jl) instruction.  No requirement of an
+          instruction between setting flags and conditional jump.  For
+          example:
+
+                 mov.f r0,r1
+                 beq   foo
+
+    `arc7'
+          Break (brk) and sleep (sleep) instructions.
+
+    `arc8'
+          Software interrupt (swi) instruction.
+
+
+     Note: the `.option' directive can to be used to select a core
+     variant from within assembly code.
+
+`-EB'
+     This option specifies that the output generated by the assembler
+     should be marked as being encoded for a big-endian processor.
+
+`-EL'
+     This option specifies that the output generated by the assembler
+     should be marked as being encoded for a little-endian processor -
+     this is the default.
+
+
+
+File: as.info,  Node: ARC Syntax,  Next: ARC Floating Point,  Prev: ARC Options,  Up: ARC-Dependent
+
+9.2.2 Syntax
+------------
+
+* Menu:
+
+* ARC-Chars::                Special Characters
+* ARC-Regs::                 Register Names
+
+
+File: as.info,  Node: ARC-Chars,  Next: ARC-Regs,  Up: ARC Syntax
+
+9.2.2.1 Special Characters
+..........................
+
+*TODO*
+
+
+File: as.info,  Node: ARC-Regs,  Prev: ARC-Chars,  Up: ARC Syntax
+
+9.2.2.2 Register Names
+......................
+
+*TODO*
+
+
+File: as.info,  Node: ARC Floating Point,  Next: ARC Directives,  Prev: ARC Syntax,  Up: ARC-Dependent
+
+9.2.3 Floating Point
+--------------------
+
+The ARC core does not currently have hardware floating point support.
+Software floating point support is provided by `GCC' and uses IEEE
+floating-point numbers.
+
+
+File: as.info,  Node: ARC Directives,  Next: ARC Opcodes,  Prev: ARC Floating Point,  Up: ARC-Dependent
+
+9.2.4 ARC Machine Directives
+----------------------------
+
+The ARC version of `as' supports the following additional machine
+directives:
+
+`.2byte EXPRESSIONS'
+     *TODO*
+
+`.3byte EXPRESSIONS'
+     *TODO*
+
+`.4byte EXPRESSIONS'
+     *TODO*
+
+`.extAuxRegister NAME,ADDRESS,MODE'
+     The ARCtangent A4 has extensible auxiliary register space.  The
+     auxiliary registers can be defined in the assembler source code by
+     using this directive.  The first parameter is the NAME of the new
+     auxiallry register.  The second parameter is the ADDRESS of the
+     register in the auxiliary register memory map for the variant of
+     the ARC.  The third parameter specifies the MODE in which the
+     register can be operated is and it can be one of:
+
+    `r          (readonly)'
+
+    `w          (write only)'
+
+    `r|w        (read or write)'
+
+     For example:
+
+            .extAuxRegister mulhi,0x12,w
+
+     This specifies an extension auxiliary register called _mulhi_
+     which is at address 0x12 in the memory space and which is only
+     writable.
+
+`.extCondCode SUFFIX,VALUE'
+     The condition codes on the ARCtangent A4 are extensible and can be
+     specified by means of this assembler directive.  They are specified
+     by the suffix and the value for the condition code.  They can be
+     used to specify extra condition codes with any values.  For
+     example:
+
+            .extCondCode is_busy,0x14
+
+             add.is_busy  r1,r2,r3
+             bis_busy     _main
+
+`.extCoreRegister NAME,REGNUM,MODE,SHORTCUT'
+     Specifies an extension core register NAME for the application.
+     This allows a register NAME with a valid REGNUM between 0 and 60,
+     with the following as valid values for MODE
+
+    `_r_   (readonly)'
+
+    `_w_   (write only)'
+
+    `_r|w_ (read or write)'
+
+     The other parameter gives a description of the register having a
+     SHORTCUT in the pipeline.  The valid values are:
+
+    `can_shortcut'
+
+    `cannot_shortcut'
+
+     For example:
+
+            .extCoreRegister mlo,57,r,can_shortcut
+
+     This defines an extension core register mlo with the value 57 which
+     can shortcut the pipeline.
+
+`.extInstruction NAME,OPCODE,SUBOPCODE,SUFFIXCLASS,SYNTAXCLASS'
+     The ARCtangent A4 allows the user to specify extension
+     instructions.  The extension instructions are not macros.  The
+     assembler creates encodings for use of these instructions
+     according to the specification by the user.  The parameters are:
+
+    *NAME
+          Name of the extension instruction
+
+    *OPCODE
+          Opcode to be used. (Bits 27:31 in the encoding).  Valid values
+          0x10-0x1f or 0x03
+
+    *SUBOPCODE
+          Subopcode to be used.  Valid values are from 0x09-0x3f.
+          However the correct value also depends on SYNTAXCLASS
+
+    *SUFFIXCLASS
+          Determines the kinds of suffixes to be allowed.  Valid values
+          are `SUFFIX_NONE', `SUFFIX_COND', `SUFFIX_FLAG' which
+          indicates the absence or presence of conditional suffixes and
+          flag setting by the extension instruction.  It is also
+          possible to specify that an instruction sets the flags and is
+          conditional by using `SUFFIX_CODE' | `SUFFIX_FLAG'.
+
+    *SYNTAXCLASS
+          Determines the syntax class for the instruction.  It can have
+          the following values:
+
+         ``SYNTAX_2OP':'
+               2 Operand Instruction
+
+         ``SYNTAX_3OP':'
+               3 Operand Instruction
+
+          In addition there could be modifiers for the syntax class as
+          described below:
+
+               Syntax Class Modifiers are:
+
+             - `OP1_MUST_BE_IMM': Modifies syntax class SYNTAX_3OP,
+               specifying that the first operand of a three-operand
+               instruction must be an immediate (i.e., the result is
+               discarded).  OP1_MUST_BE_IMM is used by bitwise ORing it
+               with SYNTAX_3OP as given in the example below.  This
+               could usually be used to set the flags using specific
+               instructions and not retain results.
+
+             - `OP1_IMM_IMPLIED': Modifies syntax class SYNTAX_20P, it
+               specifies that there is an implied immediate destination
+               operand which does not appear in the syntax.  For
+               example, if the source code contains an instruction like:
+
+                    inst r1,r2
+
+               it really means that the first argument is an implied
+               immediate (that is, the result is discarded).  This is
+               the same as though the source code were: inst 0,r1,r2.
+               You use OP1_IMM_IMPLIED by bitwise ORing it with
+               SYNTAX_20P.
+
+
+     For example, defining 64-bit multiplier with immediate operands:
+
+          .extInstruction mp64,0x14,0x0,SUFFIX_COND | SUFFIX_FLAG ,
+                          SYNTAX_3OP|OP1_MUST_BE_IMM
+
+     The above specifies an extension instruction called mp64 which has
+     3 operands, sets the flags, can be used with a condition code, for
+     which the first operand is an immediate.  (Equivalent to
+     discarding the result of the operation).
+
+           .extInstruction mul64,0x14,0x00,SUFFIX_COND, SYNTAX_2OP|OP1_IMM_IMPLIED
+
+     This describes a 2 operand instruction with an implicit first
+     immediate operand.  The result of this operation would be
+     discarded.
+
+`.half EXPRESSIONS'
+     *TODO*
+
+`.long EXPRESSIONS'
+     *TODO*
+
+`.option ARC|ARC5|ARC6|ARC7|ARC8'
+     The `.option' directive must be followed by the desired core
+     version. Again `arc' is an alias for `arc6'.
+
+     Note: the `.option' directive overrides the command line option
+     `-marc'; a warning is emitted when the version is not consistent
+     between the two - even for the implicit default core version
+     (arc6).
+
+`.short EXPRESSIONS'
+     *TODO*
+
+`.word EXPRESSIONS'
+     *TODO*
+
+
+
+File: as.info,  Node: ARC Opcodes,  Prev: ARC Directives,  Up: ARC-Dependent
+
+9.2.5 Opcodes
+-------------
+
+For information on the ARC instruction set, see `ARC Programmers
+Reference Manual', ARC International (www.arc.com)
+
+
+File: as.info,  Node: ARM-Dependent,  Next: AVR-Dependent,  Prev: ARC-Dependent,  Up: Machine Dependencies
+
+9.3 ARM Dependent Features
+==========================
+
+* Menu:
+
+* ARM Options::              Options
+* ARM Syntax::               Syntax
+* ARM Floating Point::       Floating Point
+* ARM Directives::           ARM Machine Directives
+* ARM Opcodes::              Opcodes
+* ARM Mapping Symbols::      Mapping Symbols
+* ARM Unwinding Tutorial::   Unwinding
+
+
+File: as.info,  Node: ARM Options,  Next: ARM Syntax,  Up: ARM-Dependent
+
+9.3.1 Options
+-------------
+
+`-mcpu=PROCESSOR[+EXTENSION...]'
+     This option specifies the target processor.  The assembler will
+     issue an error message if an attempt is made to assemble an
+     instruction which will not execute on the target processor.  The
+     following processor names are recognized: `arm1', `arm2', `arm250',
+     `arm3', `arm6', `arm60', `arm600', `arm610', `arm620', `arm7',
+     `arm7m', `arm7d', `arm7dm', `arm7di', `arm7dmi', `arm70', `arm700',
+     `arm700i', `arm710', `arm710t', `arm720', `arm720t', `arm740t',
+     `arm710c', `arm7100', `arm7500', `arm7500fe', `arm7t', `arm7tdmi',
+     `arm7tdmi-s', `arm8', `arm810', `strongarm', `strongarm1',
+     `strongarm110', `strongarm1100', `strongarm1110', `arm9', `arm920',
+     `arm920t', `arm922t', `arm940t', `arm9tdmi', `fa526' (Faraday
+     FA526 processor), `fa626' (Faraday FA626 processor), `arm9e',
+     `arm926e', `arm926ej-s', `arm946e-r0', `arm946e', `arm946e-s',
+     `arm966e-r0', `arm966e', `arm966e-s', `arm968e-s', `arm10t',
+     `arm10tdmi', `arm10e', `arm1020', `arm1020t', `arm1020e',
+     `arm1022e', `arm1026ej-s', `fa626te' (Faraday FA626TE processor),
+     `fa726te' (Faraday FA726TE processor), `arm1136j-s', `arm1136jf-s',
+     `arm1156t2-s', `arm1156t2f-s', `arm1176jz-s', `arm1176jzf-s',
+     `mpcore', `mpcorenovfp', `cortex-a5', `cortex-a8', `cortex-a9',
+     `cortex-a15', `cortex-r4', `cortex-r4f', `cortex-m4', `cortex-m3',
+     `cortex-m1', `cortex-m0', `ep9312' (ARM920 with Cirrus Maverick
+     coprocessor), `i80200' (Intel XScale processor) `iwmmxt' (Intel(r)
+     XScale processor with Wireless MMX(tm) technology coprocessor) and
+     `xscale'.  The special name `all' may be used to allow the
+     assembler to accept instructions valid for any ARM processor.
+
+     In addition to the basic instruction set, the assembler can be
+     told to accept various extension mnemonics that extend the
+     processor using the co-processor instruction space.  For example,
+     `-mcpu=arm920+maverick' is equivalent to specifying `-mcpu=ep9312'.
+
+     Multiple extensions may be specified, separated by a `+'.  The
+     extensions should be specified in ascending alphabetical order.
+
+     Some extensions may be restricted to particular architectures;
+     this is documented in the list of extensions below.
+
+     Extension mnemonics may also be removed from those the assembler
+     accepts.  This is done be prepending `no' to the option that adds
+     the extension.  Extensions that are removed should be listed after
+     all extensions which have been added, again in ascending
+     alphabetical order.  For example, `-mcpu=ep9312+nomaverick' is
+     equivalent to specifying `-mcpu=arm920'.
+
+     The following extensions are currently supported: `idiv', (Integer
+     Divide Extensions for v7-A architecture), `iwmmxt', `iwmmxt2',
+     `maverick', `mp' (Multiprocessing Extensions for v7-A and v7-R
+     architectures), `os' (Operating System for v6M architecture),
+     `sec' (Security Extensions for v6K and v7-A architectures), `virt'
+     (Virtualization Extensions for v7-A architecture, implies `idiv'),
+     and `xscale'.
+
+`-march=ARCHITECTURE[+EXTENSION...]'
+     This option specifies the target architecture.  The assembler will
+     issue an error message if an attempt is made to assemble an
+     instruction which will not execute on the target architecture.
+     The following architecture names are recognized: `armv1', `armv2',
+     `armv2a', `armv2s', `armv3', `armv3m', `armv4', `armv4xm',
+     `armv4t', `armv4txm', `armv5', `armv5t', `armv5txm', `armv5te',
+     `armv5texp', `armv6', `armv6j', `armv6k', `armv6z', `armv6zk',
+     `armv6-m', `armv6s-m', `armv7', `armv7-a', `armv7-r', `armv7-m',
+     `armv7e-m', `iwmmxt' and `xscale'.  If both `-mcpu' and `-march'
+     are specified, the assembler will use the setting for `-mcpu'.
+
+     The architecture option can be extended with the same instruction
+     set extension options as the `-mcpu' option.
+
+`-mfpu=FLOATING-POINT-FORMAT'
+     This option specifies the floating point format to assemble for.
+     The assembler will issue an error message if an attempt is made to
+     assemble an instruction which will not execute on the target
+     floating point unit.  The following format options are recognized:
+     `softfpa', `fpe', `fpe2', `fpe3', `fpa', `fpa10', `fpa11',
+     `arm7500fe', `softvfp', `softvfp+vfp', `vfp', `vfp10', `vfp10-r0',
+     `vfp9', `vfpxd', `vfpv2', `vfpv3', `vfpv3-fp16', `vfpv3-d16',
+     `vfpv3-d16-fp16', `vfpv3xd', `vfpv3xd-d16', `vfpv4', `vfpv4-d16',
+     `fpv4-sp-d16', `arm1020t', `arm1020e', `arm1136jf-s', `maverick',
+     `neon', and `neon-vfpv4'.
+
+     In addition to determining which instructions are assembled, this
+     option also affects the way in which the `.double' assembler
+     directive behaves when assembling little-endian code.
+
+     The default is dependent on the processor selected.  For
+     Architecture 5 or later, the default is to assembler for VFP
+     instructions; for earlier architectures the default is to assemble
+     for FPA instructions.
+
+`-mthumb'
+     This option specifies that the assembler should start assembling
+     Thumb instructions; that is, it should behave as though the file
+     starts with a `.code 16' directive.
+
+`-mthumb-interwork'
+     This option specifies that the output generated by the assembler
+     should be marked as supporting interworking.
+
+`-mimplicit-it=never'
+`-mimplicit-it=always'
+`-mimplicit-it=arm'
+`-mimplicit-it=thumb'
+     The `-mimplicit-it' option controls the behavior of the assembler
+     when conditional instructions are not enclosed in IT blocks.
+     There are four possible behaviors.  If `never' is specified, such
+     constructs cause a warning in ARM code and an error in Thumb-2
+     code.  If `always' is specified, such constructs are accepted in
+     both ARM and Thumb-2 code, where the IT instruction is added
+     implicitly.  If `arm' is specified, such constructs are accepted
+     in ARM code and cause an error in Thumb-2 code.  If `thumb' is
+     specified, such constructs cause a warning in ARM code and are
+     accepted in Thumb-2 code.  If you omit this option, the behavior
+     is equivalent to `-mimplicit-it=arm'.
+
+`-mapcs-26'
+`-mapcs-32'
+     These options specify that the output generated by the assembler
+     should be marked as supporting the indicated version of the Arm
+     Procedure.  Calling Standard.
+
+`-matpcs'
+     This option specifies that the output generated by the assembler
+     should be marked as supporting the Arm/Thumb Procedure Calling
+     Standard.  If enabled this option will cause the assembler to
+     create an empty debugging section in the object file called
+     .arm.atpcs.  Debuggers can use this to determine the ABI being
+     used by.
+
+`-mapcs-float'
+     This indicates the floating point variant of the APCS should be
+     used.  In this variant floating point arguments are passed in FP
+     registers rather than integer registers.
+
+`-mapcs-reentrant'
+     This indicates that the reentrant variant of the APCS should be
+     used.  This variant supports position independent code.
+
+`-mfloat-abi=ABI'
+     This option specifies that the output generated by the assembler
+     should be marked as using specified floating point ABI.  The
+     following values are recognized: `soft', `softfp' and `hard'.
+
+`-meabi=VER'
+     This option specifies which EABI version the produced object files
+     should conform to.  The following values are recognized: `gnu', `4'
+     and `5'.
+
+`-EB'
+     This option specifies that the output generated by the assembler
+     should be marked as being encoded for a big-endian processor.
+
+`-EL'
+     This option specifies that the output generated by the assembler
+     should be marked as being encoded for a little-endian processor.
+
+`-k'
+     This option specifies that the output of the assembler should be
+     marked as position-independent code (PIC).
+
+`--fix-v4bx'
+     Allow `BX' instructions in ARMv4 code.  This is intended for use
+     with the linker option of the same name.
+
+`-mwarn-deprecated'
+`-mno-warn-deprecated'
+     Enable or disable warnings about using deprecated options or
+     features.  The default is to warn.
+
+
+
+File: as.info,  Node: ARM Syntax,  Next: ARM Floating Point,  Prev: ARM Options,  Up: ARM-Dependent
+
+9.3.2 Syntax
+------------
+
+* Menu:
+
+* ARM-Instruction-Set::      Instruction Set
+* ARM-Chars::                Special Characters
+* ARM-Regs::                 Register Names
+* ARM-Relocations::	     Relocations
+* ARM-Neon-Alignment::	     NEON Alignment Specifiers
+
+
+File: as.info,  Node: ARM-Instruction-Set,  Next: ARM-Chars,  Up: ARM Syntax
+
+9.3.2.1 Instruction Set Syntax
+..............................
+
+Two slightly different syntaxes are support for ARM and THUMB
+instructions.  The default, `divided', uses the old style where ARM and
+THUMB instructions had their own, separate syntaxes.  The new,
+`unified' syntax, which can be selected via the `.syntax' directive,
+and has the following main features:
+
+*
+     Immediate operands do not require a `#' prefix.
+
+*
+     The `IT' instruction may appear, and if it does it is validated
+     against subsequent conditional affixes.  In ARM mode it does not
+     generate machine code, in THUMB mode it does.
+
+*
+     For ARM instructions the conditional affixes always appear at the
+     end of the instruction.  For THUMB instructions conditional
+     affixes can be used, but only inside the scope of an `IT'
+     instruction.
+
+*
+     All of the instructions new to the V6T2 architecture (and later)
+     are available.  (Only a few such instructions can be written in the
+     `divided' syntax).
+
+*
+     The `.N' and `.W' suffixes are recognized and honored.
+
+*
+     All instructions set the flags if and only if they have an `s'
+     affix.
+
+
+File: as.info,  Node: ARM-Chars,  Next: ARM-Regs,  Prev: ARM-Instruction-Set,  Up: ARM Syntax
+
+9.3.2.2 Special Characters
+..........................
+
+The presence of a `@' on a line indicates the start of a comment that
+extends to the end of the current line.  If a `#' appears as the first
+character of a line, the whole line is treated as a comment.
+
+   The `;' character can be used instead of a newline to separate
+statements.
+
+   Either `#' or `$' can be used to indicate immediate operands.
+
+   *TODO* Explain about /data modifier on symbols.
+
+
+File: as.info,  Node: ARM-Regs,  Next: ARM-Relocations,  Prev: ARM-Chars,  Up: ARM Syntax
+
+9.3.2.3 Register Names
+......................
+
+*TODO* Explain about ARM register naming, and the predefined names.
+
+
+File: as.info,  Node: ARM-Neon-Alignment,  Prev: ARM-Relocations,  Up: ARM Syntax
+
+9.3.2.4 NEON Alignment Specifiers
+.................................
+
+Some NEON load/store instructions allow an optional address alignment
+qualifier.  The ARM documentation specifies that this is indicated by
+`@ ALIGN'. However GAS already interprets the `@' character as a "line
+comment" start, so `: ALIGN' is used instead.  For example:
+
+             vld1.8 {q0}, [r0, :128]
+
+
+File: as.info,  Node: ARM Floating Point,  Next: ARM Directives,  Prev: ARM Syntax,  Up: ARM-Dependent
+
+9.3.3 Floating Point
+--------------------
+
+The ARM family uses IEEE floating-point numbers.
+
+
+File: as.info,  Node: ARM-Relocations,  Next: ARM-Neon-Alignment,  Prev: ARM-Regs,  Up: ARM Syntax
+
+9.3.3.1 ARM relocation generation
+.................................
+
+Specific data relocations can be generated by putting the relocation
+name in parentheses after the symbol name.  For example:
+
+             .word foo(TARGET1)
+
+   This will generate an `R_ARM_TARGET1' relocation against the symbol
+FOO.  The following relocations are supported: `GOT', `GOTOFF',
+`TARGET1', `TARGET2', `SBREL', `TLSGD', `TLSLDM', `TLSLDO', `GOTTPOFF',
+`GOT_PREL' and `TPOFF'.
+
+   For compatibility with older toolchains the assembler also accepts
+`(PLT)' after branch targets.  This will generate the deprecated
+`R_ARM_PLT32' relocation.
+
+   Relocations for `MOVW' and `MOVT' instructions can be generated by
+prefixing the value with `#:lower16:' and `#:upper16' respectively.
+For example to load the 32-bit address of foo into r0:
+
+             MOVW r0, #:lower16:foo
+             MOVT r0, #:upper16:foo
+
+
+File: as.info,  Node: ARM Directives,  Next: ARM Opcodes,  Prev: ARM Floating Point,  Up: ARM-Dependent
+
+9.3.4 ARM Machine Directives
+----------------------------
+
+`.2byte EXPRESSION [, EXPRESSION]*'
+`.4byte EXPRESSION [, EXPRESSION]*'
+`.8byte EXPRESSION [, EXPRESSION]*'
+     These directives write 2, 4 or 8 byte values to the output section.
+
+`.align EXPRESSION [, EXPRESSION]'
+     This is the generic .ALIGN directive.  For the ARM however if the
+     first argument is zero (ie no alignment is needed) the assembler
+     will behave as if the argument had been 2 (ie pad to the next four
+     byte boundary).  This is for compatibility with ARM's own
+     assembler.
+
+`.arch NAME'
+     Select the target architecture.  Valid values for NAME are the
+     same as for the `-march' commandline option.
+
+     Specifying `.arch' clears any previously selected architecture
+     extensions.
+
+`.arch_extension NAME'
+     Add or remove an architecture extension to the target
+     architecture.  Valid values for NAME are the same as those
+     accepted as architectural extensions by the `-mcpu' commandline
+     option.
+
+     `.arch_extension' may be used multiple times to add or remove
+     extensions incrementally to the architecture being compiled for.
+
+`.arm'
+     This performs the same action as .CODE 32.
+
+`.pad #COUNT'
+     Generate unwinder annotations for a stack adjustment of COUNT
+     bytes.  A positive value indicates the function prologue allocated
+     stack space by decrementing the stack pointer.
+
+`.bss'
+     This directive switches to the `.bss' section.
+
+`.cantunwind'
+     Prevents unwinding through the current function.  No personality
+     routine or exception table data is required or permitted.
+
+`.code `[16|32]''
+     This directive selects the instruction set being generated. The
+     value 16 selects Thumb, with the value 32 selecting ARM.
+
+`.cpu NAME'
+     Select the target processor.  Valid values for NAME are the same as
+     for the `-mcpu' commandline option.
+
+     Specifying `.cpu' clears any previously selected architecture
+     extensions.
+
+`NAME .dn REGISTER NAME [.TYPE] [[INDEX]]'
+`NAME .qn REGISTER NAME [.TYPE] [[INDEX]]'
+     The `dn' and `qn' directives are used to create typed and/or
+     indexed register aliases for use in Advanced SIMD Extension (Neon)
+     instructions.  The former should be used to create aliases of
+     double-precision registers, and the latter to create aliases of
+     quad-precision registers.
+
+     If these directives are used to create typed aliases, those
+     aliases can be used in Neon instructions instead of writing types
+     after the mnemonic or after each operand.  For example:
+
+                  x .dn d2.f32
+                  y .dn d3.f32
+                  z .dn d4.f32[1]
+                  vmul x,y,z
+
+     This is equivalent to writing the following:
+
+                  vmul.f32 d2,d3,d4[1]
+
+     Aliases created using `dn' or `qn' can be destroyed using `unreq'.
+
+`.eabi_attribute TAG, VALUE'
+     Set the EABI object attribute TAG to VALUE.
+
+     The TAG is either an attribute number, or one of the following:
+     `Tag_CPU_raw_name', `Tag_CPU_name', `Tag_CPU_arch',
+     `Tag_CPU_arch_profile', `Tag_ARM_ISA_use', `Tag_THUMB_ISA_use',
+     `Tag_FP_arch', `Tag_WMMX_arch', `Tag_Advanced_SIMD_arch',
+     `Tag_PCS_config', `Tag_ABI_PCS_R9_use', `Tag_ABI_PCS_RW_data',
+     `Tag_ABI_PCS_RO_data', `Tag_ABI_PCS_GOT_use',
+     `Tag_ABI_PCS_wchar_t', `Tag_ABI_FP_rounding',
+     `Tag_ABI_FP_denormal', `Tag_ABI_FP_exceptions',
+     `Tag_ABI_FP_user_exceptions', `Tag_ABI_FP_number_model',
+     `Tag_ABI_align_needed', `Tag_ABI_align_preserved',
+     `Tag_ABI_enum_size', `Tag_ABI_HardFP_use', `Tag_ABI_VFP_args',
+     `Tag_ABI_WMMX_args', `Tag_ABI_optimization_goals',
+     `Tag_ABI_FP_optimization_goals', `Tag_compatibility',
+     `Tag_CPU_unaligned_access', `Tag_FP_HP_extension',
+     `Tag_ABI_FP_16bit_format', `Tag_MPextension_use', `Tag_DIV_use',
+     `Tag_nodefaults', `Tag_also_compatible_with', `Tag_conformance',
+     `Tag_T2EE_use', `Tag_Virtualization_use'
+
+     The VALUE is either a `number', `"string"', or `number, "string"'
+     depending on the tag.
+
+     Note - the following legacy values are also accepted by TAG:
+     `Tag_VFP_arch', `Tag_ABI_align8_needed',
+     `Tag_ABI_align8_preserved', `Tag_VFP_HP_extension',
+
+`.even'
+     This directive aligns to an even-numbered address.
+
+`.extend  EXPRESSION [, EXPRESSION]*'
+`.ldouble  EXPRESSION [, EXPRESSION]*'
+     These directives write 12byte long double floating-point values to
+     the output section.  These are not compatible with current ARM
+     processors or ABIs.
+
+`.fnend'
+     Marks the end of a function with an unwind table entry.  The
+     unwind index table entry is created when this directive is
+     processed.
+
+     If no personality routine has been specified then standard
+     personality routine 0 or 1 will be used, depending on the number
+     of unwind opcodes required.
+
+`.fnstart'
+     Marks the start of a function with an unwind table entry.
+
+`.force_thumb'
+     This directive forces the selection of Thumb instructions, even if
+     the target processor does not support those instructions
+
+`.fpu NAME'
+     Select the floating-point unit to assemble for.  Valid values for
+     NAME are the same as for the `-mfpu' commandline option.
+
+`.handlerdata'
+     Marks the end of the current function, and the start of the
+     exception table entry for that function.  Anything between this
+     directive and the `.fnend' directive will be added to the
+     exception table entry.
+
+     Must be preceded by a `.personality' or `.personalityindex'
+     directive.
+
+`.inst OPCODE [ , ... ]'
+`.inst.n OPCODE [ , ... ]'
+`.inst.w OPCODE [ , ... ]'
+     Generates the instruction corresponding to the numerical value
+     OPCODE.  `.inst.n' and `.inst.w' allow the Thumb instruction size
+     to be specified explicitly, overriding the normal encoding rules.
+
+`.ldouble  EXPRESSION [, EXPRESSION]*'
+     See `.extend'.
+
+`.ltorg'
+     This directive causes the current contents of the literal pool to
+     be dumped into the current section (which is assumed to be the
+     .text section) at the current location (aligned to a word
+     boundary).  `GAS' maintains a separate literal pool for each
+     section and each sub-section.  The `.ltorg' directive will only
+     affect the literal pool of the current section and sub-section.
+     At the end of assembly all remaining, un-empty literal pools will
+     automatically be dumped.
+
+     Note - older versions of `GAS' would dump the current literal pool
+     any time a section change occurred.  This is no longer done, since
+     it prevents accurate control of the placement of literal pools.
+
+`.movsp REG [, #OFFSET]'
+     Tell the unwinder that REG contains an offset from the current
+     stack pointer.  If OFFSET is not specified then it is assumed to be
+     zero.
+
+`.object_arch NAME'
+     Override the architecture recorded in the EABI object attribute
+     section.  Valid values for NAME are the same as for the `.arch'
+     directive.  Typically this is useful when code uses runtime
+     detection of CPU features.
+
+`.packed  EXPRESSION [, EXPRESSION]*'
+     This directive writes 12-byte packed floating-point values to the
+     output section.  These are not compatible with current ARM
+     processors or ABIs.
+
+`.pad #COUNT'
+     Generate unwinder annotations for a stack adjustment of COUNT
+     bytes.  A positive value indicates the function prologue allocated
+     stack space by decrementing the stack pointer.
+
+`.personality NAME'
+     Sets the personality routine for the current function to NAME.
+
+`.personalityindex INDEX'
+     Sets the personality routine for the current function to the EABI
+     standard routine number INDEX
+
+`.pool'
+     This is a synonym for .ltorg.
+
+`NAME .req REGISTER NAME'
+     This creates an alias for REGISTER NAME called NAME.  For example:
+
+                  foo .req r0
+
+`.save REGLIST'
+     Generate unwinder annotations to restore the registers in REGLIST.
+     The format of REGLIST is the same as the corresponding
+     store-multiple instruction.
+
+     _core registers_
+            .save {r4, r5, r6, lr}
+            stmfd sp!, {r4, r5, r6, lr}
+     _FPA registers_
+            .save f4, 2
+            sfmfd f4, 2, [sp]!
+     _VFP registers_
+            .save {d8, d9, d10}
+            fstmdx sp!, {d8, d9, d10}
+     _iWMMXt registers_
+            .save {wr10, wr11}
+            wstrd wr11, [sp, #-8]!
+            wstrd wr10, [sp, #-8]!
+          or
+            .save wr11
+            wstrd wr11, [sp, #-8]!
+            .save wr10
+            wstrd wr10, [sp, #-8]!
+
+`.setfp FPREG, SPREG [, #OFFSET]'
+     Make all unwinder annotations relative to a frame pointer.
+     Without this the unwinder will use offsets from the stack pointer.
+
+     The syntax of this directive is the same as the `add' or `mov'
+     instruction used to set the frame pointer.  SPREG must be either
+     `sp' or mentioned in a previous `.movsp' directive.
+
+          .movsp ip
+          mov ip, sp
+          ...
+          .setfp fp, ip, #4
+          add fp, ip, #4
+
+`.secrel32 EXPRESSION [, EXPRESSION]*'
+     This directive emits relocations that evaluate to the
+     section-relative offset of each expression's symbol.  This
+     directive is only supported for PE targets.
+
+`.syntax [`unified' | `divided']'
+     This directive sets the Instruction Set Syntax as described in the
+     *Note ARM-Instruction-Set:: section.
+
+`.thumb'
+     This performs the same action as .CODE 16.
+
+`.thumb_func'
+     This directive specifies that the following symbol is the name of a
+     Thumb encoded function.  This information is necessary in order to
+     allow the assembler and linker to generate correct code for
+     interworking between Arm and Thumb instructions and should be used
+     even if interworking is not going to be performed.  The presence
+     of this directive also implies `.thumb'
+
+     This directive is not neccessary when generating EABI objects.  On
+     these targets the encoding is implicit when generating Thumb code.
+
+`.thumb_set'
+     This performs the equivalent of a `.set' directive in that it
+     creates a symbol which is an alias for another symbol (possibly
+     not yet defined).  This directive also has the added property in
+     that it marks the aliased symbol as being a thumb function entry
+     point, in the same way that the `.thumb_func' directive does.
+
+`.unreq ALIAS-NAME'
+     This undefines a register alias which was previously defined using
+     the `req', `dn' or `qn' directives.  For example:
+
+                  foo .req r0
+                  .unreq foo
+
+     An error occurs if the name is undefined.  Note - this pseudo op
+     can be used to delete builtin in register name aliases (eg 'r0').
+     This should only be done if it is really necessary.
+
+`.unwind_raw OFFSET, BYTE1, ...'
+     Insert one of more arbitary unwind opcode bytes, which are known
+     to adjust the stack pointer by OFFSET bytes.
+
+     For example `.unwind_raw 4, 0xb1, 0x01' is equivalent to `.save
+     {r0}'
+
+`.vsave VFP-REGLIST'
+     Generate unwinder annotations to restore the VFP registers in
+     VFP-REGLIST using FLDMD.  Also works for VFPv3 registers that are
+     to be restored using VLDM.  The format of VFP-REGLIST is the same
+     as the corresponding store-multiple instruction.
+
+     _VFP registers_
+            .vsave {d8, d9, d10}
+            fstmdd sp!, {d8, d9, d10}
+     _VFPv3 registers_
+            .vsave {d15, d16, d17}
+            vstm sp!, {d15, d16, d17}
+
+     Since FLDMX and FSTMX are now deprecated, this directive should be
+     used in favour of `.save' for saving VFP registers for ARMv6 and
+     above.
+
+
+
+File: as.info,  Node: ARM Opcodes,  Next: ARM Mapping Symbols,  Prev: ARM Directives,  Up: ARM-Dependent
+
+9.3.5 Opcodes
+-------------
+
+`as' implements all the standard ARM opcodes.  It also implements
+several pseudo opcodes, including several synthetic load instructions.
+
+`NOP'
+            nop
+
+     This pseudo op will always evaluate to a legal ARM instruction
+     that does nothing.  Currently it will evaluate to MOV r0, r0.
+
+`LDR'
+            ldr <register> , = <expression>
+
+     If expression evaluates to a numeric constant then a MOV or MVN
+     instruction will be used in place of the LDR instruction, if the
+     constant can be generated by either of these instructions.
+     Otherwise the constant will be placed into the nearest literal
+     pool (if it not already there) and a PC relative LDR instruction
+     will be generated.
+
+`ADR'
+            adr <register> <label>
+
+     This instruction will load the address of LABEL into the indicated
+     register.  The instruction will evaluate to a PC relative ADD or
+     SUB instruction depending upon where the label is located.  If the
+     label is out of range, or if it is not defined in the same file
+     (and section) as the ADR instruction, then an error will be
+     generated.  This instruction will not make use of the literal pool.
+
+`ADRL'
+            adrl <register> <label>
+
+     This instruction will load the address of LABEL into the indicated
+     register.  The instruction will evaluate to one or two PC relative
+     ADD or SUB instructions depending upon where the label is located.
+     If a second instruction is not needed a NOP instruction will be
+     generated in its place, so that this instruction is always 8 bytes
+     long.
+
+     If the label is out of range, or if it is not defined in the same
+     file (and section) as the ADRL instruction, then an error will be
+     generated.  This instruction will not make use of the literal pool.
+
+
+   For information on the ARM or Thumb instruction sets, see `ARM
+Software Development Toolkit Reference Manual', Advanced RISC Machines
+Ltd.
+
+
+File: as.info,  Node: ARM Mapping Symbols,  Next: ARM Unwinding Tutorial,  Prev: ARM Opcodes,  Up: ARM-Dependent
+
+9.3.6 Mapping Symbols
+---------------------
+
+The ARM ELF specification requires that special symbols be inserted
+into object files to mark certain features:
+
+`$a'
+     At the start of a region of code containing ARM instructions.
+
+`$t'
+     At the start of a region of code containing THUMB instructions.
+
+`$d'
+     At the start of a region of data.
+
+
+   The assembler will automatically insert these symbols for you - there
+is no need to code them yourself.  Support for tagging symbols ($b, $f,
+$p and $m) which is also mentioned in the current ARM ELF specification
+is not implemented.  This is because they have been dropped from the
+new EABI and so tools cannot rely upon their presence.
+
+
+File: as.info,  Node: ARM Unwinding Tutorial,  Prev: ARM Mapping Symbols,  Up: ARM-Dependent
+
+9.3.7 Unwinding
+---------------
+
+The ABI for the ARM Architecture specifies a standard format for
+exception unwind information.  This information is used when an
+exception is thrown to determine where control should be transferred.
+In particular, the unwind information is used to determine which
+function called the function that threw the exception, and which
+function called that one, and so forth.  This information is also used
+to restore the values of callee-saved registers in the function
+catching the exception.
+
+   If you are writing functions in assembly code, and those functions
+call other functions that throw exceptions, you must use assembly
+pseudo ops to ensure that appropriate exception unwind information is
+generated.  Otherwise, if one of the functions called by your assembly
+code throws an exception, the run-time library will be unable to unwind
+the stack through your assembly code and your program will not behave
+correctly.
+
+   To illustrate the use of these pseudo ops, we will examine the code
+that G++ generates for the following C++ input:
+
+
+void callee (int *);
+
+int
+caller ()
+{
+  int i;
+  callee (&i);
+  return i;
+}
+
+   This example does not show how to throw or catch an exception from
+assembly code.  That is a much more complex operation and should always
+be done in a high-level language, such as C++, that directly supports
+exceptions.
+
+   The code generated by one particular version of G++ when compiling
+the example above is:
+
+
+_Z6callerv:
+	.fnstart
+.LFB2:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 8
+	@ frame_needed = 1, uses_anonymous_args = 0
+	stmfd	sp!, {fp, lr}
+	.save {fp, lr}
+.LCFI0:
+	.setfp fp, sp, #4
+	add	fp, sp, #4
+.LCFI1:
+	.pad #8
+	sub	sp, sp, #8
+.LCFI2:
+	sub	r3, fp, #8
+	mov	r0, r3
+	bl	_Z6calleePi
+	ldr	r3, [fp, #-8]
+	mov	r0, r3
+	sub	sp, fp, #4
+	ldmfd	sp!, {fp, lr}
+	bx	lr
+.LFE2:
+	.fnend
+
+   Of course, the sequence of instructions varies based on the options
+you pass to GCC and on the version of GCC in use.  The exact
+instructions are not important since we are focusing on the pseudo ops
+that are used to generate unwind information.
+
+   An important assumption made by the unwinder is that the stack frame
+does not change during the body of the function.  In particular, since
+we assume that the assembly code does not itself throw an exception,
+the only point where an exception can be thrown is from a call, such as
+the `bl' instruction above.  At each call site, the same saved
+registers (including `lr', which indicates the return address) must be
+located in the same locations relative to the frame pointer.
+
+   The `.fnstart' (*note .fnstart pseudo op: arm_fnstart.) pseudo op
+appears immediately before the first instruction of the function while
+the `.fnend' (*note .fnend pseudo op: arm_fnend.) pseudo op appears
+immediately after the last instruction of the function.  These pseudo
+ops specify the range of the function.
+
+   Only the order of the other pseudos ops (e.g., `.setfp' or `.pad')
+matters; their exact locations are irrelevant.  In the example above,
+the compiler emits the pseudo ops with particular instructions.  That
+makes it easier to understand the code, but it is not required for
+correctness.  It would work just as well to emit all of the pseudo ops
+other than `.fnend' in the same order, but immediately after `.fnstart'.
+
+   The `.save' (*note .save pseudo op: arm_save.) pseudo op indicates
+registers that have been saved to the stack so that they can be
+restored before the function returns.  The argument to the `.save'
+pseudo op is a list of registers to save.  If a register is
+"callee-saved" (as specified by the ABI) and is modified by the
+function you are writing, then your code must save the value before it
+is modified and restore the original value before the function returns.
+If an exception is thrown, the run-time library restores the values of
+these registers from their locations on the stack before returning
+control to the exception handler.  (Of course, if an exception is not
+thrown, the function that contains the `.save' pseudo op restores these
+registers in the function epilogue, as is done with the `ldmfd'
+instruction above.)
+
+   You do not have to save callee-saved registers at the very beginning
+of the function and you do not need to use the `.save' pseudo op
+immediately following the point at which the registers are saved.
+However, if you modify a callee-saved register, you must save it on the
+stack before modifying it and before calling any functions which might
+throw an exception.  And, you must use the `.save' pseudo op to
+indicate that you have done so.
+
+   The `.pad' (*note .pad: arm_pad.) pseudo op indicates a modification
+of the stack pointer that does not save any registers.  The argument is
+the number of bytes (in decimal) that are subtracted from the stack
+pointer.  (On ARM CPUs, the stack grows downwards, so subtracting from
+the stack pointer increases the size of the stack.)
+
+   The `.setfp' (*note .setfp pseudo op: arm_setfp.) pseudo op
+indicates the register that contains the frame pointer.  The first
+argument is the register that is set, which is typically `fp'.  The
+second argument indicates the register from which the frame pointer
+takes its value.  The third argument, if present, is the value (in
+decimal) added to the register specified by the second argument to
+compute the value of the frame pointer.  You should not modify the
+frame pointer in the body of the function.
+
+   If you do not use a frame pointer, then you should not use the
+`.setfp' pseudo op.  If you do not use a frame pointer, then you should
+avoid modifying the stack pointer outside of the function prologue.
+Otherwise, the run-time library will be unable to find saved registers
+when it is unwinding the stack.
+
+   The pseudo ops described above are sufficient for writing assembly
+code that calls functions which may throw exceptions.  If you need to
+know more about the object-file format used to represent unwind
+information, you may consult the `Exception Handling ABI for the ARM
+Architecture' available from `http://infocenter.arm.com'.
+
+
+File: as.info,  Node: AVR-Dependent,  Next: Blackfin-Dependent,  Prev: ARM-Dependent,  Up: Machine Dependencies
+
+9.4 AVR Dependent Features
+==========================
+
+* Menu:
+
+* AVR Options::              Options
+* AVR Syntax::               Syntax
+* AVR Opcodes::              Opcodes
+
+
+File: as.info,  Node: AVR Options,  Next: AVR Syntax,  Up: AVR-Dependent
+
+9.4.1 Options
+-------------
+
+`-mmcu=MCU'
+     Specify ATMEL AVR instruction set or MCU type.
+
+     Instruction set avr1 is for the minimal AVR core, not supported by
+     the C compiler, only for assembler programs (MCU types: at90s1200,
+     attiny11, attiny12, attiny15, attiny28).
+
+     Instruction set avr2 (default) is for the classic AVR core with up
+     to 8K program memory space (MCU types: at90s2313, at90s2323,
+     at90s2333, at90s2343, attiny22, attiny26, at90s4414, at90s4433,
+     at90s4434, at90s8515, at90c8534, at90s8535).
+
+     Instruction set avr25 is for the classic AVR core with up to 8K
+     program memory space plus the MOVW instruction (MCU types:
+     attiny13, attiny13a, attiny2313, attiny2313a, attiny24, attiny24a,
+     attiny4313, attiny44, attiny44a, attiny84, attiny84a, attiny25,
+     attiny45, attiny85, attiny261, attiny261a, attiny461, attiny461a,
+     attiny861, attiny861a, attiny87, attiny43u, attiny48, attiny88,
+     at86rf401, ata6289).
+
+     Instruction set avr3 is for the classic AVR core with up to 128K
+     program memory space (MCU types: at43usb355, at76c711).
+
+     Instruction set avr31 is for the classic AVR core with exactly
+     128K program memory space (MCU types: atmega103, at43usb320).
+
+     Instruction set avr35 is for classic AVR core plus MOVW, CALL, and
+     JMP instructions (MCU types: attiny167, at90usb82, at90usb162,
+     atmega8u2, atmega16u2, atmega32u2).
+
+     Instruction set avr4 is for the enhanced AVR core with up to 8K
+     program memory space (MCU types: atmega48, atmega48a, atmega48p,
+     atmega8, atmega88, atmega88a, atmega88p, atmega88pa, atmega8515,
+     atmega8535, atmega8hva, at90pwm1, at90pwm2, at90pwm2b, at90pwm3,
+     at90pwm3b, at90pwm81).
+
+     Instruction set avr5 is for the enhanced AVR core with up to 128K
+     program memory space (MCU types: atmega16, atmega16a, atmega161,
+     atmega162, atmega163, atmega164a, atmega164p, atmega165,
+     atmega165a, atmega165p, atmega168, atmega168a, atmega168p,
+     atmega169, atmega169a, atmega169p, atmega169pa, atmega32,
+     atmega

@@ -1,0 +1,2198 @@
+value.h
+	V_RAND		vp->v_rand	RAND *		../zrand.h
+	V_RANDOM	vp->v_random	RANDOM *	../zrandom.h
+	V_CONFIG	vp->v_config	CONFIG *	../config.h
+	V_HASH		vp->v_hash	HASH *		../hash.h
+	V_BLOCK		vp->v_block	BLOCK *		../block.h
+
+    The V_OCTET is under review and should not be used at this time.
+
+    There are a number of macros that may be used to determine
+    information about the numerical values (ZVALUE, NUMBER and COMPLEX).
+    you might also want to read the following to understand
+    some of the numerical types of ZVALUE, NUMBER and COMPLEX:
+
+	../zmath.h
+	../qmath.h
+	../cmath.h
+
+    While we cannot go into full detail here are some cookbook
+    code for manipulating VALUEs.  For these examples assume
+    that we will manipulate the return value:
+
+	VALUE result;	/* what we will return */
+
+    To return NULL:
+
+	result.v_type = V_NULL;
+	return result;
+
+    To return a long you need to convert it to a NUMBER:
+
+	long variable;
+
+	result.v_type = V_NUM;
+	result.v_num = itoq(variable);		/* see ../qmath.c */
+	return result;
+
+    To return a FULL you need to convert it to a NUMBER:
+
+	FULL variable;
+
+	result.v_type = V_NUM;
+	result.v_num = utoq(variable);		/* see ../qmath.c */
+	return result;
+
+    To convert a ZVALUE to a NUMBER*:
+
+	ZVALUE variable;
+
+	result.v_type = V_NUM;
+	result.v_num = qalloc();		/* see ../qmath.c */
+	result.v_num->num = variable;
+	return result;
+
+    To convert a small NUMBER* into a long:
+
+	NUMBER *num;
+	long variable;
+
+	variable = qtoi(num);
+
+    To obtain a ZVALUE from a NUMBER*, extract the numerator:
+
+	NUMBER *num;
+	ZVALUE z_variable;
+
+	if (qisint(num)) {
+		z_variable = num->num;
+	}
+
+    To be sure that the value will fit, use the ZVALUE test macros:
+
+	ZVALUE z_num;
+	long variable;
+	unsigned long u_variable;
+	FULL f_variable;
+	short very_tiny_variable;
+
+	if (zgtmaxlong(z_num)) {			/* see ../zmath.h */
+		variable = ztolong(z_num);
+	}
+	if (zgtmaxulong(z_num)) {
+		u_variable = ztoulong(z_num);
+	}
+	if (zgtmaxufull(z_num)) {
+		f_variable = ztofull(z_num);
+	}
+	if (zistiny(z_num)) {
+		very_tiny_variable = z1tol(z_num);
+	}
+
+    You can (and should) add debugging statements to your custom code
+    by examining bit 8 of the calc_debug config flag:
+
+	if (conf->calc_debug & CALCDBG_CUSTOM) {
+	    fprintf(stderr, "%ssome custom debug note: msg\n",
+		(conf->tab_ok ? "\t" : ""),
+		((msg == NULL) ? "((NULL))" : msg));
+	}
+
+    One is able to set bit 8 by way of the calc command line:
+
+    	calc -D 128
+
+    See the calc man page for details.  One may also set that bit
+    while running calc by way of the config() builtin function:
+
+    	config("calc_debug", 128);
+
+    See the help/config file for details on calc_debug.
+
+Step 6: Register the function in the custom interface table
+
+    To allow the custom() builtin to transfer control to your function,
+    you need to add an entry into the CONST struct custom cust table
+    found in custom/custtbl.c:
+
+	/*
+	 * custom interface table
+	 *
+	 * The order of the elements in struct custom are:
+	 *
+	 *	{ "xyz", "brief description of the xyz custom function",
+	 *	   minimum_args, maximum_args, c_xyz },
+	 *
+	 * where:
+	 *
+	 *	minimum_args	an int >= 0
+	 *	maximum_args	an int >= minimum_args and <= MAX_CUSTOM_ARGS
+	 *
+	 * Use MAX_CUSTOM_ARGS for maximum_args is the maximum number of args
+	 * is potentially 'unlimited'.
+	 *
+	 * If the brief description cannot fit on the same line as the name
+	 * without wrapping on a 80 col window, the description is probably
+	 * too long and will not look nice in the show custom output.
+	 */
+	CONST struct custom cust[] = {
+
+	#if defined(CUSTOM)
+
+
+		/*
+		 * add your own custom functions here
+		 *
+		 * We suggest that you sort the entries below by name
+		 * so that show custom will produce a nice sorted list.
+		 */
+
+		{ "argv", "information about its args, returns arg count",
+		 0, MAX_CUSTOM_ARGS, c_argv },
+
+		{ "devnull", "does nothing",
+		 0, MAX_CUSTOM_ARGS, c_devnull },
+
+		{ "help", "help for custom functions",
+		 1, 1, c_help },
+
+		{ "sysinfo", "return a calc #define value",
+		 0, 1, c_sysinfo },
+
+
+	#endif /* CUSTOM */
+
+		/*
+		 * This must be at the end of this table!!!
+		 */
+		{NULL, NULL,
+		 0, 0, NULL}
+	};
+
+    The definition of struct custom may be found in custom.h.
+
+    It is important that your entry be placed inside the:
+
+	#if defined(CUSTOM) ... #endif /* CUSTOM */
+
+    lines so that when the custom interface is disabled by the upper
+    level Makefile, one does not have unsatisfied symbols.
+
+    The brief description should be brief so that 'show custom' looks well
+    formatted.	If the brief description cannot fit on the same line as
+    the name without wrapping on a 80 col window, the description is
+    probably too long and will not look nice in the show custom output.
+
+    The minargs places a lower bound on the number of args that
+    must be supplied to the interface.	This does NOT count
+    the name argument given to custom().  So if minargs is 2:
+
+	custom("curds")		/* call blocked at high level interface */
+	custom("curds", a)	/* call blocked at high level interface */
+	custom("curds", a, b)	/* call passed down to "curds" interface */
+
+    The maxargs sets a limit on the number of args that may be passed.
+    If minargs == maxargs, then the call requires a fixed number of
+    argument.  There is a upper limit on the number of args.  If
+    one wants an effectively unlimited upper bound, use MAX_CUSTOM_ARGS.
+
+    Note that one must have:
+
+		0 <= minargs <= maxargs <= MAX_CUSTOM_ARGS
+
+    To allow the curds function to take at least 2 args and up
+    to 5 args, one would add the following entry to cust[]:
+
+		{ "curds", "brief description about curds interface",
+		 2, 5, u_curds },
+
+    It is recommended that the cust[] remain in alphabetical order,
+    so one would place it before the "devnull" and after "argv".
+
+    Last, you must forward declare the u_curds near the top of the file:
+
+	#if defined(CUSTOM)
+
+
+	/*
+	 * add your forward custom function declarations here
+	 *
+	 * Declare custom functions as follows:
+	 *
+	 *	E_FUNC VALUE c_xyz(char*, int, VALUE**);
+	 *
+	 * We suggest that you sort the entries below by name.
+	 */
+	E_FUNC VALUE c_argv(char*, int, VALUE**);
+	E_FUNC VALUE c_devnull(char*, int, VALUE**);
+	E_FUNC VALUE c_help(char*, int, VALUE**);
+	E_FUNC VALUE c_sysinfo(char*, int, VALUE**);
+
+    For u_curds we would add the line:
+
+	E_FUNC VALUE u_curds(char*, int, VALUE**);
+
+
+Step 7: Add the required information to the custom/Makefile.head
+
+    The calc test script, curds.cal, should be added to the
+    CUSTOM_CALC_FILES Makefile variable found in custom/Makefile.head:
+
+	CUSTOM_CALC_FILES= argv.cal halflen.cal curds.cal
+
+    The help file, curds, should be added to the CUSTOM_HELP
+    custom/Makefile.head variable:
+
+	CUSTOM_HELP= argv devnull help sysinfo curds
+
+    If you needed to create any .h files to support u_curds.c, these
+    files should be added to the CUSTOM_H_SRC custom/Makefile.head variable:
+
+	CUSTOM_H_SRC= u_curds.h otherfile.h
+
+    Your u_curds.c file MUST be added to the CUSTOM_SRC custom/Makefile.head
+    variable:
+
+	CUSTOM_SRC= c_argv.c c_devnull.c c_help.c c_sysinfo.c u_curds.c
+
+    and so must the associated .o file:
+
+	CUSTOM_OBJ= c_argv.o c_devnull.o c_help.o c_sysinfo.o u_curds.o
+
+
+Step 8: Compile and link in your code
+
+    If your calc was not previously setup to compile custom code,
+    you should set it up now.  The upper level Makefile (and
+    the custom Makefile) should have the following Makefile
+    variable defined:
+
+	ALLOW_CUSTOM= -DCUSTOM
+
+    It is recommended that you build your code from the top level
+    Makefile.  It saves having to sync the other Makefile values.
+    To try and build the new libcustcalc.a that contains u_curds.c:
+
+	(cd ..; make custom/libcustcalc.a)
+
+    Fix any compile and syntax errors as needed.  :-)
+
+    Once libcustcalc.a successfully builds, compile calc:
+
+	cd ..
+	make calc
+
+    And check to be sure that the regression test suite still
+    works without errors:
+
+	make check
+
+
+Step 9: Add the Make dependency tools
+
+    You should probably add the dependency lines to the bottom of
+    the Makefile.  Given the required include files, you will at least
+    have the following entries placed at the bottom of the Makefile:
+
+	u_curds.o: ../alloc.h
+	u_curds.o: ../block.h
+	u_curds.o: ../byteswap.h
+	u_curds.o: ../calcerr.h
+	u_curds.o: ../cmath.h
+	u_curds.o: ../config.h
+	u_curds.o: ../endian_calc.h
+	u_curds.o: ../hash.h
+	u_curds.o: ../have_const.h
+	u_curds.o: ../have_malloc.h
+	u_curds.o: ../have_newstr.h
+	u_curds.o: ../have_stdlib.h
+	u_curds.o: ../have_string.h
+	u_curds.o: ../longbits.h
+	u_curds.o: ../nametype.h
+	u_curds.o: ../qmath.h
+	u_curds.o: ../shs.h
+	u_curds.o: ../value.h
+	u_curds.o: ../zmath.h
+	u_curds.o: u_curds.c
+	u_curds.o: ../custom.h
+
+    If you have the makedepend tool from the X11 development environment
+    (by Todd Brunhoff, Tektronix, Inc. and MIT Project Athena), you can
+    use the following to update your dependencies:
+
+	# cd to the top level calc directory if you are not there already
+
+	rm -f Makefile.bak custom/Makefile.bak
+	make depend
+
+	diff -c Makefile.bak Makefile			# look at the changes
+	diff -c custom/Makefile.bak custom/Makefile	# look at the changes
+
+	rm -f Makefile.bak custom/Makefile.bak		# cleanup
+
+Step 10: Test
+
+    Now that you have built calc with your new custom function, test it:
+
+	./calc -C		# run the new calc with the -C arg
+
+    And then try out our test suite:
+
+	C-style arbitrary precision calculator (version 2.10.3t5.1)
+	[Type "exit" to exit, or "help" for help.]
+
+	> read custom/curds.cal
+	curds(a, b, [c, d, e]) defined
+
+	> custom("curds", 2, 3, 4)
+
+
+Step 11: Install
+
+    Once you are satisfied that everything works, install the new code:
+
+	# cd to the top level calc directory if you are not there already
+
+	make install
+
+    Although calc does not run setuid, you may need to be root to install
+    the directories into which calc installs may be write protected.
+
+
+Step 12: Contribute
+
+    Your custom function may be of interest to some people and/or
+    serve as an example of what one can do with custom functions.
+
+    Read the file:
+
+	help/contrib		(or run:  calc help contrib)
+
+    and consider submitting your custom function for possible
+    inclusion in later versions of calc.
+
+## Copyright (C) 1999-2007  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.4 $
+## @(#) $Id: HOW_TO_ADD,v 30.4 2007/09/21 01:27:27 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/custom/RCS/HOW_TO_ADD,v $
+##
+## Under source code control:	1997/03/10 03:03:21
+## File existed as early as:	1997
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* resource
+*************
+
+Calc standard resource files
+----------------------------
+
+To load a resource file, try:
+
+    read filename
+
+You do not need to add the .cal extension to the filename.  Calc
+will search along the $CALCPATH (see ``help environment'').
+
+Normally a resource file will simply define some functions.  By default,
+most resource files will print out a short message when they are read.
+For example:
+
+    ; read lucas
+    lucas(h,n) defined
+    gen_u0(h,n,v1) defined
+    gen_v1(h,n) defined
+    ldebug(funct,str) defined
+
+will cause calc to load and execute the 'lucas.cal' resource file.
+Executing the resource file will cause several functions to be defined.
+Executing the lucas function:
+
+    ; lucas(149,60)
+	    1
+    ; lucas(146,61)
+	    0
+
+shows that 149*2^60-1 is prime whereas 146*2^61-1 is not.
+
+=-=
+
+Calc resource file files are provided because they serve as examples of
+how use the calc language, and/or because the authors thought them to
+be useful!
+
+If you write something that you think is useful, please send it to:
+
+    calc-contrib at asthe dot com
+
+    [[ NOTE: Replace 'at' with @, 'dot' is with . and remove the spaces ]]
+    [[ NOTE: The EMail address uses 'asthe' and the web site URL uses 'isthe' ]]
+
+By convention, a resource file only defines and/or initializes functions,
+objects and variables.	(The regress.cal and testxxx.cal regression test
+suite is an exception.)	 Also by convention, an additional usage message
+regarding important object and functions is printed.
+
+If a resource file needs to load another resource file, it should use
+the -once version of read:
+
+    /* pull in needed resource files */
+    read -once "surd"
+    read -once "lucas"
+
+This will cause the needed resource files to be read once.  If these
+files have already been read, the read -once will act as a noop.
+
+The "resource_debug" parameter is intended for controlling the possible
+display of special information relating to functions, objects, and
+other structures created by instructions in calc resource files.
+Zero value of config("resource_debug") means that no such information
+is displayed.  For other values, the non-zero bits which currently
+have meanings are as follows:
+
+    n		Meaning of bit n of config("resource_debug")
+
+    0	When a function is defined, redefined or undefined at
+	interactive level, a message saying what has been done
+	is displayed.
+
+    1	When a function is defined, redefined or undefined during
+	the reading of a file, a message saying what has been done
+	is displayed.
+
+    2	Show func will display more information about a functions
+	arguments as well as more argument summary information.
+
+    3	During execution, allow calc standard resource files
+	to output additional debugging information.
+
+The value for config("resource_debug") in both oldstd and newstd is 3,
+but if calc is invoked with the -d flag, its initial value is zero.
+Thus, if calc is started without the -d flag, until config("resource_debug")
+is changed, a message will be output when a function is defined
+either interactively or during the reading of a file.
+
+Sometimes the information printed is not enough.  In addition to the
+standard information, one might want to print:
+
+	* useful obj definitions
+	* functions with optional args
+	* functions with optional args where the param() interface is used
+
+For these cases we suggest that you place at the bottom of your code
+something that prints extra information if config("resource_debug") has
+either of the bottom 2 bits set:
+
+	if (config("resource_debug") & 3) {
+		print "obj xyz defined";
+		print "funcA([val1 [, val2]]) defined";
+		print "funcB(size, mass, ...) defined";
+	}
+
+If your the resource file needs to output special debugging information,
+we recommend that you check for bit 3 of the config("resource_debug")
+before printing the debug statement:
+
+	if (config("resource_debug") & 8) {
+		print "DEBUG: This a sample debug statement";
+	}
+
+=-=
+
+The following is a brief description of some of the calc resource files
+that are shipped with calc.  See above for example of how to read in
+and execute these files.
+
+alg_config.cal
+
+    global test_time
+    mul_loop(repeat,x) defined
+    mul_ratio(len) defined
+    best_mul2() defined
+    sq_loop(repeat,x) defined
+    sq_ratio(len) defined
+    best_sq2() defined
+    pow_loop(repeat,x,ex) defined
+    pow_ratio(len) defined
+    best_pow2() defined
+
+    These functions search for an optimal value of config("mul2"),
+    config("sq2"), and config("pow2").  The calc default values of these
+    configuration values were set by running this resource file on a
+    1.8GHz AMD 32-bit CPU of ~3406 BogoMIPS.
+
+    The best_mul2() function returns the optimal value of config("mul2").
+    The best_sq2() function returns the optimal value of config("sq2").
+    The best_pow2() function returns the optimal value of config("pow2").
+    The other functions are just support functions.
+
+    By design, best_mul2(), best_sq2(), and best_pow2() take a few
+    minutes to run.  These functions increase the number of times a
+    given computational loop is executed until a minimum amount of CPU
+    time is consumed.  To watch these functions progress, one can set
+    the config("user_debug") value.
+
+    Here is a suggested way to use this resource file:
+
+	; read alg_config
+	; config("user_debug",2),;
+	; best_mul2(); best_sq2(); best_pow2();
+	; best_mul2(); best_sq2(); best_pow2();
+	; best_mul2(); best_sq2(); best_pow2();
+
+    NOTE: It is perfectly normal for the optimal value returned to differ
+    slightly from run to run.  Slight variations due to inaccuracy in
+    CPU timings will cause the best value returned to differ slightly
+    from run to run.
+
+    One can use a calc startup file to change the initial values of
+    config("mul2"), config("sq2"), and config("pow2").  For example one
+    can place into ~/.calcrc these lines:
+
+	config("mul2", 1780),;
+	config("sq2", 3388),;
+	config("pow2", 176),;
+
+    to automatically and silently change these config values.
+    See help/config and CALCRC in help/environment for more information.
+
+
+beer.cal
+
+    Calc's contribution to the 99 Bottles of Beer web page:
+
+	http://www.ionet.net/~timtroyr/funhouse/beer.html#calc
+
+     NOTE: This resource produces a lot of output.  :-)
+
+
+bernoulli.cal
+
+    B(n)
+
+    Calculate the nth Bernoulli number.
+
+    NOTE: There is now a bernoulli() builtin function.  This file is
+    	  left here for backward compatibility and now simply returns
+	  the builtin function.
+
+
+bigprime.cal
+
+    bigprime(a, m, p)
+
+    A prime test, base a, on p*2^x+1 for even x>m.
+
+
+chi.cal
+
+    Z(x[, eps])
+    P(x[, eps])
+    chi_prob(chi_sq, v[, eps])
+
+    Computes the Probability, given the Null Hypothesis, that a given
+    Chi squared values >= chi_sq with v degrees of freedom.
+
+    The chi_prob() function does not work well with odd degrees of freedom.
+    It is reasonable with even degrees of freedom, although one must give
+    a sufficiently small error term as the degrees gets large (>100).
+
+    The Z(x) and P(x) are internal statistical functions.
+
+    eps is an optional epsilon() like error term.
+
+
+chrem.cal
+
+    chrem(r1,m1 [,r2,m2, ...])
+    chrem(rlist, mlist)
+
+    Chinese remainder theorem/problem solver.
+
+
+deg.cal
+
+    deg(deg, min, sec)
+    deg_add(a, b)
+    deg_neg(a)
+    deg_sub(a, b)
+    deg_mul(a, b)
+    deg_print(a)
+
+    Calculate in degrees, minutes, and seconds.  For a more functional
+    version see dms.cal.
+
+
+dms.cal
+
+    dms(deg, min, sec)
+    dms_add(a, b)
+    dms_neg(a)
+    dms_sub(a, b)
+    dms_mul(a, b)
+    dms_print(a)
+    dms_abs(a)
+    dms_norm(a)
+    dms_test(a)
+    dms_int(a)
+    dms_frac(a)
+    dms_rel(a,b)
+    dms_cmp(a,b)
+    dms_inc(a)
+    dms_dec(a)
+
+    Calculate in degrees, minutes, and seconds.  Unlike deg.cal, increments
+    are on the arc second level.  See also hms.cal.
+
+
+dotest.cal
+
+    dotest(dotest_file [,dotest_code [,dotest_maxcond]])
+
+    dotest_file
+
+	Search along CALCPATH for dotest_file, which contains lines that
+	should evaluate to 1.  Comment lines and empty lines are ignored.
+	Comment lines should use ## instead of the multi like /* ... */
+	because lines are evaluated one line at a time.
+
+    dotest_code
+
+	Assign the code number that is to be printed at the start of
+	each non-error line and after **** in each error line.
+	The default code number is 999.
+
+    dotest_maxcond
+
+	The maximum number of error conditions that may be detected.
+	An error condition is not a sign of a problem, in some cases
+	a line deliberately forces an error condition.	A value of -1,
+	the default, implies a maximum of 2147483647.
+
+    Global variables and functions must be declared ahead of time because
+    the dotest scope of evaluation is a line at a time.  For example:
+
+	read dotest.cal
+	read set8700.cal
+	dotest("set8700.line");
+
+
+ellip.cal
+
+    efactor(iN, ia, B, force)
+
+    Attempt to factor using the elliptic functions: y^2 = x^3 + a*x + b.
+
+
+hello.cal
+
+    Calc's contribution to the Hello World! page:
+
+	http://www.latech.edu/~acm/HelloWorld.shtml
+	http://www.latech.edu/~acm/helloworld/calc.html
+
+     NOTE: This resource produces a lot of output.  :-)
+
+
+hms.cal
+
+    hms(hour, min, sec)
+    hms_add(a, b)
+    hms_neg(a)
+    hms_sub(a, b)
+    hms_mul(a, b)
+    hms_print(a)
+    hms_abs(a)
+    hms_norm(a)
+    hms_test(a)
+    hms_int(a)
+    hms_frac(a)
+    hms_rel(a,b)
+    hms_cmp(a,b)
+    hms_inc(a)
+    hms_dec(a)
+
+    Calculate in hours, minutes, and seconds.  See also dmscal.
+
+
+intfile.cal
+
+    file2be(filename)
+
+	Read filename and return an integer that is built from the
+	octets in that file in Big Endian order.  The first octets
+	of the file become the most significant bits of the integer.
+
+    file2le(filename)
+
+	Read filename and return an integer that is built from the
+	octets in that file in Little Endian order.  The first octets
+	of the file become the most significant bits of the integer.
+
+    be2file(v, filename)
+
+	Write the absolute value of v into filename in Big Endian order.
+	The v argument must be on integer.  The most significant bits
+	of the integer become the first octets of the file.
+
+    le2file(v, filename)
+
+	Write the absolute value of v into filename in Little Endian order.
+	The v argument must be on integer.  The least significant bits
+	of the integer become the last octets of the file.
+
+
+linear.cal
+
+    linear(x0, y0, x1, y1, x)
+
+    Returns the value y such that (x,y) in on the line (x0,y0), (x1,y1).
+    Requires x0 != y0.
+
+
+lucas.cal
+
+    lucas(h, n)
+
+    Perform a primality test of h*2^n-1, with 1<=h<2*n.
+
+
+lucas_chk.cal
+
+    lucas_chk(high_n)
+
+    Test all primes of the form h*2^n-1, with 1<=h<200 and n <= high_n.
+    Requires lucas.cal to be loaded.  The highest useful high_n is 1000.
+
+    Used by regress.cal during the 2100 test set.
+
+
+lucas_tbl.cal
+
+    Lucasian criteria for primality tables.
+
+
+mersenne.cal
+
+    mersenne(p)
+
+    Perform a primality test of 2^p-1, for prime p>1.
+
+
+mfactor.cal
+
+    mfactor(n [, start_k=1 [, rept_loop=10000 [, p_elim=17]]])
+
+    Return the lowest factor of 2^n-1, for n > 0.  Starts looking for factors
+    at 2*start_k*n+1.  Skips values that are multiples of primes <= p_elim.
+    By default, start_k == 1, rept_loop = 10000 and p_elim = 17.
+
+    The p_elim == 17 overhead takes ~3 minutes on an 200 Mhz r4k CPU and
+    requires about ~13 Megs of memory.	The p_elim == 13 overhead
+    takes about 3 seconds and requires ~1.5 Megs of memory.
+
+    The value p_elim == 17 is best for long factorizations.  It is the
+    fastest even thought the initial startup overhead is larger than
+    for p_elim == 13.
+
+mod.cal
+
+    lmod(a)
+    mod_print(a)
+    mod_one()
+    mod_cmp(a, b)
+    mod_rel(a, b)
+    mod_add(a, b)
+    mod_sub(a, b)
+    mod_neg(a)
+    mod_mul(a, b)
+    mod_square(a)
+    mod_inc(a)
+    mod_dec(a)
+    mod_inv(a)
+    mod_div(a, b)
+    mod_pow(a, b)
+
+    Routines to handle numbers modulo a specified number.
+
+
+natnumset.cal
+
+    isset(a)
+    setbound(n)
+    empty()
+    full()
+    isin(a, b)
+    addmember(a, n)
+    rmmember(a, n)
+    set()
+    mkset(s)
+    primes(a, b)
+    set_max(a)
+    set_min(a)
+    set_not(a)
+    set_cmp(a, b)
+    set_rel(a, b)
+    set_or(a, b)
+    set_and(a, b)
+    set_comp(a)
+    set_setminus(a, b)
+    set_diff(a,b)
+    set_content(a)
+    set_add(a, b)
+    set_sub(a, b)
+    set_mul(a, b)
+    set_square(a)
+    set_pow(a, n)
+    set_sum(a)
+    set_plus(a)
+    interval(a, b)
+    isinterval(a)
+    set_mod(a, b)
+    randset(n, a, b)
+    polyvals(L, A)
+    polyvals2(L, A, B)
+    set_print(a)
+
+    Demonstration of how the string operators and functions may be used
+    for defining and working with sets of natural numbers not exceeding a
+    user-specified bound.
+
+
+pell.cal
+
+    pellx(D)
+    pell(D)
+
+    Solve Pell's equation; Returns the solution X to: X^2 - D * Y^2 = 1.
+    Type the solution to Pell's equation for a particular D.
+
+
+pi.cal
+
+    qpi(epsilon)
+    piforever()
+
+    The qpi() calculate pi within the specified epsilon using the quartic
+    convergence iteration.
+
+    The piforever() prints digits of pi, nicely formatted, for as long
+    as your free memory space and system up time allows.
+
+    The piforever() function (written by Klaus Alexander Seistrup
+    <klaus@seistrup.dk>) was inspired by an algorithm conceived by
+    Lambert Meertens.  See also the ABC Programmer's Handbook, by Geurts,
+    Meertens & Pemberton, published by Prentice-Hall (UK) Ltd., 1990.
+
+pix.cal
+
+    pi_of_x(x)
+
+    Calculate the number of primes < x using A(n+1)=A(n-1)+A(n-2).  This
+    is a SLOW painful method ... the builtin pix(x) is much faster.
+    Still, this method is interesting.
+
+
+pollard.cal
+
+    pfactor(N, N, ai, af)
+
+    Factor using Pollard's p-1 method.
+
+
+poly.cal
+
+    Calculate with polynomials of one variable.	 There are many functions.
+    Read the documentation in the resource file.
+
+
+prompt.cal
+
+    adder()
+    showvalues(str)
+
+    Demonstration of some uses of prompt() and eval().
+
+
+psqrt.cal
+
+    psqrt(u, p)
+
+    Calculate square roots modulo a prime
+
+
+qtime.cal
+
+    qtime(utc_hr_offset)
+
+    Print the time as English sentence given the hours offset from UTC.
+
+
+quat.cal
+
+    quat(a, b, c, d)
+    quat_print(a)
+    quat_norm(a)
+    quat_abs(a, e)
+    quat_conj(a)
+    quat_add(a, b)
+    quat_sub(a, b)
+    quat_inc(a)
+    quat_dec(a)
+    quat_neg(a)
+    quat_mul(a, b)
+    quat_div(a, b)
+    quat_inv(a)
+    quat_scale(a, b)
+    quat_shift(a, b)
+
+    Calculate using quaternions of the form: a + bi + cj + dk.	In these
+    functions, quaternions are manipulated in the form: s + v, where
+    s is a scalar and v is a vector of size 3.
+
+
+randbitrun.cal
+
+    randbitrun([run_cnt])
+
+    Using randbit(1) to generate a sequence of random bits, determine if
+    the number and length of identical bits runs match what is expected.
+    By default, run_cnt is to test the next 65536 random values.
+
+    This tests the a55 generator.
+
+
+randmprime.cal
+
+    randmprime(bits, seed [,dbg])
+
+    Find a prime of the form h*2^n-1 >= 2^bits for some given x.  The initial
+    search points for 'h' and 'n' are selected by a cryptographic pseudo-random
+    number generator.  The optional argument, dbg, if set to 1, 2 or 3
+    turn on various debugging print statements.
+
+
+randombitrun.cal
+
+    randombitrun([run_cnt])
+
+    Using randombit(1) to generate a sequence of random bits, determine if
+    the number and length of identical bits runs match what is expected.
+    By default, run_cnt is to test the next 65536 random values.
+
+    This tests the Blum-Blum-Shub generator.
+
+
+randomrun.cal
+
+    randomrun([run_cnt])
+
+    Perform the "G. Run test" (pp. 65-68) as found in Knuth's "Art of
+    Computer Programming - 2nd edition", Volume 2, Section 3.3.2 on
+    the builtin rand() function.  This function will generate run_cnt
+    64 bit values.  By default, run_cnt is to test the next 65536
+    random values.
+
+    This tests the Blum-Blum-Shub generator.
+
+
+randrun.cal
+
+    randrun([run_cnt])
+
+    Perform the "G. Run test" (pp. 65-68) as found in Knuth's "Art of
+    Computer Programming - 2nd edition", Volume 2, Section 3.3.2 on
+    the builtin rand() function.  This function will generate run_cnt
+    64 bit values.  By default, run_cnt is to test the next 65536
+    random values.
+
+    This tests the a55 generator.
+
+repeat.cal
+
+    repeat(digit_set, repeat_count)
+
+    Return the value of the digit_set repeated repeat_count times.
+    Both digit_set and repeat_count must be integers > 0.
+
+    For example repeat(423,5) returns the value 423423423423423,
+    which is the digit_set 423 repeated 5 times.
+
+
+regress.cal
+
+    Test the correct execution of the calculator by reading this resource file.
+    Errors are reported with '****' messages, or worse. :-)
+
+
+screen.cal
+
+    up
+    CUU	/* same as up */
+    down = CUD
+    CUD	/* same as down */
+    forward
+    CUF	/* same as forward */
+    back = CUB
+    CUB	/* same as back */
+    save
+    SCP	/* same as save */
+    restore
+    RCP	/* same as restore */
+    cls
+    home
+    eraseline
+    off
+    bold
+    faint
+    italic
+    blink
+    rapidblink
+    reverse
+    concealed
+    /* Lowercase indicates foreground, uppercase background */
+    black
+    red
+    green
+    yellow
+    blue
+    magenta
+    cyan
+    white
+    Black
+    Red
+    Green
+    Yellow
+    Blue
+    Magenta
+    Cyan
+    White
+
+    Define ANSI control sequences providing (i.e., cursor movement, changing
+    foreground or background color, etc.) for VT100 terminals and terminal
+    window emulators (i.e., xterm, Apple OS/X Terminal, etc.) that support them.
+
+    For example:
+
+	read screen
+	print green:"This is green. ":red:"This is red.":black
+
+seedrandom.cal
+
+    seedrandom(seed1, seed2, bitsize [,trials])
+
+    Given:
+	seed1 - a large random value (at least 10^20 and perhaps < 10^93)
+	seed2 - a large random value (at least 10^20 and perhaps < 10^93)
+	size - min Blum modulus as a power of 2 (at least 100, perhaps > 1024)
+	trials - number of ptest() trials (default 25) (optional arg)
+
+    Returns:
+	the previous random state
+
+    Seed the cryptographically strong Blum generator.  This functions allows
+    one to use the raw srandom() without the burden of finding appropriate
+    Blum primes for the modulus.
+
+
+set8700.cal
+
+    set8700_getA1() defined
+    set8700_getA2() defined
+    set8700_getvar() defined
+    set8700_f(set8700_x) defined
+    set8700_g(set8700_x) defined
+
+    Declare globals and define functions needed by dotest() (see
+    dotest.cal) to evaluate set8700.line a line at a time.
+
+
+set8700.line
+
+    A line-by-line evaluation file for dotest() (see dotest.cal).
+    The set8700.cal file (and dotest.cal) should be read first.
+
+
+solve.cal
+
+    solve(low, high, epsilon)
+
+    Solve the equation f(x) = 0 to within the desired error value for x.
+    The function 'f' must be defined outside of this routine, and the low
+    and high values are guesses which must produce values with opposite signs.
+
+
+sumsq.cal
+
+    ss(p)
+
+    Determine the unique two positive integers whose squares sum to the
+    specified prime.  This is always possible for all primes of the form
+    4N+1, and always impossible for primes of the form 4N-1.
+
+
+sumtimes.cal
+
+    timematsum(N)
+    timelistsum(N)
+    timematsort(N)
+    timelistsort(N)
+    timematreverse(N)
+    timelistreverse(N)
+    timematssq(N)
+    timelistssq(N)
+    timehmean(N,M)
+    doalltimes(N)
+
+    Give the user CPU time for various ways of evaluating sums, sums of
+    squares, etc, for large lists and matrices.  N is the size of
+    the list or matrix to use.  The doalltimes() function will run
+    all fo the sumtimes tests.  For example:
+
+    	doalltimes(1e6);
+
+
+surd.cal
+
+    surd(a, b)
+    surd_print(a)
+    surd_conj(a)
+    surd_norm(a)
+    surd_value(a, xepsilon)
+    surd_add(a, b)
+    surd_sub(a, b)
+    surd_inc(a)
+    surd_dec(a)
+    surd_neg(a)
+    surd_mul(a, b)
+    surd_square(a)
+    surd_scale(a, b)
+    surd_shift(a, b)
+    surd_div(a, b)
+    surd_inv(a)
+    surd_sgn(a)
+    surd_cmp(a, b)
+    surd_rel(a, b)
+
+    Calculate using quadratic surds of the form: a + b * sqrt(D).
+
+
+test1700.cal
+
+    value
+
+    This resource files is used by regress.cal to test the read and use keywords.
+
+
+test2600.cal
+
+    global defaultverbose
+    global err
+    testismult(str, n, verbose)
+    testsqrt(str, n, eps, verbose)
+    testexp(str, n, eps, verbose)
+    testln(str, n, eps, verbose)
+    testpower(str, n, b, eps, verbose)
+    testgcd(str, n, verbose)
+    cpow(x, n, eps)
+    cexp(x, eps)
+    cln(x, eps)
+    mkreal()
+    mkcomplex()
+    mkbigreal()
+    mksmallreal()
+    testappr(str, n, verbose)
+    checkappr(x, y, z, verbose)
+    checkresult(x, y, z, a)
+    test2600(verbose, tnum)
+
+    This resource files is used by regress.cal to test some of builtin functions
+    in terms of accuracy and roundoff.
+
+
+test2700.cal
+
+    global defaultverbose
+    mknonnegreal()
+    mkposreal()
+    mkreal_2700()
+    mknonzeroreal()
+    mkposfrac()
+    mkfrac()
+    mksquarereal()
+    mknonsquarereal()
+    mkcomplex_2700()
+    testcsqrt(str, n, verbose)
+    checksqrt(x, y, z, v)
+    checkavrem(A, B, X, eps)
+    checkrounding(s, n, t, u, z)
+    iscomsq(x)
+    test2700(verbose, tnum)
+
+    This resource files is used by regress.cal to test sqrt() for real and
+    complex values.
+
+
+test3100.cal
+
+    obj res
+    global md
+    res_test(a)
+    res_sub(a, b)
+    res_mul(a, b)
+    res_neg(a)
+    res_inv(a)
+    res(x)
+
+    This resource file is used by regress.cal to test determinants of a matrix
+
+
+test3300.cal
+
+    global defaultverbose
+    global err
+    testi(str, n, N, verbose)
+    testr(str, n, N, verbose)
+    test3300(verbose, tnum)
+
+    This resource file is used by regress.cal to provide for more determinant
+    tests.
+
+test3400.cal
+
+    global defaultverbose
+    global err
+    test1(str, n, eps, verbose)
+    test2(str, n, eps, verbose)
+    test3(str, n, eps, verbose)
+    test4(str, n, eps, verbose)
+    test5(str, n, eps, verbose)
+    test6(str, n, eps, verbose)
+    test3400(verbose, tnum)
+
+    This resource file is used by regress.cal to test trig functions.
+    containing objects.
+
+test3500.cal
+
+    global defaultverbose
+    global err
+    testfrem(x, y, verbose)
+    testgcdrem(x, y, verbose)
+    testf(str, n, verbose)
+    testg(str, n, verbose)
+    testh(str, n, N, verbose)
+    test3500(verbose, n, N)
+
+    This resource file is used by regress.cal to test the functions frem,
+    fcnt, gcdrem.
+
+test4000.cal
+
+    global defaultverbose
+    global err
+    global BASEB
+    global BASE
+    global COUNT
+    global SKIP
+    global RESIDUE
+    global MODULUS
+    global K1
+    global H1
+    global K2
+    global H2
+    global K3
+    global H3
+    plen(N) defined
+    rlen(N) defined
+    clen(N) defined
+    ptimes(str, N, n, count, skip, verbose) defined
+    ctimes(str, N, n, count, skip, verbose) defined
+    crtimes(str, a, b, n, count, skip, verbose) defined
+    ntimes(str, N, n, count, skip, residue, mod, verbose) defined
+    testnextcand(str, N, n, cnt, skip, res, mod, verbose) defined
+    testnext1(x, y, count, skip, residue, modulus) defined
+    testprevcand(str, N, n, cnt, skip, res, mod, verbose) defined
+    testprev1(x, y, count, skip, residue, modulus) defined
+    test4000(verbose, tnum) defined
+
+    This resource file is used by regress.cal to test ptest, nextcand and
+    prevcand builtins.
+
+test4100.cal
+
+    global defaultverbose
+    global err
+    global K1
+    global K2
+    global BASEB
+    global BASE
+    rlen_4100(N) defined
+    olen(N) defined
+    test1(x, y, m, k, z1, z2) defined
+    testall(str, n, N, M, verbose) defined
+    times(str, N, n, verbose) defined
+    powtimes(str, N1, N2, n, verbose) defined
+    inittimes(str, N, n, verbose) defined
+    test4100(verbose, tnum) defined
+
+    This resource file is used by regress.cal to test REDC operations.
+
+test4600.cal
+
+    stest(str [, verbose]) defined
+    ttest([m, [n [,verbose]]]) defined
+    sprint(x) defined
+    findline(f,s) defined
+    findlineold(f,s) defined
+    test4600(verbose, tnum) defined
+
+    This resource file is used by regress.cal to test searching in files.
+
+test5100.cal
+
+    global a5100
+    global b5100
+    test5100(x) defined
+
+    This resource file is used by regress.cal to test the new code generator
+    declaration scope and order.
+
+test5200.cal
+
+    global a5200
+    static a5200
+    f5200(x) defined
+    g5200(x) defined
+    h5200(x) defined
+
+    This resource file is used by regress.cal to test the fix of a
+    global/static bug.
+
+test8400.cal
+
+    test8400() defined
+
+    This resource file is used by regress.cal to check for quit-based
+    memory leaks.
+
+test8500.cal
+
+    global err_8500
+    global L_8500
+    global ver_8500
+    global old_seed_8500
+    global cfg_8500
+    onetest_8500(a,b,rnd) defined
+    divmod_8500(N, M1, M2, testnum) defined
+
+    This resource file is used by regress.cal to the // and % operators.
+
+test8600.cal
+
+    global min_8600
+    global max_8600
+    global hash_8600
+    global hmean_8600
+
+    This resource file is used by regress.cal to test a change of
+    allowing up to 1024 args to be passed to a builtin function.
+
+unitfrac.cal
+
+    unitfrac(x)
+
+    Represent a fraction as sum of distinct unit fractions.
+
+
+varargs.cal
+
+    sc(a, b, ...)
+
+    Example program to use 'varargs'.  Program to sum the cubes of all
+    the specified numbers.
+
+xx_print.cal
+
+    is_octet(a) defined
+    list_print(a) defined
+    mat_print (a) defined
+    octet_print(a) defined
+    blk_print(a) defined
+    nblk_print (a) defined
+    strchar(a) defined
+    file_print(a) defined
+    error_print(a) defined
+
+    Demo for the xx_print object routines.
+
+## Copyright (C) 2000  David I. Bell and Landon Curt Noll
+##
+## Primary author: Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.2 $
+## @(#) $Id: README,v 30.2 2010/09/02 06:01:39 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/cal/RCS/README,v $
+##
+## Under source code control:	1990/02/15 01:50:32
+## File existed as early as:	before 1990
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* archive
+*************
+
+Where to get the the latest versions of calc
+
+    Landon Noll maintains the official calc home page at:
+
+	    http://www.isthe.com/chongo/tech/comp/calc/
+
+    See:
+
+	    http://www.isthe.com/chongo/tech/comp/calc/calc-download.html
+
+    for information on how to obtain up a recent version of calc.
+
+Landon Curt Noll
+http://www.isthe.com/chongo/
+
+chongo <was here> /\../\
+
+## Copyright (C) 1999  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: archive,v 30.1 2007/03/16 11:10:42 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/help/RCS/archive,v $
+##
+## Under source code control:	1996/06/13 02:51:48
+## File existed as early as:	1996
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* bugs
+*************
+
+If you notice something wrong, strange or broken, try rereading:
+
+   README.FIRST
+   HOWTO.INSTALL
+   BUGS (this file)
+
+If that does not help, cd to the calc source directory and try:
+
+   make check
+
+Look at the end of the output, it should say something like:
+
+    9998: passed all tests  /\../\
+    9999: Ending regression tests
+
+If it does not, then something is really broken!
+
+If you made and modifications to calc beyond the simple Makefile
+configuration, try backing them out and see if things get better.
+
+To be sure that your version of calc is up to date, check out:
+
+	http://www.isthe.com/chongo/tech/comp/calc/calc-download.html
+
+The calc web site is located at:
+
+	http://www.isthe.com/chongo/tech/comp/calc/index.html
+
+=-=
+
+If you have tried all of the above and things still are not right,
+then it may be time to send in a bug report.  You can send bug
+and bug fixes reports to:
+
+    calc-bugs at asthe dot com
+
+    [[ NOTE: Replace 'at' with @, 'dot' is with . and remove the spaces ]]
+    [[ NOTE: The EMail address uses 'asthe', the web site URL uses 'isthe' ]]
+
+Your subject must contain the words:
+
+       calc bug report
+
+You may have additional words in your subject line.
+
+When you send your report, please include the following information:
+
+    * a description of the problem
+    * the version of calc you are using (if you cannot get calc
+      to run, then send us the 4 #define lines from version.c)
+    * if you modified calc from an official patch, send me the mods you made
+    * the type of system you were using
+    * the type of compiler you were using
+    * any compiler warnings or errors that you saw
+    * cd to the calc source directory, and type:
+
+	make debug > debug.out 2>&1		(sh, ksh, bash users)
+	make debug >& debug.out			(csh, tcsh users)
+
+      and send the contents of the 'debug.out' file.
+
+Stack traces from core dumps are useful to send as well.
+
+Fell free to use the above address to send in big fixes (in the form
+of a context diff patch).
+
+=-=
+
+Known bugs:
+
+    We are sure some more bugs exist.  When you find them, please let
+    us know!  See the above for details on how to report and were to
+    EMail your bug reports and hopefully patches to fix them.
+
+=-=
+
+Problems that have known work-a-rounds:
+
+    * There is a bug in gcc v4.1.0 that causes calc to fail the regression
+      test.  The work-a-round is to compile with gcc v4.1.1 or later.  This
+      problems was observed on Fedora 5.
+
+=-=
+
+mis-features in calc:
+
+    Some problems are not bugs but rarther mis-features / things that could
+    work better.  The following is a list of mis-features that should be
+    addressed and improved someday.
+
+    * When statement is of the form { ... }, the leading { MUST BE ON
+      THE SAME LINE as the if, for, while or do keyword.
+
+      This works as expected:
+
+	if (expr) {
+	    ...
+	}
+
+      However this WILL NOT WORK AS EXPECTED:
+
+	if (expr)
+	{
+	    ...
+	}
+
+      This needs to be changed.  See also "help statement", "help unexpected",
+      and "help todo".
+
+    * The chi.cal resource file does not work well with odd degrees
+      of freedom.  Can someone improve this algorithm?
+
+    * The intfile.cal resource file reads and writes big or little Endian
+      integers to/from files the hard way.  It does NOT use blkcpy.  The
+      following code:
+
+	i = (ord("\n") << 16) | (ord("i") << 8) | ord("H")
+	b = blk()
+	copy(i, b)
+	fd = fopen("file", "w")
+	copy(b, fd);
+	fclose(fd)
+
+      will write an extra NUL octet to the file.  Where as:
+
+	read intfile
+	i = (ord("\n") << 16) | (ord("i") << 8) | ord("H")
+	be2file(i, "file2")
+
+      will not.
+
+## Copyright (C) 1999-2007  Landon Curt Noll
+##
+## Calc is open software; you can redistribute it and/or modify it under
+## the terms of the version 2.1 of the GNU Lesser General Public License
+## as published by the Free Software Foundation.
+##
+## Calc is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU Lesser General
+## Public License for more details.
+##
+## A copy of version 2.1 of the GNU Lesser General Public License is
+## distributed with calc under the filename COPYING-LGPL.  You should have
+## received a copy with calc; if not, write to Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## @(#) $Revision: 30.1 $
+## @(#) $Id: BUGS,v 30.1 2007/03/16 11:09:46 chongo Exp $
+## @(#) $Source: /usr/local/src/cmd/calc/RCS/BUGS,v $
+##
+## Under source code control:	1994/03/18 14:06:13
+## File existed as early as:	1994
+##
+## chongo <was here> /\oo/\	http://www.isthe.com/chongo/
+## Share and enjoy!  :-)	http://www.isthe.com/chongo/tech/comp/calc/
+
+*************
+* changes
+*************
+
+The following are the changes from calc version 2.12.4.0 to date:
+
+    Fixed a documentation bug for the sgn() builtin.
+
+    Added the 1<<8/2 evaluation example to "help unexpected".  That
+    expression evalutes to 128, not 16 as some C programmers might expect.
+
+    Fixed a bug in solve.cal where high was not returned in some situations.
+
+    Fixed a bug reported by Paul & Karen Tomlinson (paulnkaz at pktomlinson
+    dot fsnet dot co dot uk) where calling log multiple times with different
+    values of epsilon resulted in an incorrect value.
+
+    Removed cvd rule from Makefiles.
+
+    The Makefile used in the source rpm (calc-*.src.rpm) no longer uses
+    the -Werror compile flag.  This is to help those distributions with
+    compilers that make produce (hopefully) complination warnings.
+    NOTE: For testing and calc build purposes will recommend and will
+    continue to use the -Werror flag.
+
+    Fixed a typo in the Makefile where the make variable ${SAMPLE_OBJ}
+    was misspelled as ${SAMPLE_OBJS}.
+
+    Added prep makefile rule to make is easier to compile calc without
+    an optimizer.  By doing:
+
+    	make clobber prep
+
+    one may build a calc binary that is easier to debug.
+
+    Fixed a bug where an certains typos (e.g., calling an unknown
+    function) would previously cause calc to exit.
+
+    Updated the COPYING file to reflect the new filenames associated
+    with the SHA1 hash function, and removed mention of files related
+    to the SHA (SHA0, not SHA1) and the MD5 hash functions (which is
+    no longer supported in calc).
+
+    Fixed a bug where a calling vsnprintf() twice created problems.
+    The thanks for this fix goes to Matthew Miller (mattdm at mattdm
+    dot org) for this patch.
+
+    Michael Penk (mpenk at wuska dot com) reported success in installs
+    under windoz via Cygwin by making a change to the Cygwin target.
+    These changes have been folded into the main calc Makefile.
+    The old recommendation of using 'make win32_hsrc' is no longer
+    required for Cygwin.  See the README.WINDOWS file for details.
+
+    Added dms.cal and hms.cal resource files.  The dms.cal is a more
+    functional version of deg.cal.  It is a superset except that increment
+    and decrement is on the arc second level.  The hms.cal is for
+    24-hour cycle instread of the 360 degree cycle of dms.cal.
+
+    Changed deg.cal object name from dms to deg so that the more functional
+    dms.cal can own the dms object name.
+
+    Updated 'help obj' to reflect changes to 'show objfunctions' and
+    resource file example list since 1999.
+
+    Fixed problem where CALC_BYTE_ORDER refering to CALC_BIG_ENDIAN
+    and CALC_LITTLE_ENDIAN instead of BIG_ENDIAN and LITTLE_ENDIAN.
+
+
+The following are the changes from calc version 2.12.3.0 to 2.12.3.3:
+
+    Fixed the Jacobi function where it returned 1 when it should have
+    returned 0.  Thanks goes to Kevin Sopp (baraclese at googlemail dot com)
+    for discovering the problem and suggesting the nature if the fix.
+
+    Calc versions will always be of the form x.y.z.w even when the
+    MINOR_PATCH (w) is 0.  Thus, 2.12.3.0 will be printed as 2.12.3.0
+    instread of just 2.12.3.
+
+    Added MINGW32_NT-5.0 compile target based on a patch from
+    Brian L. Angus (angus at eng dot utah dot edu).
+
+    Removed the use of rpm.release in the Makefile.
+
+    Mac OS Darwin targets no longer attempt to use ldconfig.  Under the
+    Darwin target, the LDCONFIG make variable is redefined to be
+    an empty value.  Thanks goes to Ralf Trinler (art at infra dot de)
+    for reporting this problem.
+
+    The ${CALC_INCDIR}/custom is no longer being removed at install time
+    if it is empty.  Now when ${ALLOW_CUSTOM} make variable is empty,
+    an empty ${CALC_INCDIR}/custom may be left hehind.
+
+    Fixed a problem where a "make clobber" would remove custom/Makefile
+    and fail to rebuilt it.
+
+
+The following are the changes from calc version 2.12.2.3 to 2.12.2.4:
+
+    Added OpenBSD target.
+
+    Using the -r test instead of the -e test in Makefiles because some
+    out of date shells still do not have the -e test.
+
+    The Makefile now avoids the use of if ! command because some out of
+    date shells to not support the ! construct.
+
+
+The following are the changes from calc version 2.12.1.1 to 2.12.2.2:
+
+    Added an explicit Solaris target.
+
+    Fixed confusion in Makefile where some uses of ${EXT} were misnamed ${EXE}.
+
+    Added a "make strip" rule, per suggestion from Igor Furlan <primorec
+    at sbcglobal dot net>, to allow one to strip previously built binary
+    executables and libraries.
+
+    Under the Darwin / OS X target, ${DARWIN_ARCH} is left empty meaning
+    that calc is compiled for the native CPU type instead of Universal
+    Binary (Intel and PPC).
+
+    By default, the calc binary that is built for the rpm forces
+    ${LD_SHARE} to be empty.  An empty ${LD_SHARE} means that the calc
+    from the rpm does not set rpath.  This in turn causes the default
+    system path to be searched when looking for libcalc and libcustcalc.
+
+    The Makefile shipped with calc still sets ${LD_SHARE} for host targets.
+    By default, the dynamic shared library search path for all targets
+    starts with the source directory.  Starting the search in the source
+    directory is convenient for testing and debugging but is not appropriate
+    for installation on a production system.  To get the same effect
+    as the calc binary in the calc rpm, try:
+
+	make clobber
+	make calc-dynamic-only BLD_TYPE=calc-dynamic-only LD_SHARE=
+	make install
+
+    The libcalc and libcustcalc shared libraries are now tied to
+    the 4 level calc version instead of just 3 levels.  For example,
+    under Linux calc version 2.12.2.1 uses /usr/lib/libcalc.so.2.12.2.1
+    instead of just the /usr/lib/libcalc.so.2.12.2 file.  This change
+    was made so that calc produced by 'make clobber; make all install'
+    is consistent with the calc rpm.
+
+    Calc is now releasing the calc-debuginfo rpm for those RPM users who
+    which to use non-stripped libraries and binaries for debugging
+    purposes.  By default, the calc rpm installed stripped binaries
+    and libraries.
+
+    Added this high priority item to the calc help/todo list:
+
+	It is overkill to have nearly everything wind up in libcalc.
+	Form a libcalcmath and a libcalclang so that an application
+	that just wants to link with the calc math libs can use them
+	without dragging in all of the other calc language, I/O,
+	and builtin functions.
+
+    Fixed the wording for the -i flag in the calc man page.
+
+    Added some notes to the help/unexpected file regarding calc
+    and interactice shells.
+
+    Fixed bug where a FILEPOS was copied FPOS_POS_BITS octets instead of
+    FPOS_POS_LEN octets.
+
+    Split out ${READLINE_EXTRAS} Makefile variables from ${READLINE_LIB}
+    to better deal with Fedora rpm requirements.
+
+    Bit 8 (0x80) of calc_debug is reserved for custom debugging.
+    See help/config and custom/HOW_TO_ADD for details.
+
+    When the Makefile variable ${ALLOW_CUSTOM} is not defined or empty,
+    the libcustcalc library is not built or linked against, certain make
+    rules skip going into the custom sub-directory, the install
+    rule skips certain custom installation actions, and the common
+    C flags (${COMMON_CFLAGS}) is given -UCUSTOM.  Other make rules such
+    as "make clean" and "make clobber" still work as before.  Also
+    the Makefile.simple assumes that the Makefile variable ${ALLOW_CUSTOM}
+    is -DCUSTOM.
+
+    Clarified that the calc builtin functions rand() and random()
+    operate over a half closed interval.  The help/rand and help/random
+    refer to  the top of the interval as "beyond" instead of "max".
+
+    Releaseing source tar balls using bzip2 instead of with gzip.  So
+    what was calc-something.tar.gz is now calc-something.tar.bz2.
+    To "uncompress" use:
+
+    	bunzip2 calc-something.tar.bz2
+
+    On some systems, one may untar directly by:
+
+	tar -jxvf calc-something.tar.bz2
+
+   The Makefile variable ${BYTE_ORDER} was replaced by ${CALC_BYTE_ORDER}.
+
+   Changed the way the Makefile can force the calc byte order.  If you set
+   the Makefile variable ${CALC_BYTE_ORDER} to be -DCALC_BIG_ENDIAN then
+   endian.h will force the CPP symbol CALC_BYTE_ORDER to be BIG_ENDIAN.
+   If you set ${CALC_BYTE_ORDER} to be -DCALC_LITTLE_ENDIAN then endian.h
+   will force the CPP symbol CALC_BYTE_ORDER to be LITTLE_ENDIAN.
+   If the Makefile variable ${CALC_BYTE_ORDER} is empty, then the CPP
+   symbol CALC_BYTE_ORDER will set to the CPP symbol BYTE_ORDER as
+   defined by some system include file (if the Makefile can find such
+   an include file), or the Makefile compiling endian.c and hopefully
+   using that result to set CPP symbol CALC_BYTE_ORDER.  Regardless of
+   how it happens, the CPP symbol CALC_BYTE_ORDER should end up set in
+   endian_calc.h include file.
+
+
+The following are the changes from calc version 2.12.1.10 to 2.12.2:
+
+    Put back the missing -s flags on the cscripts:  mersenne, 4dsphere,
+    fprodcut, plus, and powerterm.  Thanks goes to Bradley Reed
+    <bradreed1 at gmail dot com> for discovering this problem.
+
+    All static variables are now declared with the symbol STATIC.
+    All extern variables are now declared with the symbol EXTERN.
+    All static functions are now declared with the symbol S_FUNC.
+    All extern functions are now declared with the symbol E_FUNC.
+    The include file decl.h defines these 4 symbols by default
+    to static, extern, static, and extern respectively.  Under
+    Windoz, DLL is also defined according to the _EXPORTING symbol
+    and is prepended to the EXTERN and E_FUNC symbols.  The decl.h
+    file has replaced the win32dll.h file.
+
+    When WITH_TLS is defined, calc attempts to compile with Thread Local
+    Storage.  As of version 2.12.1.12 this mode is extremely experimental.
+    Calc may not compile when WITH_TLS defined.
+
+    Fixed E_FUNC vs EXTERN issues discovered by Mirko Viviani
+    <mirko at objectlab dot org>.
+
+    Removed include of <malloc.h>.  The building of the include file
+    "have_malloc.h" has been removed from the Makefile.  One some
+    systems such as FreeBSD, the file /usr/include/malloc.h exists
+    and contains an forced error saying that stdlib.h should be used
+    instead.  The Makefile symbol HAVE_MALLOC has been removed.
+
+    Moved the sample code in the sample sub-directory up into the
+    main source level.  The sample/many_random.c source file is
+    now sample_many.c.  The sample/test_random.c source file is now
+    sample_rand.c.  The sample Makefile and the sub-directory is no more.
+
+    Renamed the following source files:
+
+	math_error.h		==>    lib_calc.h
+	string.c		==>    str.c
+	string.h		==>    str.h
+
+    Renamed the following variables related to calc error processing:
+
+	int calc_jmp		==>    int calc_use_matherr_jmpbuf
+    	jmp_buf calc_jmp_buf	==>    jmp_buf calc_matherr_jmpbuf
+
+	int post_init		==>    int calc_use_scanerr_jmpbuf
+	jmp_buf jmpbuf		==>    jmpbuf calc_scanerr_jmpbuf
+
+	char *calc_error	==>    char calc_err_msg[MAXERROR+1]
+
+    These values are now declared in the lib_calc.h include file.
+    The value MAXERROR is now defined in lib_calc.h instead of calc.h.
+    The calc_err_msg[] buffer is now used for math errors as well
+    as scan and parse errors.
+
+    Parse/scan errors will not be printed if calc_print_scanerr_msg
+    is zero.  By default:
+
+    	int calc_print_scanerr_msg = 1;
+
+    This variable is declared in the lib_calc.h include file.  Storage
+    comes from libcalc.
+
+    Parse/scan warnings will not be printed if calc_print_scanwarn_msg
+    is zero.  By default:
+
+    	int calc_print_scanwarn_msg = 1;
+
+    This variable is declared in the lib_calc.h include file.  Storage
+    comes from libcalc.
+
+    The last parse/scan error message is stored in the calc_err_msg[]
+    buffer.  This happens even when calc_print_scanerr_msg is zero.
+
+    The last parse/scan warning message is stored in the calc_warn_msg[]
+    buffer.  After each parse/scan warning condition is detected,
+    the value calc_warn_cnt is incremented.  This happens even when
+    calc_print_scanwarn_msg is zero.
+
+    The calc_warn_msg[] buffer and calc_warn_cnt variables are declared
+    in the lib_calc.h include file.  Storage comes from libcalc.
+
+    See the file, LIBRARY or use the calc command "help libcalc" for
+    more information on calc error processing.  This file has been
+    updated to reflect the changes noted above in this section.
+
+    The make install rule removes std_arg.h, have_malloc.h, math_error.h,
+    string.h, and win32dll.h from ${INCDIR} if they exist.  These calc
+    include files are no longer supported.
+
+    Do reduce the number of special case .o build rules, the
+    ${ALLOW_CUSTOM} make flag is added to ${CFLAGS} by default.  This means
+    that if ALLOW_CUSTOM= -DCUSTOM, then -DCUSTOM is given to the compile
+    line of most .c files.
+
+    Calc -v reports "w/custom functions" or "w/o custom functions" on
+    the version string depending on if calc was compiled with the
+    ALLOW_CUSTOM= -DCUSTOM or not.
+
+    Replaced the concept of compiler sets in the Makefile with
+    host target section in the Makefile.  Initial host targets are:
+
+    	Linux
+	Darwin
+	FreeBSD
+	(default)	<<== Target does not match any previous target name
+	Simple
+
+    	NOTE: If your target is not supported below and the default target
+	      is not suitable for your needs, please send to the:
+
+	      	calc-contrib at asthe dot com
+
+	      EMail address an "ifeq ($(target),YOUR_TARGET_NAME)"
+	      ... "endif" set of lines from the Makefile so that
+	      we can consider them for the next release.
+
+    The custom/Makefile is now constructed from 3 parts: custom/Makefile.head,
+    the host target section in Makefile, and the custom/Makefile.tail.
+
+    The top level Makefile and the custom/Makefile require a GNU Make
+    (such as gmake) or an equivalently advanced make.  On many targets,
+    the default make is sufficient.  On FreeBSD for example, one must
+    use gmake instead of make.
+
+    If your target system does not have GNU Make (or equivalent), then
+    you should try using the Makefile.simple and custom/Makefile.simple
+    files:
+
+	mv Makefile Makefile.gmake
+	cp Makefile.simple Makefile
+	mv custom/Makefile custom/Makefile.gmake
+	cp custom/Makefile.simple custom/Makefile
+	make all
+
+    Added the ability to build calc with dynamic libraries, static
+    libraries or both.  Many thanks goes to Matthew Miller (mattdm
+    at mattdm dot org) and Mirko Viviani (mirko at objectlab dot
+    org) for this help, encouragement, and testing of this major change!
+
+    Added BLD_TYPE Makefile variable to control how calc is
+    built.  The BLD_TYPE value may be one of:
+
+	BLD_TYPE= calc-dynamic-only
+	BLD_TYPE= calc-static-only
+
+    Each host target establishes a default BLD_TYPE value.  Of course
+    one can override the host target BLD_TYPE on the make command line:
+
+	make clobber
+	make calc-dynamic-only BLD_TYPE=calc-dynamic-only
+
+	make clobber
+	make calc-static-only BLD_TYPE=calc-static-only
+
+	NOTE: It is a very good idea to first clobber (remove) any previously
+	      built .o, libs and executables before switching the build
+	      between static and dynamic.
+
+    which have the same effect as make all with a given build phase set.
+
+    For Linux and Darwin, the default BLD_TYPE is calc-dynamic-only.
+    For the simple case, BLD_TYPE is calc-static-only.  For the
+    default target (the target does not match any of the previous
+    defined targets), BLD_TYPE is calc-static-only.
+
+    Added ${CSFLAGS} make variable to hold the {$CC} flags for compiling
+    without shared library.  By default, ${CFLAGS} is ${CSFLAGS} with
+    ${CC_SHARE} added to it.
+
+    Added ${CC_SHARE}, ${LIBCALC_SHLIB}, ${LIBCUSTCALC_SHLIB}, and
+    ${LD_SHARE} to the remaining compiler sets.
+
+    Fixed make depend and make uninstall rules.   Performed various
+    makefile syntax cleanups.
+
+    Removed ${PROGS} and ${STATIC_PROGS} Makefile variables due to
+    the new BLD_TYPE system (see above).
+
+    Added missing help for cp, calcpath, and stoponerror.
+
+    Noted that calc fails the regression test (and will crash at
+    various times) when compiled with gcc v4.1.0.  This problem was
+    first reported under Fedora Core 5 by Christian Siebert.
+
+    Set the LESSCHARSET to iso8859 so that less will not confuse or
+    upset the col utility with Invalid or incomplete multi-byte or wide
+    characters.
+
+    Updated the Free Software Foundation postal address and updated
+    the COPYING-LGPL from http://www.fsf.org/licensing/licenses/lgpl.txt
+    on 2007-Mar-14.  Calc is using the same Version 2.1 of the LGPL,
+    only the postal address of the Free Software Foundation has
+    been updated.  All source files were updated to RCS level 30.
+    Thanks goes to Martin Buck (m at rtin-buck dor de) for this patch.
+
+    Added printf arg checking for GNU C compilers that helps check
+    printf-style functions in calc.  Thanks goes to Martin Buck (m at
+    rtin-buck dor de) for this patch.
+
+    Fixed issues where the argument of a printf-like did not match the
+    format type.
+
+    Removed build function md5().  The MD5 hash has been compromised to
+    such a degree that is it no longer advisable to use this function.
+
+    Removed build function sha().  The SHA hash has been compromised to
+    such a degree that is it no longer advisable to use this function.
+    Note that the SHA-1 hash has not been compromised to the same degree
+    and so this hash function remains.
+
+    Renamed shs1.c to sha1.c.  Renamed shs1.h to sha1.h.
+
+    Added custom registers.  The custom register function:
+
+	custom("register", 3)
+
+    returns the value of custom register 3.  Custom registers, initialized
+    with 0, may take on any calc value:
+
+	custom("register", regnum, value)
+
+    Added REGNUM_MAX to the sysinfo custom function to return the maximum
+    register number:
+
+	custom("sysinfo", "REGNUM_MAX")
+
+    which defaults to 31.  The first custom register is 0 and thus the
+    default number of custom registers is 32.
+
+    Added E_OK #define in calc.h to indicate no error (0).
+
+    Renamed C function powivalue() in value.c to powvalue() because it
+    now handles raising NUMBER or COMPLEX to a NUMBER or COMPLEX power.
+
+    The powervalue() function in value.c may be given a NULL epsilon
+    which will cause to the builtin epsilon value to be used.
+
+    Calc supports both real and complex exponentiation bases and exponents.
+    For a ^ b and a ** b, "a" and "b" can be a real value or a complex value:
+
+        2^3                     3i^4
+	2.5 ^ 3.5               0.5i ^ 0.25
+	2.5 ^ 2.718i            3.13145i ^ 0.30103i
+
+    Fixed typos in the calc man page thanks to a Debian bug report
+    by A. Costa <agcosta at gis dot .net> that wsa kindly forwarded
+    to us by Martin Buck <m at rtin-buck dot de>.
+
+
+The following are the changes from calc version 2.12.1.8 to 2.12.1.9:
+
+    Fixed calc cscripts that contained comments that were not valid calc
+    comments.  Improved calc comment documentation in "help unexpected"
+    to help other avoid similar mistakes.  Calc comments are of the form:
+
+    	/* c style comments */
+	/*
+	 * multi-line
+	 * comments
+	 */
+	## two or more #-signs
+	### in a row
+	### Note that # along is a calc unary and binary operator
+
+    Added "help pound" or "help #' to document the # operator, comments,
+    and the first line of cscript files.
+
+    Documented these help commands in "help help":
+
+    	help ->
+	help *
+	help .
+	help %
+	help //
+	help #
+
+    The usage help file is now formed from the contents of the calc man page.
+    So "help usage" prints the version of the calc man page.  Added ${COL}
+    makefile symbol to support the formation of the calc.usage file from
+    calc.1 via the CALCPAGER (less) or NROFF (if NROFF is non-empty).
+
+    The "help calc" command is now equivalent to "help help".
+
+    The "help define" command is now equivalent to "help command".
+
+    Fixed calc command line usage message.
+
+    Fixed missing README.src file in RPM src and tgz src tarball.
+
+    Removed HAVE_SNPRINTF test in version.c.  We now assume that
+    all systems come with the standard snprintf() library function.
+
+    Make does not assume that DONT_HAVE_VSPRINTF must be defined in
+    order to test for varargs (via have_varvs.c).  Instead it uses the
+    ${HAVE_VSPRINTF} to determine if the vsprintf() and vsnprintf()
+    should be tested to assumed to exist or not exist.
+
+    Tests for the existence of vsprintf() now also require the existence
+    of vsnprintf().  Test for the existence of vsnprintf() now also
+    require the existence of vsprintf().
+
+    The #define CALC_SIZE_T was never used except when memmove() was
+    not found.  This symbol was renamed to MEMMOVE_SIZE_T.  Calc
+    requires that size_t must be a known type.
+
+    Calc and cscripts are instal

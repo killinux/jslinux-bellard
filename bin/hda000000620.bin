@@ -1,0 +1,1406 @@
+-like
+     structures layout in order to better utilize spatial locality.
+     This transformation is affective for programs containing arrays of
+     structures.  Available in two compilation modes: profile-based
+     (enabled with `-fprofile-generate') or static (which uses built-in
+     heuristics).  Require `-fipa-type-escape' to provide the safety of
+     this transformation.  It works only in whole program mode, so it
+     requires `-fwhole-program' and `-combine' to be enabled.
+     Structures considered `cold' by this transformation are not
+     affected (see `--param struct-reorg-cold-struct-ratio=VALUE').
+
+     With this flag, the program debug info reflects a new structure
+     layout.
+
+`-fipa-pta'
+     Perform interprocedural pointer analysis.
+
+`-fipa-cp'
+     Perform interprocedural constant propagation.  This optimization
+     analyzes the program to determine when values passed to functions
+     are constants and then optimizes accordingly.  This optimization
+     can substantially increase performance if the application has
+     constants passed to functions, but because this optimization can
+     create multiple copies of functions, it may significantly increase
+     code size.
+
+`-fipa-matrix-reorg'
+     Perform matrix flattening and transposing.  Matrix flattening
+     tries to replace a m-dimensional matrix with its equivalent
+     n-dimensional matrix, where n < m.  This reduces the level of
+     indirection needed for accessing the elements of the matrix. The
+     second optimization is matrix transposing that attemps to change
+     the order of the matrix's dimensions in order to improve cache
+     locality.  Both optimizations need fwhole-program flag.
+     Transposing is enabled only if profiling information is avaliable.
+
+`-ftree-sink'
+     Perform forward store motion  on trees.  This flag is enabled by
+     default at `-O' and higher.
+
+`-ftree-ccp'
+     Perform sparse conditional constant propagation (CCP) on trees.
+     This pass only operates on local scalar variables and is enabled
+     by default at `-O' and higher.
+
+`-ftree-store-ccp'
+     Perform sparse conditional constant propagation (CCP) on trees.
+     This pass operates on both local scalar variables and memory
+     stores and loads (global variables, structures, arrays, etc).
+     This flag is enabled by default at `-O2' and higher.
+
+`-ftree-dce'
+     Perform dead code elimination (DCE) on trees.  This flag is
+     enabled by default at `-O' and higher.
+
+`-ftree-dominator-opts'
+     Perform a variety of simple scalar cleanups (constant/copy
+     propagation, redundancy elimination, range propagation and
+     expression simplification) based on a dominator tree traversal.
+     This also performs jump threading (to reduce jumps to jumps). This
+     flag is enabled by default at `-O' and higher.
+
+`-ftree-dse'
+     Perform dead store elimination (DSE) on trees.  A dead store is a
+     store into a memory location which will later be overwritten by
+     another store without any intervening loads.  In this case the
+     earlier store can be deleted.  This flag is enabled by default at
+     `-O' and higher.
+
+`-ftree-ch'
+     Perform loop header copying on trees.  This is beneficial since it
+     increases effectiveness of code motion optimizations.  It also
+     saves one jump.  This flag is enabled by default at `-O' and
+     higher.  It is not enabled for `-Os', since it usually increases
+     code size.
+
+`-ftree-loop-optimize'
+     Perform loop optimizations on trees.  This flag is enabled by
+     default at `-O' and higher.
+
+`-ftree-loop-linear'
+     Perform linear loop transformations on tree.  This flag can
+     improve cache performance and allow further loop optimizations to
+     take place.
+
+`-fcheck-data-deps'
+     Compare the results of several data dependence analyzers.  This
+     option is used for debugging the data dependence analyzers.
+
+`-ftree-loop-im'
+     Perform loop invariant motion on trees.  This pass moves only
+     invariants that would be hard to handle at RTL level (function
+     calls, operations that expand to nontrivial sequences of insns).
+     With `-funswitch-loops' it also moves operands of conditions that
+     are invariant out of the loop, so that we can use just trivial
+     invariantness analysis in loop unswitching.  The pass also includes
+     store motion.
+
+`-ftree-loop-ivcanon'
+     Create a canonical counter for number of iterations in the loop
+     for that determining number of iterations requires complicated
+     analysis.  Later optimizations then may determine the number
+     easily.  Useful especially in connection with unrolling.
+
+`-fivopts'
+     Perform induction variable optimizations (strength reduction,
+     induction variable merging and induction variable elimination) on
+     trees.
+
+`-ftree-parallelize-loops=n'
+     Parallelize loops, i.e., split their iteration space to run in n
+     threads.  This is only possible for loops whose iterations are
+     independent and can be arbitrarily reordered.  The optimization is
+     only profitable on multiprocessor machines, for loops that are
+     CPU-intensive, rather than constrained e.g. by memory bandwidth.
+     This option implies `-pthread', and thus is only supported on
+     targets that have support for `-pthread'.
+
+`-ftree-sra'
+     Perform scalar replacement of aggregates.  This pass replaces
+     structure references with scalars to prevent committing structures
+     to memory too early.  This flag is enabled by default at `-O' and
+     higher.
+
+`-ftree-copyrename'
+     Perform copy renaming on trees.  This pass attempts to rename
+     compiler temporaries to other variables at copy locations, usually
+     resulting in variable names which more closely resemble the
+     original variables.  This flag is enabled by default at `-O' and
+     higher.
+
+`-ftree-ter'
+     Perform temporary expression replacement during the SSA->normal
+     phase.  Single use/single def temporaries are replaced at their
+     use location with their defining expression.  This results in
+     non-GIMPLE code, but gives the expanders much more complex trees
+     to work on resulting in better RTL generation.  This is enabled by
+     default at `-O' and higher.
+
+`-ftree-vectorize'
+     Perform loop vectorization on trees. This flag is enabled by
+     default at `-O3'.
+
+`-ftree-vect-loop-version'
+     Perform loop versioning when doing loop vectorization on trees.
+     When a loop appears to be vectorizable except that data alignment
+     or data dependence cannot be determined at compile time then
+     vectorized and non-vectorized versions of the loop are generated
+     along with runtime checks for alignment or dependence to control
+     which version is executed.  This option is enabled by default
+     except at level `-Os' where it is disabled.
+
+`-fvect-cost-model'
+     Enable cost model for vectorization.
+
+`-ftree-vrp'
+     Perform Value Range Propagation on trees.  This is similar to the
+     constant propagation pass, but instead of values, ranges of values
+     are propagated.  This allows the optimizers to remove unnecessary
+     range checks like array bound checks and null pointer checks.
+     This is enabled by default at `-O2' and higher.  Null pointer check
+     elimination is only done if `-fdelete-null-pointer-checks' is
+     enabled.
+
+`-ftracer'
+     Perform tail duplication to enlarge superblock size.  This
+     transformation simplifies the control flow of the function
+     allowing other optimizations to do better job.
+
+`-funroll-loops'
+     Unroll loops whose number of iterations can be determined at
+     compile time or upon entry to the loop.  `-funroll-loops' implies
+     `-frerun-cse-after-loop'.  This option makes code larger, and may
+     or may not make it run faster.
+
+`-funroll-all-loops'
+     Unroll all loops, even if their number of iterations is uncertain
+     when the loop is entered.  This usually makes programs run more
+     slowly.  `-funroll-all-loops' implies the same options as
+     `-funroll-loops',
+
+`-fsplit-ivs-in-unroller'
+     Enables expressing of values of induction variables in later
+     iterations of the unrolled loop using the value in the first
+     iteration.  This breaks long dependency chains, thus improving
+     efficiency of the scheduling passes.
+
+     Combination of `-fweb' and CSE is often sufficient to obtain the
+     same effect.  However in cases the loop body is more complicated
+     than a single basic block, this is not reliable.  It also does not
+     work at all on some of the architectures due to restrictions in
+     the CSE pass.
+
+     This optimization is enabled by default.
+
+`-fvariable-expansion-in-unroller'
+     With this option, the compiler will create multiple copies of some
+     local variables when unrolling a loop which can result in superior
+     code.
+
+`-fpredictive-commoning'
+     Perform predictive commoning optimization, i.e., reusing
+     computations (especially memory loads and stores) performed in
+     previous iterations of loops.
+
+     This option is enabled at level `-O3'.
+
+`-fprefetch-loop-arrays'
+     If supported by the target machine, generate instructions to
+     prefetch memory to improve the performance of loops that access
+     large arrays.
+
+     This option may generate better or worse code; results are highly
+     dependent on the structure of loops within the source code.
+
+     Disabled at level `-Os'.
+
+`-fno-peephole'
+`-fno-peephole2'
+     Disable any machine-specific peephole optimizations.  The
+     difference between `-fno-peephole' and `-fno-peephole2' is in how
+     they are implemented in the compiler; some targets use one, some
+     use the other, a few use both.
+
+     `-fpeephole' is enabled by default.  `-fpeephole2' enabled at
+     levels `-O2', `-O3', `-Os'.
+
+`-fno-guess-branch-probability'
+     Do not guess branch probabilities using heuristics.
+
+     GCC will use heuristics to guess branch probabilities if they are
+     not provided by profiling feedback (`-fprofile-arcs').  These
+     heuristics are based on the control flow graph.  If some branch
+     probabilities are specified by `__builtin_expect', then the
+     heuristics will be used to guess branch probabilities for the rest
+     of the control flow graph, taking the `__builtin_expect' info into
+     account.  The interactions between the heuristics and
+     `__builtin_expect' can be complex, and in some cases, it may be
+     useful to disable the heuristics so that the effects of
+     `__builtin_expect' are easier to understand.
+
+     The default is `-fguess-branch-probability' at levels `-O', `-O2',
+     `-O3', `-Os'.
+
+`-freorder-blocks'
+     Reorder basic blocks in the compiled function in order to reduce
+     number of taken branches and improve code locality.
+
+     Enabled at levels `-O2', `-O3'.
+
+`-freorder-blocks-and-partition'
+     In addition to reordering basic blocks in the compiled function,
+     in order to reduce number of taken branches, partitions hot and
+     cold basic blocks into separate sections of the assembly and .o
+     files, to improve paging and cache locality performance.
+
+     This optimization is automatically turned off in the presence of
+     exception handling, for linkonce sections, for functions with a
+     user-defined section attribute and on any architecture that does
+     not support named sections.
+
+`-freorder-functions'
+     Reorder functions in the object file in order to improve code
+     locality.  This is implemented by using special subsections
+     `.text.hot' for most frequently executed functions and
+     `.text.unlikely' for unlikely executed functions.  Reordering is
+     done by the linker so object file format must support named
+     sections and linker must place them in a reasonable way.
+
+     Also profile feedback must be available in to make this option
+     effective.  See `-fprofile-arcs' for details.
+
+     Enabled at levels `-O2', `-O3', `-Os'.
+
+`-fstrict-aliasing'
+     Allows the compiler to assume the strictest aliasing rules
+     applicable to the language being compiled.  For C (and C++), this
+     activates optimizations based on the type of expressions.  In
+     particular, an object of one type is assumed never to reside at
+     the same address as an object of a different type, unless the
+     types are almost the same.  For example, an `unsigned int' can
+     alias an `int', but not a `void*' or a `double'.  A character type
+     may alias any other type.
+
+     Pay special attention to code like this:
+          union a_union {
+            int i;
+            double d;
+          };
+
+          int f() {
+            a_union t;
+            t.d = 3.0;
+            return t.i;
+          }
+     The practice of reading from a different union member than the one
+     most recently written to (called "type-punning") is common.  Even
+     with `-fstrict-aliasing', type-punning is allowed, provided the
+     memory is accessed through the union type.  So, the code above
+     will work as expected.  *Note Structures unions enumerations and
+     bit-fields implementation::.  However, this code might not:
+          int f() {
+            a_union t;
+            int* ip;
+            t.d = 3.0;
+            ip = &t.i;
+            return *ip;
+          }
+
+     Similarly, access by taking the address, casting the resulting
+     pointer and dereferencing the result has undefined behavior, even
+     if the cast uses a union type, e.g.:
+          int f() {
+            double d = 3.0;
+            return ((union a_union *) &d)->i;
+          }
+
+     The `-fstrict-aliasing' option is enabled at levels `-O2', `-O3',
+     `-Os'.
+
+`-fstrict-overflow'
+     Allow the compiler to assume strict signed overflow rules,
+     depending on the language being compiled.  For C (and C++) this
+     means that overflow when doing arithmetic with signed numbers is
+     undefined, which means that the compiler may assume that it will
+     not happen.  This permits various optimizations.  For example, the
+     compiler will assume that an expression like `i + 10 > i' will
+     always be true for signed `i'.  This assumption is only valid if
+     signed overflow is undefined, as the expression is false if `i +
+     10' overflows when using twos complement arithmetic.  When this
+     option is in effect any attempt to determine whether an operation
+     on signed numbers will overflow must be written carefully to not
+     actually involve overflow.
+
+     This option also allows the compiler to assume strict pointer
+     semantics: given a pointer to an object, if adding an offset to
+     that pointer does not produce a pointer to the same object, the
+     addition is undefined.  This permits the compiler to conclude that
+     `p + u > p' is always true for a pointer `p' and unsigned integer
+     `u'.  This assumption is only valid because pointer wraparound is
+     undefined, as the expression is false if `p + u' overflows using
+     twos complement arithmetic.
+
+     See also the `-fwrapv' option.  Using `-fwrapv' means that integer
+     signed overflow is fully defined: it wraps.  When `-fwrapv' is
+     used, there is no difference between `-fstrict-overflow' and
+     `-fno-strict-overflow' for integers.  With `-fwrapv' certain types
+     of overflow are permitted.  For example, if the compiler gets an
+     overflow when doing arithmetic on constants, the overflowed value
+     can still be used with `-fwrapv', but not otherwise.
+
+     The `-fstrict-overflow' option is enabled at levels `-O2', `-O3',
+     `-Os'.
+
+`-falign-functions'
+`-falign-functions=N'
+     Align the start of functions to the next power-of-two greater than
+     N, skipping up to N bytes.  For instance, `-falign-functions=32'
+     aligns functions to the next 32-byte boundary, but
+     `-falign-functions=24' would align to the next 32-byte boundary
+     only if this can be done by skipping 23 bytes or less.
+
+     `-fno-align-functions' and `-falign-functions=1' are equivalent
+     and mean that functions will not be aligned.
+
+     Some assemblers only support this flag when N is a power of two;
+     in that case, it is rounded up.
+
+     If N is not specified or is zero, use a machine-dependent default.
+
+     Enabled at levels `-O2', `-O3'.
+
+`-falign-labels'
+`-falign-labels=N'
+     Align all branch targets to a power-of-two boundary, skipping up to
+     N bytes like `-falign-functions'.  This option can easily make
+     code slower, because it must insert dummy operations for when the
+     branch target is reached in the usual flow of the code.
+
+     `-fno-align-labels' and `-falign-labels=1' are equivalent and mean
+     that labels will not be aligned.
+
+     If `-falign-loops' or `-falign-jumps' are applicable and are
+     greater than this value, then their values are used instead.
+
+     If N is not specified or is zero, use a machine-dependent default
+     which is very likely to be `1', meaning no alignment.
+
+     Enabled at levels `-O2', `-O3'.
+
+`-falign-loops'
+`-falign-loops=N'
+     Align loops to a power-of-two boundary, skipping up to N bytes
+     like `-falign-functions'.  The hope is that the loop will be
+     executed many times, which will make up for any execution of the
+     dummy operations.
+
+     `-fno-align-loops' and `-falign-loops=1' are equivalent and mean
+     that loops will not be aligned.
+
+     If N is not specified or is zero, use a machine-dependent default.
+
+     Enabled at levels `-O2', `-O3'.
+
+`-falign-jumps'
+`-falign-jumps=N'
+     Align branch targets to a power-of-two boundary, for branch targets
+     where the targets can only be reached by jumping, skipping up to N
+     bytes like `-falign-functions'.  In this case, no dummy operations
+     need be executed.
+
+     `-fno-align-jumps' and `-falign-jumps=1' are equivalent and mean
+     that loops will not be aligned.
+
+     If N is not specified or is zero, use a machine-dependent default.
+
+     Enabled at levels `-O2', `-O3'.
+
+`-funit-at-a-time'
+     Parse the whole compilation unit before starting to produce code.
+     This allows some extra optimizations to take place but consumes
+     more memory (in general).  There are some compatibility issues
+     with _unit-at-a-time_ mode:
+        * enabling _unit-at-a-time_ mode may change the order in which
+          functions, variables, and top-level `asm' statements are
+          emitted, and will likely break code relying on some particular
+          ordering.  The majority of such top-level `asm' statements,
+          though, can be replaced by `section' attributes.  The
+          `fno-toplevel-reorder' option may be used to keep the ordering
+          used in the input file, at the cost of some optimizations.
+
+        * _unit-at-a-time_ mode removes unreferenced static variables
+          and functions.  This may result in undefined references when
+          an `asm' statement refers directly to variables or functions
+          that are otherwise unused.  In that case either the
+          variable/function shall be listed as an operand of the `asm'
+          statement operand or, in the case of top-level `asm'
+          statements the attribute `used' shall be used on the
+          declaration.
+
+        * Static functions now can use non-standard passing conventions
+          that may break `asm' statements calling functions directly.
+          Again, attribute `used' will prevent this behavior.
+
+     As a temporary workaround, `-fno-unit-at-a-time' can be used, but
+     this scheme may not be supported by future releases of GCC.
+
+     Enabled at levels `-O', `-O2', `-O3', `-Os'.
+
+`-fno-toplevel-reorder'
+     Do not reorder top-level functions, variables, and `asm'
+     statements.  Output them in the same order that they appear in the
+     input file.  When this option is used, unreferenced static
+     variables will not be removed.  This option is intended to support
+     existing code which relies on a particular ordering.  For new
+     code, it is better to use attributes.
+
+`-fweb'
+     Constructs webs as commonly used for register allocation purposes
+     and assign each web individual pseudo register.  This allows the
+     register allocation pass to operate on pseudos directly, but also
+     strengthens several other optimization passes, such as CSE, loop
+     optimizer and trivial dead code remover.  It can, however, make
+     debugging impossible, since variables will no longer stay in a
+     "home register".
+
+     Enabled by default with `-funroll-loops'.
+
+`-fwhole-program'
+     Assume that the current compilation unit represents whole program
+     being compiled.  All public functions and variables with the
+     exception of `main' and those merged by attribute
+     `externally_visible' become static functions and in a affect gets
+     more aggressively optimized by interprocedural optimizers.  While
+     this option is equivalent to proper use of `static' keyword for
+     programs consisting of single file, in combination with option
+     `--combine' this flag can be used to compile most of smaller scale
+     C programs since the functions and variables become local for the
+     whole combined compilation unit, not for the single source file
+     itself.
+
+     This option is not supported for Fortran programs.
+
+`-fcprop-registers'
+     After register allocation and post-register allocation instruction
+     splitting, we perform a copy-propagation pass to try to reduce
+     scheduling dependencies and occasionally eliminate the copy.
+
+     Enabled at levels `-O', `-O2', `-O3', `-Os'.
+
+`-fprofile-generate'
+     Enable options usually used for instrumenting application to
+     produce profile useful for later recompilation with profile
+     feedback based optimization.  You must use `-fprofile-generate'
+     both when compiling and when linking your program.
+
+     The following options are enabled: `-fprofile-arcs',
+     `-fprofile-values', `-fvpt'.
+
+`-fprofile-use'
+     Enable profile feedback directed optimizations, and optimizations
+     generally profitable only with profile feedback available.
+
+     The following options are enabled: `-fbranch-probabilities',
+     `-fvpt', `-funroll-loops', `-fpeel-loops', `-ftracer'
+
+     By default, GCC emits an error message if the feedback profiles do
+     not match the source code.  This error can be turned into a
+     warning by using `-Wcoverage-mismatch'.  Note this may result in
+     poorly optimized code.
+
+ The following options control compiler behavior regarding floating
+point arithmetic.  These options trade off between speed and
+correctness.  All must be specifically enabled.
+
+`-ffloat-store'
+     Do not store floating point variables in registers, and inhibit
+     other options that might change whether a floating point value is
+     taken from a register or memory.
+
+     This option prevents undesirable excess precision on machines such
+     as the 68000 where the floating registers (of the 68881) keep more
+     precision than a `double' is supposed to have.  Similarly for the
+     x86 architecture.  For most programs, the excess precision does
+     only good, but a few programs rely on the precise definition of
+     IEEE floating point.  Use `-ffloat-store' for such programs, after
+     modifying them to store all pertinent intermediate computations
+     into variables.
+
+`-ffast-math'
+     Sets `-fno-math-errno', `-funsafe-math-optimizations',
+     `-ffinite-math-only', `-fno-rounding-math', `-fno-signaling-nans'
+     and `-fcx-limited-range'.
+
+     This option causes the preprocessor macro `__FAST_MATH__' to be
+     defined.
+
+     This option is not turned on by any `-O' option since it can
+     result in incorrect output for programs which depend on an exact
+     implementation of IEEE or ISO rules/specifications for math
+     functions. It may, however, yield faster code for programs that do
+     not require the guarantees of these specifications.
+
+`-fno-math-errno'
+     Do not set ERRNO after calling math functions that are executed
+     with a single instruction, e.g., sqrt.  A program that relies on
+     IEEE exceptions for math error handling may want to use this flag
+     for speed while maintaining IEEE arithmetic compatibility.
+
+     This option is not turned on by any `-O' option since it can
+     result in incorrect output for programs which depend on an exact
+     implementation of IEEE or ISO rules/specifications for math
+     functions. It may, however, yield faster code for programs that do
+     not require the guarantees of these specifications.
+
+     The default is `-fmath-errno'.
+
+     On Darwin systems, the math library never sets `errno'.  There is
+     therefore no reason for the compiler to consider the possibility
+     that it might, and `-fno-math-errno' is the default.
+
+`-funsafe-math-optimizations'
+     Allow optimizations for floating-point arithmetic that (a) assume
+     that arguments and results are valid and (b) may violate IEEE or
+     ANSI standards.  When used at link-time, it may include libraries
+     or startup files that change the default FPU control word or other
+     similar optimizations.
+
+     This option is not turned on by any `-O' option since it can
+     result in incorrect output for programs which depend on an exact
+     implementation of IEEE or ISO rules/specifications for math
+     functions. It may, however, yield faster code for programs that do
+     not require the guarantees of these specifications.  Enables
+     `-fno-signed-zeros', `-fno-trapping-math', `-fassociative-math'
+     and `-freciprocal-math'.
+
+     The default is `-fno-unsafe-math-optimizations'.
+
+`-fassociative-math'
+     Allow re-association of operands in series of floating-point
+     operations.  This violates the ISO C and C++ language standard by
+     possibly changing computation result.  NOTE: re-ordering may
+     change the sign of zero as well as ignore NaNs and inhibit or
+     create underflow or overflow (and thus cannot be used on a code
+     which relies on rounding behavior like `(x + 2**52) - 2**52)'.
+     May also reorder floating-point comparisons and thus may not be
+     used when ordered comparisons are required.  This option requires
+     that both `-fno-signed-zeros' and `-fno-trapping-math' be in
+     effect.  Moreover, it doesn't make much sense with
+     `-frounding-math'.
+
+     The default is `-fno-associative-math'.
+
+`-freciprocal-math'
+     Allow the reciprocal of a value to be used instead of dividing by
+     the value if this enables optimizations.  For example `x / y' can
+     be replaced with `x * (1/y)' which is useful if `(1/y)' is subject
+     to common subexpression elimination.  Note that this loses
+     precision and increases the number of flops operating on the value.
+
+     The default is `-fno-reciprocal-math'.
+
+`-ffinite-math-only'
+     Allow optimizations for floating-point arithmetic that assume that
+     arguments and results are not NaNs or +-Infs.
+
+     This option is not turned on by any `-O' option since it can
+     result in incorrect output for programs which depend on an exact
+     implementation of IEEE or ISO rules/specifications for math
+     functions. It may, however, yield faster code for programs that do
+     not require the guarantees of these specifications.
+
+     The default is `-fno-finite-math-only'.
+
+`-fno-signed-zeros'
+     Allow optimizations for floating point arithmetic that ignore the
+     signedness of zero.  IEEE arithmetic specifies the behavior of
+     distinct +0.0 and -0.0 values, which then prohibits simplification
+     of expressions such as x+0.0 or 0.0*x (even with
+     `-ffinite-math-only').  This option implies that the sign of a
+     zero result isn't significant.
+
+     The default is `-fsigned-zeros'.
+
+`-fno-trapping-math'
+     Compile code assuming that floating-point operations cannot
+     generate user-visible traps.  These traps include division by
+     zero, overflow, underflow, inexact result and invalid operation.
+     This option requires that `-fno-signaling-nans' be in effect.
+     Setting this option may allow faster code if one relies on
+     "non-stop" IEEE arithmetic, for example.
+
+     This option should never be turned on by any `-O' option since it
+     can result in incorrect output for programs which depend on an
+     exact implementation of IEEE or ISO rules/specifications for math
+     functions.
+
+     The default is `-ftrapping-math'.
+
+`-frounding-math'
+     Disable transformations and optimizations that assume default
+     floating point rounding behavior.  This is round-to-zero for all
+     floating point to integer conversions, and round-to-nearest for
+     all other arithmetic truncations.  This option should be specified
+     for programs that change the FP rounding mode dynamically, or that
+     may be executed with a non-default rounding mode.  This option
+     disables constant folding of floating point expressions at
+     compile-time (which may be affected by rounding mode) and
+     arithmetic transformations that are unsafe in the presence of
+     sign-dependent rounding modes.
+
+     The default is `-fno-rounding-math'.
+
+     This option is experimental and does not currently guarantee to
+     disable all GCC optimizations that are affected by rounding mode.
+     Future versions of GCC may provide finer control of this setting
+     using C99's `FENV_ACCESS' pragma.  This command line option will
+     be used to specify the default state for `FENV_ACCESS'.
+
+`-frtl-abstract-sequences'
+     It is a size optimization method. This option is to find identical
+     sequences of code, which can be turned into pseudo-procedures  and
+     then  replace  all  occurrences with  calls to  the  newly created
+     subroutine. It is kind of an opposite of `-finline-functions'.
+     This optimization runs at RTL level.
+
+`-fsignaling-nans'
+     Compile code assuming that IEEE signaling NaNs may generate
+     user-visible traps during floating-point operations.  Setting this
+     option disables optimizations that may change the number of
+     exceptions visible with signaling NaNs.  This option implies
+     `-ftrapping-math'.
+
+     This option causes the preprocessor macro `__SUPPORT_SNAN__' to be
+     defined.
+
+     The default is `-fno-signaling-nans'.
+
+     This option is experimental and does not currently guarantee to
+     disable all GCC optimizations that affect signaling NaN behavior.
+
+`-fsingle-precision-constant'
+     Treat floating point constant as single precision constant instead
+     of implicitly converting it to double precision constant.
+
+`-fcx-limited-range'
+     When enabled, this option states that a range reduction step is not
+     needed when performing complex division.  The default is
+     `-fno-cx-limited-range', but is enabled by `-ffast-math'.
+
+     This option controls the default setting of the ISO C99
+     `CX_LIMITED_RANGE' pragma.  Nevertheless, the option applies to
+     all languages.
+
+
+ The following options control optimizations that may improve
+performance, but are not enabled by any `-O' options.  This section
+includes experimental options that may produce broken code.
+
+`-fbranch-probabilities'
+     After running a program compiled with `-fprofile-arcs' (*note
+     Options for Debugging Your Program or `gcc': Debugging Options.),
+     you can compile it a second time using `-fbranch-probabilities',
+     to improve optimizations based on the number of times each branch
+     was taken.  When the program compiled with `-fprofile-arcs' exits
+     it saves arc execution counts to a file called `SOURCENAME.gcda'
+     for each source file.  The information in this data file is very
+     dependent on the structure of the generated code, so you must use
+     the same source code and the same optimization options for both
+     compilations.
+
+     With `-fbranch-probabilities', GCC puts a `REG_BR_PROB' note on
+     each `JUMP_INSN' and `CALL_INSN'.  These can be used to improve
+     optimization.  Currently, they are only used in one place: in
+     `reorg.c', instead of guessing which path a branch is mostly to
+     take, the `REG_BR_PROB' values are used to exactly determine which
+     path is taken more often.
+
+`-fprofile-values'
+     If combined with `-fprofile-arcs', it adds code so that some data
+     about values of expressions in the program is gathered.
+
+     With `-fbranch-probabilities', it reads back the data gathered
+     from profiling values of expressions and adds `REG_VALUE_PROFILE'
+     notes to instructions for their later usage in optimizations.
+
+     Enabled with `-fprofile-generate' and `-fprofile-use'.
+
+`-fvpt'
+     If combined with `-fprofile-arcs', it instructs the compiler to add
+     a code to gather information about values of expressions.
+
+     With `-fbranch-probabilities', it reads back the data gathered and
+     actually performs the optimizations based on them.  Currently the
+     optimizations include specialization of division operation using
+     the knowledge about the value of the denominator.
+
+`-frename-registers'
+     Attempt to avoid false dependencies in scheduled code by making use
+     of registers left over after register allocation.  This
+     optimization will most benefit processors with lots of registers.
+     Depending on the debug information format adopted by the target,
+     however, it can make debugging impossible, since variables will no
+     longer stay in a "home register".
+
+     Enabled by default with `-funroll-loops'.
+
+`-ftracer'
+     Perform tail duplication to enlarge superblock size.  This
+     transformation simplifies the control flow of the function
+     allowing other optimizations to do better job.
+
+     Enabled with `-fprofile-use'.
+
+`-funroll-loops'
+     Unroll loops whose number of iterations can be determined at
+     compile time or upon entry to the loop.  `-funroll-loops' implies
+     `-frerun-cse-after-loop', `-fweb' and `-frename-registers'.  It
+     also turns on complete loop peeling (i.e. complete removal of
+     loops with small constant number of iterations).  This option
+     makes code larger, and may or may not make it run faster.
+
+     Enabled with `-fprofile-use'.
+
+`-funroll-all-loops'
+     Unroll all loops, even if their number of iterations is uncertain
+     when the loop is entered.  This usually makes programs run more
+     slowly.  `-funroll-all-loops' implies the same options as
+     `-funroll-loops'.
+
+`-fpeel-loops'
+     Peels the loops for that there is enough information that they do
+     not roll much (from profile feedback).  It also turns on complete
+     loop peeling (i.e. complete removal of loops with small constant
+     number of iterations).
+
+     Enabled with `-fprofile-use'.
+
+`-fmove-loop-invariants'
+     Enables the loop invariant motion pass in the RTL loop optimizer.
+     Enabled at level `-O1'
+
+`-funswitch-loops'
+     Move branches with loop invariant conditions out of the loop, with
+     duplicates of the loop on both branches (modified according to
+     result of the condition).
+
+`-ffunction-sections'
+`-fdata-sections'
+     Place each function or data item into its own section in the output
+     file if the target supports arbitrary sections.  The name of the
+     function or the name of the data item determines the section's name
+     in the output file.
+
+     Use these options on systems where the linker can perform
+     optimizations to improve locality of reference in the instruction
+     space.  Most systems using the ELF object format and SPARC
+     processors running Solaris 2 have linkers with such optimizations.
+     AIX may have these optimizations in the future.
+
+     Only use these options when there are significant benefits from
+     doing so.  When you specify these options, the assembler and
+     linker will create larger object and executable files and will
+     also be slower.  You will not be able to use `gprof' on all
+     systems if you specify this option and you may have problems with
+     debugging if you specify both this option and `-g'.
+
+`-fbranch-target-load-optimize'
+     Perform branch target register load optimization before prologue /
+     epilogue threading.  The use of target registers can typically be
+     exposed only during reload, thus hoisting loads out of loops and
+     doing inter-block scheduling needs a separate optimization pass.
+
+`-fbranch-target-load-optimize2'
+     Perform branch target register load optimization after prologue /
+     epilogue threading.
+
+`-fbtr-bb-exclusive'
+     When performing branch target register load optimization, don't
+     reuse branch target registers in within any basic block.
+
+`-fstack-protector'
+     Emit extra code to check for buffer overflows, such as stack
+     smashing attacks.  This is done by adding a guard variable to
+     functions with vulnerable objects.  This includes functions that
+     call alloca, and functions with buffers larger than 8 bytes.  The
+     guards are initialized when a function is entered and then checked
+     when the function exits.  If a guard check fails, an error message
+     is printed and the program exits.
+
+`-fstack-protector-all'
+     Like `-fstack-protector' except that all functions are protected.
+
+`-fsection-anchors'
+     Try to reduce the number of symbolic address calculations by using
+     shared "anchor" symbols to address nearby objects.  This
+     transformation can help to reduce the number of GOT entries and
+     GOT accesses on some targets.
+
+     For example, the implementation of the following function `foo':
+
+          static int a, b, c;
+          int foo (void) { return a + b + c; }
+
+     would usually calculate the addresses of all three variables, but
+     if you compile it with `-fsection-anchors', it will access the
+     variables from a common anchor point instead.  The effect is
+     similar to the following pseudocode (which isn't valid C):
+
+          int foo (void)
+          {
+            register int *xr = &x;
+            return xr[&a - &x] + xr[&b - &x] + xr[&c - &x];
+          }
+
+     Not all targets support this option.
+
+`--param NAME=VALUE'
+     In some places, GCC uses various constants to control the amount of
+     optimization that is done.  For example, GCC will not inline
+     functions that contain more that a certain number of instructions.
+     You can control some of these constants on the command-line using
+     the `--param' option.
+
+     The names of specific parameters, and the meaning of the values,
+     are tied to the internals of the compiler, and are subject to
+     change without notice in future releases.
+
+     In each case, the VALUE is an integer.  The allowable choices for
+     NAME are given in the following table:
+
+    `salias-max-implicit-fields'
+          The maximum number of fields in a variable without direct
+          structure accesses for which structure aliasing will consider
+          trying to track each field.  The default is 5
+
+    `salias-max-array-elements'
+          The maximum number of elements an array can have and its
+          elements still be tracked individually by structure aliasing.
+          The default is 4
+
+    `sra-max-structure-size'
+          The maximum structure size, in bytes, at which the scalar
+          replacement of aggregates (SRA) optimization will perform
+          block copies.  The default value, 0, implies that GCC will
+          select the most appropriate size itself.
+
+    `sra-field-structure-ratio'
+          The threshold ratio (as a percentage) between instantiated
+          fields and the complete structure size.  We say that if the
+          ratio of the number of bytes in instantiated fields to the
+          number of bytes in the complete structure exceeds this
+          parameter, then block copies are not used.  The default is 75.
+
+    `struct-reorg-cold-struct-ratio'
+          The threshold ratio (as a percentage) between a structure
+          frequency and the frequency of(õ  )ú  *ù  +û  ,ü  ¯°  ˘¢                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      )õ  *õ  +õ  ,õ  -õ  .õ  /õ  0õ  1õ  2õ  3õ  4õ  5õ  6õ  7õ  8õ  9õ  :õ  ;õ  <õ  =õ  >õ  ?õ  @õ  Aõ  Bõ  Cõ  Dõ  Eõ  Fõ  Gõ  Hõ  Iõ  Jõ  Kõ  Lõ  Mõ  Nõ  Oõ  Põ  Qõ  Rõ  Sõ  Tõ  Uõ  Võ  Wõ  Xõ  Yõ  Zõ  [õ  \õ  ]õ  ^õ  _õ  `õ  aõ  bõ  cõ  dõ  eõ  fõ  gõ  hõ  iõ  jõ  kõ  lõ  mõ  nõ  oõ  põ  qõ  rõ  sõ  tõ  uõ  võ  wõ  xõ  yõ  zõ  {õ  |õ  }õ  ~õ  õ  Äõ  Åõ  Çõ  Éõ  Ñõ  Öõ  Üõ  áõ  àõ  âõ  äõ  ãõ  åõ  çõ  éõ  èõ  êõ  ëõ  íõ  ìõ  îõ  ïõ  ñõ  óõ  òõ  ôõ  öõ  õõ  úõ  ùõ  ûõ  üõ  †õ  °õ  ¢õ  £õ  §õ  •õ  ¶õ  ßõ  ®õ  ©õ  ™õ  ´õ  ¨õ  ≠õ  Æõ  Øõ  ∞õ  ±õ  ≤õ  ≥õ  ¥õ  µõ  ∂õ  ∑õ  ∏õ  πõ  ∫õ  ªõ  ºõ  Ωõ  æõ  øõ  ¿õ  ¡õ  ¬õ  √õ  ƒõ  ≈õ  ∆õ  «õ  »õ  …õ   õ  Àõ  Ãõ  Õõ  Œõ  œõ  –õ  —õ  “õ  ”õ  ‘õ  ’õ  ÷õ  ◊õ  ÿõ  Ÿõ  ⁄õ  €õ  ‹õ  ›õ  ﬁõ  ﬂõ  ‡õ  ·õ  ‚õ  „õ  ‰õ  Âõ  Êõ  Áõ  Ëõ  Èõ  Íõ  Îõ  Ïõ  Ìõ  Óõ  Ôõ  õ  Òõ  Úõ  Ûõ  Ùõ  ıõ  ˆõ  ˜õ  ¯õ  ˘õ  ˙õ  ˚õ  ¸õ  ˝õ  ˛õ  ˇõ   ú  ú  ú  ú  ú  ú  ú  ú  ú  	ú  
+ú  ú  ú  ú  ú  ú  ú  ú  ú  ú  ú  ú  ú  ú  ú  ú  ú  ú  ú  ú  ú  ú   ú  !ú  "ú  #ú  $ú  %ú  &ú  'ú  (ú   the hottest structure in the
+          program.  This parameter is used by struct-reorg optimization
+          enabled by `-fipa-struct-reorg'.  We say that if the ratio of
+          a structure frequency, calculated by profiling, to the
+          hottest structure frequency in the program is less than this
+          parameter, then structure reorganization is not applied to
+          this structure.  The default is 10.
+
+    `max-crossjump-edges'
+          The maximum number of incoming edges to consider for
+          crossjumping.  The algorithm used by `-fcrossjumping' is
+          O(N^2) in the number of edges incoming to each block.
+          Increasing values mean more aggressive optimization, making
+          the compile time increase with probably small improvement in
+          executable size.
+
+    `min-crossjump-insns'
+          The minimum number of instructions which must be matched at
+          the end of two blocks before crossjumping will be performed
+          on them.  This value is ignored in the case where all
+          instructions in the block being crossjumped from are matched.
+          The default value is 5.
+
+    `max-grow-copy-bb-insns'
+          The maximum code size expansion factor when copying basic
+          blocks instead of jumping.  The expansion is relative to a
+          jump instruction.  The default value is 8.
+
+    `max-goto-duplication-insns'
+          The maximum number of instructions to duplicate to a block
+          that jumps to a computed goto.  To avoid O(N^2) behavior in a
+          number of passes, GCC factors computed gotos early in the
+          compilation process, and unfactors them as late as possible.
+          Only computed jumps at the end of a basic blocks with no more
+          than max-goto-duplication-insns are unfactored.  The default
+          value is 8.
+
+    `max-delay-slot-insn-search'
+          The maximum number of instructions to consider when looking
+          for an instruction to fill a delay slot.  If more than this
+          arbitrary number of instructions is searched, the time
+          savings from filling the delay slot will be minimal so stop
+          searching.  Increasing values mean more aggressive
+          optimization, making the compile time increase with probably
+          small improvement in executable run time.
+
+    `max-delay-slot-live-search'
+          When trying to fill delay slots, the maximum number of
+          instructions to consider when searching for a block with
+          valid live register information.  Increasing this arbitrarily
+          chosen value means more aggressive optimization, increasing
+          the compile time.  This parameter should be removed when the
+          delay slot code is rewritten to maintain the control-flow
+          graph.
+
+    `max-gcse-memory'
+          The approximate maximum amount of memory that will be
+          allocated in order to perform the global common subexpression
+          elimination optimization.  If more memory than specified is
+          required, the optimization will not be done.
+
+    `max-gcse-passes'
+          The maximum number of passes of GCSE to run.  The default is
+          1.
+
+    `max-pending-list-length'
+          The maximum number of pending dependencies scheduling will
+          allow before flushing the current state and starting over.
+          Large functions with few branches or calls can create
+          excessively large lists which needlessly consume memory and
+          resources.
+
+    `max-inline-insns-single'
+          Several parameters control the tree inliner used in gcc.
+          This number sets the maximum number of instructions (counted
+          in GCC's internal representation) in a single function that
+          the tree inliner will consider for inlining.  This only
+          affects functions declared inline and methods implemented in
+          a class declaration (C++).  The default value is 450.
+
+    `max-inline-insns-auto'
+          When you use `-finline-functions' (included in `-O3'), a lot
+          of functions that would otherwise not be considered for
+          inlining by the compiler will be investigated.  To those
+          functions, a different (more restrictive) limit compared to
+          functions declared inline can be applied.  The default value
+          is 90.
+
+    `large-function-insns'
+          The limit specifying really large functions.  For functions
+          larger than this limit after inlining inlining is constrained
+          by `--param large-function-growth'.  This parameter is useful
+          primarily to avoid extreme compilation time caused by
+          non-linear algorithms used by the backend.  This parameter is
+          ignored when `-funit-at-a-time' is not used.  The default
+          value is 2700.
+
+    `large-function-growth'
+          Specifies maximal growth of large function caused by inlining
+          in percents.  This parameter is ignored when
+          `-funit-at-a-time' is not used.  The default value is 100
+          which limits large function growth to 2.0 times the original
+          size.
+
+    `large-unit-insns'
+          The limit specifying large translation unit.  Growth caused
+          by inlining of units larger than this limit is limited by
+          `--param inline-unit-growth'.  For small units this might be
+          too tight (consider unit consisting of function A that is
+          inline and B that just calls A three time.  If B is small
+          relative to A, the growth of unit is 300\% and yet such
+          inlining is very sane.  For very large units consisting of
+          small inlineable functions however the overall unit growth
+          limit is needed to avoid exponential explosion of code size.
+          Thus for smaller units, the size is increased to `--param
+          large-unit-insns' before applying `--param
+          inline-unit-growth'.  The default is 10000
+
+    `inline-unit-growth'
+          Specifies maximal overall growth of the compilation unit
+          caused by inlining.  This parameter is ignored when
+          `-funit-at-a-time' is not used.  The default value is 30
+          which limits unit growth to 1.3 times the original size.
+
+    `large-stack-frame'
+          The limit specifying large stack frames.  While inlining the
+          algorithm is trying to not grow past this limit too much.
+          Default value is 256 bytes.
+
+    `large-stack-frame-growth'
+          Specifies maximal growth of large stack frames caused by
+          inlining in percents.  The default value is 1000 which limits
+          large stack frame growth to 11 times the original size.
+
+    `max-inline-insns-recursive'
+    `max-inline-insns-recursive-auto'
+          Specifies maximum number of instructions out-of-line copy of
+          self recursive inline function can grow into by performing
+          recursive inlining.
+
+          For functions declared inline `--param
+          max-inline-insns-recursive' is taken into account.  For
+          function not declared inline, recursive inlining happens only
+          when `-finline-functions' (included in `-O3') is enabled and
+          `--param max-inline-insns-recursive-auto' is used.  The
+          default value is 450.
+
+    `max-inline-recursive-depth'
+    `max-inline-recursive-depth-auto'
+          Specifies maximum recursion depth used by the recursive
+          inlining.
+
+          For functions declared inline `--param
+          max-inline-recursive-depth' is taken into account.  For
+          function not declared inline, recursive inlining happens only
+          when `-finline-functions' (included in `-O3') is enabled and
+          `--param max-inline-recursive-depth-auto' is used.  The
+          default value is 8.
+
+    `min-inline-recursive-probability'
+          Recursive inlining is profitable only for function having
+          deep recursion in average and can hurt for function having
+          little recursion depth by increasing the prologue size or
+          complexity of function body to other optimizers.
+
+          When profile feedback is available (see `-fprofile-generate')
+          the actual recursion depth can be guessed from probability
+          that function will recurse via given call expression.  This
+          parameter limits inlining only to call expression whose
+          probability exceeds given threshold (in percents).  The
+          default value is 10.
+
+    `inline-call-cost'
+          Specify cost of call instruction relative to simple
+          arithmetics operations (having cost of 1).  Increasing this
+          cost disqualifies inlining of non-leaf functions and at the
+          same time increases size of leaf function that is believed to
+          reduce function size by being inlined.  In effect it
+          increases amount of inlining for code having large
+          abstraction penalty (many functions that just pass the
+          arguments to other functions) and decrease inlining for code
+          with low abstraction penalty.  The default value is 12.
+
+    `min-vect-loop-bound'
+          The minimum number of iterations under which a loop will not
+          get vectorized when `-ftree-vectorize' is used.  The number
+          of iterations after vectorization needs to be greater than
+          the value specified by this option to allow vectorization.
+          The default value is 0.
+
+    `max-unrolled-insns'
+          The maximum number of instructions that a loop should have if
+          that loop is unrolled, and if the loop is unrolled, it
+          determines how many times the loop code is unrolled.
+
+    `max-average-unrolled-insns'
+          The maximum number of instructions biased by probabilities of
+          their execution that a loop should have if that loop is
+          unrolled, and if the loop is unrolled, it determines how many
+          times the loop code is unrolled.
+
+    `max-unroll-times'
+          The maximum number of unrollings of a single loop.
+
+    `max-peeled-insns'
+          The maximum number of instructions that a loop should have if
+          that loop is peeled, and if the loop is peeled, it determines
+          how many times the loop code is peeled.
+
+    `max-peel-times'
+          The maximum number of peelings of a single loop.
+
+    `max-completely-peeled-insns'
+          The maximum number of insns of a completely peeled loop.
+
+    `max-completely-peel-times'
+          The maximum number of iterations of a loop to be suitable for
+          complete peeling.
+
+    `max-unswitch-insns'
+          The maximum number of insns of an unswitched loop.
+
+    `max-unswitch-level'
+          The maximum number of branches unswitched in a single loop.
+
+    `lim-expensive'
+          The minimum cost of an expensive expression in the loop
+          invariant motion.
+
+    `iv-consider-all-candidates-bound'
+          Bound on number of candidates for induction variables below
+          that all candidates are considered for each use in induction
+          variable optimizations.  Only the most relevant candidates
+          are considered if there are more candidates, to avoid
+          quadratic time complexity.
+
+    `iv-max-considered-uses'
+          The induction variable optimizations give up on loops that
+          contain more induction variable uses.
+
+    `iv-always-prune-cand-set-bound'
+          If number of candidates in the set is smaller than this value,
+          we always try to remove unnecessary ivs from the set during
+          its optimization when a new iv is added to the set.
+
+    `scev-max-expr-size'
+          Bound on size of expressions used in the scalar evolutions
+          analyzer.  Large expressions slow the analyzer.
+
+    `omega-max-vars'
+          The maximum number of variables in an Omega constraint system.
+          The default value is 128.
+
+    `omega-max-geqs'
+          The maximum number of inequalities in an Omega constraint
+          system.  The default value is 256.
+
+    `omega-max-eqs'
+          The maximum number of equalities in an Omega constraint
+          system.  The default value is 128.
+
+    `omega-max-wild-cards'
+          The maximum number of wildcard variables that the Omega
+          solver will be able to insert.  The default value is 18.
+
+    `omega-hash-table-size'
+          The size of the hash table in the Omega solver.  The default
+          value is 550.
+
+    `omega-max-keys'
+          The maximal number of keys used by the Omega solver.  The
+          default value is 500.
+
+    `omega-eliminate-redundant-constraints'
+          When set to 1, use expensive methods to eliminate all
+          redundant constraints.  The default value is 0.
+
+    `vect-max-version-for-alignment-checks'
+          The maximum number of runtime checks that can be performed
+          when doing loop versioning for alignment in the vectorizer.
+          See option ftree-vect-loop-version for more information.
+
+    `vect-max-version-for-alias-checks'
+          The maximum number of runtime checks that can be performed
+          when doing loop versioning for alias in the vectorizer.  See
+          option ftree-vect-loop-version for more information.
+
+    `max-iterations-to-track'
+          The maximum number of iterations of a loop the brute force
+          algorithm for analysis of # of iterations of the loop tries
+          to evaluate.
+
+    `hot-bb-count-fraction'
+          Select fraction of the maximal count of repetitions of basic
+          block in program given basic block needs to have to be
+          considered hot.
+
+    `hot-bb-frequency-fraction'
+          Select fraction of the maximal frequency of executions of
+          basic block in function given basic block needs to have to be
+          considered hot
+
+    `max-predicted-iterations'
+          The maximum number of loop iterations we predict statically.
+          This is useful in cases where function contain single loop
+          with known bound and other loop with unknown.  We predict the
+          known number of iterations correctly, while the unknown
+          number of iterations average to roughly 10.  This means that
+          the loop without bounds would appear artificially cold
+          relative to the other one.
+
+    `align-threshold'
+          Select fraction of the maximal frequency of executions of
+          basic block in function given basic block will get aligned.
+
+    `align-loop-iterations'
+          A loop expected to iterate at lest the selected number of
+          iterations will get aligned.
+
+    `tracer-dynamic-coverage'
+    `tracer-dynamic-coverage-feedback'
+          This value is used to limit superblock formation once the
+          given percentage of executed instructions is covered.  This
+          limits unnecessary code size expansion.
+
+          The `tracer-dynamic-coverage-feedback' is used only when
+          profile feedback is available.  The real profiles (as opposed
+          to statically estimated ones) are much less balanced allowing
+          the threshold to be larger value.
+
+    `tracer-max-code-growth'
+          Stop tail duplication once code growth has reached given
+          percentage.  This is rather hokey argument, as most of the
+          duplicates will be eliminated later in cross jumping, so it
+          may be set to much higher values than is the desired code
+          growth.
+
+    `tracer-min-branch-ratio'
+          Stop reverse growth when the reverse probability of best edge
+          is less than this threshold (in percent).
+
+    `tracer-min-branch-ratio'
+    `tracer-min-branch-ratio-feedback'
+          Stop forward growth if the best edge do have probability
+          lower than this threshold.
+
+          Similarly to `tracer-dynamic-coverage' two values are
+          present, one for compilation for profile feedback and one for
+          compilation without.  The value for compilation with profile
+          feedback needs to be more conservative (higher) in order to
+          make tracer effective.
+
+    `max-cse-path-length'
+          Maximum number of basic blocks on path that cse considers.
+          The default is 10.
+
+    `max-cse-insns'
+          The maximum instructions CSE process before flushing. The
+          default is 1000.
+
+    `max-aliased-vops'
+          Maximum number of virtual operands per function allowed to
+          represent aliases before triggering the alias partitioning
+          heuristic.  Alias partitioning reduces compile times and
+          memory consumption needed for aliasing at the expense of
+          precision loss in alias information.  The default value for
+          this parameter is 100 for -O1, 500 for -O2 and 1000 for -O3.
+
+          Notice that if a function contains more memory statements
+          than the value of this parameter, it is not really possible
+          to achieve this reduction.  In this case, the compiler will
+          use the number of memory statements as the value for
+          `max-aliased-vops'.
+
+    `avg-aliased-vops'
+          Average number of virtual operands per statement allowed to
+          represent aliases before triggering the alias partitioning
+          heuristic.  This works in conjunction with
+          `max-aliased-vops'.  If a function contains more than
+          `max-aliased-vops' virtual operators, then memory symbols
+          will be grouped into memory partitions until either the total
+          number of virtual operators is below `max-aliased-vops' or
+          the average number of virtual operators per memory statement
+          is below `avg-aliased-vops'.  The default value for this
+          parameter is 1 for -O1 and -O2, and 3 for -O3.
+
+    `ggc-min-expand'
+          GCC uses a garbage collector to manage its own memory
+          allocation.  This parameter specifies the minimum percentage
+          by which the garbage collector's heap should be allowed to
+          expand between collections.  Tuning this may improve
+          compilation speed; it has no effect on code generation.
+
+          The default is 30% + 70% * (RAM/1GB) with an upper bound of
+          100% when RAM >= 1GB.  If `getrlimit' is available, the
+          notion of "RAM" is the smallest of actual RAM and
+          `RLIMIT_DATA' or `RLIMIT_AS'.  If GCC is not able to
+          calculate RAM on a particular platform, the lower bound of
+          30% is used.  Setting this parameter and `ggc-min-heapsize'
+          to zero causes a full collection to occur at every
+          opportunity.  This is extremely slow, but can be useful for
+          debugging.
+
+    `ggc-min-heapsize'
+          Minimum size of the garbage collector's heap before it begins
+          bothering to collect garbage.  The first collection occurs
+          after the heap expands by `ggc-min-expand'% beyond
+          `ggc-min-heapsize'.  Again, tuning this may improve
+          compilation speed, and has no effect on code generation.
+
+          The default is the smaller of RAM/8, RLIMIT_RSS, or a limit
+          which tries to ensure that RLIMIT_DATA or RLIMIT_AS are not
+          exceeded, but with a lower bound of 4096 (four megabytes) and
+          an upper bound of 131072 (128 megabytes).  If GCC is not able
+          to calculate RAM on a particular platform, the lower bound is
+          used.  Setting this parameter very large effectively disables
+          garbage collection.  Setting this parameter and
+          `ggc-min-expand' to zero causes a full collection to occur at
+          every opportunity.
+
+    `max-reload-search-insns'
+          The maximum number of instruction reload should look backward
+          for equivalent register.  Increasing values mean more
+          aggressive optimization, making the compile time increase
+          with probably slightly better performance.  The default value
+          is 100.
+
+    `max-cselib-memory-locations'
+          The maximum number of memory locations cselib should take
+          into account.  Increasing values mean more aggressive
+          optimization, making the compile time increase with probably
+          slightly better performance.  The default value is 500.
+
+    `max-flow-memory-locations'
+          Similar as `max-cselib-memory-locations' but for dataflow
+          liveness.  The default value is 100.
+
+    `reorder-blocks-duplicate'
+    `reorder-blocks-duplicate-feedback'
+          Used by basic block reordering pass to decide whether to use
+          unconditional branch or duplicate the code on its
+          destination.  Code is duplicated when its estimated size is
+          smaller than this value multiplied by the estimated size of
+          unconditional jump in the hot spots of the program.
+
+          The `reorder-block-duplicate-feedback' is used only when
+          profile feedback is available and may be set to higher values
+          than `reorder-block-duplicate' since information about the
+          hot spots is more accurate.
+
+    `max-sched-ready-insns'
+          The maximum number of instructions ready to be issued the
+          scheduler should consider at any given time during the first
+          scheduling pass.  Increasing values mean more thorough
+          searches, making the compilation time increase with probably
+          little benefit.  The default value is 100.
+
+    `max-sched-region-blocks'
+          The maximum number of blocks in a region to be considered for
+          interblock scheduling.  The default value is 10.
+
+    `max-sched-region-insns'
+          The maximum number of insns in a region to be considered for
+          interblock scheduling.  The default value is 100.
+
+    `min-spec-prob'
+          The minimum probability (in percents) of reaching a source
+          block for interblock speculative scheduling.  The default
+          value is 40.
+
+    `max-sched-extend-regions-iters'
+          The maximum number of iterations through CFG to extend
+          regions.  0 - disable region extension, N - do at most N
+          iterations.  The default value is 0.
+
+    `max-sched-insn-conflict-delay'
+          The maximum conflict delay for an insn to be considered for
+          speculative motion.  The default value is 3.
+
+    `sched-spec-prob-cutoff'
+          The minimal probability of speculation success (in percents),
+          so that speculative insn will be scheduled.  The default
+          value is 40.
+
+    `max-last-value-rtl'
+          The maximum size measured as number of RTLs that can be
+          recorded in an expression in combiner for a pseudo register
+          as last known value of that register.  The default is 10000.
+
+    `integer-share-limit'
+          Small integer constants can use a shared data structure,
+          reducing the compiler's memory usage and increasing its
+          speed.  This sets the maximum value of a shared integer
+          constant.  The default value is 256.
+
+    `min-virtual-mappings'
+          Specifies the minimum number of virtual mappings in the
+          incremental SSA updater that should be registered to trigger
+          the virtual mappings heuristic defined by
+          virtual-mappings-ratio.  The default value is 100.
+
+    `virtual-mappings-ratio'
+          If the number of virtual mappings is virtual-mappings-ratio
+          bigger than the number of virtual symbols to be updated, then
+          the incremental SSA updater switches to a full update for
+          those symbols.  The default ratio is 3.
+
+    `ssp-buffer-size'
+          The mi

@@ -1,0 +1,1350 @@
+      4 {
+      5     register ulg c;
+      6
+      7     static ulg crc = (ulg)0xffffffffL;
+      8
+      9     if (s == NULL) {
+     10         c = 0xffffffffL;
+     11     } else {
+     12         c = crc;
+     13         if (n) do {
+     14             c = crc_32_tab[...];
+     15         } while (--n);
+     16     }
+     17     crc = c;
+     18     return c ^ 0xffffffffL;
+     19 }
+
+   `updcrc' has at least five basic-blocks.  One is the function
+itself.  The `if' statement on line 9 generates two more basic-blocks,
+one for each branch of the `if'.  A fourth basic-block results from the
+`if' on line 13, and the contents of the `do' loop form the fifth
+basic-block.  The compiler may also generate additional basic-blocks to
+handle various special cases.
+
+   A program augmented for basic-block counting can be analyzed with
+`gprof -l -A'.  The `-x' option is also helpful, to ensure that each
+line of code is labeled at least once.  Here is `updcrc''s annotated
+source listing for a sample `gzip' run:
+
+                     ulg updcrc(s, n)
+                         uch *s;
+                         unsigned n;
+                 2 ->{
+                         register ulg c;
+
+                         static ulg crc = (ulg)0xffffffffL;
+
+                 2 ->    if (s == NULL) {
+                 1 ->        c = 0xffffffffL;
+                 1 ->    } else {
+                 1 ->        c = crc;
+                 1 ->        if (n) do {
+             26312 ->            c = crc_32_tab[...];
+     26312,1,26311 ->        } while (--n);
+                         }
+                 2 ->    crc = c;
+                 2 ->    return c ^ 0xffffffffL;
+                 2 ->}
+
+   In this example, the function was called twice, passing once through
+each branch of the `if' statement.  The body of the `do' loop was
+executed a total of 26312 times.  Note how the `while' statement is
+annotated.  It began execution 26312 times, once for each iteration
+through the loop.  One of those times (the last time) it exited, while
+it branched back to the beginning of the loop 26311 times.
+
+
+File: gprof.info,  Node: Inaccuracy,  Next: How do I?,  Prev: Output,  Up: Top
+
+6 Inaccuracy of `gprof' Output
+******************************
+
+* Menu:
+
+* Sampling Error::      Statistical margins of error
+* Assumptions::         Estimating children times
+
+
+File: gprof.info,  Node: Sampling Error,  Next: Assumptions,  Up: Inaccuracy
+
+6.1 Statistical Sampling Error
+==============================
+
+The run-time figures that `gprof' gives you are based on a sampling
+process, so they are subject to statistical inaccuracy.  If a function
+runs only a small amount of time, so that on the average the sampling
+process ought to catch that function in the act only once, there is a
+pretty good chance it will actually find that function zero times, or
+twice.
+
+   By contrast, the number-of-calls and basic-block figures are derived
+by counting, not sampling.  They are completely accurate and will not
+vary from run to run if your program is deterministic and single
+threaded.  In multi-threaded applications, or single threaded
+applications that link with multi-threaded libraries, the counts are
+only deterministic if the counting function is thread-safe.  (Note:
+beware that the mcount counting function in glibc is _not_
+thread-safe).  *Note Implementation of Profiling: Implementation.
+
+   The "sampling period" that is printed at the beginning of the flat
+profile says how often samples are taken.  The rule of thumb is that a
+run-time figure is accurate if it is considerably bigger than the
+sampling period.
+
+   The actual amount of error can be predicted.  For N samples, the
+_expected_ error is the square-root of N.  For example, if the sampling
+period is 0.01 seconds and `foo''s run-time is 1 second, N is 100
+samples (1 second/0.01 seconds), sqrt(N) is 10 samples, so the expected
+error in `foo''s run-time is 0.1 seconds (10*0.01 seconds), or ten
+percent of the observed value.  Again, if the sampling period is 0.01
+seconds and `bar''s run-time is 100 seconds, N is 10000 samples,
+sqrt(N) is 100 samples, so the expected error in `bar''s run-time is 1
+second, or one percent of the observed value.  It is likely to vary
+this much _on the average_ from one profiling run to the next.
+(_Sometimes_ it will vary more.)
+
+   This does not mean that a small run-time figure is devoid of
+information.  If the program's _total_ run-time is large, a small
+run-time for one function does tell you that that function used an
+insignificant fraction of the whole program's time.  Usually this means
+it is not worth optimizing.
+
+   One way to get more accuracy is to give your program more (but
+similar) input data so it will take longer.  Another way is to combine
+the data from several runs, using the `-s' option of `gprof'.  Here is
+how:
+
+  1. Run your program once.
+
+  2. Issue the command `mv gmon.out gmon.sum'.
+
+  3. Run your program again, the same as before.
+
+  4. Merge the new data in `gmon.out' into `gmon.sum' with this command:
+
+          gprof -s EXECUTABLE-FILE gmon.out gmon.sum
+
+  5. Repeat the last two steps as often as you wish.
+
+  6. Analyze the cumulative data using this command:
+
+          gprof EXECUTABLE-FILE gmon.sum > OUTPUT-FILE
+
+
+File: gprof.info,  Node: Assumptions,  Prev: Sampling Error,  Up: Inaccuracy
+
+6.2 Estimating `children' Times
+===============================
+
+Some of the figures in the call graph are estimates--for example, the
+`children' time values and all the time figures in caller and
+subroutine lines.
+
+   There is no direct information about these measurements in the
+profile data itself.  Instead, `gprof' estimates them by making an
+assumption about your program that might or might not be true.
+
+   The assumption made is that the average time spent in each call to
+any function `foo' is not correlated with who called `foo'.  If `foo'
+used 5 seconds in all, and 2/5 of the calls to `foo' came from `a',
+then `foo' contributes 2 seconds to `a''s `children' time, by
+assumption.
+
+   This assumption is usually true enough, but for some programs it is
+far from true.  Suppose that `foo' returns very quickly when its
+argument is zero; suppose that `a' always passes zero as an argument,
+while other callers of `foo' pass other arguments.  In this program,
+all the time spent in `foo' is in the calls from callers other than `a'.
+But `gprof' has no way of knowing this; it will blindly and incorrectly
+charge 2 seconds of time in `foo' to the children of `a'.
+
+   We hope some day to put more complete data into `gmon.out', so that
+this assumption is no longer needed, if we can figure out how.  For the
+novice, the estimated figures are usually more useful than misleading.
+
+
+File: gprof.info,  Node: How do I?,  Next: Incompatibilities,  Prev: Inaccuracy,  Up: Top
+
+7 Answers to Common Questions
+*****************************
+
+How can I get more exact information about hot spots in my program?
+     Looking at the per-line call counts only tells part of the story.
+     Because `gprof' can only report call times and counts by function,
+     the best way to get finer-grained information on where the program
+     is spending its time is to re-factor large functions into sequences
+     of calls to smaller ones.  Beware however that this can introduce
+     artificial hot spots since compiling with `-pg' adds a significant
+     overhead to function calls.  An alternative solution is to use a
+     non-intrusive profiler, e.g. oprofile.
+
+How do I find which lines in my program were executed the most times?
+     Use the `gcov' program.
+
+How do I find which lines in my program called a particular function?
+     Use `gprof -l' and lookup the function in the call graph.  The
+     callers will be broken down by function and line number.
+
+How do I analyze a program that runs for less than a second?
+     Try using a shell script like this one:
+
+          for i in `seq 1 100`; do
+            fastprog
+            mv gmon.out gmon.out.$i
+          done
+
+          gprof -s fastprog gmon.out.*
+
+          gprof fastprog gmon.sum
+
+     If your program is completely deterministic, all the call counts
+     will be simple multiples of 100 (i.e., a function called once in
+     each run will appear with a call count of 100).
+
+
+
+File: gprof.info,  Node: Incompatibilities,  Next: Details,  Prev: How do I?,  Up: Top
+
+8 Incompatibilities with Unix `gprof'
+*************************************
+
+GNU `gprof' and Berkeley Unix `gprof' use the same data file
+`gmon.out', and provide essentially the same information.  But there
+are a few differences.
+
+   * GNU `gprof' uses a new, generalized file format with support for
+     basic-block execution counts and non-realtime histograms.  A magic
+     cookie and version number allows `gprof' to easily identify new
+     style files.  Old BSD-style files can still be read.  *Note
+     Profiling Data File Format: File Format.
+
+   * For a recursive function, Unix `gprof' lists the function as a
+     parent and as a child, with a `calls' field that lists the number
+     of recursive calls.  GNU `gprof' omits these lines and puts the
+     number of recursive calls in the primary line.
+
+   * When a function is suppressed from the call graph with `-e', GNU
+     `gprof' still lists it as a subroutine of functions that call it.
+
+   * GNU `gprof' accepts the `-k' with its argument in the form
+     `from/to', instead of `from to'.
+
+   * In the annotated source listing, if there are multiple basic
+     blocks on the same line, GNU `gprof' prints all of their counts,
+     separated by commas.
+
+   * The blurbs, field widths, and output formats are different.  GNU
+     `gprof' prints blurbs after the tables, so that you can see the
+     tables without skipping the blurbs.
+
+
+File: gprof.info,  Node: Details,  Next: GNU Free Documentation License,  Prev: Incompatibilities,  Up: Top
+
+9 Details of Profiling
+**********************
+
+* Menu:
+
+* Implementation::      How a program collects profiling information
+* File Format::         Format of `gmon.out' files
+* Internals::           `gprof''s internal operation
+* Debugging::           Using `gprof''s `-d' option
+
+
+File: gprof.info,  Node: Implementation,  Next: File Format,  Up: Details
+
+9.1 Implementation of Profiling
+===============================
+
+Profiling works by changing how every function in your program is
+compiled so that when it is called, it will stash away some information
+about where it was called from.  From this, the profiler can figure out
+what function called it, and can count how many times it was called.
+This change is made by the compiler when your program is compiled with
+the `-pg' option, which causes every function to call `mcount' (or
+`_mcount', or `__mcount', depending on the OS and compiler) as one of
+its first operations.
+
+   The `mcount' routine, included in the profiling library, is
+responsible for recording in an in-memory call graph table both its
+parent routine (the child) and its parent's parent.  This is typically
+done by examining the stack frame to find both the address of the
+child, and the return address in the original parent.  Since this is a
+very machine-dependent operation, `mcount' itself is typically a short
+assembly-language stub routine that extracts the required information,
+and then calls `__mcount_internal' (a normal C function) with two
+arguments--`frompc' and `selfpc'.  `__mcount_internal' is responsible
+for maintaining the in-memory call graph, which records `frompc',
+`selfpc', and the number of times each of these call arcs was traversed.
+
+   GCC Version 2 provides a magical function
+(`__builtin_return_address'), which allows a generic `mcount' function
+to extract the required information from the stack frame.  However, on
+some architectures, most notably the SPARC, using this builtin can be
+very computationally expensive, and an assembly language version of
+`mcount' is used for performance reasons.
+
+   Number-of-calls information for library routines is collected by
+using a special version of the C library.  The programs in it are the
+same as in the usual C library, but they were compiled with `-pg'.  If
+you link your program with `gcc ... -pg', it automatically uses the
+profiling version of the library.
+
+   Profiling also involves watching your program as it runs, and
+keeping a histogram of where the program counter happens to be every
+now and then.  Typically the program counter is looked at around 100
+times per second of run time, but the exact frequency may vary from
+system to system.
+
+   This is done is one of two ways.  Most UNIX-like operating systems
+provide a `profil()' system call, which registers a memory array with
+the kernel, along with a scale factor that determines how the program's
+address space maps into the array.  Typical scaling values cause every
+2 to 8 bytes of address space to map into a single array slot.  On
+every tick of the system clock (assuming the profiled program is
+running), the value of the program counter is examined and the
+corresponding slot in the memory array is incremented.  Since this is
+done in the kernel, which had to interrupt the process anyway to handle
+the clock interrupt, very little additional system overhead is required.
+
+   However, some operating systems, most notably Linux 2.0 (and
+earlier), do not provide a `profil()' system call.  On such a system,
+arrangements are made for the kernel to periodically deliver a signal
+to the process (typically via `setitimer()'), which then performs the
+same operation of examining the program counter and incrementing a slot
+in the memory array.  Since this method requires a signal to be
+delivered to user space every time a sample is taken, it uses
+considerably more overhead than kernel-based profiling.  Also, due to
+the added delay required to deliver the signal, this method is less
+accurate as well.
+
+   A special startup routine allocates memory for the histogram and
+either calls `profil()' or sets up a clock signal handler.  This
+routine (`monstartup') can be invoked in several ways.  On Linux
+systems, a special profiling startup file `gcrt0.o', which invokes
+`monstartup' before `main', is used instead of the default `crt0.o'.
+Use of this special startup file is one of the effects of using `gcc
+... -pg' to link.  On SPARC systems, no special startup files are used.
+Rather, the `mcount' routine, when it is invoked for the first time
+(typically when `main' is called), calls `monstartup'.
+
+   If the compiler's `-a' option was used, basic-block counting is also
+enabled.  Each object file is then compiled with a static array of
+counts, initially zero.  In the executable code, every time a new
+basic-block begins (i.e., when an `if' statement appears), an extra
+instruction is inserted to increment the corresponding count in the
+array.  At compile time, a paired array was constructed that recorded
+the starting address of each basic-block.  Taken together, the two
+arrays record the starting address of every basic-block, along with the
+number of times it was executed.
+
+   The profiling library also includes a function (`mcleanup') which is
+typically registered using `atexit()' to be called as the program
+exits, and is responsible for writing the file `gmon.out'.  Profiling
+is turned off, various headers are output, and the histogram is
+written, followed by the call-graph arcs and the basic-block counts.
+
+   The output from `gprof' gives no indication of parts of your program
+that are limited by I/O or swapping bandwidth.  This is because samples
+of the program counter are taken at fixed intervals of the program's
+run time.  Therefore, the time measurements in `gprof' output say
+nothing about time that your program was not running.  For example, a
+part of the program that creates so much data that it cannot all fit in
+physical memory at once may run very slowly due to thrashing, but
+`gprof' will say it uses little time.  On the other hand, sampling by
+run time has the advantage that the amount of load due to other users
+won't directly affect the output you get.
+
+
+File: gprof.info,  Node: File Format,  Next: Internals,  Prev: Implementation,  Up: Details
+
+9.2 Profiling Data File Format
+==============================
+
+The old BSD-derived file format used for profile data does not contain a
+magic cookie that allows to check whether a data file really is a
+`gprof' file.  Furthermore, it does not provide a version number, thus
+rendering changes to the file format almost impossible.  GNU `gprof'
+uses a new file format that provides these features.  For backward
+compatibility, GNU `gprof' continues to support the old BSD-derived
+format, but not all features are supported with it.  For example,
+basic-block execution counts cannot be accommodated by the old file
+format.
+
+   The new file format is defined in header file `gmon_out.h'.  It
+consists of a header containing the magic cookie and a version number,
+as well as some spare bytes available for future extensions.  All data
+in a profile data file is in the native format of the target for which
+the profile was collected.  GNU `gprof' adapts automatically to the
+byte-order in use.
+
+   In the new file format, the header is followed by a sequence of
+records.  Currently, there are three different record types: histogram
+records, call-graph arc records, and basic-block execution count
+records.  Each file can contain any number of each record type.  When
+reading a file, GNU `gprof' will ensure records of the same type are
+compatible with each other and compute the union of all records.  For
+example, for basic-block execution counts, the union is simply the sum
+of all execution counts for each basic-block.
+
+9.2.1 Histogram Records
+-----------------------
+
+Histogram records consist of a header that is followed by an array of
+bins.  The header contains the text-segment range that the histogram
+spans, the size of the histogram in bytes (unlike in the old BSD
+format, this does not include the size of the header), the rate of the
+profiling clock, and the physical dimension that the bin counts
+represent after being scaled by the profiling clock rate.  The physical
+dimension is specified in two parts: a long name of up to 15 characters
+and a single character abbreviation.  For example, a histogram
+representing real-time would specify the long name as "seconds" and the
+abbreviation as "s".  This feature is useful for architectures that
+support performance monitor hardware (which, fortunately, is becoming
+increasingly common).  For example, under DEC OSF/1, the "uprofile"
+command can be used to produce a histogram of, say, instruction cache
+misses.  In this case, the dimension in the histogram header could be
+set to "i-cache misses" and the abbreviation could be set to "1"
+(because it is simply a count, not a physical dimension).  Also, the
+profiling rate would have to be set to 1 in this case.
+
+   Histogram bins are 16-bit numbers and each bin represent an equal
+amount of text-space.  For example, if the text-segment is one thousand
+bytes long and if there are ten bins in the histogram, each bin
+represents one hundred bytes.
+
+9.2.2 Call-Graph Records
+------------------------
+
+Call-graph records have a format that is identical to the one used in
+the BSD-derived file format.  It consists of an arc in the call graph
+and a count indicating the number of times the arc was traversed during
+program execution.  Arcs are specified by a pair of addresses: the
+first must be within caller's function and the second must be within
+the callee's function.  When performing profiling at the function
+level, these addresses can point anywhere within the respective
+function.  However, when profiling at the line-level, it is better if
+the addresses are as close to the call-site/entry-point as possible.
+This will ensure that the line-level call-graph is able to identify
+exactly which line of source code performed calls to a function.
+
+9.2.3 Basic-Block Execution Count Records
+-----------------------------------------
+
+Basic-block execution count records consist of a header followed by a
+sequence of address/count pairs.  The header simply specifies the
+length of the sequence.  In an address/count pair, the address
+identifies a basic-block and the count specifies the number of times
+that basic-block was executed.  Any address within the basic-address can
+be used.
+
+
+File: gprof.info,  Node: Internals,  Next: Debugging,  Prev: File Format,  Up: Details
+
+9.3 `gprof''s Internal Operation
+================================
+
+Like most programs, `gprof' begins by processing its options.  During
+this stage, it may building its symspec list (`sym_ids.c:sym_id_add'),
+if options are specified which use symspecs.  `gprof' maintains a
+single linked list of symspecs, which will eventually get turned into
+12 symbol tables, organized into six include/exclude pairs--one pair
+each for the flat profile (INCL_FLAT/EXCL_FLAT), the call graph arcs
+(INCL_ARCS/EXCL_ARCS), printing in the call graph
+(INCL_GRAPH/EXCL_GRAPH), timing propagation in the call graph
+(INCL_TIME/EXCL_TIME), the annotated source listing
+(INCL_ANNO/EXCL_ANNO), and the execution count listing
+(INCL_EXEC/EXCL_EXEC).
+
+   After option processing, `gprof' finishes building the symspec list
+by adding all the symspecs in `default_excluded_list' to the exclude
+lists EXCL_TIME and EXCL_GRAPH, and if line-by-line profiling is
+specified, EXCL_FLAT as well.  These default excludes are not added to
+EXCL_ANNO, EXCL_ARCS, and EXCL_EXEC.
+
+   Next, the BFD library is called to open the object file, verify that
+it is an object file, and read its symbol table (`core.c:core_init'),
+using `bfd_canonicalize_symtab' after mallocing an appropriately sized
+array of symbols.  At this point, function mappings are read (if the
+`--file-ordering' option has been specified), and the core text space
+is read into memory (if the `-c' option was given).
+
+   `gprof''s own symbol table, an array of Sym structures, is now built.
+This is done in one of two ways, by one of two routines, depending on
+whether line-by-line profiling (`-l' option) has been enabled.  For
+normal profiling, the BFD canonical symbol table is scanned.  For
+line-by-line profiling, every text space address is examined, and a new
+symbol table entry gets created every time the line number changes.  In
+either case, two passes are made through the symbol table--one to count
+the size of the symbol table required, and the other to actually read
+the symbols.  In between the two passes, a single array of type `Sym'
+is created of the appropriate length.  Finally,
+`symtab.c:symtab_finalize' is called to sort the symbol table and
+remove duplicate entries (entries with the same memory address).
+
+   The symbol table must be a contiguous array for two reasons.  First,
+the `qsort' library function (which sorts an array) will be used to
+sort the symbol table.  Also, the symbol lookup routine
+(`symtab.c:sym_lookup'), which finds symbols based on memory address,
+uses a binary search algorithm which requires the symbol table to be a
+sorted array.  Function symbols are indicated with an `is_func' flag.
+Line number symbols have no special flags set.  Additionally, a symbol
+can have an `is_static' flag to indicate that it is a local symbol.
+
+   With the symbol table read, the symspecs can now be translated into
+Syms (`sym_ids.c:sym_id_parse').  Remember that a single symspec can
+match multiple symbols.  An array of symbol tables (`syms') is created,
+each entry of which is a symbol table of Syms to be included or
+excluded from a particular listing.  The master symbol table and the
+symspecs are examined by nested loops, and every symbol that matches a
+symspec is inserted into the appropriate syms table.  This is done
+twice, once to count the size of each required symbol table, and again
+to build the tables, which have been malloced between passes.  From now
+on, to determine whether a symbol is on an include or exclude symspec
+list, `gprof' simply uses its standard symbol lookup routine on the
+appropriate table in the `syms' array.
+
+   Now the profile data file(s) themselves are read
+(`gmon_io.c:gmon_out_read'), first by checking for a new-style
+`gmon.out' header, then assuming this is an old-style BSD `gmon.out' if
+the magic number test failed.
+
+   New-style histogram records are read by `hist.c:hist_read_rec'.  For
+the first histogram record, allocate a memory array to hold all the
+bins, and read them in.  When multiple profile data files (or files
+with multiple histogram records) are read, the memory ranges of each
+pair of histogram records must be either equal, or non-overlapping.
+For each pair of histogram records, the resolution (memory region size
+divided by the number of bins) must be the same.  The time unit must be
+the same for all histogram records. If the above containts are met, all
+histograms for the same memory range are merged.
+
+   As each call graph record is read (`call_graph.c:cg_read_rec'), the
+parent and child addresses are matched to symbol table entries, and a
+call graph arc is created by `cg_arcs.c:arc_add', unless the arc fails
+a symspec check against INCL_ARCS/EXCL_ARCS.  As each arc is added, a
+linked list is maintained of the parent's child arcs, and of the child's
+parent arcs.  Both the child's call count and the arc's call count are
+incremented by the record's call count.
+
+   Basic-block records are read (`basic_blocks.c:bb_read_rec'), but
+only if line-by-line profiling has been selected.  Each basic-block
+address is matched to a corresponding line symbol in the symbol table,
+and an entry made in the symbol's bb_addr and bb_calls arrays.  Again,
+if multiple basic-block records are present for the same address, the
+call counts are cumulative.
+
+   A gmon.sum file is dumped, if requested (`gmon_io.c:gmon_out_write').
+
+   If histograms were present in the data files, assign them to symbols
+(`hist.c:hist_assign_samples') by iterating over all the sample bins
+and assigning them to symbols.  Since the symbol table is sorted in
+order of ascending memory addresses, we can simple follow along in the
+symbol table as we make our pass over the sample bins.  This step
+includes a symspec check against INCL_FLAT/EXCL_FLAT.  Depending on the
+histogram scale factor, a sample bin may span multiple symbols, in
+which case a fraction of the sample count is allocated to each symbol,
+proportional to the degree of overlap.  This effect is rare for normal
+profiling, but overlaps are more common during line-by-line profiling,
+and can cause each of two adjacent lines to be credited with half a
+hit, for example.
+
+   If call graph data is present, `cg_arcs.c:cg_assemble' is called.
+First, if `-c' was specified, a machine-dependent routine (`find_call')
+scans through each symbol's machine code, looking for subroutine call
+instructions, and adding them to the call graph with a zero call count.
+A topological sort is performed by depth-first numbering all the
+symbols (`cg_dfn.c:cg_dfn'), so that children are always numbered less
+than their parents, then making a array of pointers into the symbol
+table and sorting it into numerical order, which is reverse topological
+order (children appear before parents).  Cycles are also detected at
+this point, all members of which are assigned the same topological
+number.  Two passes are now made through this sorted array of symbol
+pointers.  The first pass, from end to beginning (parents to children),
+computes the fraction of child time to propagate to each parent and a
+print flag.  The print flag reflects symspec handling of
+INCL_GRAPH/EXCL_GRAPH, with a parent's include or exclude (print or no
+print) property being propagated to its children, unless they
+themselves explicitly appear in INCL_GRAPH or EXCL_GRAPH.  A second
+pass, from beginning to end (children to parents) actually propagates
+the timings along the call graph, subject to a check against
+INCL_TIME/EXCL_TIME.  With the print flag, fractions, and timings now
+stored in the symbol structures, the topological sort array is now
+discarded, and a new array of pointers is assembled, this time sorted
+by propagated time.
+
+   Finally, print the various outputs the user requested, which is now
+fairly straightforward.  The call graph (`cg_print.c:cg_print') and
+flat profile (`hist.c:hist_print') are regurgitations of values already
+computed.  The annotated source listing
+(`basic_blocks.c:print_annotated_source') uses basic-block information,
+if present, to label each line of code with call counts, otherwise only
+the function call counts are presented.
+
+   The function ordering code is marginally well documented in the
+source code itself (`cg_print.c').  Basically, the functions with the
+most use and the most parents are placed first, followed by other
+functions with the most use, followed by lower use functions, followed
+by unused functions at the end.
+
+
+File: gprof.info,  Node: Debugging,  Prev: Internals,  Up: Details
+
+9.4 Debugging `gprof'
+=====================
+
+If `gprof' was compiled with debugging enabled, the `-d' option
+triggers debugging output (to stdout) which can be helpful in
+understanding its operation.  The debugging number specified is
+interpreted as a sum of the following options:
+
+2 - Topological sort
+     Monitor depth-first numbering of symbols during call graph analysis
+
+4 - Cycles
+     Shows symbols as they are identified as cycle heads
+
+16 - Tallying
+     As the call graph arcs are read, show each arc and how the total
+     calls to each function are tallied
+
+32 - Call graph arc sorting
+     Details sorting individual parents/children within each call graph
+     entry
+
+64 - Reading histogram and call graph records
+     Shows address ranges of histograms as they are read, and each call
+     graph arc
+
+128 - Symbol table
+     Reading, classifying, and sorting the symbol table from the object
+     file.  For line-by-line profiling (`-l' option), also shows line
+     numbers being assigned to memory addresses.
+
+256 - Static call graph
+     Trace operation of `-c' option
+
+512 - Symbol table and arc table lookups
+     Detail operation of lookup routines
+
+1024 - Call graph propagation
+     Shows how function times are propagated along the call graph
+
+2048 - Basic-blocks
+     Shows basic-block records as they are read from profile data (only
+     meaningful with `-l' option)
+
+4096 - Symspecs
+     Shows symspec-to-symbol pattern matching operation
+
+8192 - Annotate source
+     Tracks operation of `-A' option
+
+
+File: gprof.info,  Node: GNU Free Documentation License,  Prev: Details,  Up: Top
+
+Appendix A GNU Free Documentation License
+*****************************************
+
+                     Version 1.3, 3 November 2008
+
+     Copyright (C) 2000, 2001, 2002, 2007, 2008 Free Software Foundation, Inc.
+     `http://fsf.org/'
+
+     Everyone is permitted to copy and distribute verbatim copies
+     of this license document, but changing it is not allowed.
+
+  0. PREAMBLE
+
+     The purpose of this License is to make a manual, textbook, or other
+     functional and useful document "free" in the sense of freedom: to
+     assure everyone the effective freedom to copy and redistribute it,
+     with or without modifying it, either commercially or
+     noncommercially.  Secondarily, this License preserves for the
+     author and publisher a way to get credit for their work, while not
+     being considered responsible for modifications made by others.
+
+     This License is a kind of "copyleft", which means that derivative
+     works of the document must themselves be free in the same sense.
+     It complements the GNU General Public License, which is a copyleft
+     license designed for free software.
+
+     We have designed this License in order to use it for manuals for
+     free software, because free software needs free documentation: a
+     free program should come with manuals providing the same freedoms
+     that the software does.  But this License is not limited to
+     software manuals; it can be used for any textual work, regardless
+     of subject matter or whether it is published as a printed book.
+     We recommend this License principally for works whose purpose is
+     instruction or reference.
+
+  1. APPLICABILITY AND DEFINITIONS
+
+     This License applies to any manual or other work, in any medium,
+     that contains a notice placed by the copyright holder saying it
+     can be distributed under the terms of this License.  Such a notice
+     grants a world-wide, royalty-free license, unlimited in duration,
+     to use that work under the conditions stated herein.  The
+     "Document", below, refers to any such manual or work.  Any member
+     of the public is a licensee, and is addressed as "you".  You
+     accept the license if you copy, modify or distribute the work in a
+     way requiring permission under copyright law.
+
+     A "Modified Version" of the Document means any work containing the
+     Document or a portion of it, either copied verbatim, or with
+     modifications and/or translated into another language.
+
+     A "Secondary Section" is a named appendix or a front-matter section
+     of the Document that deals exclusively with the relationship of the
+     publishers or authors of the Document to the Document's overall
+     subject (or to related matters) and contains nothing that could
+     fall directly within that overall subject.  (Thus, if the Document
+     is in part a textbook of mathematics, a Secondary Section may not
+     explain any mathematics.)  The relationship could be a matter of
+     historical connection with the subject or with related matters, or
+     of legal, commercial, philosophical, ethical or political position
+     regarding them.
+
+     The "Invariant Sections" are certain Secondary Sections whose
+     titles are designated, as being those of Invariant Sections, in
+     the notice that says that the Document is released under this
+     License.  If a section does not fit the above definition of
+     Secondary then it is not allowed to be designated as Invariant.
+     The Document may contain zero Invariant Sections.  If the Document
+     does not identify any Invariant Sections then there are none.
+
+     The "Cover Texts" are certain short passages of text that are
+     listed, as Front-Cover Texts or Back-Cover Texts, in the notice
+     that says that the Document is released under this License.  A
+     Front-Cover Text may be at most 5 words, and a Back-Cover Text may
+     be at most 25 words.
+
+     A "Transparent" copy of the Document means a machine-readable copy,
+     represented in a format whose specification is available to the
+     general public, that is suitable for revising the document
+     straightforwardly with generic text editors or (for images
+     composed of pixels) generic paint programs or (for drawings) some
+     widely available drawing editor, and that is suitable for input to
+     text formatters or for automatic translation to a variety of
+     formats suitable for input to text formatters.  A copy made in an
+     otherwise Transparent file format whose markup, or absence of
+     markup, has been arranged to thwart or discourage subsequent
+     modification by readers is not Transparent.  An image format is
+     not Transparent if used for any substantial amount of text.  A
+     copy that is not "Transparent" is called "Opaque".
+
+     Examples of suitable formats for Transparent copies include plain
+     ASCII without markup, Texinfo input format, LaTeX input format,
+     SGML or XML using a publicly available DTD, and
+     standard-conforming simple HTML, PostScript or PDF designed for
+     human modification.  Examples of transparent image formats include
+     PNG, XCF and JPG.  Opaque formats include proprietary formats that
+     can be read and edited only by proprietary word processors, SGML or
+     XML for which the DTD and/or processing tools are not generally
+     available, and the machine-generated HTML, PostScript or PDF
+     produced by some word processors for output purposes only.
+
+     The "Title Page" means, for a printed book, the title page itself,
+     plus such following pages as are needed to hold, legibly, the
+     material this License requires to appear in the title page.  For
+     works in formats which do not have any title page as such, "Title
+     Page" means the text near the most prominent appearance of the
+     work's title, preceding the beginning of the body of the text.
+
+     The "publisher" means any person or entity that distributes copies
+     of the Document to the public.
+
+     A section "Entitled XYZ" means a named subunit of the Document
+     whose title either is precisely XYZ or contains XYZ in parentheses
+     following text that translates XYZ in another language.  (Here XYZ
+     stands for a specific section name mentioned below, such as
+     "Acknowledgements", "Dedications", "Endorsements", or "History".)
+     To "Preserve the Title" of such a section when you modify the
+     Document means that it remains a section "Entitled XYZ" according
+     to this definition.
+
+     The Document may include Warranty Disclaimers next to the notice
+     which states that this License applies to the Document.  These
+     Warranty Disclaimers are considered to be included by reference in
+     this License, but only as regards disclaiming warranties: any other
+     implication that these Warranty Disclaimers may have is void and
+     has no effect on the meaning of this License.
+
+  2. VERBATIM COPYING
+
+     You may copy and distribute the Document in any medium, either
+     commercially or noncommercially, provided that this License, the
+     copyright notices, and the license notice saying this License
+     applies to the Document are reproduced in all copies, and that you
+     add no other conditions whatsoever to those of this License.  You
+     may not use technical measures to obstruct or control the reading
+     or further copying of the copies you make or distribute.  However,
+     you may accept compensation in exchange for copies.  If you
+     distribute a large enough number of copies you must also follow
+     the conditions in section 3.
+
+     You may also lend copies, under the same conditions stated above,
+     and you may publicly display copies.
+
+  3. COPYING IN QUANTITY
+
+     If you publish printed copies (or copies in media that commonly
+     have printed covers) of the Document, numbering more than 100, and
+     the Document's license notice requires Cover Texts, you must
+     enclose the copies in covers that carry, clearly and legibly, all
+     these Cover Texts: Front-Cover Texts on the front cover, and
+     Back-Cover Texts on the back cover.  Both covers must also clearly
+     and legibly identify you as the publisher of these copies.  The
+     front cover must present the full title with all words of the
+     title equally prominent and visible.  You may add other material
+     on the covers in addition.  Copying with changes limited to the
+     covers, as long as they preserve the title of the Document and
+     satisfy these conditions, can be treated as verbatim copying in
+     other respects.
+
+     If the required texts for either cover are too voluminous to fit
+     legibly, you should put the first ones listed (as many as fit
+     reasonably) on the actual cover, and continue the rest onto
+     adjacent pages.
+
+     If you publish or distribute Opaque copies of the Document
+     numbering more than 100, you must either include a
+     machine-readable Transparent copy along with each Opaque copy, or
+     state in or with each Opaque copy a computer-network location from
+     which the general network-using public has access to download
+     using public-standard network protocols a complete Transparent
+     copy of the Document, free of added material.  If you use the
+     latter option, you must take reasonably prudent steps, when you
+     begin distribution of Opaque copies in quantity, to ensure that
+     this Transparent copy will remain thus accessible at the stated
+     location until at least one year after the last time you
+     distribute an Opaque copy (directly or through your agents or
+     retailers) of that edition to the public.
+
+     It is requested, but not required, that you contact the authors of
+     the Document well before redistributing any large number of
+     copies, to give them a chance to provide you with an updated
+     version of the Document.
+
+  4. MODIFICATIONS
+
+     You may copy and distribute a Modified Version of the Document
+     under the conditions of sections 2 and 3 above, provided that you
+     release the Modified Version under precisely this License, with
+     the Modified Version filling the role of the Document, thus
+     licensing distribution and modification of the Modified Version to
+     whoever possesses a copy of it.  In addition, you must do these
+     things in the Modified Version:
+
+       A. Use in the Title Page (and on the covers, if any) a title
+          distinct from that of the Document, and from those of
+          previous versions (which should, if there were any, be listed
+          in the History section of the Document).  You may use the
+          same title as a previous version if the original publisher of
+          that version gives permission.
+
+       B. List on the Title Page, as authors, one or more persons or
+          entities responsible for authorship of the modifications in
+          the Modified Version, together with at least five of the
+          principal authors of the Document (all of its principal
+          authors, if it has fewer than five), unless they release you
+          from this requirement.
+
+       C. State on the Title page the name of the publisher of the
+          Modified Version, as the publisher.
+
+       D. Preserve all the copyright notices of the Document.
+
+       E. Add an appropriate copyright notice for your modifications
+          adjacent to the other copyright notices.
+
+       F. Include, immediately after the copyright notices, a license
+          notice giving the public permission to use the Modified
+          Version under the terms of this License, in the form shown in
+          the Addendum below.
+
+       G. Preserve in that license notice the full lists of Invariant
+          Sections and required Cover Texts given in the Document's
+          license notice.
+
+       H. Include an unaltered copy of this License.
+
+       I. Preserve the section Entitled "History", Preserve its Title,
+          and add to it an item stating at least the title, year, new
+          authors, and publisher of the Modified Version as given on
+          the Title Page.  If there is no section Entitled "History" in
+          the Document, create one stating the title, year, authors,
+          and publisher of the Document as given on its Title Page,
+          then add an item describing the Modified Version as stated in
+          the previous sentence.
+
+       J. Preserve the network location, if any, given in the Document
+          for public access to a Transparent copy of the Document, and
+          likewise the network locations given in the Document for
+          previous versions it was based on.  These may be placed in
+          the "History" section.  You may omit a network location for a
+          work that was published at least four years before the
+          Document itself, or if the original publisher of the version
+          it refers to gives permission.
+
+       K. For any section Entitled "Acknowledgements" or "Dedications",
+          Preserve the Title of the section, and preserve in the
+          section all the substance and tone of each of the contributor
+          acknowledgements and/or dedications given therein.
+
+       L. Preserve all the Invariant Sections of the Document,
+          unaltered in their text and in their titles.  Section numbers
+          or the equivalent are not considered part of the section
+          titles.
+
+       M. Delete any section Entitled "Endorsements".  Such a section
+          may not be included in the Modified Version.
+
+       N. Do not retitle any existing section to be Entitled
+          "Endorsements" or to conflict in title with any Invariant
+          Section.
+
+       O. Preserve any Warranty Disclaimers.
+
+     If the Modified Version includes new front-matter sections or
+     appendices that qualify as Secondary Sections and contain no
+     material copied from the Document, you may at your option
+     designate some or all of these sections as invariant.  To do this,
+     add their titles to the list of Invariant Sections in the Modified
+     Version's license notice.  These titles must be distinct from any
+     other section titles.
+
+     You may add a section Entitled "Endorsements", provided it contains
+     nothing but endorsements of your Modified Version by various
+     parties--for example, statements of peer review or that the text
+     has been approved by an organization as the authoritative
+     definition of a standard.
+
+     You may add a passage of up to five words as a Front-Cover Text,
+     and a passage of up to 25 words as a Back-Cover Text, to the end
+     of the list of Cover Texts in the Modified Version.  Only one
+     passage of Front-Cover Text and one of Back-Cover Text may be
+     added by (or through arrangements made by) any one entity.  If the
+     Document already includes a cover text for the same cover,
+     previously added by you or by arrangement made by the same entity
+     you are acting on behalf of, you may not add another; but you may
+     replace the old one, on explicit permission from the previous
+     publisher that added the old one.
+
+     The author(s) and publisher(s) of the Document do not by this
+     License give permission to use their names for publicity for or to
+     assert or imply endorsement of any Modified Version.
+
+  5. COMBINING DOCUMENTS
+
+     You may combine the Document with other documents released under
+     this License, under the terms defined in section 4 above for
+     modified versions, provided that you include in the combination
+     all of the Invariant Sections of all of the original documents,
+     unmodified, and list them all as Invariant Sections of your
+     combined work in its license notice, and that you preserve all
+     their Warranty Disclaimers.
+
+     The combined work need only contain one copy of this License, and
+     multiple identical Invariant Sections may be replaced with a single
+     copy.  If there are multiple Invariant Sections with the same name
+     but different contents, make the title of each such section unique
+     by adding at the end of it, in parentheses, the name of the
+     original author or publisher of that section if known, or else a
+     unique number.  Make the same adjustment to the section titles in
+     the list of Invariant Sections in the license notice of the
+     combined work.
+
+     In the combination, you must combine any sections Entitled
+     "History" in the various original documents, forming one section
+     Entitled "History"; likewise combine any sections Entitled
+     "Acknowledgements", and any sections Entitled "Dedications".  You
+     must delete all sections Entitled "Endorsements."
+
+  6. COLLECTIONS OF DOCUMENTS
+
+     You may make a collection consisting of the Document and other
+     documents released under this License, and replace the individual
+     copies of this License in the various documents with a single copy
+     that is included in the collection, provided that you follow the
+     rules of this License for verbatim copying of each of the
+     documents in all other respects.
+
+     You may extract a single document from such a collection, and
+     distribute it individually under this License, provided you insert
+     a copy of this License into the extracted document, and follow
+     this License in all other respects regarding verbatim copying of
+     that document.
+
+  7. AGGREGATION WITH INDEPENDENT WORKS
+
+     A compilation of the Document or its derivatives with other
+     separate and independent documents or works, in or on a volume of
+     a storage or distribution medium, is called an "aggregate" if the
+     copyright resulting from the compilation is not used to limit the
+     legal rights of the compilation's users beyond what the individual
+     works permit.  When the Document is included in an aggregate, this
+     License does not apply to the other works in the aggregate which
+     are not themselves derivative works of the Document.
+
+     If the Cover Text requirement of section 3 is applicable to these
+     copies of the Document, then if the Document is less than one half
+     of the entire aggregate, the Document's Cover Texts may be placed
+     on covers that bracket the Document within the aggregate, or the
+     electronic equivalent of covers if the Document is in electronic
+     form.  Otherwise they must appear on printed covers that bracket
+     the whole aggregate.
+
+  8. TRANSLATION
+
+     Translation is considered a kind of modification, so you may
+     distribute translations of the Document under the terms of section
+     4.  Replacing Invariant Sections with translations requires special
+     permission from their copyright holders, but you may include
+     translations of some or all Invariant Sections in addition to the
+     original versions of these Invariant Sections.  You may include a
+     translation of this License, and all the license notices in the
+     Document, and any Warranty Disclaimers, provided that you also
+     include the original English version of this License and the
+     original versions of those notices and disclaimers.  In case of a
+     disagreement between the translation and the original version of
+     this License or a notice or disclaimer, the original version will
+     prevail.
+
+     If a section in the Document is Entitled "Acknowledgements",
+     "Dedications", or "History", the requirement (section 4) to
+     Preserve its Title (section 1) will typically require changing the
+     actual title.
+
+  9. TERMINATION
+
+     You may not copy, modify, sublicense, or distribute the Document
+     except as expressly provided under this License.  Any attempt
+     otherwise to copy, modify, sublicense, or distribute it is void,
+     and will automatically terminate your rights under this License.
+
+     However, if you cease all violation of this License, then your
+     license from a particular copyright holder is reinstated (a)
+     provisionally, unless and until the copyright holder explicitly
+     and finally terminates your license, and (b) permanently, if the
+     copyright holder fails to notify you of the violation by some
+     reasonable means prior to 60 days after the cessation.
+
+     Moreover, your license from a particular copyright holder is
+     reinstated permanently if the copyright holder notifies you of the
+     violation by some reasonable means, this is the first time you have
+     received notice of violation of this License (for any work) from
+     that copyright holder, and you cure the violation prior to 30 days
+     after your receipt of the notice.
+
+     Termination of your rights under this section does not terminate
+     the licenses of parties who have received copies or rights from
+     you under this License.  If your rights have been terminated and
+     not permanently reinstated, receipt of a copy of some or all of
+     the same material does not give you any rights to use it.
+
+ 10. FUTURE REVISIONS OF THIS LICENSE
+
+     The Free Software Foundation may publish new, revised versions of
+     the GNU Free Documentation License from time to time.  Such new
+     versions will be similar in spirit to the present version, but may
+     differ in detail to address new problems or concerns.  See
+     `http://www.gnu.org/copyleft/'.
+
+     Each version of the License is given a distinguishing version
+     number.  If the Document specifies that a particular numbered
+     version of this License "or any later version" applies to it, you
+     have the option of following the terms and conditions either of
+     that specified version or of any later version that has been
+     published (not as a draft) by the Free Software Foundation.  If
+     the Document does not specify a version number of this License,
+     you may choose any version ever published (not as a draft) by the
+     Free Software Foundation.  If the Document specifies that a proxy
+     can decide which future versions of this License can be used, that
+     proxy's public statement of acceptance of a version permanently
+     authorizes you to choose that version for the Document.
+
+ 11. RELICENSING
+
+     "Massive Multiauthor Collaboration Site" (or "MMC Site") means any
+     World Wide Web server that publishes copyrightable works and also
+     provides prominent facilities for anybody to edit those works.  A
+     public wiki that anybody can edit is an example of such a server.
+     A "Massive Multiauthor Collaboration" (or "MMC") contained in the
+     site means any set of copyrightable works thus published on the MMC
+     site.
+
+     "CC-BY-SA" means the Creative Commons Attribution-Share Alike 3.0
+     license published by Creative Commons Corporation, a not-for-profit
+     corporation with a principal place of business in San Francisco,
+     California, as well as future copyleft versions of that license
+     published by that same organization.
+
+     "Incorporate" means to publish or republish a Document, in whole or
+     in part, as part of another Document.
+
+     An MMC is "eligible for relicensing" if it is licensed under this
+     License, and if all works that were first published under this
+     License somewhere other than this MMC, and subsequently
+     incorporated in whole or in part into the MMC, (1) had no cover
+     texts or invariant sections, and (2) were thus incorporated prior
+     to November 1, 2008.
+
+     The operator of an MMC Site may republish an MMC contained in the
+     site under CC-BY-SA on the same site at any time before August 1,
+     2009, provided the MMC is eligible for relicensing.
+
+
+ADDENDUM: How to use this License for your documents
+====================================================
+
+To use this License in a document you have written, include a copy of
+the License in the document and put the following copyright and license
+notices just after the title page:
+
+       Copyright (C)  YEAR  YOUR NAME.
+       Permission is granted to copy, distribute and/or modify this document
+       under the terms of the GNU Free Documentation License, Version 1.3
+       or any later version published by the Free Software Foundation;
+       with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+       Texts.  A copy of the license is included in the section entitled ``GNU
+       Free Documentation License''.
+
+   If you have Invariant Sections, Front-Cover Texts and Back-Cover
+Texts, replace the "with...Texts." line with this:
+
+         with the Invariant Sections being LIST THEIR TITLES, with
+         the Front-Cover Texts being LIST, and with the Back-Cover Texts
+         being LIST.
+
+   If you have Invariant Sections without Cover Texts, or some other
+combination of the three, merge those two alternatives to suit the
+situation.
+
+   If your document contains nontrivial examples of program code, we
+recommend releasing these examples in parallel under your choice of
+free software license, such as the GNU General Public License, to
+permit their use in free software.
+
+
+
+Tag Table:
+Node: Top777
+Node: Introduction2100
+Node: Compiling4592
+Node: Executing8648
+Node: Invoking11436
+Node: Output Options12851
+Node: Analysis Options19940
+Node: Miscellaneous Options23638
+Node: Deprecated Options24893
+Node: Symspecs26962
+Node: Output28788
+Node: Flat Profile29828
+Node: Call Graph34781
+Node: Primary38013
+Node: Callers40601
+Node: Subroutines42718
+Node: Cycles44559
+Node: Line-by-line51336
+Node: Annotated Source55409
+Node: Inaccuracy58408
+Node: Sampling Error58666
+Node: Assumptions61570
+Node: How do I?63040
+Node: Incompatibilities64594
+Node: Details66088
+Node: Implementation66481
+Node: File Format72378
+Node: Internals76668
+Node: Debugging85163
+Node: GNU Free Documentation License86764
+
+End Tag Table
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 This is binutils.info, produced by makeinfo version 4.8 from
+binutils.texi.
+
+   Copyright (C) 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
+2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010 Free
+Software Foundation, Inc.
+
+   Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+Texts.  A copy of the license is included in the section entitled "GNU
+Free Documentation License".
+
+INFO-DIR-SECTION Software development
+START-INFO-DIR-ENTRY
+* Binutils: (binutils).         The GNU binary utilities.
+END-INFO-DIR-ENTRY
+
+INFO-DIR-SECTION Individual utilities
+START-INFO-DIR-ENTRY
+* addr2line: (binutils)addr2line. Convert addresses to file and line.
+* ar: (binutils)ar.               Create, modify, and extract from archives.
+* c++filt: (binutils)c++filt.	  Filter to demangle encoded C++ symbols.
+* cxxfilt: (binutils)c++filt.     MS-DOS name for c++filt.
+* dlltool: (binutils)dlltool.	  Create files needed to build and use DLLs.
+* nlmconv: (binutils)nlmconv.     Converts object code into an NLM.
+* nm: (binutils)nm.               List symbols from object files.
+* objcopy: (binutils)objcopy.	  Copy and translate object files.
+* objdump: (binutils)objdump.     Display information from object files.
+* ranlib: (binutils)ranlib.       Generate index to archive contents.
+* readelf: (binutils)readelf.	  Display the contents of ELF format files.
+* size: (binutils)size.           List section sizes and total size.
+* strings: (binutils)strings.     List printable strings from files.
+* strip: (binutils)strip.         Discard symbols.
+* elfedit: (binutils)elfedit.     Update the ELF header of ELF files.
+* windmc: (binutils)windmc.	  Generator for Windows message resources.
+* windres: (binutils)windres.	  Manipulate Windows resources.
+END-INFO-DIR-ENTRY
+
+
+File: binutils.info,  Node: Top,  Next: ar,  Up: (dir)
+
+Introduction
+************
+
+This brief manual contains documentation for the GNU binary utilities
+(GNU Binutils) version 2.21:
+
+   This document is distributed under the terms of the GNU Free
+Documentation License version 1.3.  A copy of the license is included
+in the section entitled "GNU Free Documentation License".
+
+* Menu:
+
+* ar::                          Create, modify, and extract from archives
+* nm::                          List symbols from object files
+* objcopy::			Copy and translate object files
+* objdump::                     Display information from object files
+* ranlib::                      Generate index to archive contents
+* readelf::                     Display the contents of ELF format files
+* size::                        List section sizes and total size
+* strings::                     List printable strings from files
+* strip::                       Discard symbols
+* elfedit::                     Update the ELF header of ELF files
+* c++filt::			Filter to demangle encoded C++ symbols
+* cxxfilt: c++filt.             MS-DOS name for c++filt
+* addr2line::			Convert addresses to file and line
+* nlmconv::                     Converts object code into an NLM
+* windres::			Manipulate Windows resources
+* windmc::			Generator for Windows message resources
+* dlltool::			Create files needed to build and use DLLs
+* Common Options::              Command-line options for all utilities
+* Selecting the Target System:: How these utilities determine the target
+* Reporting Bugs::              Reporting Bugs
+* GNU Free Documentation License::  GNU Free Documentation License
+* Binutils Index::              Binutils Index
+
+
+File: binutils.info,  Node: ar,  Next: nm,  Prev: Top,  Up: Top
+
+1 ar
+****
+
+     ar [`--plugin' NAME] [-]P[MOD [RELPOS] [COUNT]] ARCHIVE [MEMBER...]
+     ar -M [ <mri-script ]
+
+   The GNU `ar' program creates, modifies, and extracts from archives.
+An "archive" is a single file holding a collection of other files in a
+structure that makes it possible to retrieve the original individual
+files (called "members" of the archive).
+
+   The original files' contents, mode (permissions), timestamp, owner,
+and group are preserved in the archive, and can be restored on
+extraction.
+
+   GNU `ar' can maintain archives whose members have names of any
+length; however, depending on how `ar' is configured on your system, a
+limit on member-name length may be imposed for compatibility with
+archive formats maintained with other tools.  If it exists, the limit
+is often 15 characters (typical of formats related to a.out) or 16
+characters (typical of formats related to coff).
+
+   `ar' is considered a binary utility because archives of this sort
+are most often used as "libraries" holding commonly needed subroutines.
+
+   `ar' creates an index to the symbols defined in relocatable object
+modules in the archive when you specify the modifier `s'.  Once
+created, this index is updated in the archive whenever `ar' makes a
+change to its contents (save for the `q' update operation).  An archive
+with such an index speeds up linking to the library, and allows
+routines in the library to call each other without regard to their
+placement in the archive.
+
+   You may use `nm -s' or `nm --print-armap' to list this index table.
+If an archive lacks the table, another form of `ar' called `ranlib' can
+be used to add just the table.
+
+   GNU `ar' can optionally create a _thin_ archive, which contains a
+symbol index and references to the original copies of the member files
+of the archives.  Such an archive is useful for building libraries for
+use within a local build, where the relocatable objects are expected to
+remain available, and copying the contents of each object would only
+waste time and space.  Thin archives are also _flattened_, so that
+adding one or more archives to a thin archive will add the elements of
+the nested archive individually.  The paths to the elements of the
+archive are stored relative to the archive itself.
+
+   GNU `ar' is designed to be compatible with two different facilities.
+You can control its activity using command-line options, like the
+different varieties of `ar' on Unix systems; or, if you specify the
+single command-line option `-M', you can control it with a script
+supplied via standard input, like the MRI "librarian" program.
+
+* Menu:
+
+* ar cmdline::                  Controlling `ar' on the command line
+* ar scripts::                  Controlling `ar' with a script
+
+
+File: binutils.info,  Node: ar cmdline,  Next: ar scripts,  Up: ar
+
+1.1 Controlling `ar' on the Command Line
+========================================
+
+     ar [`--plugin' NAME] [`-X32_64'] [`-']P[MOD [RELPOS] [COUNT]] ARCHIVE [MEMBER...]
+
+   When you use `ar' in the Unix style, `ar' insists on at least two
+arguments to execute: one keyletter specifying the _operation_
+(optionally accompanied by other keyletters specifying _modifiers_),
+and the archive name to act on.
+
+   Most operations can also accept further MEMBER arguments, specifying
+particular files to operate on.
+
+   GNU `ar' allows you to mix the operation code P and modifier flags
+MOD in any order, within the first command-line argument.
+
+   If you wish, you may begin the first command-line argument with a
+dash.
+
+   The P keyletter specifies what operation to execute; it may be any
+of the following, but you must specify only one of them:
+
+`d'
+     _Delete_ modules from the archive.  Specify the names of modules to
+     be deleted as MEMBER...; the archive is untouched if you specify
+     no files to delete.
+
+     If you specify the `v' modifier, `ar' lists each module as it is
+     deleted.
+
+`m'
+     Use this operation to _move_ members in an archive.
+
+     The ordering of members in an archive can make a difference in how
+     programs are linked using the library, if a symbol is defined in
+     more than one member.
+
+     If no modifiers are used with `m', any members you name in the
+     MEMBER arguments are moved to the _end_ of the archive; you can
+     use the `a', `b', or `i' modifiers to move them to a specified
+     place instead.
+
+`p'
+     _Print_ the specified members of t

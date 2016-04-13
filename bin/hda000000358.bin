@@ -1,0 +1,2113 @@
+inktype\fR argument should be given.  Accepted values for
+\fI-linktype\fR are "-symbolic" and "-hard".
+.
+When creating links on filesystems that either do not support any links,
+or do not support the specific type requested, an error message will be
+returned.  In particular Windows 95, 98 and ME do not support any links
+at present, but most Unix platforms support both symbolic and hard links
+(the latter for files only), MacOS supports symbolic links and Windows
+NT/2000/XP (on NTFS drives) support symbolic directory links and hard
+file links.
+.TP
+\fBfile lstat \fIname varName\fR
+.
+Same as \fBstat\fR option (see below) except uses the \fIlstat\fR
+kernel call instead of \fIstat\fR.  This means that if \fIname\fR
+refers to a symbolic link the information returned in \fIvarName\fR
+is for the link rather than the file it refers to.  On systems that
+don't support symbolic links this option behaves exactly the same
+as the \fBstat\fR option.
+.TP
+\fBfile mkdir \fIdir\fR ?\fIdir\fR ...?
+.
+Creates each directory specified.  For each pathname \fIdir\fR specified,
+this command will create all non-existing parent directories as
+well as \fIdir\fR itself.  If an existing directory is specified, then
+no action is taken and no error is returned.  Trying to overwrite an existing
+file with a directory will result in an error.  Arguments are processed in
+the order specified, halting at the first error, if any.
+.TP
+\fBfile mtime \fIname\fR ?\fItime\fR?
+.
+Returns a decimal string giving the time at which file \fIname\fR was last
+modified.  If \fItime\fR is specified, it is a modification time to set for
+the file (equivalent to Unix \fBtouch\fR).  The time is measured in the
+standard POSIX fashion as seconds from a fixed starting time (often January
+1, 1970).  If the file doesn't exist or its modified time cannot be queried
+or set then an error is generated.
+.TP
+\fBfile nativename \fIname\fR
+.
+Returns the platform-specific name of the file. This is useful if the
+filename is needed to pass to a platform-specific call, such as exec
+under Windows or AppleScript on the Macintosh.
+.TP
+\fBfile normalize \fIname\fR
+.
+.RS
+Returns a unique normalized path representation for the file-system
+object (file, directory, link, etc), whose string value can be used as a
+unique identifier for it.  A normalized path is an absolute path which has
+all '../', './' removed.  Also it is one which is in the ``standard''
+format for the native platform.  On MacOS, Unix, this means the segments
+leading up to the path must be free of symbolic links/aliases (but the
+very last path component may be a symbolic link), and on Windows it also
+means we want the long form with that form's case-dependence (which
+gives us a unique, case-dependent path).  The one exception concerning the
+last link in the path is necessary, because Tcl or the user may wish to
+operate on the actual symbolic link itself (for example 'file delete', 'file
+rename', 'file copy' are defined to operate on symbolic links, not on the
+things that they point to).
+.RE
+.TP
+\fBfile owned \fIname\fR 
+.
+Returns \fB1\fR if file \fIname\fR is owned by the current user, \fB0\fR
+otherwise.
+.TP
+\fBfile pathtype \fIname\fR
+.
+Returns one of \fBabsolute\fR, \fBrelative\fR, \fBvolumerelative\fR.  If
+\fIname\fR refers to a specific file on a specific volume, the path type
+will be \fBabsolute\fR.  If \fIname\fR refers to a file relative to the
+current working directory, then the path type will be \fBrelative\fR.  If
+\fIname\fR refers to a file relative to the current working directory on
+a specified volume, or to a specific file on the current working volume, then
+the path type is \fBvolumerelative\fR.
+.TP
+\fBfile readable \fIname\fR
+.
+Returns \fB1\fR if file \fIname\fR is readable by the current user,
+\fB0\fR otherwise. 
+.TP
+\fBfile readlink \fIname\fR
+.
+Returns the value of the symbolic link given by \fIname\fR (i.e. the name
+of the file it points to).  If \fIname\fR isn't a symbolic link or its
+value cannot be read, then an error is returned.  On systems that don't
+support symbolic links this option is undefined.
+.TP
+\fBfile rename \fR?\fB\-force\fR? ?\fB\-\|\-\fR? \fIsource\fR \fItarget\fR
+.TP
+\fBfile rename \fR?\fB\-force\fR? ?\fB\-\|\-\fR? \fIsource\fR ?\fIsource\fR ...? \fItargetDir\fR
+.RS
+The first form takes the file or directory specified by pathname
+\fIsource\fR and renames it to \fItarget\fR, moving the file if the
+pathname \fItarget\fR specifies a name in a different directory.  If
+\fItarget\fR is an existing directory, then the second form is used.
+The second form moves each \fIsource\fR file or directory into the
+directory \fItargetDir\fR. Existing files will not be overwritten
+unless the \fB\-force\fR option is specified.  When operating inside a
+single filesystem, Tcl will rename symbolic links rather than the
+things that they point to.  Trying to overwrite a non-empty directory,
+overwrite a directory with a file, or a file with a directory will all
+result in errors.  Arguments are processed in the order specified,
+halting at the first error, if any.  A \fB\-\|\-\fR marks the end of
+switches; the argument following the \fB\-\|\-\fR will be treated as a
+\fIsource\fR even if it starts with a \fB\-\fR.
+.RE
+.TP
+\fBfile rootname \fIname\fR
+.
+Returns all of the characters in \fIname\fR up to but not including the
+last ``.'' character in the last component of name.  If the last
+component of \fIname\fR doesn't contain a dot, then returns \fIname\fR.
+.TP
+\fBfile separator\fR ?\fIname\fR?
+.
+If no argument is given, returns the character which is used to separate 
+path segments for native files on this platform.  If a path is given,
+the filesystem responsible for that path is asked to return its
+separator character.  If no file system accepts \fIname\fR, an error
+is generated.
+.TP
+\fBfile size \fIname\fR
+.
+Returns a decimal string giving the size of file \fIname\fR in bytes.  If
+the file doesn't exist or its size cannot be queried then an error is
+generated.
+.TP
+\fBfile split \fIname\fR
+.
+Returns a list whose elements are the path components in \fIname\fR.  The
+first element of the list will have the same path type as \fIname\fR.
+All other elements will be relative.  Path separators will be discarded
+unless they are needed ensure that an element is unambiguously relative.
+For example, under Unix
+.RS
+.CS
+file split /foo/~bar/baz
+.CE
+returns \fB/\0\0foo\0\0./~bar\0\0baz\fR to ensure that later commands
+that use the third component do not attempt to perform tilde
+substitution.
+.RE
+.TP
+\fBfile stat  \fIname varName\fR
+.
+Invokes the \fBstat\fR kernel call on \fIname\fR, and uses the variable
+given by \fIvarName\fR to hold information returned from the kernel call.
+\fIVarName\fR is treated as an array variable, and the following elements
+of that variable are set: \fBatime\fR, \fBctime\fR, \fBdev\fR, \fBgid\fR,
+\fBino\fR, \fBmode\fR, \fBmtime\fR, \fBnlink\fR, \fBsize\fR, \fBtype\fR,
+\fBuid\fR.  Each element except \fBtype\fR is a decimal string with the
+value of the corresponding field from the \fBstat\fR return structure;
+see the manual entry for \fBstat\fR for details on the meanings of the
+values.  The \fBtype\fR element gives the type of the file in the same
+form returned by the command \fBfile type\fR.  This command returns an
+empty string.
+.TP
+\fBfile system \fIname\fR
+.
+Returns a list of two elements, the first of which is the name of the
+filesystem to use for the file, and the second an arbitrary string
+representing the filesystem-specific nature or type of the location
+within that filesystem.  If a filesystem only supports one type of file,
+the second element may be null.  For example the native files have a
+first element 'native', and a second element which is a platform-specific
+type name for the file's system (e.g. 'NTFS', 'FAT', etc), or possibly
+the empty string if no further information is available or if this
+is not implemented.  A generic virtual file system might return the
+list 'vfs ftp' to represent a file on a remote ftp site mounted as a
+virtual filesystem through an extension called 'vfs'.  If the file does
+not belong to any filesystem, an error is generated.
+.TP
+\fBfile tail \fIname\fR
+.
+Returns all of the characters in \fIname\fR after the last directory
+separator.  If \fIname\fR contains no separators then returns
+\fIname\fR.
+.TP
+\fBfile type \fIname\fR
+.
+Returns a string giving the type of file \fIname\fR, which will be one of
+\fBfile\fR, \fBdirectory\fR, \fBcharacterSpecial\fR, \fBblockSpecial\fR,
+\fBfifo\fR, \fBlink\fR, or \fBsocket\fR.
+.TP
+\fBfile volumes\fR
+. 
+Returns the absolute paths to the volumes mounted on the system, as a
+proper Tcl list.  On the Macintosh, this will be a list of the mounted
+drives, both local and network.  N.B. if two drives have the same name,
+they will both appear on the volume list, but there is currently no way,
+from Tcl, to access any but the first of these drives.  On UNIX, the
+command will always return "/", since all filesystems are locally mounted.
+On Windows, it will return a list of the available local drives
+(e.g. {a:/ c:/}).
+.TP
+\fBfile writable \fIname\fR
+.
+Returns \fB1\fR if file \fIname\fR is writable by the current user,
+\fB0\fR otherwise.
+.SH "PORTABILITY ISSUES"
+.TP
+\fBUnix\fR\0\0\0\0\0\0\0
+.
+These commands always operate using the real user and group identifiers,
+not the effective ones. 
+.SH EXAMPLES
+This procedure shows how to search for C files in a given directory
+that have a correspondingly-named object file in the current
+directory:
+.CS
+proc findMatchingCFiles {dir} {
+   set files {}
+   switch $::tcl_platform(platform) {
+      windows {
+         set ext .obj
+      }
+      unix {
+         set ext .o
+      }
+   }
+   foreach file [glob -nocomplain -directory $dir *.c] {
+      set objectFile [\fBfile tail\fR [\fBfile rootname\fR $file]]$ext
+      if {[\fBfile exists\fR $objectFile]} {
+         lappend files $file
+      }
+   }
+   return $files
+}
+.CE
+.PP
+Rename a file and leave a symbolic link pointing from the old location
+to the new place:
+.CS
+set oldName foobar.txt
+set newName foo/bar.txt
+# Make sure that where we're going to move to exists...
+if {![\fBfile isdirectory\fR [\fBfile dirname\fR $newName]]} {
+   \fBfile mkdir\fR [\fBfile dirname\fR $newName]
+}
+\fBfile rename\fR $oldName $newName
+\fBfile link\fR -symbolic $oldName $newName
+.CE
+
+.SH "SEE ALSO"
+filename(n), open(n), close(n), eof(n), gets(n), tell(n), seek(n),
+fblocked(n), flush(n)
+
+.SH KEYWORDS
+attributes, copy files, delete files, directory, file, move files, name, rename files, stat
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               '\"
+'\" Copyright (c) 1993 The Regents of the University of California.
+'\" Copyright (c) 1994-1996 Sun Microsystems, Inc.
+'\" Copyright (c) 2001 Kevin B. Kenny.  All rights reserved.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: lappend.n,v 1.6.4.1 2004/10/27 12:52:40 dkf Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH lappend n "" Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+lappend \- Append list elements onto a variable
+.SH SYNOPSIS
+\fBlappend \fIvarName \fR?\fIvalue value value ...\fR?
+.BE
+
+.SH DESCRIPTION
+.PP
+This command treats the variable given by \fIvarName\fR as a list
+and appends each of the \fIvalue\fR arguments to that list as a separate
+element, with spaces between elements.
+If \fIvarName\fR doesn't exist, it is created as a list with elements
+given by the \fIvalue\fR arguments.
+\fBLappend\fR is similar to \fBappend\fR except that the \fIvalue\fRs
+are appended as list elements rather than raw text.
+This command provides a relatively efficient way to build up
+large lists.  For example, ``\fBlappend a $b\fR'' is much
+more efficient than ``\fBset a [concat $a [list $b]]\fR'' when
+\fB$a\fR is long.
+.SH EXAMPLE
+Using \fBlappend\fR to build up a list of numbers.
+.CS
+% set var 1
+1
+% \fBlappend\fR var 2
+1 2
+% \fBlappend\fR var 3 4 5
+1 2 3 4 5
+.CE
+
+.SH "SEE ALSO"
+list(n), lindex(n), linsert(n), llength(n), 
+.VS 8.4
+lset(n)
+.VE
+lsort(n), lrange(n)
+
+.SH KEYWORDS
+append, element, list, variable
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               '\"
+'\" Copyright (c) 1993 The Regents of the University of California.
+'\" Copyright (c) 1994-1996 Sun Microsystems, Inc.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: return.n,v 1.3.18.1 2004/10/27 14:23:58 dkf Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH return n 7.0 Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+return \- Return from a procedure
+.SH SYNOPSIS
+\fBreturn \fR?\fB\-code \fIcode\fR? ?\fB\-errorinfo \fIinfo\fR? ?\fB\-errorcode\fI code\fR? ?\fIstring\fR?
+.BE
+
+.SH DESCRIPTION
+.PP
+Return immediately from the current procedure
+(or top-level command or \fBsource\fR command),
+with \fIstring\fR as the return value.  If \fIstring\fR is not specified then
+an empty string will be returned as result.
+.SH "EXCEPTIONAL RETURN CODES"
+.PP
+In addition to the result of a procedure, the return
+code of a procedure may also be set by \fBreturn\fR
+through use of the \fB-code\fR option.
+In the usual case where the \fB\-code\fR option isn't
+specified the procedure will return normally.
+However, the \fB\-code\fR option may be used to generate an
+exceptional return from the procedure.
+\fICode\fR may have any of the following values:
+.TP 13
+\fBok (or 0)\fR
+Normal return:  same as if the option is omitted.  The return code
+of the procedure is 0 (\fBTCL_OK\fR).
+.TP 13
+\fBerror (1)\fR
+Error return: the return code of the procedure is 1 (\fBTCL_ERROR\fR).
+The procedure command behaves in its calling context as if it
+were the command \fBerror \fIresult\fR.  See below for additional
+options.
+.TP 13
+\fBreturn (2)\fR
+The return code of the procedure is 2 (\fBTCL_RETURN\fR).  The
+procedure command behaves in its calling context as if it
+were the command \fBreturn\fR (with no arguments).
+.TP 13
+\fBbreak (3)\fR
+The return code of the procedure is 3 (\fBTCL_BREAK\fR).  The
+procedure command behaves in its calling context as if it
+were the command \fBbreak\fR.
+.TP 13
+\fBcontinue (4)\fR
+The return code of the procedure is 4 (\fBTCL_CONTINUE\fR).  The
+procedure command behaves in its calling context as if it
+were the command \fBcontinue\fR.
+.TP 13
+\fIvalue\fR
+\fIValue\fR must be an integer;  it will be returned as the
+return code for the current procedure.
+.LP
+The \fB\-code\fR option is rarely used.
+It is provided so that procedures that implement
+new control structures can reflect exceptional conditions back to
+their callers.
+.PP
+Two additional options, \fB\-errorinfo\fR and \fB\-errorcode\fR,
+may be used to provide additional information during error
+returns.
+These options are ignored unless \fIcode\fR is \fBerror\fR.
+.PP
+The \fB\-errorinfo\fR option specifies an initial stack
+trace for the \fBerrorInfo\fR variable;  if it is not specified then
+the stack trace left in \fBerrorInfo\fR will include the call to
+the procedure and higher levels on the stack but it will not include
+any information about the context of the error within the procedure.
+Typically the \fIinfo\fR value is supplied from the value left
+in \fBerrorInfo\fR after a \fBcatch\fR command trapped an error within
+the procedure.
+.PP
+If the \fB\-errorcode\fR option is specified then \fIcode\fR provides
+a value for the \fBerrorCode\fR variable.
+If the option is not specified then \fBerrorCode\fR will
+default to \fBNONE\fR.
+.SH EXAMPLES
+First, a simple example of using \fBreturn\fR to return from a
+procedure, interrupting the procedure body.
+.CS
+proc printOneLine {} {
+   puts "line 1"    ;# This line will be printed.
+   \fBreturn\fR		
+   puts "line 2"    ;# This line will not be printed.
+}
+.CE
+.PP
+Next, an example of using \fBreturn\fR to set the value
+returned by the procedure.
+.CS
+proc returnX {} {\fBreturn\fR X}
+puts [returnX]    ;# prints "X"
+.CE
+.PP
+Next, a more complete example, using \fBreturn -code error\fR
+to report invalid arguments.
+.CS
+proc factorial {n} {
+   if {![string is integer $n] || ($n < 0)} {
+      \fBreturn\fR -code error \\
+            "expected non-negative integer,\\
+             but got \\"$n\\""
+   }
+   if {$n < 2} {
+      \fBreturn\fR 1
+   }
+   set m [expr {$n - 1}]
+   set code [catch {factorial $m} factor]
+   if {$code != 0} {
+      \fBreturn\fR -code $code $factor
+   }
+   set product [expr {$n * $factor}]
+   if {$product < 0} {
+      \fBreturn\fR -code error \\
+            "overflow computing factorial of $n"
+   }
+   \fBreturn\fR $product
+}
+.CE
+.PP
+Next, a procedure replacement for \fBbreak\fR.
+.CS
+proc myBreak {} {
+   \fBreturn\fR -code break
+}
+.CE
+
+.SH "SEE ALSO"
+break(n), catch(n), continue(n), error(n), proc(n), source(n), tclvars(n)
+
+.SH KEYWORDS
+break, catch, continue, error, procedure, return
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        '\"
+'\" Copyright (c) 1996 Sun Microsystems, Inc.
+'\" Copyright (c) 1998-1999 by Scriptics Corporation.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\"
+'\" RCS: @(#) $Id: socket.n,v 1.7.2.3 2004/10/27 14:23:58 dkf Exp $
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH socket n 8.0 Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+socket \- Open a TCP network connection
+.SH SYNOPSIS
+.sp
+\fBsocket \fR?\fIoptions\fR? \fIhost port\fR
+.sp
+\fBsocket\fR \fB\-server \fIcommand\fR ?\fIoptions\fR? \fIport\fR
+.BE
+
+.SH DESCRIPTION
+.PP
+This command opens a network socket and returns a channel
+identifier that may be used in future invocations of commands like
+\fBread\fR, \fBputs\fR and \fBflush\fR.
+At present only the TCP network protocol is supported;  future
+releases may include support for additional protocols.
+The \fBsocket\fR command may be used to open either the client or
+server side of a connection, depending on whether the \fB\-server\fR
+switch is specified.
+.PP
+Note that the default encoding for \fIall\fR sockets is the system
+encoding, as returned by \fBencoding system\fR.  Most of the time, you
+will need to use \fBfconfigure\fR to alter this to something else,
+such as \fIutf\-8\fR (ideal for communicating with other Tcl
+processes) or \fIiso8859\-1\fR (useful for many network protocols,
+especially the older ones).
+.SH "CLIENT SOCKETS"
+.PP
+If the \fB\-server\fR option is not specified, then the client side of a
+connection is opened and the command returns a channel identifier
+that can be used for both reading and writing.
+\fIPort\fR and \fIhost\fR specify a port
+to connect to;  there must be a server accepting connections on
+this port.  \fIPort\fR is an integer port number
+(or service name, where supported and understood by the host operating
+system) and \fIhost\fR
+is either a domain-style name such as \fBwww.tcl.tk\fR or
+a numerical IP address such as \fB127.0.0.1\fR.
+Use \fIlocalhost\fR to refer to the host on which the command is invoked.
+.PP
+The following options may also be present before \fIhost\fR
+to specify additional information about the connection:
+.TP
+\fB\-myaddr\fI addr\fR
+\fIAddr\fR gives the domain-style name or numerical IP address of
+the client-side network interface to use for the connection.
+This option may be useful if the client machine has multiple network
+interfaces.  If the option is omitted then the client-side interface
+will be chosen by the system software.
+.TP
+\fB\-myport\fI port\fR
+\fIPort\fR specifies an integer port number (or service name, where
+supported and understood by the host operating system) to use for the
+client's
+side of the connection.  If this option is omitted, the client's
+port number will be chosen at random by the system software.
+.TP
+\fB\-async\fR
+The \fB\-async\fR option will cause the client socket to be connected
+asynchronously. This means that the socket will be created immediately but
+may not yet be connected to the server, when the call to \fBsocket\fR
+returns. When a \fBgets\fR or \fBflush\fR is done on the socket before the
+connection attempt succeeds or fails, if the socket is in blocking mode, the
+operation will wait until the connection is completed or fails. If the
+socket is in nonblocking mode and a \fBgets\fR or \fBflush\fR is done on
+the socket before the connection attempt succeeds or fails, the operation
+returns immediately and \fBfblocked\fR on the socket returns 1.
+.SH "SERVER SOCKETS"
+.PP
+If the \fB\-server\fR option is specified then the new socket
+will be a server for the port given by \fIport\fR (either an integer
+or a service name, where supported and understood by the host
+operating system; if \fIport\fR is zero, the operating system will
+allocate a free port to the server socket which may be discovered by
+using \fBfconfigure\fR to read the \fB\-sockname\fR option).
+Tcl will automatically accept connections to the given port.
+For each connection Tcl will create a new channel that may be used to
+communicate with the client.  Tcl then invokes \fIcommand\fR
+with three additional arguments: the name of the new channel, the
+address, in network address notation, of the client's host, and
+the client's port number.
+.PP
+The following additional option may also be specified before \fIhost\fR:
+.TP
+\fB\-myaddr\fI addr\fR
+\fIAddr\fR gives the domain-style name or numerical IP address of
+the server-side network interface to use for the connection.
+This option may be useful if the server machine has multiple network
+interfaces.  If the option is omitted then the server socket is bound
+to the special address INADDR_ANY so that it can accept connections from
+any interface.
+.PP
+Server channels cannot be used for input or output; their sole use is to
+accept new client connections. The channels created for each incoming
+client connection are opened for input and output. Closing the server
+channel shuts down the server so that no new connections will be
+accepted;  however, existing connections will be unaffected.
+.PP
+Server sockets depend on the Tcl event mechanism to find out when
+new connections are opened.  If the application doesn't enter the
+event loop, for example by invoking the \fBvwait\fR command or
+calling the C procedure \fBTcl_DoOneEvent\fR, then no connections
+will be accepted.
+.PP
+If \fIport\fR is specified as zero, the operating system will allocate
+an unused port for use as a server socket.  The port number actually
+allocated may be retrieved from the created server socket using the
+\fBfconfigure\fR command to retrieve the \fB\-sockname\fR option as
+described below.
+.SH "CONFIGURATION OPTIONS"
+The \fBfconfigure\fR command can be used to query several readonly
+configuration options for socket channels:
+.TP
+\fB\-error\fR
+This option gets the current error status of the given socket.  This
+is useful when you need to determine if an asynchronous connect
+operation succeeded.  If there was an error, the error message is
+returned.  If there was no error, an empty string is returned.
+.TP
+\fB\-sockname\fR
+This option returns a list of three elements, the address, the host name
+and the port number for the socket. If the host name cannot be computed,
+the second element is identical to the address, the first element of the
+list.
+.TP
+\fB\-peername\fR
+This option is not supported by server sockets. For client and accepted
+sockets, this option returns a list of three elements; these are the
+address, the host name and the port to which the peer socket is connected
+or bound. If the host name cannot be computed, the second element of the
+list is identical to the address, its first element.
+.PP
+.SH "EXAMPLES"
+Here is a very simple time server:
+.CS
+proc Server {channel clientaddr clientport} {
+   puts "Connection from $clientaddr registered"
+   puts $channel [clock format [clock seconds]]
+   close $channel
+}
+
+\fBsocket\fR -server Server 9900
+vwait forever
+.CE
+.PP
+And here is the corresponding client to talk to the server:
+.CS
+set server localhost
+set sockChan [\fBsocket\fR $server 9900]
+gets $sockChan line
+close $sockChan
+puts "The time on $server is $line"
+.CE
+
+.SH "SEE ALSO"
+fconfigure(n), flush(n), open(n), read(n)
+
+.SH KEYWORDS
+bind, channel, connection, domain name, host, network address, socket, tcp
+                                                 '\"
+'\" Copyright (c) 1993-1994 The Regents of the University of California.
+'\" Copyright (c) 1994-1996 Sun Microsystems, Inc.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: continue.n,v 1.3.18.1 2004/10/27 09:35:38 dkf Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH continue n "" Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+continue \- Skip to the next iteration of a loop
+.SH SYNOPSIS
+\fBcontinue\fR
+.BE
+
+.SH DESCRIPTION
+.PP
+This command is typically invoked inside the body of a looping command
+such as \fBfor\fR or \fBforeach\fR or \fBwhile\fR.
+It returns a \fBTCL_CONTINUE\fR code, which causes a continue exception
+to occur.
+The exception causes the current script to be aborted
+out to the innermost containing loop command, which then
+continues with the next iteration of the loop.
+Catch exceptions are also handled in a few other situations, such
+as the \fBcatch\fR command and the outermost scripts of procedure
+bodies.
+.SH EXAMPLE
+Print a line for each of the integers from 0 to 10 \fIexcept\fR 5:
+.CS
+for {set x 0} {$x<10} {incr x} {
+   if {$x == 5} {
+      \fBcontinue\fR
+   }
+   puts "x is $x"
+}
+.CE
+
+.SH "SEE ALSO"
+break(n), for(n), foreach(n), return(n), while(n)
+
+.SH KEYWORDS
+continue, iteration, loop
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       '\"
+'\" Copyright (c) 1993 The Regents of the University of California.
+'\" Copyright (c) 1994-1997 Sun Microsystems, Inc.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: tclvars.n,v 1.13.2.3 2005/07/26 21:39:22 dgp Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH tclvars n 8.0 Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+tclvars \- Variables used by Tcl
+.BE
+
+.SH DESCRIPTION
+.PP
+The following global variables are created and managed automatically
+by the Tcl library.  Except where noted below, these variables should
+normally be treated as read-only by application-specific code and by users.
+.TP
+\fBenv\fR
+This variable is maintained by Tcl as an array
+whose elements are the environment variables for the process.
+Reading an element will return the value of the corresponding
+environment variable.
+Setting an element of the array will modify the corresponding
+environment variable or create a new one if it doesn't already
+exist.
+Unsetting an element of \fBenv\fR will remove the corresponding
+environment variable.
+Changes to the \fBenv\fR array will affect the environment
+passed to children by commands like \fBexec\fR.
+If the entire \fBenv\fR array is unset then Tcl will stop
+monitoring \fBenv\fR accesses and will not update environment
+variables.
+.RS
+.VS 8.0 
+Under Windows, the environment variables PATH and COMSPEC in any
+capitalization are converted automatically to upper case.  For instance, the
+PATH variable could be exported by the operating system as ``path'',
+``Path'', ``PaTh'', etc., causing otherwise simple Tcl code to have to
+support many special cases.  All other environment variables inherited by
+Tcl are left unmodified.  Setting an env array variable to blank is the
+same as unsetting it as this is the behavior of the underlying Windows OS.
+It should be noted that relying on an existing and empty environment variable
+won't work on windows and is discouraged for cross-platform usage.
+.VE
+.RE
+.RS
+On the Macintosh, the environment variable is constructed by Tcl as no
+global environment variable exists.  The environment variables that
+are created for Tcl include:
+.TP
+\fBLOGIN\fR
+This holds the Chooser name of the Macintosh.
+.TP
+\fBUSER\fR
+This also holds the Chooser name of the Macintosh.
+.TP
+\fBSYS_FOLDER\fR
+The path to the system directory.
+.TP
+\fBAPPLE_M_FOLDER\fR
+The path to the Apple Menu directory.
+.TP
+\fBCP_FOLDER\fR
+The path to the control panels directory.
+.TP
+\fBDESK_FOLDER\fR
+The path to the desk top directory.
+.TP
+\fBEXT_FOLDER\fR
+The path to the system extensions directory.
+.TP
+\fBPREF_FOLDER\fR
+The path to the preferences directory.
+.TP
+\fBPRINT_MON_FOLDER\fR
+The path to the print monitor directory.
+.TP
+\fBSHARED_TRASH_FOLDER\fR
+The path to the network trash directory.
+.TP
+\fBTRASH_FOLDER\fR
+The path to the trash directory.
+.TP
+\fBSTART_UP_FOLDER\fR
+The path to the start up directory.
+.TP
+\fBHOME\fR
+The path to the application's default directory.
+.PP
+You can also create your own environment variables for the Macintosh.
+A file named  \fITcl Environment Variables\fR may be placed in the
+preferences folder in the Mac system folder.  Each line of this file
+should be of the form \fIVAR_NAME=var_data\fR.
+.PP
+The last alternative is to place environment variables in a 'STR#' 
+resource named \fITcl Environment Variables\fR of the application.  This
+is considered a little more ``Mac like'' than a Unix style Environment
+Variable file.  Each entry in the 'STR#' resource has the same format
+as above.  The source code file \fItclMacEnv.c\fR contains the
+implementation of the env mechanisms.  This file contains many
+#define's that allow customization of the env mechanisms to fit your
+applications needs.
+.RE
+.TP
+\fBerrorCode\fR
+After an error has occurred, this variable will be set to hold
+a list value representing additional information about the error
+in a form that is easy to process with programs.
+The first element of the list identifies a general class of
+errors, and determines the format of the rest of the list.
+The following formats for \fBerrorCode\fR are used by the
+Tcl core; individual applications may define additional formats.
+.RS
+.TP
+\fBARITH\fI code msg\fR
+This format is used when an arithmetic error occurs (e.g. an attempt
+to divide by zero in the \fBexpr\fR command).
+\fICode\fR identifies the precise error and \fImsg\fR provides a
+human-readable description of the error.  \fICode\fR will be either
+DIVZERO (for an attempt to divide by zero),
+DOMAIN (if an argument is outside the domain of a function, such as acos(\-3)),
+IOVERFLOW (for integer overflow),
+OVERFLOW (for a floating-point overflow),
+or UNKNOWN (if the cause of the error cannot be determined).
+.TP
+\fBCHILDKILLED\fI pid sigName msg\fR
+This format is used when a child process has been killed because of
+a signal.  The second element of \fBerrorCode\fR will be the
+process's identifier (in decimal).
+The third element will be the symbolic name of the signal that caused
+the process to terminate; it will be one of the names from the
+include file signal.h, such as \fBSIGPIPE\fR.
+The fourth element will be a short human-readable message
+describing the signal, such as ``write on pipe with no readers''
+for \fBSIGPIPE\fR.
+.TP
+\fBCHILDSTATUS\fI pid code\fR
+This format is used when a child process has exited with a non-zero
+exit status.  The second element of \fBerrorCode\fR will be the
+process's identifier (in decimal) and the third element will be the exit
+code returned by the process (also in decimal).
+.TP
+\fBCHILDSUSP\fI pid sigName msg\fR
+This format is used when a child process has been suspended because
+of a signal.
+The second element of \fBerrorCode\fR will be the process's identifier,
+in decimal.
+The third element will be the symbolic name of the signal that caused
+the process to suspend; this will be one of the names from the
+include file signal.h, such as \fBSIGTTIN\fR.
+The fourth element will be a short human-readable message
+describing the signal, such as ``background tty read''
+for \fBSIGTTIN\fR.
+.TP
+\fBNONE\fR
+This format is used for errors where no additional information is
+available for an error besides the message returned with the
+error.  In these cases \fBerrorCode\fR will consist of a list
+containing a single element whose contents are \fBNONE\fR.
+.TP
+\fBPOSIX \fIerrName msg\fR
+If the first element of \fBerrorCode\fR is \fBPOSIX\fR, then
+the error occurred during a POSIX kernel call.
+The second element of the list will contain the symbolic name
+of the error that occurred, such as \fBENOENT\fR; this will
+be one of the values defined in the include file errno.h.
+The third element of the list will be a human-readable
+message corresponding to \fIerrName\fR, such as
+``no such file or directory'' for the \fBENOENT\fR case.
+.PP
+To set \fBerrorCode\fR, applications should use library
+procedures such as \fBTcl_SetErrorCode\fR and \fBTcl_PosixError\fR,
+or they may invoke the \fBerror\fR command.
+If one of these methods hasn't been used, then the Tcl
+interpreter will reset the variable to \fBNONE\fR after
+the next error.
+.RE
+.TP
+\fBerrorInfo\fR
+After an error has occurred, this string will contain one or more lines
+identifying the Tcl commands and procedures that were being executed
+when the¼Y  ½Y  ¾Y  ¿Y  ÀY  ÁY  ÂY  ÃY  ÄY  ÅY  ÆY                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       most recent error occurred.
+Its contents take the form of a stack trace showing the various
+nested Tcl commands that had been invoked at the time of the error.
+.TP
+\fBtcl_library\fR
+This variable holds the name of a directory containing the
+system library of Tcl scripts, such as those used for auto-loading.
+The value of this variable is returned by the \fBinfo library\fR command.
+See the \fBlibrary\fR manual entry for details of the facilities 
+provided by the Tcl script library.
+Normally each application or package will have its own application-specific
+script library in addition to the Tcl script library;
+each application should set a global variable with a name like
+\fB$\fIapp\fB_library\fR (where \fIapp\fR is the application's name)
+to hold the network file name for that application's library directory.
+The initial value of \fBtcl_library\fR is set when an interpreter
+is created by searching several different directories until one is
+found that contains an appropriate Tcl startup script.
+If the \fBTCL_LIBRARY\fR environment variable exists, then
+the directory it names is checked first.
+If \fBTCL_LIBRARY\fR isn't set or doesn't refer to an appropriate
+directory, then Tcl checks several other directories based on a
+compiled-in default location, the location of the binary containing
+the application, and the current working directory.
+.TP
+\fBtcl_patchLevel\fR
+When an interpreter is created Tcl initializes this variable to
+hold a string giving the current patch level for Tcl, such as
+\fB7.3p2\fR for Tcl 7.3 with the first two official patches, or
+\fB7.4b4\fR for the fourth beta release of Tcl 7.4.
+The value of this variable is returned by the \fBinfo patchlevel\fR
+command.
+.VS 8.0 br
+.TP
+\fBtcl_pkgPath\fR
+This variable holds a list of directories indicating where packages are
+normally installed.  It is not used on Windows.  It typically contains
+either one or two entries; if it contains two entries, the first is
+normally a directory for platform-dependent packages (e.g., shared library
+binaries) and the second is normally a directory for platform-independent
+packages (e.g., script files). Typically a package is installed as a
+subdirectory of one of the entries in \fB$tcl_pkgPath\fR. The directories
+in \fB$tcl_pkgPath\fR are included by default in the \fBauto_path\fR
+variable, so they and their immediate subdirectories are automatically
+searched for packages during \fBpackage require\fR commands.  Note:
+\fBtcl_pkgPath\fR it not intended to be modified by the application.  Its
+value is added to \fBauto_path\fR at startup; changes to \fBtcl_pkgPath\fR
+are not reflected in \fBauto_path\fR.  If you want Tcl to search additional
+directories for packages you should add the names of those directories to
+\fBauto_path\fR, not \fBtcl_pkgPath\fR.
+.VE
+.TP
+\fBtcl_platform\fR
+This is an associative array whose elements contain information about
+the platform on which the application is running, such as the name of
+the operating system, its current release number, and the machine's
+instruction set.  The elements listed below will always
+be defined, but they may have empty strings as values if Tcl couldn't
+retrieve any relevant information.  In addition, extensions
+and applications may add additional values to the array.  The
+predefined elements are:
+.RS
+.VS
+.TP
+\fBbyteOrder\fR
+The native byte order of this machine: either \fBlittleEndian\fR or
+\fBbigEndian\fR. 
+.VE
+.TP
+\fBdebug\fR
+If this variable exists, then the interpreter was compiled with and linked
+to a debug-enabled C run-time.  This variable will only exist on Windows,
+so extension writers can specify which package to load depending on the
+C run-time library that is in use.  This is not an indication that this core
+contains symbols.
+.TP
+\fBmachine\fR
+The instruction set executed by this machine, such as
+\fBintel\fR, \fBPPC\fR, \fB68k\fR, or \fBsun4m\fR.  On UNIX machines, this
+is the value returned by \fBuname -m\fR.
+.TP
+\fBos\fR 
+The name of the operating system running on this machine,
+such as \fBWindows 95\fR, \fBWindows NT\fR, \fBMacOS\fR, or \fBSunOS\fR.
+On UNIX machines, th

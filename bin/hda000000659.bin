@@ -1,0 +1,1448 @@
+es grows too large (configurable with `--param
+max-aliased-vops'), alias sets are grouped to avoid severe compile-time
+slow downs and memory consumption.  The alias grouping heuristic
+proceeds as follows:
+
+  1. Sort the list of pointers in decreasing number of contributed
+     virtual operands.
+
+  2. Take the first pointer from the list and reverse the role of the
+     memory tag and its aliases.  Usually, whenever an aliased variable
+     Vi is found to alias with a memory tag T, we add Vi to the
+     may-aliases set for T.  Meaning that after alias analysis, we will
+     have:
+
+          may-aliases(T) = { V1, V2, V3, ..., Vn }
+
+     This means that every statement that references T, will get `n'
+     virtual operands for each of the Vi tags.  But, when alias
+     grouping is enabled, we make T an alias tag and add it to the
+     alias set of all the Vi variables:
+
+          may-aliases(V1) = { T }
+          may-aliases(V2) = { T }
+          ...
+          may-aliases(Vn) = { T }
+
+     This has two effects: (a) statements referencing T will only get a
+     single virtual operand, and, (b) all the variables Vi will now
+     appear to alias each other.  So, we lose alias precision to
+     improve compile time.  But, in theory, a program with such a high
+     level of aliasing should not be very optimizable in the first
+     place.
+
+  3. Since variables may be in the alias set of more than one memory
+     tag, the grouping done in step (2) needs to be extended to all the
+     memory tags that have a non-empty intersection with the
+     may-aliases set of tag T.  For instance, if we originally had
+     these may-aliases sets:
+
+          may-aliases(T) = { V1, V2, V3 }
+          may-aliases(R) = { V2, V4 }
+
+     In step (2) we would have reverted the aliases for T as:
+
+          may-aliases(V1) = { T }
+          may-aliases(V2) = { T }
+          may-aliases(V3) = { T }
+
+     But note that now V2 is no longer aliased with R.  We could add R
+     to may-aliases(V2), but we are in the process of grouping aliases
+     to reduce virtual operands so what we do is add V4 to the grouping
+     to obtain:
+
+          may-aliases(V1) = { T }
+          may-aliases(V2) = { T }
+          may-aliases(V3) = { T }
+          may-aliases(V4) = { T }
+
+  4. If the total number of virtual operands due to aliasing is still
+     above the threshold set by max-alias-vops, go back to (2).
+
+
+File: gccint.info,  Node: Loop Analysis and Representation,  Next: Machine Desc,  Prev: Control Flow,  Up: Top
+
+11 Analysis and Representation of Loops
+***************************************
+
+GCC provides extensive infrastructure for work with natural loops, i.e.,
+strongly connected components of CFG with only one entry block.  This
+chapter describes representation of loops in GCC, both on GIMPLE and in
+RTL, as well as the interfaces to loop-related analyses (induction
+variable analysis and number of iterations analysis).
+
+* Menu:
+
+* Loop representation::		Representation and analysis of loops.
+* Loop querying::		Getting information about loops.
+* Loop manipulation::		Loop manipulation functions.
+* LCSSA::			Loop-closed SSA form.
+* Scalar evolutions::   	Induction variables on GIMPLE.
+* loop-iv::			Induction variables on RTL.
+* Number of iterations::	Number of iterations analysis.
+* Dependency analysis::		Data dependency analysis.
+* Lambda::			Linear loop transformations framework.
+* Omega::			A solver for linear programming problems.
+
+
+File: gccint.info,  Node: Loop representation,  Next: Loop querying,  Up: Loop Analysis and Representation
+
+11.1 Loop representation
+========================
+
+This chapter describes the representation of loops in GCC, and functions
+that can be used to build, modify and analyze this representation.  Most
+of the interfaces and data structures are declared in `cfgloop.h'.  At
+the moment, loop structures are analyzed and this information is
+updated only by the optimization passes that deal with loops, but some
+efforts are being made to make it available throughout most of the
+optimization passes.
+
+ In general, a natural loop has one entry block (header) and possibly
+several back edges (latches) leading to the header from the inside of
+the loop.  Loops with several latches may appear if several loops share
+a single header, or if there is a branching in the middle of the loop.
+The representation of loops in GCC however allows only loops with a
+single latch.  During loop analysis, headers of such loops are split and
+forwarder blocks are created in order to disambiguate their structures.
+Heuristic based on profile information and structure of the induction
+variables in the loops is used to determine whether the latches
+correspond to sub-loops or to control flow in a single loop.  This means
+that the analysis sometimes changes the CFG, and if you run it in the
+middle of an optimization pass, you must be able to deal with the new
+blocks.  You may avoid CFG changes by passing
+`LOOPS_MAY_HAVE_MULTIPLE_LATCHES' flag to the loop discovery, note
+however that most other loop manipulation functions will not work
+correctly for loops with multiple latch edges (the functions that only
+query membership of blocks to loops and subloop relationships, or
+enumerate and test loop exits, can be expected to work).
+
+ Body of the loop is the set of blocks that are dominated by its header,
+and reachable from its latch against the direction of edges in CFG.  The
+loops are organized in a containment hierarchy (tree) such that all the
+loops immediately contained inside loop L are the children of L in the
+tree.  This tree is represented by the `struct loops' structure.  The
+root of this tree is a fake loop that contains all blocks in the
+function.  Each of the loops is represented in a `struct loop'
+structure.  Each loop is assigned an index (`num' field of the `struct
+loop' structure), and the pointer to the loop is stored in the
+corresponding field of the `larray' vector in the loops structure.  The
+indices do not have to be continuous, there may be empty (`NULL')
+entries in the `larray' created by deleting loops.  Also, there is no
+guarantee on the relative order of a loop and its subloops in the
+numbering.  The index of a loop never changes.
+
+ The entries of the `larray' field should not be accessed directly.
+The function `get_loop' returns the loop description for a loop with
+the given index.  `number_of_loops' function returns number of loops in
+the function.  To traverse all loops, use `FOR_EACH_LOOP' macro.  The
+`flags' argument of the macro is used to determine the direction of
+traversal and the set of loops visited.  Each loop is guaranteed to be
+visited exactly once, regardless of the changes to the loop tree, and
+the loops may be removed during the traversal.  The newly created loops
+are never traversed, if they need to be visited, this must be done
+separately after their creation.  The `FOR_EACH_LOOP' macro allocates
+temporary variables.  If the `FOR_EACH_LOOP' loop were ended using
+break or goto, they would not be released; `FOR_EACH_LOOP_BREAK' macro
+must be used instead.
+
+ Each basic block contains the reference to the innermost loop it
+belongs to (`loop_father').  For this reason, it is only possible to
+have one `struct loops' structure initialized at the same time for each
+CFG.  The global variable `current_loops' contains the `struct loops'
+structure.  Many of the loop manipulation functions assume that
+dominance information is up-to-date.
+
+ The loops are analyzed through `loop_optimizer_init' function.  The
+argument of this function is a set of flags represented in an integer
+bitmask.  These flags specify what other properties of the loop
+structures should be calculated/enforced and preserved later:
+
+   * `LOOPS_MAY_HAVE_MULTIPLE_LATCHES': If this flag is set, no changes
+     to CFG will be performed in the loop analysis, in particular,
+     loops with multiple latch edges will not be disambiguated.  If a
+     loop has multiple latches, its latch block is set to NULL.  Most of
+     the loop manipulation functions will not work for loops in this
+     shape.  No other flags that require CFG changes can be passed to
+     loop_optimizer_init.
+
+   * `LOOPS_HAVE_PREHEADERS': Forwarder blocks are created in such a
+     way that each loop has only one entry edge, and additionally, the
+     source block of this entry edge has only one successor.  This
+     creates a natural place where the code can be moved out of the
+     loop, and ensures that the entry edge of the loop leads from its
+     immediate super-loop.
+
+   * `LOOPS_HAVE_SIMPLE_LATCHES': Forwarder blocks are created to force
+     the latch block of each loop to have only one successor.  This
+     ensures that the latch of the loop does not belong to any of its
+     sub-loops, and makes manipulation with the loops significantly
+     easier.  Most of the loop manipulation functions assume that the
+     loops are in this shape.  Note that with this flag, the "normal"
+     loop without any control flow inside and with one exit consists of
+     two basic blocks.
+
+   * `LOOPS_HAVE_MARKED_IRREDUCIBLE_REGIONS': Basic blocks and edges in
+     the strongly connected components that are not natural loops (have
+     more than one entry block) are marked with `BB_IRREDUCIBLE_LOOP'
+     and `EDGE_IRREDUCIBLE_LOOP' flags.  The flag is not set for blocks
+     and edges that belong to natural loops that are in such an
+     irreducible region (but it is set for the entry and exit edges of
+     such a loop, if they lead to/from this region).
+
+   * `LOOPS_HAVE_RECORDED_EXITS': The lists of exits are recorded and
+     updated for each loop.  This makes some functions (e.g.,
+     `get_loop_exit_edges') more efficient.  Some functions (e.g.,
+     `single_exit') can be used only if the lists of exits are recorded.
+
+ These properties may also be computed/enforced later, using functions
+`create_preheaders', `force_single_succ_latches',
+`mark_irreducible_loops' and `record_loop_exits'.
+
+ The memory occupied by the loops structures should be freed with
+`loop_optimizer_finalize' function.
+
+ The CFG manipulation functions in general do not update loop
+structures.  Specialized versions that additionally do so are provided
+for the most common tasks.  On GIMPLE, `cleanup_tree_cfg_loop' function
+can be used to cleanup CFG while updating the loops structures if
+`current_loops' is set.
+
+
+File: gccint.info,  Node: Loop querying,  Next: Loop manipulation,  Prev: Loop representation,  Up: Loop Analysis and Representation
+
+11.2 Loop querying
+==================
+
+The functions to query the information about loops are declared in
+`cfgloop.h'.  Some of the information can be taken directly from the
+structures.  `loop_father' field of each basic block contains the
+innermost loop to that the block belongs.  The most useful fields of
+loop structure (that are kept up-to-date at all times) are:
+
+   * `header', `latch': Header and latch basic blocks of the loop.
+
+   * `num_nodes': Number of basic blocks in the loop (including the
+     basic blocks of the sub-loops).
+
+   * `depth': The depth of the loop in the loops tree, i.e., the number
+     of super-loops of the loop.
+
+   * `outer', `inner', `next': The super-loop, the first sub-loop, and
+     the sibling of the loop in the loops tree.
+
+ There are other fields in the loop structures, many of them used only
+by some of the passes, or not updated during CFG changes; in general,
+they should not be accessed directly.
+
+ The most important functions to query loop structures are:
+
+   * `flow_loops_dump': Dumps the information about loops to a file.
+
+   * `verify_loop_structure': Checks consistency of the loop structures.
+
+   * `loop_latch_edge': Returns the latch edge of a loop.
+
+   * `loop_preheader_edge': If loops have preheaders, returns the
+     preheader edge of a loop.
+
+   * `flow_loop_nested_p': Tests whether loop is a sub-loop of another
+     loop.
+
+   * `flow_bb_inside_loop_p': Tests whether a basic block belongs to a
+     loop (including its sub-loops).
+
+   * `find_common_loop': Finds the common super-loop of two loops.
+
+   * `superloop_at_depth': Returns the super-loop of a loop with the
+     given depth.
+
+   * `tree_num_loop_insns', `num_loop_insns': Estimates the number of
+     insns in the loop, on GIMPLE and on RTL.
+
+   * `loop_exit_edge_p': Tests whether edge is an exit from a loop.
+
+   * `mark_loop_exit_edges': Marks all exit edges of all loops with
+     `EDGE_LOOP_EXIT' flag.
+
+   * `get_loop_body', `get_loop_body_in_dom_order',
+     `get_loop_body_in_bfs_order': Enumerates the basic blocks in the
+     loop in depth-first search order in reversed CFG, ordered by
+     dominance relation, and breath-first search order, respectively.
+
+   * `single_exit': Returns the single exit edge of the loop, or `NULL'
+     if the loop has more than one exit.  You can only use this
+     function if LOOPS_HAVE_MARKED_SINGLE_EXITS property is used.
+
+   * `get_loop_exit_edges': Enumerates the exit edges of a loop.
+
+   * `just_once_each_iteration_p': Returns true if the basic block is
+     executed exactly once during each iteration of a loop (that is, it
+     does not belong to a sub-loop, and it dominates the latch of the
+     loop).
+
+
+File: gccint.info,  Node: Loop manipulation,  Next: LCSSA,  Prev: Loop querying,  Up: Loop Analysis and Representation
+
+11.3 Loop manipulation
+======================
+
+The loops tree can be manipulated using the following functions:
+
+   * `flow_loop_tree_node_add': Adds a node to the tree.
+
+   * `flow_loop_tree_node_remove': Removes a node from the tree.
+
+   * `add_bb_to_loop': Adds a basic block to a loop.
+
+   * `remove_bb_from_loops': Removes a basic block from loops.
+
+ Most low-level CFG functions update loops automatically.  The following
+functions handle some more complicated cases of CFG manipulations:
+
+   * `remove_path': Removes an edge and all blocks it dominates.
+
+   * `split_loop_exit_edge': Splits exit edge of the loop, ensuring
+     that PHI node arguments remain in the loop (this ensures that
+     loop-closed SSA form is preserved).  Only useful on GIMPLE.
+
+ Finally, there are some higher-level loop transformations implemented.
+While some of them are written so that they should work on non-innermost
+loops, they are mostly untested in that case, and at the moment, they
+are only reliable for the innermost loops:
+
+   * `create_iv': Creates a new induction variable.  Only works on
+     GIMPLE.  `standard_iv_increment_position' can be used to find a
+     suitable place for the iv increment.
+
+   * `duplicate_loop_to_header_edge',
+     `tree_duplicate_loop_to_header_edge': These functions (on RTL and
+     on GIMPLE) duplicate the body of the loop prescribed number of
+     times on one of the edges entering loop header, thus performing
+     either loop unrolling or loop peeling.  `can_duplicate_loop_p'
+     (`can_unroll_loop_p' on GIMPLE) must be true for the duplicated
+     loop.
+
+   * `loop_version', `tree_ssa_loop_version': These function create a
+     copy of a loop, and a branch before them that selects one of them
+     depending on the prescribed condition.  This is useful for
+     optimizations that need to verify some assumptions in runtime (one
+     of the copies of the loop is usually left unchanged, while the
+     other one is transformed in some way).
+
+   * `tree_unroll_loop': Unrolls the loop, including peeling the extra
+     iterations to make the number of iterations divisible by unroll
+     factor, updating the exit condition, and removing the exits that
+     now cannot be taken.  Works only on GIMPLE.
+
+
+File: gccint.info,  Node: LCSSA,  Next: Scalar evolutions,  Prev: Loop manipulation,  Up: Loop Analysis and Representation
+
+11.4 Loop-closed SSA form
+=========================
+
+Throughout the loop optimizations on tree level, one extra condition is
+enforced on the SSA form:  No SSA name is used outside of the loop in
+that it is defined.  The SSA form satisfying this condition is called
+"loop-closed SSA form" - LCSSA.  To enforce LCSSA, PHI nodes must be
+created at the exits of the loops for the SSA names that are used
+outside of them.  Only the real operands (not virtual SSA names) are
+held in LCSSA, in order to save memory.
+
+ There are various benefits of LCSSA:
+
+   * Many optimizations (value range analysis, final value replacement)
+     are interested in the values that are defined in the loop and used
+     outside of it, i.e., exactly those for that we create new PHI
+     nodes.
+
+   * In induction variable analysis, it is not necessary to specify the
+     loop in that the analysis should be performed - the scalar
+     evolution analysis always returns the results with respect to the
+     loop in that the SSA name is defined.
+
+   * It makes updating of SSA form during loop transformations simpler.
+     Without LCSSA, operations like loop unrolling may force creation
+     of PHI nodes arbitrarily far from the loop, while in LCSSA, the
+     SSA form can be updated locally.  However, since we only keep real
+     operands in LCSSA, we cannot use this advantage (we could have
+     local updating of real operands, but it is not much more efficient
+     than to use generic SSA form updating for it as well; the amount
+     of changes to SSA is the same).
+
+ However, it also means LCSSA must be updated.  This is usually
+straightforward, unless you create a new value in loop and use it
+outside, or unless you manipulate loop exit edges (functions are
+provided to make these manipulations simple).
+`rewrite_into_loop_closed_ssa' is used to rewrite SSA form to LCSSA,
+and `verify_loop_closed_ssa' to check that the invariant of LCSSA is
+preserved.
+
+
+File: gccint.info,  Node: Scalar evolutions,  Next: loop-iv,  Prev: LCSSA,  Up: Loop Analysis and Representation
+
+11.5 Scalar evolutions
+======================
+
+Scalar evolutions (SCEV) are used to represent results of induction
+variable analysis on GIMPLE.  They enable us to represent variables with
+complicated behavior in a simple and consistent way (we only use it to
+express values of polynomial induction variables, but it is possible to
+extend it).  The interfaces to SCEV analysis are declared in
+`tree-scalar-evolution.h'.  To use scalar evolutions analysis,
+`scev_initialize' must be used.  To stop using SCEV, `scev_finalize'
+should be used.  SCEV analysis caches results in order to save time and
+memory.  This cache however is made invalid by most of the loop
+transformations, including removal of code.  If such a transformation
+is performed, `scev_reset' must be called to clean the caches.
+
+ Given an SSA name, its behavior in loops can be analyzed using the
+`analyze_scalar_evolution' function.  The returned SCEV however does
+not have to be fully analyzed and it may contain references to other
+SSA names defined in the loop.  To resolve these (potentially
+recursive) references, `instantiate_parameters' or `resolve_mixers'
+functions must be used.  `instantiate_parameters' is useful when you
+use the results of SCEV only for some analysis, and when you work with
+whole nest of loops at once.  It will try replacing all SSA names by
+their SCEV in all loops, including the super-loops of the current loop,
+thus providing a complete information about the behavior of the
+variable in the loop nest.  `resolve_mixers' is useful if you work with
+only one loop at a time, and if you possibly need to create code based
+on the value of the induction variable.  It will only resolve the SSA
+names defined in the current loop, leaving the SSA names defined
+outside unchanged, even if their evolution in the outer loops is known.
+
+ The SCEV is a normal tree expression, except for the fact that it may
+contain several special tree nodes.  One of them is `SCEV_NOT_KNOWN',
+used for SSA names whose value cannot be expressed.  The other one is
+`POLYNOMIAL_CHREC'.  Polynomial chrec has three arguments - base, step
+and loop (both base and step may contain further polynomial chrecs).
+Type of the expression and of base and step must be the same.  A
+variable has evolution `POLYNOMIAL_CHREC(base, step, loop)' if it is
+(in the specified loop) equivalent to `x_1' in the following example
+
+     while (...)
+       {
+         x_1 = phi (base, x_2);
+         x_2 = x_1 + step;
+       }
+
+ Note that this includes the language restrictions on the operations.
+For example, if we compile C code and `x' has signed type, then the
+overflow in addition would cause undefined behavior, and we may assume
+that this does not happen.  Hence, the value with this SCEV cannot
+overflow (which restricts the number of iterations of such a loop).
+
+ In many cases, one wants to restrict the attention just to affine
+induction variables.  In this case, the extra expressive power of SCEV
+is not useful, and may complicate the optimizations.  In this case,
+`simple_iv' function may be used to analyze a value - the result is a
+loop-invariant base and step.
+
+
+File: gccint.info,  Node: loop-iv,  Next: Number of iterations,  Prev: Scalar evolutions,  Up: Loop Analysis and Representation
+
+11.6 IV analysis on RTL
+=======================
+
+The induction variable on RTL is simple and only allows analysis of
+affine induction variables, and only in one loop at once.  The interface
+is declared in `cfgloop.h'.  Before analyzing induction variables in a
+loop L, `iv_analysis_loop_init' function must be called on L.  After
+the analysis (possibly calling `iv_analysis_loop_init' for several
+loops) is finished, `iv_analysis_done' should be called.  The following
+functions can be used to access the results of the analysis:
+
+   * `iv_analyze': Analyzes a single register used in the given insn.
+     If no use of the register in this insn is found, the following
+     insns are scanned, so that this function can be called on the insn
+     returned by get_condition.
+
+   * `iv_analyze_result': Analyzes result of the assignment in the
+     given insn.
+
+   * `iv_analyze_expr': Analyzes a more complicated expression.  All
+     its operands are analyzed by `iv_analyze', and hence they must be
+     used in the specified insn or one of the following insns.
+
+ The description of the induction variable is provided in `struct
+rtx_iv'.  In order to handle subregs, the representation is a bit
+complicated; if the value of the `extend' field is not `UNKNOWN', the
+value of the induction variable in the i-th iteration is
+
+     delta + mult * extend_{extend_mode} (subreg_{mode} (base + i * step)),
+
+ with the following exception:  if `first_special' is true, then the
+value in the first iteration (when `i' is zero) is `delta + mult *
+base'.  However, if `extend' is equal to `UNKNOWN', then
+`first_special' must be false, `delta' 0, `mult' 1 and the value in the
+i-th iteration is
+
+     subreg_{mode} (base + i * step)
+
+ The function `get_iv_value' can be used to perform these calculations.
+
+
+File: gccint.info,  Node: Number of iterations,  Next: Dependency analysis,  Prev: loop-iv,  Up: Loop Analysis and Representation
+
+11.7 Number of iterations analysis
+==================================
+
+Both on GIMPLE and on RTL, there are functions available to determine
+the number of iterations of a loop, with a similar interface.  The
+number of iterations of a loop in GCC is defined as the number of
+executions of the loop latch.  In many cases, it is not possible to
+determine the number of iterations unconditionally - the determined
+number is correct only if some assumptions are satisfied.  The analysis
+tries to verify these conditions using the information contained in the
+program; if it fails, the conditions are returned together with the
+result.  The following information and conditions are provided by the
+analysis:
+
+   * `assumptions': If this condition is false, the rest of the
+     information is invalid.
+
+   * `noloop_assumptions' on RTL, `may_be_zero' on GIMPLE: If this
+     condition is true, the loop exits in the first iteration.
+
+   * `infinite': If this condition is true, the loop is infinite.  This
+     condition is only available on RTL.  On GIMPLE, conditions for
+     finiteness of the loop are included in `assumptions'.
+
+   * `niter_expr' on RTL, `niter' on GIMPLE: The expression that gives
+     number of iterations.  The number of iterations is defined as the
+     number of executions of the loop latch.
+
+ Both on GIMPLE and on RTL, it necessary for the induction variable
+analysis framework to be initialized (SCEV on GIMPLE, loop-iv on RTL).
+On GIMPLE, the results are stored to `struct tree_niter_desc'
+structure.  Number of iterations before the loop is exited through a
+given exit can be determined using `number_of_iterations_exit'
+function.  On RTL, the results are returned in `struct niter_desc'
+structure.  The corresponding function is named `check_simple_exit'.
+There are also functions that pass through all the exits of a loop and
+try to find one with easy to determine number of iterations -
+`find_loop_niter' on GIMPLE and `find_simple_exit' on RTL.  Finally,
+there are functions that provide the same information, but additionally
+cache it, so that repeated calls to number of iterations are not so
+costly - `number_of_latch_executions' on GIMPLE and
+`get_simple_loop_desc' on RTL.
+
+ Note that some of these functions may behave slightly differently than
+others - some of them return only the expression for the number of
+iterations, and fail if there are some assumptions.  The function
+`number_of_latch_executions' works only for single-exit loops.  The
+function `number_of_cond_exit_executions' can be used to determine
+number of executions of the exit condition of a single-exit loop (i.e.,
+the `number_of_latch_executions' increased by one).
+
+
+File: gccint.info,  Node: Dependency analysis,  Next: Lambda,  Prev: Number of iterations,  Up: Loop Analysis and Representation
+
+11.8 Data Dependency Analysis
+=============================
+
+The code for the data dependence analysis can be found in
+`tree-data-ref.c' and its interface and data structures are described
+in `tree-data-ref.h'.  The function that computes the data dependences
+for all the array and pointer references for a given loop is
+`compute_data_dependences_for_loop'.  This function is currently used
+by the linear loop transform and the vectorization passes.  Before
+calling this function, one has to allocate two vectors: a first vector
+will contain the set of data references that are contained in the
+analyzed loop body, and the second vector will contain the dependence
+relations between the data references.  Thus if the vector of data
+references is of size `n', the vector containing the dependence
+relations will contain `n*n' elements.  However if the analyzed loop
+contains side effects, such as calls that potentially can interfere
+with the data references in the current analyzed loop, the analysis
+stops while scanning the loop body for data references, and inserts a
+single `chrec_dont_know' in the dependence relation array.
+
+ The data references are discovered in a particular order during the
+scanning of the loop body: the loop body is analyzed in execution order,
+and the data references of each statement are pushed at the end of the
+data reference array.  Two data references syntactically occur in the
+program in the same order as in the array of data references.  This
+syntactic order is important in some classical data dependence tests,
+and mapping this order to the elements of this array avoids costly
+queries to the loop body representation.
+
+ Three types of data references are currently handled: ARRAY_REF,
+INDIRECT_REF and COMPONENT_REF. The data structure for the data
+reference is `data_reference', where `data_reference_p' is a name of a
+pointer to the data reference structure. The structure contains the
+following elements:
+
+   * `base_object_info': Provides information about the base object of
+     the data reference and its access functions. These access functions
+     represent the evolution of the data reference in the loop relative
+     to its base, in keeping with the classical meaning of the data
+     reference access function for the support of arrays. For example,
+     for a reference `a.b[i][j]', the base object is `a.b' and the
+     access functions, one for each array subscript, are: `{i_init, +
+     i_step}_1, {j_init, +, j_step}_2'.
+
+   * `first_location_in_loop': Provides information about the first
+     location accessed by the data reference in the loop and about the
+     access function used to represent evolution relative to this
+     location. This data is used to support pointers, and is not used
+     for arrays (for which we have base objects). Pointer accesses are
+     represented as a one-dimensional access that starts from the first
+     location accessed in the loop. For example:
+
+                for1 i
+                   for2 j
+                    *((int *)p + i + j) = a[i][j];
+
+     The access function of the pointer access is `{0, + 4B}_for2'
+     relative to `p + i'. The access functions of the array are
+     `{i_init, + i_step}_for1' and `{j_init, +, j_step}_for2' relative
+     to `a'.
+
+     Usually, the object the pointer refers to is either unknown, or we
+     can't prove that the access is confined to the boundaries of a
+     certain object.
+
+     Two data references can be compared only if at least one of these
+     two representations has all its fields filled for both data
+     references.
+
+     The current strategy for data dependence tests is as follows: If
+     both `a' and `b' are represented as arrays, compare
+     `a.base_object' and `b.base_object'; if they are equal, apply
+     dependence tests (use access functions based on base_objects).
+     Else if both `a' and `b' are represented as pointers, compare
+     `a.first_location' and `b.first_location'; if they are equal,
+     apply dependence tests (use access functions based on first
+     location).  However, if `a' and `b' are represented differently,
+     only try to prove that the bases are definitely different.
+
+   * Aliasing information.
+
+   * Alignment information.
+
+ The structure describing the relation between two data references is
+`data_dependence_relation' and the shorter name for a pointer to such a
+structure is `ddr_p'.  This structure contains:
+
+   * a pointer to each data reference,
+
+   * a tree node `are_dependent' that is set to `chrec_known' if the
+     analysis has proved that there is no dependence between these two
+     data references, `chrec_dont_know' if the analysis was not able to
+     determine any useful result and potentially there could exist a
+     dependence between these data references, and `are_dependent' is
+     set to `NULL_TREE' if there exist a dependence relation between the
+     data references, and the description of this dependence relation is
+     given in the `subscripts', `dir_vects', and `dist_vects' arrays,
+
+   * a boolean that determines whether the dependence relation can be
+     represented by a classical distance vector,
+
+   * an array `subscripts' that contains a description of each
+     subscript of the data references.  Given two array accesses a
+     subscript is the tuple composed of the access functions for a given
+     dimension.  For example, given `A[f1][f2][f3]' and
+     `B[g1][g2][g3]', there are three subscripts: `(f1, g1), (f2, g2),
+     (f3, g3)'.
+
+   * two arrays `dir_vects' and `dist_vects' that contain classical
+     representations of the data dependences under the form of
+     direction and distance dependence vectors,
+
+   * an array of loops `loop_nest' that contains the loops to which the
+     distance and direction vectors refer to.
+
+ Several functions for pretty printing the information extracted by the
+data dependence analysis are available: `dump_ddrs' prints with a
+maximum verbosity the details of a data dependence relations array,
+`dump_dist_dir_vectors' prints only the classical distance and
+direction vectors for a data dependence relations array, and
+`dump_data_references' prints the details of the data references
+contained in a data reference array.
+
+
+File: gccint.info,  Node: Lambda,  Next: Omega,  Prev: Dependency analysis,  Up: Loop Analysis and Representation
+
+11.9 Linear loop transformations framework
+==========================================
+
+Lambda is a framework that allows transformations of loops using
+non-singular matrix based transformations of the iteration space and
+loop bounds. This allows compositions of skewing, scaling, interchange,
+and reversal transformations.  These transformations are often used to
+improve cache behavior or remove inner loop dependencies to allow
+parallelization and vectorization to take place.
+
+ To perform these transformations, Lambda requires that the loopnest be
+converted into a internal form that can be matrix transformed easily.
+To do this conversion, the function `gcc_loopnest_to_lambda_loopnest'
+is provided.  If the loop cannot be transformed using lambda, this
+function will return NULL.
+
+ Once a `lambda_loopnest' is obtained from the conversion function, it
+can be transformed by using `lambda_loopnest_transform', which takes a
+transformation matrix to apply.  Note that it is up to the caller to
+verify that the transformation matrix is legal to apply to the loop
+(dependence respecting, etc).  Lambda simply applies whatever matrix it
+is told to provide.  It can be extended to make legal matrices out of
+any non-singular matrix, but this is not currently implemented.
+Legality of a matrix for a given loopnest can be verified using
+`lambda_transform_legal_p'.
+
+ Given a transformed loopnest, conversion back into gcc IR is done by
+`lambda_loopnest_to_gcc_loopnest'.  This function will modify the loops
+so that they match the transformed loopnest.
+
+
+File: gccint.info,  Node: Omega,  Prev: Lambda,  Up: Loop Analysis and Representation
+
+11.10 Omega a solver for linear programming problems
+====================================================
+
+The data dependence analysis contains several solvers triggered
+sequentially from the less complex ones to the more sophisticated.  For
+ensuring the consistency of the results of these solvers, a data
+dependence check pass has been implemented based on two different
+solvers.  The second method that has been integrated to GCC is based on
+the Omega dependence solver, written in the 1990's by William Pugh and
+David Wonnacott.  Data dependence tests can be formulated using a
+subset of the Presburger arithmetics that can be translated to linear
+constraint systems.  These linear constraint systems can then be solved
+using the Omega solver.
+
+ The Omega solver is using Fourier-Motzkin's algorithm for variable
+elimination: a linear constraint system containing `n' variables is
+reduced to a linear constraint system with `n-1' variables.  The Omega
+solver can also be used for solving other problems that can be
+expressed under the form of a system of linear equalities and
+inequalities.  The Omega solver is known to have an exponential worst
+case, also known under the name of "omega nightmare" in the literature,
+but in practice, the omega test is known to be efficient for the common
+data dependence tests.
+
+ The interface used by the Omega solver for describing the linear
+programming problems is described in `omega.h', and the solver is
+`omega_solve_problem'.
+
+
+File: gccint.info,  Node: RTL,  Next: Control Flow,  Prev: Tree SSA,  Up: Top
+
+12 RTL Representation
+*********************
+
+The last part of the compiler work is done on a low-level intermediate
+representation called Register Transfer Language.  In this language, the
+instructions to be output are described, pretty much one by one, in an
+algebraic form that describes what the instruction does.
+
+ RTL is inspired by Lisp lists.  It has both an internal form, made up
+of structures that point at other structures, and a textual form that
+is used in the machine description and in printed debugging dumps.  The
+textual form uses nested parentheses to indicate the pointers in the
+internal form.
+
+* Menu:
+
+* RTL Objects::       Expressions vs vectors vs strings vs integers.
+* RTL Classes::       Categories of RTL expression objects, and their structure.
+* Accessors::         Macros to access expression operands or vector elts.
+* Special Accessors:: Macros to access specific annotations on RTL.
+* Flags::             Other flags in an RTL expression.
+* Machine Modes::     Describing the size and format of a datum.
+* Constants::         Expressions with constant values.
+* Regs and Memory::   Expressions representing register contents or memory.
+* Arithmetic::        Expressions representing arithmetic on other expressions.
+* Comparisons::       Expressions representing comparison of expressions.
+* Bit-Fields::        Expressions representing bit-fields in memory or reg.
+* Vector Operations:: Expressions involving vector datatypes.
+* Conversions::       Extending, truncating, floating or fixing.
+* RTL Declarations::  Declaring volatility, constancy, etc.
+* Side Effects::      Expressions for storing in registers, etc.
+* Incdec::            Embedded side-effects for autoincrement addressing.
+* Assembler::         Representing `asm' with operands.
+* Insns::             Expression types for entire insns.
+* Calls::             RTL representation of function call insns.
+* Sharing::           Some expressions are unique; others *must* be copied.
+* Reading RTL::       Reading textual RTL from a file.
+
+
+File: gccint.info,  Node: RTL Objects,  Next: RTL Classes,  Up: RTL
+
+12.1 RTL Object Types
+=====================
+
+RTL uses five kinds of objects: expressions, integers, wide integers,
+strings and vectors.  Expressions are the most important ones.  An RTL
+expression ("RTX", for short) is a C structure, but it is usually
+referred to with a pointer; a type that is given the typedef name `rtx'.
+
+ An integer is simply an `int'; their written form uses decimal digits.
+A wide integer is an integral object whose type is `HOST_WIDE_INT';
+their written form uses decimal digits.
+
+ A string is a sequence of characters.  In core it is represented as a
+`char *' in usual C fashion, and it is written in C syntax as well.
+However, strings in RTL may never be null.  If you write an empty
+string in a machine description, it is represented in core as a null
+pointer rather than as a pointer to a null character.  In certain
+contexts, these null pointers instead of strings are valid.  Within RTL
+code, strings are most commonly found inside `symbol_ref' expressions,
+but they appear in other contexts in the RTL expressions that make up
+machine descriptions.
+
+ In a machine description, strings are normally written with double
+quotes, as you would in C.  However, strings in machine descriptions may
+extend over many lines, which is invalid C, and adjacent string
+constants are not concatenated as they are in C.  Any string constant
+may be surrounded with a single set of parentheses.  Sometimes this
+makes the machine description easier to read.
+
+ There is also a special syntax for strings, which can be useful when C
+code is embedded in a machine description.  Wherever a string can
+appear, it is also valid to write a C-style brace block.  The entire
+brace block, including the outermost pair of braces, is considered to be
+the string constant.  Double quote characters inside the braces are not
+special.  Therefore, if you write string constants in the C code, you
+need not escape each quote character with a backslash.
+
+ A vector contains an arbitrary number of pointers to expressions.  The
+number of elements in the vector is explicitly present in the vector.
+The written form of a vector consists of square brackets (`[...]')
+surrounding the elements, in sequence and with whitespace separating
+them.  Vectors of length zero are not created; null pointers are used
+instead.
+
+ Expressions are classified by "expression codes" (also called RTX
+codes).  The expression code is a name defined in `rtl.def', which is
+also (in uppercase) a C enumeration constant.  The possible expression
+codes and their meanings are machine-independent.  The code of an RTX
+can be extracted with the macro `GET_CODE (X)' and altered with
+`PUT_CODE (X, NEWCODE)'.
+
+ The expression code determines how many operands the expression
+contains, and what kinds of objects they are.  In RTL, unlike Lisp, you
+cannot tell by looking at an operand what kind of object it is.
+Instead, you must know from its context--from the expression code of
+the containing expression.  For example, in an expression of code
+`subreg', the first operand is to be regarded as an expression and the
+second operand as an integer.  In an expression of code `plus', there
+are two operands, both of which are to be regarded as expressions.  In
+a `symbol_ref' expression, there is one operand, which is to be
+regarded as a string.
+
+ Expressions are written as parentheses containing the name of the
+expression type, its flags and machine mode if any, and then the
+operands of the expression (separated by spaces).
+
+ Expression code names in the `md' file are written in lowercase, but
+when they appear in C code they are written in uppercase.  In this
+manual, they are shown as follows: `const_int'.
+
+ In a few contexts a null pointer is valid where an expression is
+normally wanted.  The written form of this is `(nil)'.
+
+
+File: gccint.info,  Node: RTL Classes,  Next: Accessors,  Prev: RTL Objects,  Up: RTL
+
+12.2 RTL Classes and Formats
+============================
+
+The various expression codes are divided into several "classes", which
+are represented by single characters.  You can determine the class of
+an RTX code with the macro `GET_RTX_CLASS (CODE)'.  Currently,
+`rtl.def' defines these classes:
+
+`RTX_OBJ'
+     An RTX code that represents an actual object, such as a register
+     (`REG') or a memory location (`MEM', `SYMBOL_REF').  `LO_SUM') is
+     also included; instead, `SUBREG' and `STRICT_LOW_PART' are not in
+     this class, but in class `x'.
+
+`RTX_CONST_OBJ'
+     An RTX code that represents a constant object.  `HIGH' is also
+     included in this class.
+
+`RTX_COMPARE'
+     An RTX code for a non-symmetric comparison, such as `GEU' or `LT'.
+
+`RTX_COMM_COMPARE'
+     An RTX code for a symmetric (commutative) comparison, such as `EQ'
+     or `ORDERED'.
+
+`RTX_UNARY'
+     An RTX code for a unary arithmetic operation, such as `NEG',
+     `NOT', or `ABS'.  This category also includes value extension
+     (sign or zero) and conversions between integer and floating point.
+
+`RTX_COMM_ARITH'
+     An RTX code for a commutative binary operation, such as `PLUS' or
+     `AND'.  `NE' and `EQ' are comparisons, so they have class `<'.
+
+`RTX_BIN_ARITH'
+     An RTX code for a non-commutative binary operation, such as
+     `MINUS', `DIV', or `ASHIFTRT'.
+
+`RTX_BITFIELD_OPS'
+     An RTX code for a bit-field operation.  Currently only
+     `ZERO_EXTRACT' and `SIGN_EXTRACT'.  These have three inputs and
+     are lvalues (so they can be used for insertion as well).  *Note
+     Bit-Fields::.
+
+`RTX_TERNARY'
+     An RTX code for other three input operations.  Currently only
+     `IF_THEN_ELSE' and `VEC_MERGE'.
+
+`RTX_INSN'
+     An RTX code for an entire instruction:  `INSN', `JUMP_INSN', and
+     `CALL_INSN'.  *Note Insns::.
+
+`RTX_MATCH'
+     An RTX code for something that matches in insns, such as
+     `MATCH_DUP'.  These only occur in machine descriptions.
+
+`RTX_AUTOINC'
+     An RTX code for an auto-increment addressing mode, such as
+     `POST_INC'.
+
+`RTX_EXTRA'
+     All other RTX codes.  This category includes the remaining codes
+     used only in machine descriptions (`DEFINE_*', etc.).  It also
+     includes all the codes describing side effects (`SET', `USE',
+     `CLOBBER', etc.) and the non-insns that may appear on an insn
+     chain, such as `NOTE', `BARRIER', and `CODE_LABEL'.  `SUBREG' is
+     also part of this class.
+
+ For each expression code, `rtl.def' specifies the number of contained
+objects and their kinds using a sequence of characters called the
+"format" of the expression code.  For example, the format of `subreg'
+is `ei'.
+
+ These are the most commonly used format characters:
+
+`e'
+     An expression (actually a pointer to an expression).
+
+`i'
+     An integer.
+
+`w'
+     A wide integer.
+
+`s'
+     A string.
+
+`E'
+     A vector of expressions.
+
+ A few other format characters are used occasionally:
+
+`u'
+     `u' is equivalent to `e' except that it is printed differently in
+     debugging dumps.  It is used for pointers to insns.
+
+`n'
+     `n' is equivalent to `i' except that it is printed differently in
+     debugging dumps.  It is used for the line number or code number of
+     a `note' insn.
+
+`S'
+     `S' indicates a string which is optional.  In the RTL objects in
+     core, `S' is equivalent to `s', but when the object is read, from
+     an `md' file, the string value of this operand may be omitted.  An
+     omitted string is taken to be the null string.
+
+`V'
+     `V' indicates a vector which is optional.  In the RTL objects in
+     core, `V' is equivalent to `E', but when the object is read from
+     an `md' file, the vector value of this operand may be omitted.  An
+     omitted vector is effectively the same as a vector of no elements.
+
+`B'
+     `B' indicates a pointer to basic block structure.
+
+`0'
+     `0' means a slot whose contents do not fit any normal category.
+     `0' slots are not printed at all in dumps, and are often used in
+     special ways by small parts of the compiler.
+
+ There are macros to get the number of operands and the format of an
+expression code:
+
+`GET_RTX_LENGTH (CODE)'
+     Number of operands of an RTX of code CODE.
+
+`GET_RTX_FORMAT (CODE)'
+     The format of an RTX of code CODE, as a C string.
+
+ Some classes of RTX codes always have the same format.  For example, it
+is safe to assume that all comparison operations have format `ee'.
+
+`1'
+     All codes of this class have format `e'.
+
+`<'
+`c'
+`2'
+     All codes of these classes have format `ee'.
+
+`b'
+`3'
+     All codes of these classes have format `eee'.
+
+`i'
+     All codes of this class have formats that begin with `iuueiee'.
+     *Note Insns::.  Note that not all RTL objects linked onto an insn
+     chain are of class `i'.
+
+`o'
+`m'
+`x'
+     You can make no assumptions about the format of these codes.
+
+
+File: gccint.info,  Node: Accessors,  Next: Special Accessors,  Prev: RTL Classes,  Up: RTL
+
+12.3 Access to Operands
+=======================
+
+Operands of expressions are accessed using the macros `XEXP', `XINT',
+`XWINT' and `XSTR'.  Each of these macros takes two arguments: an
+expression-pointer (RTX) and an operand number (counting from zero).
+Thus,
+
+     XEXP (X, 2)
+
+accesses operand 2 of expression X, as an expression.
+
+     XINT (X, 2)
+
+accesses the same operand as an integer.  `XSTR', used in the same
+fashion, would access it as a string.
+
+ Any operand can be accessed as an integer, as an expression or as a
+string.  You must choose the correct method of access for the kind of
+value actually stored in the operand.  You would do this based on the
+expression code of the containing expression.  That is also how you
+would know how many operands there are.
+
+ For example, if X is a `subreg' expression, you know that it has two
+operands which can be correctly accessed as `XEXP (X, 0)' and `XINT (X,
+1)'.  If you did `XINT (X, 0)', you would get the address of the
+expression operand but cast as an integer; that might occasionally be
+useful, but it would be cleaner to write `(int) XEXP (X, 0)'.  `XEXP
+(X, 1)' would also compile without error, and would return the second,
+integer operand cast as an expression pointer, which would probably
+result in a crash when accessed.  Nothing stops you from writing `XEXP
+(X, 28)' either, but this will access memory past the end of the
+expression with unpredictable results.
+
+ Access to operands which are vectors is more complicated.  You can use
+the macro `XVEC' to get the vector-pointer itself, or the macros
+`XVECEXP' and `XVECLEN' to access the elements and length of a vector.
+
+`XVEC (EXP, IDX)'
+     Access the vector-pointer which is operand number IDX in EXP.
+
+`XVECLEN (EXP, IDX)'
+     Access the length (number of elements) in the vector which is in
+     operand number IDX in EXP.  This value is an `int'.
+
+`XVECEXP (EXP, IDX, ELTNUM)'
+     Access element number ELTNUM in the vector which is in operand
+     number IDX in EXP.  This value is an RTX.
+
+     It is up to you to make sure that ELTNUM is not negative and is
+     less than `XVECLEN (EXP, IDX)'.
+
+ All the macros defined in this section expand into lvalues and
+therefore can be used to assign the operands, lengths and vector
+elements as well as to access them.
+
+
+File: gccint.info,  Node: Special Accessors,  Next: Flags,  Prev: Accessors,  Up: RTL
+
+12.4 Access to Special Operands
+===============================
+
+Some RTL nodes have special annotations associated with them.
+
+`MEM'
+
+    `MEM_ALIAS_SET (X)'
+          If 0, X is not in any alias set, and may alias anything.
+          Otherwise, X can only alias `MEM's in a conflicting alias
+          set.  This value is set in a language-dependent manner in the
+          front-end, and should not be altered in the back-end.  In
+          some front-ends, these numbers may correspond in some way to
+          types, or other language-level entities, but they need not,
+          and the back-end makes no such assumptions.  These set
+          numbers are tested with `alias_sets_conflict_p'.
+
+    `MEM_EXPR (X)'
+          If this register is known to hold the value of some user-level
+          declaration, this is that tree node.  It may also be a
+          `COMPONENT_REF', in which case this is some field reference,
+          and `TREE_OPERAND (X, 0)' contains the declaration, or
+          another `COMPONENT_REF', or null if there is no compile-time
+          object associated with the reference.
+
+    `MEM_OFFSET (X)'
+          The offset from the start of `MEM_EXPR' as a `CONST_INT' rtx.
+
+    `MEM_SIZE (X)'
+          The size in bytes of the memory reference as a `CONST_INT'
+          rtx.  This is mostly relevant for `BLKmode' references as
+          otherwise the size is implied by the mode.
+
+    `MEM_ALIGN (X)'
+          The known alignment in bits of the memory reference.
+
+`REG'
+
+    `ORIGINAL_REGNO (X)'
+          This field holds the number the register "originally" had;
+          for a pseudo register turned into a hard reg this will hold
+          the old pseudo register number.
+
+    `REG_EXPR (X)'
+          If this register is known to hold the value of some user-level
+          declaration, this is that tree node.
+
+    `REG_OFFSET (X)'
+          If this register is known to hold the value of some user-level
+          declaration, this is the offset into that logical storage.
+
+`SYMBOL_REF'
+
+    `SYMBOL_REF_DECL (X)'
+          If the `symbol_ref' X was created for a `VAR_DECL' or a
+          `FUNCTION_DECL', that tree is recorded here.  If this value is
+          null, then X was created by back end code generation routines,
+          and there is no associated front end symbol table entry.
+
+          `SYMBOL_REF_DECL' may also point to a tree of class `'c'',
+          that is, some sort of constant.  In this case, the
+          `symbol_ref' is an entry in the per-file constant pool;
+          again, there is no associated front end symbol table entry.
+
+    `SYMBOL_REF_CONSTANT (X)'
+          If `CONSTANT_POOL_ADDRESS_P (X)' is true, this is the constant
+          pool entry for X.  It is null otherwise.
+
+    `SYMBOL_REF_DATA (X)'
+          A field of opaque type used to store `SYMBOL_REF_DECL' or
+          `SYMBOL_REF_CONSTANT'.
+
+    `SYMBOL_REF_FLAGS (X)'
+          In a `symbol_ref', this is used to communicate various
+          predicates about the symbol.  Some of these are common enough
+          to be computed by common code, some are specific to the
+          target.  The common bits are:
+
+         `SYMBOL_FLAG_FUNCTION'
+               Set if the symbol refers to a function.
+
+         `SYMBOL_FLAG_LOCAL'
+               Set if the symbol is local to this "module".  See
+               `TARGET_BINDS_LOCAL_P'.
+
+         `SYMBOL_FLAG_EXTERNAL'
+               Set if this symbol is not defined in this translation
+               unit.  Note that this is not the inverse of
+               `SYMBOL_FLAG_LOCAL'.
+
+         `SYMBOL_FLAG_SMALL'
+               Set if the symbol is located in the small data section.
+               See `TARGET_IN_SMALL_DATA_P'.
+
+         `SYMBOL_REF_TLS_MODEL (X)'
+               This is a multi-bit field accessor that returns the
+               `tls_model' to be used for a thread-local storage
+               symbol.  It returns zero for non-thread-local symbols.
+
+         `SYMBOL_FLAG_HAS_BLOCK_INFO'
+               Set if the symbol has `SYMBOL_REF_BLOCK' and
+               `SYMBOL_REF_BLOCK_OFFSET' fields.
+
+         `SYMBOL_FLAG_ANCHOR'
+               Set if the symbol is used as a section anchor.  "Section
+               anchors" are symbols that have a known position within
+               an `object_block' and that can be used to access nearby
+               members of that block.  They are used to implement
+               `-fsection-anchors'.
+
+               If this flag is set, then `SYMBOL_FLAG_HAS_BLOCK_INFO'
+               will be too.
+
+          Bits beginning with `SYMBOL_FLAG_MACH_DEP' are available for
+          the target's use.
+
+`SYMBOL_REF_BLOCK (X)'
+     If `SYMBOL_REF_HAS_BLOCK_INFO_P (X)', this is the `object_block'
+     structure to which the symbol belongs, or `NULL' if it has not
+     been assigned a block.
+
+`SYMBOL_REF_BLOCK_OFFSET (X)'
+     If `SYMBOL_REF_HAS_BLOCK_INFO_P (X)', this is the offset of X from
+     the first object in `SYMBOL_REF_BLOCK (X)'.  The value is negative
+     if X has not yet been assigned to a block, or it has not been
+     given an offset within that block.
+
+
+File: gccint.info,  Node: Flags,  Next: Machine Modes,  Prev: Special Accessors,  Up: RTL
+
+12.5 Flags in an RTL Expression
+===============================
+
+RTL expressions contain several flags (one-bit bit-fields) that are
+used in certain types of expression.  Most often they are accessed with
+the following macros, which expand into lvalues.
+
+`CONSTANT_POOL_ADDRESS_P (X)'
+     Nonzero in a `symbol_ref' if it refers to part of the current
+     function's constant pool.  For most targets these addresses are in
+     a `.rodata' section entirely separate from the function, but for
+     some targets the addresses are close to the beginning of the
+     function.  In either case GCC assumes these addresses can be
+     addressed directly, perhaps with the help of base registers.
+     Stored in the `unchanging' field and printed as `/u'.
+
+`CONST_OR_PURE_CALL_P (X)'
+     In a `call_insn', `note', or an `expr_list' for notes, indicates
+     that the insn represents a call to a const or pure function.
+     Stored in the `unchanging' field and printed as `/u'.
+
+`INSN_ANNULLED_BRANCH_P (X)'
+     In a `jump_insn', `call_insn', or `insn' indicates that the branch
+     is an annulling one.  See the discussion under `sequence' below.
+     Stored in the `unchanging' field and printed as `/u'.
+
+`INSN_DELETED_P (X)'
+     In an `insn', `call_insn', `jump_insn', `code_label', `barrier',
+     or `note', nonzero if the insn has been deleted.  Stored in the
+     `volatil' field and printed as `/v'.
+
+`INSN_FROM_TARGET_P (X)'
+     In an `insn' or `jump_insn' or `call_insn' in a delay slot of a
+     branch, indicates that the insn is from the target of the branch.
+     If the branch insn has `INSN_ANNULLED_BRANCH_P' set, this insn
+     will only be executed if the branch is taken.  For annulled
+     branches with `INSN_FROM_TARGET_P' clear, the insn will be
+     executed only if the branch is not taken.  When
+     `INSN_ANNULLED_BRANCH_P' is not set, this insn will always be
+     executed.  Stored in the `in_struct' field and printed as `/s'.
+
+`LABEL_PRESERVE_P (X)'
+     In a `code_label' or `note', indicates that the label is
+     referenced by code or data not visible to the RTL of a given
+     function.  Labels referenced by a non-local goto will have this
+     bit set.  Stored in the `in_struct' field and printed as `/s'.
+
+`LABEL_REF_NONLOCAL_P (X)'
+     In `label_ref' and `reg_label' expressions, nonzero if this is a
+     reference to a non-local label.  Stored in the `volatil' field and
+     printed as `/v'.
+
+`MEM_IN_STRUCT_P (X)'
+     In `mem' expressions, nonzero for reference to an entire structure,
+     union or array, or to a component of one.  Zero for references to a
+     scalar variable or through a pointer to a scalar.  If both this
+     flag and `MEM_SCALAR_P' are clear, then we don't know whether this
+     `mem' is in a structure or not.  Both flags should never be
+     simultaneously set.  Stored in the `in_struct' field and printed
+     as `/s'.
+
+`MEM_KEEP_ALIAS_SET_P (X)'
+     In `mem' expressions, 1 if we should keep the alias set for this
+     mem unchanged when we access a component.  Set to 1, for example,
+     when we are already in a non-addressable component of an aggregate.
+     Stored in the `jump' field and printed as `/j'.
+
+`MEM_SCALAR_P (X)'
+     In `mem' expressions, nonzero for reference to a scalar known not
+     to be a member of a structure, union, or array.  Zero for such
+     references and for indirections through pointers, even pointers
+     pointing to scalar types.  If both this flag and `MEM_IN_STRUCT_P'
+     are clear, then we don't know whether this `mem' is in a structure
+     or not.  Both flags should never be simultaneously set.  Stored in
+     the `return_val' field and printed as `/i'.
+
+`MEM_VOLATILE_P (X)'
+     In `mem', `asm_operands', and `asm_input' expressions, nonzero for
+     volatile memory references.  Stored in the `volatil' field and
+     printed as `/v'.
+
+`MEM_NOTRAP_P (X)'
+     In `mem', nonzero for memory references that will not trap.
+     Stored in the `call' field and printed as `/c'.
+
+`MEM_POINTER (X)'
+     Nonzero in a `mem' if the memory reference holds a pointer.
+     Stored in the `frame_related' field and printed as `/f'.
+
+`REG_FUNCTION_VALUE_P (X)'
+     Nonzero in a `reg' if it is the place in which this function's
+     value is going to be returned.  (This happens only in a hard
+     register.)  Stored in the `return_val' field and printed as `/i'.
+
+`REG_POINTER (X)'
+     Nonzero in a `reg' if the register holds a pointer.  Stored in the
+     `frame_related' field and printed as `/f'.
+
+`REG_USERVAR_P (X)'
+     In a `reg', nonzero if it corresponds to a variable present in the
+     user's source code.  Zero for temporaries generated internally by
+     the compiler.  Stored in the `volatil' field and printed as `/v'.
+
+     The same hard register may be used also for collecting the values
+     of functions called by this one, but `REG_FUNCTION_VALUE_P' is zero
+     in this kind of use.
+
+`RTX_FRAME_RELATED_P (X)'
+     Nonzero in an `insn', `call_insn', `jump_insn', `barrier', or
+     `set' which is part of a function prologue and sets the stack
+     pointer, sets the frame pointer, or saves a register.  This flag
+     should also be set on an instruction that sets up a temporary
+     register to use in place of the frame pointer.  Stored in the
+     `frame_related' field and printed as `/f'.
+
+     In particular, on RISC targets where there are limits on the sizes
+     of immediate constants, it is sometimes impossible to reach the
+     register save area directly from the stack pointer.  In that case,
+     a temporary register is used that is near enough to the register
+     save area, and the Canonical Frame Address, i.e., DWARF2's logical
+     frame pointer, register must (temporarily) be changed to be this
+     temporary register.  So, the instruction that sets this temporary
+     register must be marked as `RTX_FRAME_RELATED_P'.
+
+     If the marked instruction is overly complex (defined in terms of
+     what `dwarf2out_frame_debug_expr' can handle), you will also have
+     to create a `REG_FRAME_RELATED_EXPR' note and attach it to the
+     instruction.  This note should contain a simple expression of the
+     computation performed by this instruction, i.e., one that
+     `dwarf2out_frame_debug_expr' can handle.
+
+     This flag is required for exception handling support on targets
+     with RTL prologues.
+
+`MEM_READONLY_P (X)'
+     Nonzero in a `mem', if the memory is statically allocated and
+     read-only.
+
+     Read-only in this context means never modified during the lifetime
+     of the program, not necessarily in ROM or in write-disabled pages.
+     A common example of the later is a shared library's global offset
+     table.  This table is initialized by the runtime loader, so the
+     memory is technically writable, but after control is transfered
+     from the runtime loader to the application, this memory will never
+     be subsequently modified.
+
+     Stored in the `unchanging' field and printed as `/u'.
+
+`SCHED_GROUP_P (X)'
+     During instruction scheduling, in an `insn', `call_insn' or
+     `jump_insn', indicates that the previous insn must be scheduled
+     together with this insn.  This is used to ensure that certain
+     groups of instructions will not be split up by the instruction
+     scheduling pass, for example, `use' insns before a `call_insn' may
+     not be separated from the `call_insn'.  Stored in the `in_struct'
+     field and printed as `/s'.
+
+`SET_IS_RETURN_P (X)'
+     For a `set', nonzero if it is for a return.  Stored in the `jump'
+     field and printed as `/j'.
+
+`SIBLING_CALL_P (X)'
+     For a `call_insn', nonzero if the insn is a sibling call.  Stored
+     in the `jump' field and printed as `/j'.
+
+`STRING_POOL_ADDRESS_P (X)'
+     For a `symbol_ref' expression, nonzero if it addresses this
+     function's string constant pool.  Stored in the `frame_related'
+     field and printed as `/f'.
+
+`SUBREG_PROMOTED_UNSIGNED_P (X)'
+     Returns a value greater then zero for a `subreg' that has
+     `SUBREG_PROMOTED_VAR_P' nonzero if the object being referenced is
+     kept zero-extended, zero if it is kept sign-extended, and less
+     then zero if it is extended some other way via the `ptr_extend'
+     instruction.  Stored in the `unchanging' field and `volatil'
+     field, printed as `/u' and `/v'.  This macro may only be used to
+     get the value it may not be used to change the value.  Use
+     `SUBREG_PROMOTED_UNSIGNED_SET' to change the value.
+
+`SUBREG_PROMOTED_UNSIGNED_SET (X)'
+     Set the `unchanging' and `volatil' fields in a `subreg' to reflect
+     zero, sign, or other extension.  If `volatil' is zero, then
+     `unchanging' as nonzero means zero extension and as zero means
+     sign extension.  If `volatil' is nonzero then some other type of
+     extension was done via the `ptr_extend' instruction.
+
+`SUBREG_PROMOTED_VAR_P (X)'
+     Nonzero in a `subreg' if it was made when accessing an object that
+     was promoted to a wider mode in accord with the `PROMOTED_MODE'
+     machine description macro (*note Storage Layout::).  In this case,
+     the mode of the `subreg' is the declared mode of the object and
+     the mode of `SUBREG_REG' is the mode of the register that holds
+     the object.  Promoted variables are always either sign- or
+     zero-extended to the wider mode on every assignment.  Stored in
+     the `in_struct' field and printed as `/s'.
+
+`SYMBOL_REF_USED (X)'
+     In a `symbol_ref', indicates that X has been used.  This is
+     normally only used to ensure that X is only declared external
+     once.  Stored in the `used' field.
+
+`SYMBOL_REF_WEAK (X)'
+     In a `symbol_ref', indicates that X has been declared weak.
+     Stored in the `return_val' field and printed as `/i'.
+
+`SYMBOL_REF_FLAG (X)'
+     In a `symbol_ref', this is used as a flag for machine-specific
+     purposes.  Stored in the `volatil' field and printed as `/v'.
+
+     Most uses of `SYMBOL_REF_FLAG' are historic and may be subsumed by
+     `SYMBOL_REF_FLAGS'.  Certainly use of `SYMBOL_REF_FLAGS' is
+     mandatory if the target requires more than one bit of storage.
+
+ These are the fields to which the above macros refer:
+
+`call'
+     In a `mem', 1 means that the memory reference will not trap.
+
+     In an RTL dump, this flag is represented as `/c'.
+
+`frame_related'
+     In an `insn' or `set' expression, 1 means that it is part of a
+     function prologue and sets the stack pointer, sets the frame
+     pointer, saves a register, or sets up a temporary register to use
+     in place of the frame pointer.
+
+     In `reg' expressions, 1 means that the register holds a pointer.
+
+     In `mem' expressions, 1 means that the memory reference holds a
+     pointer.
+
+     In `symbol_ref' expressions, 1 means that the reference addresses
+     this function's string constant pool.
+
+     In an RTL dump, this flag is represented as `/f'.
+
+`in_struct'
+     In `mem' expressions, it is 1 if the memory datum referred to is
+     all or part of a structure or array; 0 if it is (or might be) a
+     scalar variable.  A reference through a C pointer has 0 because
+     the pointer might point to a scalar variable.  This information
+     allows the compiler to determine something about possible cases of
+     aliasing.
+
+     In `reg' expressions, it is 1 if the register has its entire life
+     contained within the test expression of some loop.
+
+     In `subreg' expressions, 1 means that the `subreg' is accessing an
+     object that has had its mode promoted from a wider mode.
+
+     In `label_ref' expressions, 1 means that the referenced label is
+     outside the innermost loop containing the

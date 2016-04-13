@@ -1,0 +1,2118 @@
+ begin formatting a disk */
+#define	FDFMTTRK _IOW(2,0x48, struct format_descr)
+/* format the specified track */
+#define FDFMTEND _IO(2,0x49)
+/* end formatting a disk */
+
+
+/*
+ * Error thresholds
+ */
+struct floppy_max_errors {
+	unsigned int
+	  abort,      /* number of errors to be reached before aborting */
+	  read_track, /* maximal number of errors permitted to read an
+		       * entire track at once */
+	  reset,      /* maximal number of errors before a reset is tried */
+	  recal,      /* maximal number of errors before a recalibrate is
+		       * tried */
+
+	  /*
+	   * Threshold for reporting FDC errors to the console.
+	   * Setting this to zero may flood your screen when using
+	   * ultra cheap floppies ;-)
+	   */
+	  reporting;
+
+};
+
+#define FDSETEMSGTRESH	_IO(2,0x4a)
+/* set fdc error reporting threshold */
+
+#define FDFLUSH  _IO(2,0x4b)
+/* flush buffers for media; either for verifying media, or for
+ * handling a media change without closing the file descriptor */
+
+#define FDSETMAXERRS _IOW(2, 0x4c, struct floppy_max_errors)
+#define FDGETMAXERRS _IOR(2, 0x0e, struct floppy_max_errors)
+/* set/get abortion and read_track threshold. See also floppy_drive_params
+ * structure */
+
+
+typedef char floppy_drive_name[16];
+#define FDGETDRVTYP _IOR(2, 0x0f, floppy_drive_name)
+/* get drive type: 5 1/4 or 3 1/2 */
+
+
+/*
+ * Drive parameters (user modifiable)
+ */
+struct floppy_drive_params {
+	signed char cmos;		/* CMOS type */
+	
+	/* Spec2 is (HLD<<1 | ND), where HLD is head load time (1=2ms, 2=4 ms 
+	 * etc) and ND is set means no DMA. Hardcoded to 6 (HLD=6ms, use DMA).
+	 */
+	unsigned long max_dtr;		/* Step rate, usec */
+	unsigned long hlt;     		/* Head load/settle time, msec */
+	unsigned long hut;     		/* Head unload time (remnant of 
+					 * 8" drives) */
+	unsigned long srt;     		/* Step rate, usec */
+
+	unsigned long spinup;		/* time needed for spinup (expressed
+					 * in jiffies) */
+	unsigned long spindown;		/* timeout needed for spindown */
+	unsigned char spindown_offset;	/* decides in which position the disk
+					 * will stop */
+	unsigned char select_delay;	/* delay to wait after select */
+	unsigned char rps;		/* rotations per second */
+	unsigned char tracks;		/* maximum number of tracks */
+	unsigned long timeout;		/* timeout for interrupt requests */
+	
+	unsigned char interleave_sect;	/* if there are more sectors, use 
+					 * interleave */
+	
+	struct floppy_max_errors max_errors;
+	
+	char flags;			/* various flags, including ftd_msg */
+/*
+ * Announce successful media type detection and media information loss after
+ * disk changes.
+ * Also used to enable/disable printing of overrun warnings.
+ */
+
+#define FTD_MSG 0x10
+#define FD_BROKEN_DCL 0x20
+#define FD_DEBUG 0x02
+#define FD_SILENT_DCL_CLEAR 0x4
+#define FD_INVERTED_DCL 0x80 /* must be 0x80, because of hardware 
+				considerations */
+
+	char read_track;		/* use readtrack during probing? */
+
+/*
+ * Auto-detection. Each drive type has eight formats which are
+ * used in succession to try to read the disk. If the FDC cannot lock onto
+ * the disk, the next format is tried. This uses the variable 'probing'.
+ */
+	short autodetect[8];		/* autodetected formats */
+	
+	int checkfreq; /* how often should the drive be checked for disk 
+			* changes */
+	int native_format; /* native format of this drive */
+};
+
+enum {
+	FD_NEED_TWADDLE_BIT,	/* more magic */
+	FD_VERIFY_BIT,		/* inquire for write protection */
+	FD_DISK_NEWCHANGE_BIT,	/* change detected, and no action undertaken yet
+				 * to clear media change status */
+	FD_UNUSED_BIT,
+	FD_DISK_CHANGED_BIT,	/* disk has been changed since last i/o */
+	FD_DISK_WRITABLE_BIT	/* disk is writable */
+};
+
+#define FDSETDRVPRM _IOW(2, 0x90, struct floppy_drive_params)
+#define FDGETDRVPRM _IOR(2, 0x11, struct floppy_drive_params)
+/* set/get drive parameters */
+
+
+/*
+ * Current drive state (not directly modifiable by user, readonly)
+ */
+struct floppy_drive_struct {
+	unsigned long flags;
+/* values for these flags */
+#define FD_NEED_TWADDLE (1 << FD_NEED_TWADDLE_BIT)
+#define FD_VERIFY (1 << FD_VERIFY_BIT)
+#define FD_DISK_NEWCHANGE (1 << FD_DISK_NEWCHANGE_BIT)
+#define FD_DISK_CHANGED (1 << FD_DISK_CHANGED_BIT)
+#define FD_DISK_WRITABLE (1 << FD_DISK_WRITABLE_BIT)
+
+	unsigned long spinup_date;
+	unsigned long select_date;
+	unsigned long first_read_date;
+	short probed_format;
+	short track; /* current track */
+	short maxblock; /* id of highest block read */
+	short maxtrack; /* id of highest half track read */
+	int generation; /* how many diskchanges? */
+
+/*
+ * (User-provided) media information is _not_ discarded after a media change
+ * if the corresponding keep_data flag is non-zero. Positive values are
+ * decremented after each probe.
+ */
+	int keep_data;
+	
+	/* Prevent "aliased" accesses. */
+	int fd_ref;
+	int fd_device;
+	unsigned long last_checked; /* when was the drive last checked for a disk 
+			   * change? */
+	
+	char *dmabuf;
+	int bufblocks;
+};
+
+#define FDGETDRVSTAT _IOR(2, 0x12, struct floppy_drive_struct)
+#define FDPOLLDRVSTAT _IOR(2, 0x13, struct floppy_drive_struct)
+/* get drive state: GET returns the cached state, POLL polls for new state */
+
+
+/*
+ * reset FDC
+ */
+enum reset_mode {
+	FD_RESET_IF_NEEDED,	/* reset only if the reset flags is set */
+	FD_RESET_IF_RAWCMD,	/* obsolete */
+	FD_RESET_ALWAYS		/* reset always */
+};
+#define FDRESET _IO(2, 0x54)
+
+
+/*
+ * FDC state
+ */
+struct floppy_fdc_state {	
+	int spec1;		/* spec1 value last used */
+	int spec2;		/* spec2 value last used */
+	int dtr;
+	unsigned char version;	/* FDC version code */
+	unsigned char dor;
+	unsigned long address;	/* io address */
+	unsigned int rawcmd:2;
+	unsigned int reset:1;
+	unsigned int need_configure:1;
+	unsigned int perp_mode:2;
+	unsigned int has_fifo:1;
+	unsigned int driver_version;	/* version code for floppy driver */
+#define FD_DRIVER_VERSION 0x100
+/* user programs using the floppy API should use floppy_fdc_state to
+ * get the version number of the floppy driver that they are running
+ * on. If this version number is bigger than the one compiled into the
+ * user program (the FD_DRIVER_VERSION define), it should be prepared
+ * to bigger structures
+ */
+
+	unsigned char track[4];
+	/* Position of the heads of the 4 units attached to this FDC,
+	 * as stored on the FDC. In the future, the position as stored
+	 * on the FDC might not agree with the actual physical
+	 * position of these drive heads. By allowing such
+	 * disagreement, it will be possible to reset the FDC without
+	 * incurring the expensive cost of repositioning all heads.
+	 * Right now, these positions are hard wired to 0. */
+
+};
+
+#define FDGETFDCSTAT _IOR(2, 0x15, struct floppy_fdc_state)
+
+
+/*
+ * Asynchronous Write error tracking
+ */
+struct floppy_write_errors {
+	/* Write error logging.
+	 *
+	 * These fields can be cleared with the FDWERRORCLR ioctl.
+	 * Only writes that were attempted but failed due to a physical media
+	 * error are logged.  write(2) calls that fail and return an error code
+	 * to the user process are not counted.
+	 */
+
+	unsigned int write_errors;  /* number of physical write errors 
+				     * encountered */
+	
+	/* position of first and last write errors */
+	unsigned long first_error_sector;
+	int           first_error_generation;
+	unsigned long last_error_sector;
+	int           last_error_generation;
+	
+	unsigned int badness; /* highest retry count for a read or write 
+			       * operation */
+};
+
+#define FDWERRORCLR  _IO(2, 0x56)
+/* clear write error and badness information */
+#define FDWERRORGET  _IOR(2, 0x17, struct floppy_write_errors)
+/* get write error and badness information */
+
+
+/*
+ * Raw commands
+ */
+/* new interface flag: now we can do them in batches */
+#define FDHAVEBATCHEDRAWCMD
+
+struct floppy_raw_cmd {
+	unsigned int flags;
+#define FD_RAW_READ 1
+#define FD_RAW_WRITE 2
+#define FD_RAW_NO_MOTOR 4
+#define FD_RAW_DISK_CHANGE 4 /* out: disk change flag was set */
+#define FD_RAW_INTR 8    /* wait for an interrupt */
+#define FD_RAW_SPIN 0x10 /* spin up the disk for this command */
+#define FD_RAW_NO_MOTOR_AFTER 0x20 /* switch the motor off after command 
+				    * completion */
+#define FD_RAW_NEED_DISK 0x40  /* this command needs a disk to be present */
+#define FD_RAW_NEED_SEEK 0x80  /* this command uses an implied seek (soft) */
+
+/* more "in" flags */
+#define FD_RAW_MORE 0x100  /* more records follow */
+#define FD_RAW_STOP_IF_FAILURE 0x200 /* stop if we encounter a failure */
+#define FD_RAW_STOP_IF_SUCCESS 0x400 /* stop if command successful */
+#define FD_RAW_SOFTFAILURE 0x800 /* consider the return value for failure
+				  * detection too */
+
+/* more "out" flags */
+#define FD_RAW_FAILURE 0x10000 /* command sent to fdc, fdc returned error */
+#define FD_RAW_HARDFAILURE 0x20000 /* fdc had to be reset, or timed out */
+
+	void *data;
+	char *kernel_data; /* location of data buffer in the kernel */
+	struct floppy_raw_cmd *next; /* used for chaining of raw cmd's 
+				      * within the kernel */
+	long length; /* in: length of dma transfer. out: remaining bytes */
+	long phys_length; /* physical length, if different from dma length */
+	int buffer_length; /* length of allocated buffer */
+
+	unsigned char rate;
+	unsigned char cmd_count;
+	unsigned char cmd[16];
+	unsigned char reply_count;
+	unsigned char reply[16];
+	int track;
+	int resultcode;
+
+	int reserved1;
+	int reserved2;
+};
+
+#define FDRAWCMD _IO(2, 0x58)
+/* send a raw command to the fdc. Structure size not included, because of
+ * batches */
+
+#define FDTWADDLE _IO(2, 0x59)
+/* flicker motor-on bit before reading a sector. Experimental */
+
+
+#define FDEJECT _IO(2, 0x5a)
+/* eject the disk */
+
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     /*
+ *	Types and definitions for AF_INET6 
+ *	Linux INET6 implementation 
+ *
+ *	Authors:
+ *	Pedro Roque		<roque@di.fc.ul.pt>	
+ *
+ *	Sources:
+ *	IPv6 Program Interfaces for BSD Systems
+ *      <draft-ietf-ipngwg-bsd-api-05.txt>
+ *
+ *	Advanced Sockets API for IPv6
+ *	<draft-stevens-advanced-api-00.txt>
+ *
+ *	This program is free software; you can redistribute it and/or
+ *      modify it under the terms of the GNU General Public License
+ *      as published by the Free Software Foundation; either version
+ *      2 of the License, or (at your option) any later version.
+ */
+
+#ifndef _LINUX_IN6_H
+#define _LINUX_IN6_H
+
+#include <linux/types.h>
+
+/*
+ *	IPv6 address structure
+ */
+
+struct in6_addr {
+	union {
+		__u8		u6_addr8[16];
+		__be16		u6_addr16[8];
+		__be32		u6_addr32[4];
+	} in6_u;
+#define s6_addr			in6_u.u6_addr8
+#define s6_addr16		in6_u.u6_addr16
+#define s6_addr32		in6_u.u6_addr32
+};
+
+/* IPv6 Wildcard Address (::) and Loopback Address (::1) defined in RFC2553
+ * NOTE: Be aware the IN6ADDR_* constants and in6addr_* externals are defined
+ * in network byte order, not in host byte order as are the IPv4 equivalents
+ */
+
+struct sockaddr_in6 {
+	unsigned short int	sin6_family;    /* AF_INET6 */
+	__be16			sin6_port;      /* Transport layer port # */
+	__be32			sin6_flowinfo;  /* IPv6 flow information */
+	struct in6_addr		sin6_addr;      /* IPv6 address */
+	__u32			sin6_scope_id;  /* scope id (new in RFC2553) */
+};
+
+struct ipv6_mreq {
+	/* IPv6 multicast address of group */
+	struct in6_addr ipv6mr_multiaddr;
+
+	/* local IPv6 address of interface */
+	int		ipv6mr_ifindex;
+};
+
+#define ipv6mr_acaddr	ipv6mr_multiaddr
+
+struct in6_flowlabel_req {
+	struct in6_addr	flr_dst;
+	__be32	flr_label;
+	__u8	flr_action;
+	__u8	flr_share;
+	__u16	flr_flags;
+	__u16 	flr_expires;
+	__u16	flr_linger;
+	__u32	__flr_pad;
+	/* Options in format of IPV6_PKTOPTIONS */
+};
+
+#define IPV6_FL_A_GET	0
+#define IPV6_FL_A_PUT	1
+#define IPV6_FL_A_RENEW	2
+
+#define IPV6_FL_F_CREATE	1
+#define IPV6_FL_F_EXCL		2
+
+#define IPV6_FL_S_NONE		0
+#define IPV6_FL_S_EXCL		1
+#define IPV6_FL_S_PROCESS	2
+#define IPV6_FL_S_USER		3
+#define IPV6_FL_S_ANY		255
+
+
+/*
+ *	Bitmask constant declarations to help applications select out the 
+ *	flow label and priority fields.
+ *
+ *	Note that this are in host byte order while the flowinfo field of
+ *	sockaddr_in6 is in network byte order.
+ */
+
+#define IPV6_FLOWINFO_FLOWLABEL		0x000fffff
+#define IPV6_FLOWINFO_PRIORITY		0x0ff00000
+
+/* These definitions are obsolete */
+#define IPV6_PRIORITY_UNCHARACTERIZED	0x0000
+#define IPV6_PRIORITY_FILLER		0x0100
+#define IPV6_PRIORITY_UNATTENDED	0x0200
+#define IPV6_PRIORITY_RESERVED1		0x0300
+#define IPV6_PRIORITY_BULK		0x0400
+#define IPV6_PRIORITY_RESERVED2		0x0500
+#define IPV6_PRIORITY_INTERACTIVE	0x0600
+#define IPV6_PRIORITY_CONTROL		0x0700
+#define IPV6_PRIORITY_8			0x0800
+#define IPV6_PRIORITY_9			0x0900
+#define IPV6_PRIORITY_10		0x0a00
+#define IPV6_PRIORITY_11		0x0b00
+#define IPV6_PRIORITY_12		0x0c00
+#define IPV6_PRIORITY_13		0x0d00
+#define IPV6_PRIORITY_14		0x0e00
+#define IPV6_PRIORITY_15		0x0f00
+
+/*
+ *	IPV6 extension headers
+ */
+#define IPPROTO_HOPOPTS		0	/* IPv6 hop-by-hop options	*/
+#define IPPROTO_ROUTING		43	/* IPv6 routing header		*/
+#define IPPROTO_FRAGMENT	44	/* IPv6 fragmentation header	*/
+#define IPPROTO_ICMPV6		58	/* ICMPv6			*/
+#define IPPROTO_NONE		59	/* IPv6 no next header		*/
+#define IPPROTO_DSTOPTS		60	/* IPv6 destination options	*/
+#define IPPROTO_MH		135	/* IPv6 mobility header		*/
+
+/*
+ *	IPv6 TLV options.
+ */
+#define IPV6_TLV_PAD0		0
+#define IPV6_TLV_PADN		1
+#define IPV6_TLV_ROUTERALERT	5
+#define IPV6_TLV_JUMBO		194
+#define IPV6_TLV_HAO		201	/* home address option */
+
+/*
+ *	IPV6 socket options
+ */
+
+#define IPV6_ADDRFORM		1
+#define IPV6_2292PKTINFO	2
+#define IPV6_2292HOPOPTS	3
+#define IPV6_2292DSTOPTS	4
+#define IPV6_2292RTHDR		5
+#define IPV6_2292PKTOPTIONS	6
+#define IPV6_CHECKSUM		7
+#define IPV6_2292HOPLIMIT	8
+#define IPV6_NEXTHOP		9
+#define IPV6_AUTHHDR		10	/* obsolete */
+#define IPV6_FLOWINFO		11
+
+#define IPV6_UNICAST_HOPS	16
+#define IPV6_MULTICAST_IF	17
+#define IPV6_MULTICAST_HOPS	18
+#define IPV6_MULTICAST_LOOP	19
+#define IPV6_ADD_MEMBERSHIP	20
+#define IPV6_DROP_MEMBERSHIP	21
+#define IPV6_ROUTER_ALERT	22
+#define IPV6_MTU_DISCOVER	23
+#define IPV6_MTU		24
+#define IPV6_RECVERR		25
+#define IPV6_V6ONLY		26
+#define IPV6_JOIN_ANYCAST	27
+#define IPV6_LEAVE_ANYCAST	28
+
+/* IPV6_MTU_DISCOVER values */
+#define IPV6_PMTUDISC_DONT		0
+#define IPV6_PMTUDISC_WANT		1
+#define IPV6_PMTUDISC_DO		2
+#define IPV6_PMTUDISC_PROBE		3
+
+/* Flowlabel */
+#define IPV6_FLOWLABEL_MGR	32
+#define IPV6_FLOWINFO_SEND	33
+
+#define IPV6_IPSEC_POLICY	34
+#define IPV6_XFRM_POLICY	35
+
+/*
+ * Multicast:
+ * Following socket options are shared between IPv4 and IPv6.
+ *
+ * MCAST_JOIN_GROUP		42
+ * MCAST_BLOCK_SOURCE		43
+ * MCAST_UNBLOCK_SOURCE		44
+ * MCAST_LEAVE_GROUP		45
+ * MCAST_JOIN_SOURCE_GROUP	46
+ * MCAST_LEAVE_SOURCE_GROUP	47
+ * MCAST_MSFILTER		48
+ */
+
+/*
+ * Advanced API (RFC3542) (1)
+ *
+ * Note: IPV6_RECVRTHDRDSTOPTS does not exist. see net/ipv6/datagram.c.
+ */
+
+#define IPV6_RECVPKTINFO	49
+#define IPV6_PKTINFO		50
+#define IPV6_RECVHOPLIMIT	51
+#define IPV6_HOPLIMIT		52
+#define IPV6_RECVHOPOPTS	53
+#define IPV6_HOPOPTS		54
+#define IPV6_RTHDRDSTOPTS	55
+#define IPV6_RECVRTHDR		56
+#define IPV6_RTHDR		57
+#define IPV6_RECVDSTOPTS	58
+#define IPV6_DSTOPTS		59
+#define IPV6_RECVPATHMTU	60
+#define IPV6_PATHMTU		61
+#define IPV6_DONTFRAG		62
+#if 0	/* not yet */
+#define IPV6_USE_MIN_MTU	63
+#endif
+
+/*
+ * Netfilter (1)
+ *
+ * Following socket options are used in ip6_tables;
+ * see include/linux/netfilter_ipv6/ip6_tables.h.
+ *
+ * IP6T_SO_SET_REPLACE / IP6T_SO_GET_INFO		64
+ * IP6T_SO_SET_ADD_COUNTERS / IP6T_SO_GET_ENTRIES	65
+ */
+
+/*
+ * Advanced API (RFC3542) (2)
+ */
+#define IPV6_RECVTCLASS		66
+#define IPV6_TCLASS		67
+
+/*
+ * Netfilter (2)
+ *
+ * Following socket options are used in ip6_tables;
+ * see include/linux/netfilter_ipv6/ip6_tables.h.
+ *
+ * IP6T_SO_GET_REVISION_MATCH	68
+ * IP6T_SO_GET_REVISION_TARGET	69
+ */
+
+/* RFC5014: Source address selection */
+#define IPV6_ADDR_PREFERENCES	72
+
+#define IPV6_PREFER_SRC_TMP		0x0001
+#define IPV6_PREFER_SRC_PUBLIC		0x0002
+#define IPV6_PREFER_SRC_PUBTMP_DEFAULT	0x0100
+#define IPV6_PREFER_SRC_COA		0x0004
+#define IPV6_PREFER_SRC_HOME		0x0400
+#define IPV6_PREFER_SRC_CGA		0x0008
+#define IPV6_PREFER_SRC_NONCGA		0x0800
+
+/* RFC5082: Generalized Ttl Security Mechanism */
+#define IPV6_MINHOPCOUNT		73
+
+#define IPV6_ORIGDSTADDR        74
+#define IPV6_RECVORIGDSTADDR    IPV6_ORIGDSTADDR
+#define IPV6_TRANSPARENT        75
+
+/*
+ * Multicast Routing:
+ * see include/linux/mroute6.h.
+ *
+ * MRT6_INIT			200
+ * MRT6_DONE			201
+ * MRT6_ADD_MIF			202
+ * MRT6_DEL_MIF			203
+ * MRT6_ADD_MFC			204
+ * MRT6_DEL_MFC			205
+ * MRT6_VERSION			206
+ * MRT6_ASSERT			207
+ * MRT6_PIM			208
+ * (reserved)			209
+ */
+#endif
+                                                                                                                                                                                                                                                                                                                                                                           #ifndef _LINUX_PTRACE_H
+#define _LINUX_PTRACE_H
+/* ptrace.h */
+/* structs and defines to help the user use the ptrace system call. */
+
+/* has the defines to get at the registers. */
+
+#define PTRACE_TRACEME		   0
+#define PTRACE_PEEKTEXT		   1
+#define PTRACE_PEEKDATA		   2
+#define PTRACE_PEEKUSR		   3
+#define PTRACE_POKETEXT		   4
+#define PTRACE_POKEDATA		   5
+#define PTRACE_POKEUSR		   6
+#define PTRACE_CONT		   7
+#define PTRACE_KILL		   8
+#define PTRACE_SINGLESTEP	   9
+
+#define PTRACE_ATTACH		  16
+#define PTRACE_DETACH		  17
+
+#define PTRACE_SYSCALL		  24
+
+/* 0x4200-0x4300 are reserved for architecture-independent additions.  */
+#define PTRACE_SETOPTIONS	0x4200
+#define PTRACE_GETEVENTMSG	0x4201
+#define PTRACE_GETSIGINFO	0x4202
+#define PTRACE_SETSIGINFO	0x4203
+
+/*
+ * Generic ptrace interface that exports the architecture specific regsets
+ * using the corresponding NT_* types (which are also used in the core dump).
+ * Please note that the NT_PRSTATUS note type in a core dump contains a full
+ * 'struct elf_prstatus'. But the user_regset for NT_PRSTATUS contains just the
+ * elf_gregset_t that is the pr_reg field of 'struct elf_prstatus'. For all the
+ * other user_regset flavors, the user_regset layout and the ELF core dump note
+ * payload are exactly the same layout.
+ *
+ * This interface usage is as follows:
+ *	struct iovec iov = { buf, len};
+ *
+ *	ret = ptrace(PTRACE_GETREGSET/PTRACE_SETREGSET, pid, NT_XXX_TYPE, &iov);
+ *
+ * On the successful completion, iov.len will be updated by the kernel,
+ * specifying how much the kernel has written/read to/from the user's iov.buf.
+ */
+#define PTRACE_GETREGSET	0x4204
+#define PTRACE_SETREGSET	0x4205
+
+/* options set using PTRACE_SETOPTIONS */
+#define PTRACE_O_TRACESYSGOOD	0x00000001
+#define PTRACE_O_TRACEFORK	0x00000002
+#define PTRACE_O_TRACEVFORK	0x00000004
+#define PTRACE_O_TRACECLONE	0x00000008
+#define PTRACE_O_TRACEEXEC	0x00000010
+#define PTRACE_O_TRACEVFORKDONE	0x00000020
+#define PTRACE_O_TRACEEXIT	0x00000040
+
+#define PTRACE_O_MASK		0x0000007f
+
+/* Wait extended result codes for the above trace options.  */
+#define PTRACE_EVENT_FORK	1
+#define PTRACE_EVENT_VFORK	2
+#define PTRACE_EVENT_CLONE	3
+#define PTRACE_EVENT_EXEC	4
+#define PTRACE_EVENT_VFORK_DONE	5
+#define PTRACE_EVENT_EXIT	6
+
+#include <asm/ptrace.h>
+
+
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                #ifndef __A_OUT_GNU_H__
+#define __A_OUT_GNU_H__
+
+#define __GNU_EXEC_MACROS__
+
+#ifndef __STRUCT_EXEC_OVERRIDE__
+
+#include <asm/a.out.h>
+
+#endif /* __STRUCT_EXEC_OVERRIDE__ */
+
+#ifndef __ASSEMBLY__
+
+/* these go in the N_MACHTYPE field */
+enum machine_type {
+#if defined (M_OLDSUN2)
+  M__OLDSUN2 = M_OLDSUN2,
+#else
+  M_OLDSUN2 = 0,
+#endif
+#if defined (M_68010)
+  M__68010 = M_68010,
+#else
+  M_68010 = 1,
+#endif
+#if defined (M_68020)
+  M__68020 = M_68020,
+#else
+  M_68020 = 2,
+#endif
+#if defined (M_SPARC)
+  M__SPARC = M_SPARC,
+#else
+  M_SPARC = 3,
+#endif
+  /* skip a bunch so we don't run into any of sun's numbers */
+  M_386 = 100,
+  M_MIPS1 = 151,	/* MIPS R3000/R3000 binary */
+  M_MIPS2 = 152		/* MIPS R6000/R4000 binary */
+};
+
+#if !defined (N_MAGIC)
+#define N_MAGIC(exec) ((exec).a_info & 0xffff)
+#endif
+#define N_MACHTYPE(exec) ((enum machine_type)(((exec).a_info >> 16) & 0xff))
+#define N_FLAGS(exec) (((exec).a_info >> 24) & 0xff)
+#define N_SET_INFO(exec, magic, type, flags) \
+	((exec).a_info = ((magic) & 0xffff) \
+	 | (((int)(type) & 0xff) << 16) \
+	 | (((flags) & 0xff) << 24))
+#define N_SET_MAGIC(exec, magic) \
+	((exec).a_info = (((exec).a_info & 0xffff0000) | ((magic) & 0xffff)))
+
+#define N_SET_MACHTYPE(exec, machtype) \
+	((exec).a_info = \
+	 ((exec).a_info&0xff00ffff) | ((((int)(machtype))&0xff) << 16))
+
+#define N_SET_FLAGS(exec, flags) \
+	((exec).a_info = \
+	 ((exec).a_info&0x00ffffff) | (((flags) & 0xff) << 24))
+
+/* Code indicating object file or impure executable.  */
+#define OMAGIC 0407
+/* Code indicating pure executable.  */
+#define NMAGIC 0410
+/* Code indicating demand-paged executable.  */
+#define ZMAGIC 0413
+/* This indicates a demand-paged executable with the header in the text. 
+   The first page is unmapped to help trap NULL pointer references */
+#define QMAGIC 0314
+
+/* Code indicating core file.  */
+#define CMAGIC 0421
+
+#if !defined (N_BADMAG)
+#define N_BADMAG(x)	  (N_MAGIC(x) != OMAGIC		\
+			&& N_MAGIC(x) != NMAGIC		\
+  			&& N_MAGIC(x) != ZMAGIC \
+		        && N_MAGIC(x) != QMAGIC)
+#endif
+
+#define _N_HDROFF(x) (1024 - sizeof (struct exec))
+
+#if !defined (N_TXTOFF)
+#define N_TXTOFF(x) \
+ (N_MAGIC(x) == ZMAGIC ? _N_HDROFF((x)) + sizeof (struct exec) : \
+  (N_MAGIC(x) == QMAGIC ? 0 : sizeof (struct exec)))
+#endif
+
+#if !defined (N_DATOFF)
+#define N_DATOFF(x) (N_TXTOFF(x) + (x).a_text)
+#endif
+
+#if !defined (N_TRELOFF)
+#define N_TRELOFF(x) (N_DATOFF(x) + (x).a_data)
+#endif
+
+#if !defined (N_DRELOFF)
+#define N_DRELOFF(x) (N_TRELOFF(x) + N_TRSIZE(x))
+#endif
+
+#if !defined (N_SYMOFF)
+#define N_SYMOFF(x) (N_DRELOFF(x) + N_DRSIZE(x))
+#endif
+
+#if !defined (N_STROFF)
+#define N_STROFF(x) (N_SYMOFF(x) + N_SYMSIZE(x))
+#endif
+
+/* Address of text segment in memory after it is loaded.  */
+#if !defined (N_TXTADDR)
+#define N_TXTADDR(x) (N_MAGIC(x) == QMAGIC ? PAGE_SIZE : 0)
+#endif
+
+/* Address of data segment in memory after it is loaded.
+   Note that it is up to you to define SEGMENT_SIZE
+   on machines not listed here.  */
+#if defined(vax) || defined(hp300) || defined(pyr)
+#define SEGMENT_SIZE page_size
+#endif
+#ifdef	sony
+#define	SEGMENT_SIZE	0x2000
+#endif	/* Sony.  */
+#ifdef is68k
+#define SEGMENT_SIZE 0x20000
+#endif
+#if defined(m68k) && defined(PORTAR)
+#define PAGE_SIZE 0x400
+#define SEGMENT_SIZE PAGE_SIZE
+#endif
+
+#ifdef linux
+#include <unistd.h>
+#if defined(__i386__) || defined(__mc68000__)
+#define SEGMENT_SIZE	1024
+#else
+#ifndef SEGMENT_SIZE
+#define SEGMENT_SIZE   getpagesize()
+#endif
+#endif
+#endif
+
+#define _N_SEGMENT_ROUND(x) ALIGN(x, SEGMENT_SIZE)
+
+#define _N_TXTENDADDR(x) (N_TXTADDR(x)+(x).a_text)
+
+#ifndef N_DATADDR
+#define N_DATADDR(x) \
+    (N_MAGIC(x)==OMAGIC? (_N_TXTENDADDR(x)) \
+     : (_N_SEGMENT_ROUND (_N_TXTENDADDR(x))))
+#endif
+
+/* Address of bss segment in memory after it is loaded.  */
+#if !defined (N_BSSADDR)
+#define N_BSSADDR(x) (N_DATADDR(x) + (x).a_data)
+#endif
+
+#if !defined (N_NLIST_DECLARED)
+struct nlist {
+  union {
+    char *n_name;
+    struct nlist *n_next;
+    long n_strx;
+  } n_un;
+  unsigned char n_type;
+  char n_other;
+  short n_desc;
+  unsigned long n_value;
+};
+#endif /* no N_NLIST_DECLARED.  */
+
+#if !defined (N_UNDF)
+#define N_UNDF 0
+#endif
+#if !defined (N_ABS)
+#define N_ABS 2
+#endif
+#if !defined (N_TEXT)
+#define N_TEXT 4
+#endif
+#if !defined (N_DATA)
+#define N_DATA 6
+#endif
+#if !defined (N_BSS)
+#define N_BSS 8
+#endif
+#if !defined (N_FN)
+#define N_FN 15
+#endif
+
+#if !defined (N_EXT)
+#define N_EXT 1
+#endif
+#if !defined (N_TYPE)
+#define N_TYPE 036
+#endif
+#if !defined (N_STAB)
+#define N_STAB 0340
+#endif
+
+/* The following type indicates the definition of a symbol as being
+   an indirect reference to another symbol.  The other symbol
+   appears as an undefined reference, immediately following this symbol.
+
+   Indirection is asymmetrical.  The other symbol's value will be used
+   to satisfy requests for the indirect symbol, but not vice versa.
+   If the other symbol does not have a definition, libraries will
+   be searched to find a definition.  */
+#define N_INDR 0xa
+
+/* The following symbols refer to set elements.
+   All the N_SET[ATDB] symbols with the same name form one set.
+   Space is allocated for the set in the text section, and each set
+   element's value is stored into one word of the space.
+   The first word of the space is the length of the set (number of elements).
+
+   The address of the set is made into an N_SETV symbol
+   whose name is the same as the name of the set.
+   This symbol acts like a N_DATA global symbol
+   in that it can satisfy undefined external references.  */
+
+/* These appear as input to LD, in a .o file.  */
+#define	N_SETA	0x14		/* Absolute set element symbol */
+#define	N_SETT	0x16		/* Text set element symbol */
+#define	N_SETD	0x18		/* Data set element symbol */
+#define	N_SETB	0x1A		/* Bss set element symbol */
+
+/* This is output from LD.  */
+#define N_SETV	0x1C		/* Pointer to set vector in data area.  */
+
+#if !defined (N_RELOCATION_INFO_DECLARED)
+/* This structure describes a single relocation to be performed.
+   The text-relocation section of the file is a vector of these structures,
+   all of which apply to the text section.
+   Likewise, the data-relocation section applies to the data section.  */
+
+struct relocation_info
+{
+  /* Address (within segment) to be relocated.  */
+  int r_address;
+  /* The meaning of r_symbolnum depends on r_extern.  */
+  unsigned int r_symbolnum:24;
+  /* Nonzero means value is a pc-relative offset
+     and it should be relocated for changes in its own address
+     as well as for changes in the symbol or section specified.  */
+  unsigned int r_pcrel:1;
+  /* Length (as exponent of 2) of the field to be relocated.
+     Thus, a value of 2 indicates 1<<2 bytes.  */
+  unsigned int r_length:2;
+  /* 1 => relocate with value of symbol.
+          r_symbolnum is the index of the symbol
+	  in file's the symbol table.
+     0 => relocate with the address of a segment.
+          r_symbolnum is N_TEXT, N_DATA, N_BSS or N_ABS
+	  (the N_EXT bit may be set also, but signifies nothing).  */
+  unsigned int r_extern:1;
+  /* Four bits that aren't used, but when writing an object file
+     it is desirable to clear them.  */
+#ifdef NS32K
+  unsigned r_bsr:1;
+  unsigned r_disp:1;
+  unsigned r_pad:2;
+#else
+  unsigned int r_pad:4;
+#endif
+};
+#endif /* no N_RELOCATION_INFO_DECLARED.  */
+
+#endif /*__ASSEMBLY__ */
+#endif /* __A_OUT_GNU_H__ */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         /*
+    FUSE: Filesystem in Userspace
+    Copyright (C) 2001-2008  Miklos Szeredi <miklos@szeredi.hu>
+
+    This program can be distributed under the terms of the GNU GPL.
+    See the file COPYING.
+*/
+
+/*
+ * This file defines the kernel interface of FUSE
+ *
+ * Protocol changelog:
+ *
+ * 7.9:
+ *  - new fuse_getattr_in input argument of GETATTR
+ *  - add lk_flags in fuse_lk_in
+ *  - add lock_owner field to fuse_setattr_in, fuse_read_in and fuse_write_in
+ *  - add blksize field to fuse_attr
+ *  - add file flags field to fuse_read_in and fuse_write_in
+ *
+ * 7.10
+ *  - add nonseekable open flag
+ *
+ * 7.11
+ *  - add IOCTL message
+ *  - add unsolicited notification support
+ *  - add POLL message and NOTIFY_POLL notification
+ *
+ * 7.12
+ *  - add umask flag to input argument of open, mknod and mkdir
+ *  - add notification messages for invalidation of inodes and
+ *    directory entries
+ *
+ * 7.13
+ *  - make max number of background requests and congestion threshold
+ *    tunables
+ *
+ * 7.14
+ *  - add splice support to fuse device
+ *
+ * 7.15
+ *  - add store notify
+ *  - add retrieve notify
+ */
+
+#ifndef _LINUX_FUSE_H
+#define _LINUX_FUSE_H
+
+#include <linux/types.h>
+
+/*
+ * Version negotiation:
+ *
+ * Both the kernel and userspace send the version they support in the
+ * INIT request and reply respectively.
+ *
+ * If the major versions match then both shall use the smallest
+ * of the two minor versions for communication.
+ *
+ * If the kernel supports a larger major version, then userspace shall
+ * reply with the major version it supports, ignore the rest of the
+ * INIT message and expect a new INIT message from the kernel with a
+ * matching major version.
+ *
+ * If the library supports a larger major version, then it shall fall
+ * back to the major protocol version sent by the kernel for
+ * communication and reply with that major version (and an arbitrary
+ * supported minor version).
+ */
+
+/** Version number of this interface */
+#define FUSE_KERNEL_VERSION 7
+
+/** Minor version number of this interface */
+#define FUSE_KERNEL_MINOR_VERSION 15
+
+/** The node ID of the root inode */
+#define FUSE_ROOT_ID 1
+
+/* Make sure all structures are padded to 64bit boundary, so 32bit
+   userspace works under 64bit kernels */
+
+struct fuse_attr {
+	__u64	ino;
+	__u64	size;
+	__u64	blocks;
+	__u64	atime;
+	__u64	mtime;
+	__u64	ctime;
+	__u32	atimensec;
+	__u32	mtimensec;
+	__u32	ctimensec;
+	__u32	mode;
+	__u32	nlink;
+	__u32	uid;
+	__u32	gid;
+	__u32	rdev;
+	__u32	blksize;
+	__u32	padding;
+};
+
+struct fuse_kstatfs {
+	__u64	blocks;
+	__u64	bfree;
+	__u64	bavail;
+	__u64	files;
+	__u64	ffree;
+	__u32	bsize;
+	__u32	namelen;
+	__u32	frsize;
+	__u32	padding;
+	__u32	spare[6];
+};
+
+struct fuse_file_lock {
+	__u64	start;
+	__u64	end;
+	__u32	type;
+	__u32	pid; /* tgid */
+};
+
+/**
+ * Bitmasks for fuse_setattr_in.valid
+ */
+#define FATTR_MODE	(1 << 0)
+#define FATTR_UID	(1 << 1)
+#define FATTR_GID	(1 << 2)
+#define FATTR_SIZE	(1 << 3)
+#define FATTR_ATIME	(1 << 4)
+#define FATTR_MTIME	(1 << 5)
+#define FATTR_FH	(1 << 6)
+#define FATTR_ATIME_NOW	(1 << 7)
+#define FATTR_MTIME_NOW	(1 << 8)
+#define FATTR_LOCKOWNER	(1 << 9)
+
+/**
+ * Flags returned by the OPEN request
+ *
+ * FOPEN_DIRECT_IO: bypass page cache for this open file
+ * FOPEN_KEEP_CACHE: don't invalidate the data cache on open
+ * FOPEN_NONSEEKABLE: the file is not seekable
+ */
+#define FOPEN_DIRECT_IO		(1 << 0)
+#define FOPEN_KEEP_CACHE	(1 << 1)
+#define FOPEN_NONSEEKABLE	(1 << 2)
+
+/**
+ * INIT request/reply flags
+ *
+ * FUSE_EXPORT_SUPPORT: filesystem handles lookups of "." and ".."
+ * FUSE_DONT_MASK: don't apply umask to file mode on create operations
+ */
+#define FUSE_ASYNC_READ		(1 << 0)
+#define FUSE_POSIX_LOCKS	(1 << 1)
+#define FUSE_FILE_OPS		(1 << 2)
+#define FUSE_ATOMIC_O_TRUNC	(1 << 3)
+#define FUSE_EXPORT_SUPPORT	(1 << 4)
+#define FUSE_BIG_WRITES		(1 << 5)
+#define FUSE_DONT_MASK		(1 << 6)
+
+/**
+ * CUSE INIT request/reply flags
+ *
+ * CUSE_UNRESTRICTED_IOCTL:  use unrestricted ioctl
+ */
+#define CUSE_UNRESTRICTED_IOCTL	(1 << 0)
+
+/**
+ * Release flags
+ */
+#define FUSE_RELEASE_FLUSH	(1 << 0)
+
+/**
+ * Getattr flags
+ */
+#define FUSE_GETATTR_FH		(1 << 0)
+
+/**
+ * Lock flags
+ */
+#define FUSE_LK_FLOCK		(1 << 0)
+
+/**
+ * WRITE flags
+ *
+ * FUSE_WRITE_CACHE: delayed write from page cache, file handle is guessed
+ * FUSE_WRITE_LOCKOWNER: lock_owner field is valid
+ */
+#define FUSE_WRITE_CACHE	(1 << 0)
+#define FUSE_WRITE_LOCKOWNER	(1 << 1)
+
+/**
+ * Read flags
+ */
+#define FUSE_READ_LOCKOWNER	(1 << 1)
+
+/**
+ * Ioctl flags
+ *
+ * FUSE_IOCTL_COMPAT: 32bit compat ioctl on 64bit machine
+ * FUSE_IOCTL_UNRESTRICTED: not restricted to well-formed ioctls, retry allowed
+ * FUSE_IOCTL_RETRY: retry with new iovecs
+ *
+ * FUSE_IOCTL_MAX_IOV: maximum of in_iovecs + out_iovecs
+ */
+#define FUSE_IOCTL_COMPAT	(1 << 0)
+#define FUSE_IOCTL_UNRESTRICTED	(1 << 1)
+#define FUSE_IOCTL_RETRY	(1 << 2)
+
+#define FUSE_IOCTL_MAX_IOV	256
+
+/**
+ * Poll flags
+ *
+ * FUSE_POLL_SCHEDULE_NOTIFY: request poll notify
+ */
+#define FUSE_POLL_SCHEDULE_NOTIFY (1 << 0)
+
+enum fuse_opcode {
+	FUSE_LOOKUP	   = 1,
+	FUSE_FORGET	   = 2,  /* no reply */
+	FUSE_GETATTR	   = 3,
+	FUSE_SETATTR	   = 4,
+	FUSE_READLINK	   = 5,
+	FUSE_SYMLINK	   = 6,
+	FUSE_MKNOD	   = 8,
+	FUSE_MKDIR	   = 9,
+	FUSE_UNLINK	   = 10,
+	FUSE_RMDIR	   = 11,
+	FUSE_RENAME	   = 12,
+	FUSE_LINK	   = 13,
+	FUSE_OPEN	   = 14,
+	FUSE_READ	   = 15,
+	FUSE_WRITE	   = 16,
+	FUSE_STATFS	   = 17,
+	FUSE_RELEASE       = 18,
+	FUSE_FSYNC         = 20,
+	FUSE_SETXATTR      = 21,
+	FUSE_GETXATTR      = 22,
+	FUSE_LISTXATTR     = 23,
+	FUSE_REMOVEXATTR   = 24,
+	FUSE_FLUSH         = 25,
+	FUSE_INIT          = 26,
+	FUSE_OPENDIR       = 27,
+	FUSE_READDIR       = 28,
+	FUSE_RELEASEDIR    = 29,
+	FUSE_FSYNCDIR      = 30,
+	FUSE_GETLK         = 31,
+	FUSE_SETLK         = 32,
+	FUSE_SETLKW        = 33,
+	FUSE_ACCESS        = 34,
+	FUSE_CREATE        = 35,
+	FUSE_INTERRUPT     = 36,
+	FUSE_BMAP          = 37,
+	FUSE_DESTROY       = 38,
+	FUSE_IOCTL         = 39,
+	FUSE_POLL          = 40,
+	FUSE_NOTIFY_REPLY  = 41,
+
+	/* CUSE specific operations */
+	CUSE_INIT          = 4096,
+};
+
+enum fuse_notify_code {
+	FUSE_NOTIFY_POLL   = 1,
+	FUSE_NOTIFY_INVAL_INODE = 2,
+	FUSE_NOTIFY_INVAL_ENTRY = 3,
+	FUSE_NOTIFY_STORE = 4,
+	FUSE_NOTIFY_RETRIEVE = 5,
+	FUSE_NOTIFY_CODE_MAX,
+};
+
+/* The read buffer is required to be at least 8k, but may be much larger */
+#define FUSE_MIN_READ_BUFFER 8192
+
+#define FUSE_COMPAT_ENTRY_OUT_SIZE 120
+
+struct fuse_entry_out {
+	__u64	nodeid;		/* Inode ID */
+	__u64	generation;	/* Inode generation: nodeid:gen must
+				   be unique for the fs's lifetime */
+	__u64	entry_valid;	/* Cache timeout for the name */
+	__u64	attr_valid;	/* Cache timeout for the attributes */
+	__u32	entry_valid_nsec;
+	__u32	attr_valid_nsec;
+	struct fuse_attr attr;
+};
+
+struct fuse_forget_in {
+	__u64	nlookup;
+};
+
+struct fuse_getattr_in {
+	__u32	getattr_flags;
+	__u32	dummy;
+	__u64	fh;
+};
+
+#define FUSE_COMPAT_ATTR_OUT_SIZE 96
+
+struct fuse_attr_out {
+	__u64	attr_valid;	/* Cache timeout for the attributes */
+	__u32	attr_valid_nsec;
+	__u32	dummy;
+	struct fuse_attr attr;
+};
+
+#define FUSE_COMPAT_MKNOD_IN_SIZE 8
+
+struct fuse_mknod_in {
+	__u32	mode;
+	__u32	rdev;
+	__u32	umask;
+	__u32	padding;
+};
+
+struct fuse_mkdir_in {
+	__u32	mode;
+	__u32	umask;
+};
+
+struct fuse_rename_in {
+	__u64	newdir;
+};
+
+struct fuse_link_in {
+	__u64	oldnodeid;
+};
+
+struct fuse_setattr_in {
+	__u32	valid;
+	__u32	padding;
+	__u64	fh;
+	__u64	size;
+	__u64	lock_owner;
+	__u64	atime;
+	__u64	mtime;
+	__u64	unused2;
+	__u32	atimensec;
+	__u32	mtimensec;
+	__u32	unused3;
+	__u32	mode;
+	__u32	unused4;
+	__u32	uid;
+	__u32	gid;
+	__u32	unused5;
+};
+
+struct fuse_open_in {
+	__u32	flags;
+	__u32	unused;
+};
+
+struct fuse_create_in {
+	__u32	flags;
+	__u32	mode;
+	__u32	umask;
+	__u32	padding;
+};
+
+struct fuse_open_out {
+	__u64	fh;
+	__u32	open_flags;
+	__u32	padding;
+};
+
+struct fuse_release_in {
+	__u64	fh;
+	__u32	flags;
+	__u32	release_flags;
+	__u64	lock_owner;
+};
+
+struct fuse_flush_in {
+	__u64	fh;
+	__u32	unused;
+	__u32	padding;
+	__u64	lock_owner;
+};
+
+struct fuse_read_in {
+	__u64	fh;
+	__u64	offset;
+	__u32	size;
+	__u32	read_flags;
+	__u64	lock_owner;
+	__u32	flags;
+	__u32	padding;
+};
+
+#define FUSE_COMPAT_WRITE_IN_SIZE 24
+
+struct fuse_write_in {
+	__u64	fh;
+	__u64	offset;
+	__u32	size;
+	__u32	write_flags;
+	__u64	lock_owner;
+	__u32	flags;
+	__u32	padding;
+};
+
+struct fuse_write_out {
+	__u32	size;
+	__u32	padding;
+};
+
+#define FUSE_COMPAT_STATFS_SIZE 48
+
+struct fuse_statfs_out {
+	struct fuse_kstatfs st;
+};
+
+struct fuse_fsync_in {
+	__u64	fh;
+	__u32	fsync_flags;
+	__u32	padding;
+};
+
+struct fuse_setxattr_in {
+	__u32	size;
+	__u32	flags;
+};
+
+struct fuse_getxattr_in {
+	__u32	size;
+	__u32	padding;
+};
+
+struct fuse_getxattr_out {
+	__u32	size;
+	__u32	padding;
+};
+
+struct fuse_lk_in {
+	__u64	fh;
+	__u64	owner;
+	struct fuse_file_lock lk;
+	__u32	lk_flags;
+	__u32	padding;
+};
+
+struct fuse_lk_out {
+	struct fuse_file_lock lk;
+};
+
+struct fuse_access_in {
+	__u32	mask;
+	__u32	padding;
+};
+
+struct fuse_init_in {
+	__u32	major;
+	__u32	minor;
+	__u32	max_readahead;
+	__u32	flags;
+};
+
+struct fuse_init_out {
+	__u32	major;
+	__u32	minor;
+	__u32	max_readahead;
+	__u32	flags;
+	__u16   max_background;
+	__u16   congestion_threshold;
+	__u32	max_write;
+};
+
+#define CUSE_INIT_INFO_MAX 4096
+
+struct cuse_init_in {
+	__u32	major;
+	__u32	minor;
+	__u32	unused;
+	__u32	flags;
+};
+
+struct cuse_init_out {
+	__u32	major;
+	__u32	minor;
+	__u32	unused;
+	__u32	flags;
+	__u32	max_read;
+	__u32	max_write;
+	__u32	dev_major;		/* chardev major */
+	__u32	dev_minor;		/* chardev minor */
+	__u32	spare[10];
+};
+
+struct fuse_interrupt_in {
+	__u64	unique;
+};
+
+struct fuse_bmap_in {
+	__u64	block;
+	__u32	blocksize;
+	__u32	padding;
+};
+
+struct fuse_bmap_out {
+	__u64	block;
+};
+
+struct fuse_ioctl_in {
+	__u64	fh;
+	__u32	flags;
+	__u32	cmd;
+	__u64	arg;
+	__u32	in_size;
+	__u32	out_size;
+};
+
+struct fuse_ioctl_out {
+	__s32	result;
+	__u32	flags;
+	__u32	in_iovs;
+	__u32	out_iovs;
+};
+
+struct fuse_poll_in {
+	__u64	fh;
+	__u64	kh;
+	__u32	flags;
+	__u32   padding;
+};
+
+struct fuse_poll_out {
+	__u32	revents;
+	__u32	padding;
+};
+
+struct fuse_notify_poll_wakeup_out {
+	__u64	kh;
+};
+
+struct fuse_in_header {
+	__u32	len;
+	__u32	opcode;
+	__u64	unique;
+	__u64	nodeid;
+	__u32	uid;
+	__u32	gid;
+	__u32	pid;
+	__u32	padding;
+};
+
+struct fuse_out_header {
+	__u32	len;
+	__s32	error;
+	__u64	unique;
+};
+
+struct fuse_dirent {
+	__u64	ino;
+	__u64	off;
+	__u32	namelen;
+	__u32	type;
+	char name[0];
+};
+
+#define FUSE_NAME_OFFSET offsetof(struct fuse_dirent, name)
+#define FUSE_DIRENT_ALIGN(x) (((x) + sizeof(__u64) - 1) & ~(sizeof(__u64) - 1))
+#define FUSE_DIRENT_SIZE(d) \
+	FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + (d)->namelen)
+
+struct fuse_notify_inval_inode_out {
+	__u64	ino;
+	__s64	off;
+	__s64	len;
+};
+
+struct fuse_notify_inval_entry_out {
+	__u64	parent;
+	__u32	namelen;
+	__u32	padding;
+};
+
+struct fuse_notify_store_out {
+	__u64	nodeid;
+	__u64	offset;
+	__u32	size;
+	__u32	padding;
+};
+
+struct fuse_notify_retrieve_out {
+	__u64	notify_unique;
+	__u64	nodeid;
+	__u64	offset;
+	__u32	size;
+	__u32	padding;
+};
+
+/* Matches the size of fuse_write_in */
+struct fuse_notify_retrieve_in {
+	__u64	dummy1;
+	__u64	offset;
+	__u32	size;
+	__u32	dummy2;
+	__u64	dummy3;
+	__u64	dummy4;
+};
+
+#endif /* _LINUX_FUSE_H */
+                                                                                                                                                                                                                        /* sonet.h - SONET/SHD physical layer control */
+ 
+/* Written 1995-2000 by Werner Almesberger, EPFL LRC/ICA */
+ 
+
+#ifndef LINUX_SONET_H
+#define LINUX_SONET_H
+
+#define __SONET_ITEMS \
+    __HANDLE_ITEM(section_bip); 	/* section parity errors (B1) */ \
+    __HANDLE_ITEM(line_bip);		/* line parity errors (B2) */ \
+    __HANDLE_ITEM(path_bip);		/* path parity errors (B3) */ \
+    __HANDLE_ITEM(line_febe);		/* line parity errors at remote */ \
+    __HANDLE_ITEM(path_febe);		/* path parity errors at remote */ \
+    __HANDLE_ITEM(corr_hcs);		/* correctable header errors */ \
+    __HANDLE_ITEM(uncorr_hcs);		/* uncorrectable header errors */ \
+    __HANDLE_ITEM(tx_cells);		/* cells sent */ \
+    __HANDLE_ITEM(rx_cells);		/* cells received */
+
+struct sonet_stats {
+#define __HANDLE_ITEM(i) int i
+	__SONET_ITEMS
+#undef __HANDLE_ITEM
+} __attribute__ ((packed));
+
+
+#define SONET_GETSTAT	_IOR('a',ATMIOC_PHYTYP,struct sonet_stats)
+					/* get statistics */
+#define SONET_GETSTATZ	_IOR('a',ATMIOC_PHYTYP+1,struct sonet_stats)
+					/* ... and zero counters */
+#define SONET_SETDIAG	_IOWR('a',ATMIOC_PHYTYP+2,int)
+					/* set error insertion */
+#define SONET_CLRDIAG	_IOWR('a',ATMIOC_PHYTYP+3,int)
+					/* clear error insertion */
+#define SONET_GETDIAG	_IOR('a',ATMIOC_PHYTYP+4,int)
+					/* query error insertion */
+#define SONET_SETFRAMING _IOW('a',ATMIOC_PHYTYP+5,int)
+					/* set framing mode (SONET/SDH) */
+#define SONET_GETFRAMING _IOR('a',ATMIOC_PHYTYP+6,int)
+					/* get framing mode */
+#define SONET_GETFRSENSE _IOR('a',ATMIOC_PHYTYP+7, \
+  unsigned char[SONET_FRSENSE_SIZE])	/* get framing sense information */
+
+#define SONET_INS_SBIP	  1		/* section BIP */
+#define SONET_INS_LBIP	  2		/* line BIP */
+#define SONET_INS_PBIP	  4		/* path BIP */
+#define SONET_INS_FRAME	  8		/* out of frame */
+#define SONET_INS_LOS	 16		/* set line to zero */
+#define SONET_INS_LAIS	 32		/* line alarm indication signal */
+#define SONET_INS_PAIS	 64		/* path alarm indication signal */
+#define SONET_INS_HCS	128		/* insert HCS error */
+
+#define SONET_FRAME_SONET 0		/* SONET STS-3 framing */
+#define SONET_FRAME_SDH   1		/* SDH STM-1 framing */
+
+#define SONET_FRSENSE_SIZE 6		/* C1[3],H1[3] (0xff for unknown) */
+
+
+
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 /*
+ * ipmi_smi.h
+ *
+ * MontaVista IPMI system management interface
+ *
+ * Author: MontaVista Software, Inc.
+ *         Corey Minyard <minyard@mvista.com>
+ *         source@mvista.com
+ *
+ * Copyright 2002 MontaVista Software Inc.
+ *
+ *  This program is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published by the
+ *  Free Software Foundation; either version 2 of the License, or (at your
+ *  option) any later version.
+ *
+ *
+ *  THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
+ *  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ *  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ *  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ *  OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ *  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+ *  TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
+ *  USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program; if not, write to the Free Software Foundation, Inc.,
+ *  675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+#ifndef __LINUX_IPMI_MSGDEFS_H
+#define __LINUX_IPMI_MSGDEFS_H
+
+/* Various definitions for IPMI messages used by almost everything in
+   the IPMI stack. */
+
+/* NetFNs and commands used inside the IPMI stack. */
+
+#define IPMI_NETFN_SENSOR_EVENT_REQUEST		0x04
+#define IPMI_NETFN_SENSOR_EVENT_RESPONSE	0x05
+#define IPMI_GET_EVENT_RECEIVER_CMD	0x01
+
+#define IPMI_NETFN_APP_REQUEST			0x06
+#define IPMI_NETFN_APP_RESPONSE			0x07
+#define IPMI_GET_DEVICE_ID_CMD		0x01
+#define IPMI_COLD_RESET_CMD		0x02
+#define IPMI_WARM_RESET_CMD		0x03
+#define IPMI_CLEAR_MSG_FLAGS_CMD	0x30
+#define IPMI_GET_DEVICE_GUID_CMD	0x08
+#define IPMI_GET_MSG_FLAGS_CMD		0x31
+#define IPMI_SEND_MSG_CMD		0x34
+#define IPMI_GET_MSG_CMD		0x33
+#define IPMI_SET_BMC_GLOBAL_ENABLES_CMD	0x2e
+#define IPMI_GET_BMC_GLOBAL_ENABLES_CMD	0x2f
+#define IPMI_READ_EVENT_MSG_BUFFER_CMD	0x35
+#define IPMI_GET_CHANNEL_INFO_CMD	0x42
+
+/* Bit for BMC global enables. */
+#define IPMI_BMC_RCV_MSG_INTR     0x01
+#define IPMI_BMC_EVT_MSG_INTR     0x02
+#define IPMI_BMC_EVT_MSG_BUFF     0x04
+#define IPMI_BMC_SYS_LOG          0x08
+
+#define IPMI_NETFN_STORAGE_REQUEST		0x0a
+#define IPMI_NETFN_STORAGE_RESPONSE		0x0b
+#define IPMI_ADD_SEL_ENTRY_CMD		0x44
+
+#define IPMI_NETFN_FIRMWARE_REQUEST		0x08
+#define IPMI_NETFN_FIRMWARE_RESPONSE		0x09
+
+/* The default slave address */
+#define IPMI_BMC_SLAVE_ADDR	0x20
+
+/* The BT interface on high-end HP systems supports up to 255 bytes in
+ * one transfer.  Its "virtual" BMC supports some commands that are longer
+ * than 128 bytes.  Use the full 256, plus NetFn/LUN, Cmd, cCode, plus
+ * some overhead; it's not worth the effort to dynamically size this based
+ * on the results of the "Get BT Capabilities" command. */
+#define IPMI_MAX_MSG_LENGTH	272	/* multiple of 16 */
+
+#define IPMI_CC_NO_ERROR		0x00
+#define IPMI_NODE_BUSY_ERR		0xc0
+#define IPMI_INVALID_COMMAND_ERR	0xc1
+#define IPMI_TIMEOUT_ERR		0xc3
+#define IPMI_ERR_MSG_TRUNCATED		0xc6
+#define IPMI_REQ_LEN_INVALID_ERR	0xc7
+#define IPMI_REQ_LEN_EXCEEDED_ERR	0xc8
+#define IPMI_NOT_IN_MY_STATE_ERR	0xd5	/* IPMI 2.0 */
+#define IPMI_LOST_ARBITRATION_ERR	0x81
+#define IPMI_BUS_ERR			0x82
+#define IPMI_NAK_ON_WRITE_ERR		0x83
+#define IPMI_ERR_UNSPECIFIED		0xff
+
+#define IPMI_CHANNEL_PROTOCOL_IPMB	1
+#define IPMI_CHANNEL_PROTOCOL_ICMB	2
+#define IPMI_CHANNEL_PROTOCOL_SMBUS	4
+#define IPMI_CHANNEL_PROTOCOL_KCS	5
+#define IPMI_CHANNEL_PROTOCOL_SMIC	6
+#define IPMI_CHANNEL_PROTOCOL_BT10	7
+#define IPMI_CHANNEL_PROTOCOL_BT15	8
+#define IPMI_CHANNEL_PROTOCOL_TMODE	9
+
+#define IPMI_CHANNEL_MEDIUM_IPMB	1
+#define IPMI_CHANNEL_MEDIUM_ICMB10	2
+#define IPMI_CHANNEL_MEDIUM_ICMB09	3
+#define IPMI_CHANNEL_MEDIUM_8023LAN	4
+#define IPMI_CHANNEL_MEDIUM_ASYNC	5
+#define IPMI_CHANNEL_MEDIUM_OTHER_LAN	6
+#define IPMI_CHANNEL_MEDIUM_PCI_SMBUS	7
+#define IPMI_CHANNEL_MEDIUM_SMBUS1	8
+#define IPMI_CHANNEL_MEDIUM_SMBUS2	9
+#define IPMI_CHANNEL_MEDIUM_USB1	10
+#define IPMI_CHANNEL_MEDIUM_USB2	11
+#define IPMI_CHANNEL_MEDIUM_SYSINTF	12
+#define IPMI_CHANNEL_MEDIUM_OEM_MIN	0x60
+#define IPMI_CHANNEL_MEDIUM_OEM_MAX	0x7f
+
+#endif /* __LINUX_IPMI_MSGDEFS_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   /* elf-fdpic.h: FDPIC ELF load map
+ *
+ * Copyright (C) 2003 Red Hat, Inc. All Rights Reserved.
+ * Written by David Howells (dhowells@redhat.com)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version
+ * 2 of the License, or (at your option) any later version.
+ */
+
+#ifndef _LINUX_ELF_FDPIC_H
+#define _LINUX_ELF_FDPIC_H
+
+#include <linux/elf.h>
+
+#define PT_GNU_STACK    (PT_LOOS + 0x474e551)
+
+/* segment mappings for ELF FDPIC libraries/executables/interpreters */
+struct elf32_fdpic_loadseg {
+	Elf32_Addr	addr;		/* core address to which mapped */
+	Elf32_Addr	p_vaddr;	/* VMA recorded in file */
+	Elf32_Word	p_memsz;	/* allocation size recorded in file */
+};
+
+struct elf32_fdpic_loadmap {
+	Elf32_Half	version;	/* version of these structures, just in case... */
+	Elf32_Half	nsegs;		/* number of segments */
+	struct elf32_fdpic_loadseg segs[];
+};
+
+#define ELF32_FDPIC_LOADMAP_VERSION	0x0000
+
+/*
+ * binfmt binary parameters structure
+ */
+struct elf_fdpic_params {
+	struct elfhdr			hdr;		/* ref copy of ELF header */
+	struct elf_phdr			*phdrs;		/* ref copy of PT_PHDR table */
+	struct elf32_fdpic_loadmap	*loadmap;	/* loadmap to be passed to userspace */
+	unsigned long			elfhdr_addr;	/* mapped ELF header user address */
+	unsigned long			ph_addr;	/* mapped PT_PHDR user address */
+	unsigned long			map_addr;	/* mapped loadmap user address */
+	unsigned long			entry_addr;	/* mapped entry user address */
+	unsigned long			stack_size;	/* stack size requested (PT_GNU_STACK) */
+	unsigned long			dynamic_addr;	/* mapped PT_DYNAMIC user address */
+	unsigned long			load_addr;	/* user address at which to map binary */
+	unsigned long			flags;
+#define ELF_FDPIC_FLAG_ARRANGEMENT	0x0000000f	/* PT_LOAD arrangement flags */
+#define ELF_FDPIC_FLAG_INDEPENDENT	0x00000000	/* PT_LOADs can be put anywhere */
+#define ELF_FDPIC_FLAG_HONOURVADDR	0x00000001	/* PT_LOAD.vaddr must be honoured */
+#define ELF_FDPIC_FLAG_CONSTDISP	0x00000002	/* PT_LOADs require constant
+							 * displacement */
+#define ELF_FDPIC_FLAG_CONTIGUOUS	0x00000003	/* PT_LOADs should be contiguous */
+#define ELF_FDPIC_FLAG_EXEC_STACK	0x00000010	/* T if stack to be executable */
+#define ELF_FDPIC_FLAG_NOEXEC_STACK	0x00000020	/* T if stack not to be executable */
+#define ELF_FDPIC_FLAG_EXECUTABLE	0x00000040	/* T if this object is the executable */
+#define ELF_FDPIC_FLAG_PRESENT		0x80000000	/* T if this object is present */
+};
+
+
+#endif /* _LINUX_ELF_FDPIC_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   /*
+ * -- <linux/cdrom.h>
+ * General header file for linux CD-ROM drivers 
+ * Copyright (C) 1992         David Giller, rafetmad@oxy.edu
+ *               1994, 1995   Eberhard MÃ¶nkeberg, emoenke@gwdg.de
+ *               1996         David van Leeuwen, david@tm.tno.nl
+ *               1997, 1998   Erik Andersen, andersee@debian.org
+ *               1998-2002    Jens Axboe, axboe@suse.de
+ */
+ 
+#ifndef	_LINUX_CDROM_H
+#define	_LINUX_CDROM_H
+
+#include <linux/types.h>
+#include <asm/byteorder.h>
+
+/*******************************************************
+ * As of Linux 2.1.x, all Linux CD-ROM application programs will use this 
+ * (and only this) include file.  It is my hope to provide Linux with
+ * a uniform interface between software accessing CD-ROMs and the various 
+ * device drivers that actually talk to the drives.  There may still be
+ * 23 different kinds of strange CD-ROM drives, but at least there will 
+ * now be one, and only one, Linux CD-ROM interface.
+ *
+ * Additionally, as of Linux 2.1.x, all Linux application programs 
+ * should use the O_NONBLOCK option when opening a CD-ROM device 
+ * for subsequent ioctl commands.  This allows for neat system errors 
+ * like "No medium found" or "Wrong medium type" upon attempting to 
+ * mount or play an empty slot, mount an audio disc, or play a data disc.
+ * Generally, changing an application program to support O_NONBLOCK
+ * is as easy as the following:
+ *       -    drive = open("/dev/cdrom", O_RDONLY);
+ *       +    drive = open("/dev/cdrom", O_RDONLY | O_NONBLOCK);
+ * It is worth the small change.
+ *
+ *  Patches for many common CD programs (provided by David A. van Leeuwen)
+ *  can be found at:  ftp://ftp.gwdg.de/pub/linux/cdrom/drivers/cm206/
+ * 
+ *******************************************************/
+
+/* When a driver supports a certain function, but the cdrom drive we are 
+ * using doesn't, we will return the error EDRIVE_CANT_DO_THIS.  We will 
+ * borrow the "Operation not supported" error from the network folks to 
+ * accomplish this.  Maybe someday we will get a more targeted error code, 
+ * but this will do for now... */
+#define EDRIVE_CANT_DO_THIS  EOPNOTSUPP
+
+/*******************************************************
+ * The CD-ROM IOCTL commands  -- these should be supported by 
+ * all the various cdrom drivers.  For the CD-ROM ioctls, we 
+ * will commandeer byte 0x53, or 'S'.
+ *******************************************************/
+#define CDROMPAUSE		0x5301 /* Pause Audio Operation */ 
+#define CDROMRESUME		0x5302 /* Resume paused Audio Operation */
+#define CDROMPLAYMSF		0x5303 /* Play Audio MSF (struct cdrom_msf) */
+#define CDROMPLAYTRKIND		0x5304 /* Play Audio Track/index 
+                                           (struct cdrom_ti) */
+#define CDROMREADTOCHDR		0x5305 /* Read TOC header 
+                                           (struct cdrom_tochdr) */
+#define CDROMREADTOCENTRY	0x5306 /* Read TOC entry 
+                                           (struct cdrom_tocentry) */
+#define CDROMSTOP		0x5307 /* Stop the cdrom drive */
+#define CDROMSTART		0x5308 /* Start the cdrom drive */
+#define CDROMEJECT		0x5309 /* Ejects the cdrom media */
+#define CDROMVOLCTRL		0x530a /* Control output volume 
+                                           (struct cdrom_volctrl) */
+#define CDROMSUBCHNL		0x530b /* Read subchannel data 
+                                           (struct cdrom_subchnl) */
+#define CDROMREADMODE2		0x530c /* Read CDROM mode 2 data (2336 Bytes) 
+                                           (struct cdrom_read) */
+#define CDROMREADMODE1		0x530d /* Read CDROM mode 1 data (2048 Bytes)
+                                           (struct cdrom_read) */
+#define CDROMREADAUDIO		0x530e /* (struct cdrom_read_audio) */
+#define CDROMEJECT_SW		0x530f /* enable(1)/disable(0) auto-ejecting */
+#define CDROMMULTISESSION	0x5310 /* Obtain the start-of-last-session 
+                                           address of multi session disks 
+                                           (struct cdrom_multisession) */
+#define CDROM_GET_MCN		0x5311 /* Obtain the "Universal Product Code" 
+                                           if available (struct cdrom_mcn) */
+#define CDROM_GET_UPC		CDROM_GET_MCN  /* This one is deprecated, 
+                                          but here anyway for compatibility */
+#define CDROMRESET		0x5312 /* hard-reset the drive */
+#define CDROMVOLREAD		0x5313 /* Get the drive's volume setting 
+                                          (struct cdrom_volctrl) */
+#define CDROMREADRAW		0x5314	/* read data in raw mode (2352 Bytes)
+                                           (struct cdrom_read) */
+/* 
+ * These ioctls are used only used in aztcd.c and optcd.c
+ */
+#define CDROMREADCOOKED		0x5315	/* read data in cooked mode */
+#define CDROMSEEK		0x5316  /* seek msf address */
+  
+/*
+ * This ioctl is only used by the scsi-cd driver.  
+   It is for playing audio in logical block addressing mode.
+ */
+#define CDROMPLAYBLK		0x5317	/* (struct cdrom_blk) */
+
+/* 
+ * These ioctls are only used in optcd.c
+ */
+#define CDROMREADALL		0x5318	/* read all 2646 bytes */
+
+/* 
+ * These ioctls are (now) only in ide-cd.c for controlling 
+ * drive spindown time.  They should be implemented in the
+ * Uniform driver, via generic packet commands, GPCMD_MODE_SELECT_10,
+ * GPCMD_MODE_SENSE_10 and the GPMODE_POWER_PAGE...
+ *  -Erik
+ */
+#define CDROMGETSPINDOWN        0x531d
+#define CDROMSETSPINDOWN        0x531e
+
+/* 
+ * These ioctls are implemented through the uniform CD-ROM driver
+ * They _will_ be adopted by all CD-ROM drivers, when all the CD-ROM
+ * drivers are eventually ported to the uniform CD-ROM driver interface.
+ */
+#define CDROMCLOSETRAY		0x5319	/* pendant of CDROMEJECT */
+#define CDROM_SET_OPTIONS	0x5320  /* Set behavior options */
+#define CDROM_CLEAR_OPTIONS	0x5321  /* Clear behavior options */
+#define CDROM_SELECT_SPEED	0x5322  /* Set the CD-ROM speed */
+#define CDROM_SELECT_DISC	0x5323  /* Select disc (for juke-boxes) */
+#define CDROM_MEDIA_CHANGED	0x5325  /* Check is media changed  */
+#define CDROM_DRIVE_STATUS	0x5326  /* Get tray position, etc. */
+#define CDROM_DISC_STATUS	0x5327  /* Get disc type, etc. */
+#define CDROM_CHANGER_NSLOTS    0x5328  /* Get number of slots */
+#define CDROM_LOCKDOOR		0x5329  /* lock or unlock door */
+#define CDROM_DEBUG		0x5330	/* Turn debug messages on/off */
+#define CDROM_GET_CAPABILITY	0x5331	/* get capabilities */
+
+/* Note that scsi/scsi_ioctl.h also uses 0x5382 - 0x5386.
+ * Future CDROM ioctls should be kept below 0x537F
+ */
+
+/* This ioctl is only used by sbpcd at the moment */
+#define CDROMAUDIOBUFSIZ        0x5382	/* set the audio buffer size */
+					/* conflict with SCSI_IOCTL_GET_IDLUN */
+
+/* DVD-ROM Specific ioctls */
+#define DVD_READ_STRUCT		0x5390  /* Read structure */
+#define DVD_WRITE_STRUCT	0x5391  /* Write structure */
+#define DVD_AUTH		0x5392  /* Authentication */
+
+#define CDROM_SEND_PACKET	0x5393	/* send a packet to the drive */
+#define CDROM_NEXT_WRITABLE	0x5394	/* get next writable block */
+#define CDROM_LAST_WRITTEN	0x5395	/* get last block written on disc */
+
+/*******************************************************
+ * CDROM IOCTL structures
+ *******************************************************/
+
+/* Address in MSF format */
+struct cdrom_msf0		
+{
+	__u8	minute;
+	__u8	second;
+	__u8	frame;
+};
+
+/* Address in either MSF or logical format */
+union cdrom_addr		
+{
+	struct cdrom_msf0	msf;
+	int			lba;
+};
+
+/* This struct is used by the CDROMPLAYMSF ioctl */ 
+struct cdrom_msf 
+{
+	__u8	cdmsf_min0;	/* start minute */
+	__u8	cdmsf_sec0;	/* start second */
+	__u8	cdmsf_frame0;	/* start frame */
+	__u8	cdmsf_min1;	/* end minute */
+	__u8	cdmsf_sec1;	/* end second */
+	__u8	cdmsf_frame1;	/* end frame */
+};
+
+/* This struct is used by the CDROMPLAYTRKIND ioctl */
+struct cdrom_ti 
+{
+	__u8	cdti_trk0;	/* start track */
+	__u8	cdti_ind0;	/* start index */
+	__u8	cdti_trk1;	/* end track */
+	__u8	cdti_ind1;	/* end index */
+};
+
+/* This struct is used by the CDROMREADTOCHDR ioctl */
+struct cdrom_tochdr 	
+{
+	__u8	cdth_trk0;	/* start track */
+	__u8	cdth_trk1;	/* end track */
+};
+
+/* This struct is used by the CDROMVOLCTRL and CDROMVOLREAD ioctls */
+struct cdrom_volctrl
+{
+	__u8	channel0;
+	__u8	channel1;
+	__u8	channel2;
+	__u8	channel3;
+};
+
+/* This struct is used by the CDROMSUBCHNL ioctl */
+struct cdrom_subchnl 
+{
+	__u8	cdsc_format;
+	__u8	cdsc_audiostatus;
+	__u8	cdsc_adr:	4;
+	__u8	cdsc_ctrl:	4;
+	__u8	cdsc_trk;
+	__u8	cdsc_ind;
+	union cdrom_addr cdsc_absaddr;
+	union cdrom_addr cdsc_reladdr;
+};
+
+
+/* This struct is used by the CDROMREADTOCENTRY ioctl */
+struct cdrom_tocentry 
+{
+	__u8	cdte_track;
+	__u8	cdte_adr	:4;
+	__u8	cdte_ctrl	:4;
+	__u8	cdte_format;
+	union cdrom_addr cdte_addr;
+	__u8	cdte_datamode;
+};
+
+/* This struct is used by the CDROMREADMODE1, and CDROMREADMODE2 ioctls */
+struct cdrom_read      
+{
+	int	cdread_lba;
+	char 	*cdread_bufaddr;
+	int	cdread_buflen;
+};
+
+/* This struct is used by the CDROMREADAUDIO ioctl */
+struct cdrom_read_audio
+{
+	union cdrom_addr addr; /* frame address */
+	__u8 addr_format;      /* CDROM_LBA or CDROM_MSF */
+	int nframes;           /* number of 2352-byte-frames to read at once */
+	__u8 *buf;      /* frame buffer (size: nframes*2352 bytes) */
+};
+
+/* This struct is used with the CDROMMULTISESSION ioctl */
+struct cdrom_multisession
+{
+	union cdrom_addr addr; /* frame address: start-of-last-session 
+	                           (not the new "frame 16"!).  Only valid
+	                           if the "xa_flag" is true. */
+	__u8 xa_flag;        /* 1: "is XA disk" */
+	__u8 addr_format;    /* CDROM_LBA or CDROM_MSF */
+};
+
+/* This struct is used with the CDROM_GET_MCN ioctl.  
+ * Very few audio discs actually have Universal Product Code information, 
+ * which should just be the Medium Catalog Number on the box.  Also note 
+ * that the way the codeis written on CD is _not_ uniform across all discs!
+ */  
+struct cdrom_mcn 
+{
+  __u8 medium_catalog_number[14]; /* 13 ASCII digits, null-terminated */
+};
+
+/* This is used by the CDROMPLAYBLK ioctl */
+struct cdrom_blk 
+{
+	unsigned from;
+	unsigned short len;
+};
+
+#define CDROM_PACKET_SIZE	12
+
+#define CGC_DATA_UNKNOWN	0
+#define CGC_DATA_WRITE		1
+#define CGC_DATA_READ		2
+#define CGC_DATA_NONE		3
+
+/* for CDROM_PACKET_COMMAND ioctl */
+struct cdrom_generic_command
+{
+	unsigned char 		cmd[CDROM_PACKET_SIZE];
+	unsigned char		*buffer;
+	unsigned int 		buflen;
+	int			stat;
+	struct request_sense	*sense;
+	unsigned char		data_direction;
+	int			quiet;
+	int			timeout;
+	void			*reserved[1];	/* unused, actually */
+};
+
+/*
+ * A CD-ROM physical sector size is 2048, 2052, 2056, 2324, 2332, 2336, 
+ * 2340, or 2352 bytes long.  
+
+*         Sector types of the standard CD-ROM data formats:
+ *
+ * format   sector type               user data size (bytes)
+ * -----------------------------------------------------------------------------
+ *   1     (Red Book)    CD-DA          2352    (CD_FRAMESIZE_RAW)
+ *   2     (Yellow Book) Mode1 Form1    2048    (CD_FRAMESIZE)
+ *   3     (Yellow Book) Mode1 Form2    2336    (CD_FRAMESIZE_RAW0)
+ *   4     (Green Book)  Mode2 Form1    2048    (CD_FRAMESIZE)
+ *   5     (Green Book)  Mode2 Form2    2328    (2324+4 spare bytes)
+ *
+ *
+ *       The layout of the standard CD-ROM data formats:
+ * -----------------------------------------------------------------------------
+ * - audio (red):                  | audio_sample_bytes |
+ *                                 |        2352        |
+ *
+ * - data (yellow, mode1):         | sync - head - data - EDC - zero - ECC |
+ *                                 |  12  -   4  - 2048 -  4  -   8  - 276 |
+ *
+ * - data (yellow, mode2):         | sync - head - data |
+ *                                 |  12  -   4  - 2336 |
+ *
+ * - XA data (green, mode2 form1): | sync - head - sub - data - EDC - ECC |
+ *                                 |  12  -   4  -  8  - 2048 -  4  - 276 |
+ *
+ * - XA data (green, mode2 form2): | sync - head - sub - data - Spare |
+ *                                 |  12  -   4  -  8  - 2324 -  4    |
+ *
+ */
+
+/* Some generally useful CD-ROM information -- mostly based on the above */
+#define CD_MINS              74 /* max. minutes per CD, not really a limit */
+#define CD_SECS              60 /* seconds per minute */
+#define CD_FRAMES            75 /* frames per second */
+#define CD_SYNC_SIZE     ÿÝ   Þ  Þ  Þ  Þ  Þ  Þ  Þ  Þ  Þ  	Þ  
+Þ  Þ  Þ  Þ  Þ                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      12 /* 12 sync bytes per raw data frame */
+#define CD_MSF_OFFSET       150 /* MSF numbering offset of first frame */
+#define CD_CHUNK_SIZE        24 /* lowest-level "data bytes piece" */
+#define CD_NUM_OF_CHUNKS     98 /* chunks per frame */
+#define CD_FRAMESIZE_SUB     96 /* subchannel data "frame" size */
+#define CD_HEAD_SIZE          4 /* header (address) bytes per raw data frame */
+#define CD_SUBHEAD_SIZE       8 /* subheader bytes per raw XA data frame */
+#define CD_EDC_SIZE           4 /* bytes EDC per most raw data frame types */
+#define CD_ZERO_SIZE          8 /* bytes zero per yellow book mode 1 frame */
+#define CD_ECC_SIZE         276 /* bytes ECC per most raw data frame types */
+#define CD_FRAMESIZE       2048 /* bytes per frame, "cooked" mode */
+#define CD_FRAMESIZE_RAW   2352 /* bytes per frame, "raw" mode */
+#define CD_FRAMESIZE_RAWER 2646 /* The maximum possible returned bytes */ 
+/* most drives don't deliver everything: */
+#define CD_FRAMESIZE_RAW1 (CD_FRAMESIZE_RAW-CD_SYNC_SIZE) /*2340*/
+#

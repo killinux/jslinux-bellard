@@ -1,0 +1,1542 @@
+nimum size of buffers (i.e. arrays) that will receive
+          stack smashing protection when `-fstack-protection' is used.
+
+    `max-jump-thread-duplication-stmts'
+          Maximum number of statements allowed in a block that needs to
+          be duplicated when threading jumps.
+
+    `max-fields-for-field-sensitive'
+          Maximum number of fields in a structure we will treat in a
+          field sensitive manner during pointer analysis.  The default
+          is zero for -O0, and -O1 and 100 for -Os, -O2, and -O3.
+
+    `prefetch-latency'
+          Estimate on average number of instructions that are executed
+          before prefetch finishes.  The distance we prefetch ahead is
+          proportional to this constant.  Increasing this number may
+          also lead to less streams being prefetched (see
+          `simultaneous-prefetches').
+
+    `simultaneous-prefetches'
+          Maximum number of prefetches that can run at the same time.
+
+    `l1-cache-line-size'
+          The size of cache line in L1 cache, in bytes.
+
+    `l1-cache-size'
+          The size of L1 cache, in kilobytes.
+
+    `l2-cache-size'
+          The size of L2 cache, in kilobytes.
+
+    `use-canonical-types'
+          Whether the compiler should use the "canonical" type system.
+          By default, this should always be 1, which uses a more
+          efficient internal mechanism for comparing types in C++ and
+          Objective-C++.  However, if bugs in the canonical type system
+          are causing compilation failures, set this value to 0 to
+          disable canonical types.
+
+    `max-partial-antic-length'
+          Maximum length of the partial antic set computed during the
+          tree partial redundancy elimination optimization
+          (`-ftree-pre') when optimizing at `-O3' and above.  For some
+          sorts of source code the enhanced partial redundancy
+          elimination optimization can run away, consuming all of the
+          memory available on the host machine.  This parameter sets a
+          limit on the length of the sets that are computed, which
+          prevents the runaway behaviour.  Setting a value of 0 for
+          this paramter will allow an unlimited set length.
+
+    `sccvn-max-scc-size'
+          Maximum size of a strongly connected component (SCC) during
+          SCCVN processing.  If this limit is hit, SCCVN processing for
+          the whole function will not be done and optimizations
+          depending on it will be disabled.  The default maximum SCC
+          size is 10000.
+
+
+
+File: gcc.info,  Node: Preprocessor Options,  Next: Assembler Options,  Prev: Optimize Options,  Up: Invoking GCC
+
+3.11 Options Controlling the Preprocessor
+=========================================
+
+These options control the C preprocessor, which is run on each C source
+file before actual compilation.
+
+ If you use the `-E' option, nothing is done except preprocessing.
+Some of these options make sense only together with `-E' because they
+cause the preprocessor output to be unsuitable for actual compilation.
+
+     You can use `-Wp,OPTION' to bypass the compiler driver and pass
+     OPTION directly through to the preprocessor.  If OPTION contains
+     commas, it is split into multiple options at the commas.  However,
+     many options are modified, translated or interpreted by the
+     compiler driver before being passed to the preprocessor, and `-Wp'
+     forcibly bypasses this phase.  The preprocessor's direct interface
+     is undocumented and subject to change, so whenever possible you
+     should avoid using `-Wp' and let the driver handle the options
+     instead.
+
+`-Xpreprocessor OPTION'
+     Pass OPTION as an option to the preprocessor.  You can use this to
+     supply system-specific preprocessor options which GCC does not
+     know how to recognize.
+
+     If you want to pass an option that takes an argument, you must use
+     `-Xpreprocessor' twice, once for the option and once for the
+     argument.
+
+`-D NAME'
+     Predefine NAME as a macro, with definition `1'.
+
+`-D NAME=DEFINITION'
+     The contents of DEFINITION are tokenized and processed as if they
+     appeared during translation phase three in a `#define' directive.
+     In particular, the definition will be truncated by embedded
+     newline characters.
+
+     If you are invoking the preprocessor from a shell or shell-like
+     program you may need to use the shell's quoting syntax to protect
+     characters such as spaces that have a meaning in the shell syntax.
+
+     If you wish to define a function-like macro on the command line,
+     write its argument list with surrounding parentheses before the
+     equals sign (if any).  Parentheses are meaningful to most shells,
+     so you will need to quote the option.  With `sh' and `csh',
+     `-D'NAME(ARGS...)=DEFINITION'' works.
+
+     `-D' and `-U' options are processed in the order they are given on
+     the command line.  All `-imacros FILE' and `-include FILE' options
+     are processed after all `-D' and `-U' options.
+
+`-U NAME'
+     Cancel any previous definition of NAME, either built in or
+     provided with a `-D' option.
+
+`-undef'
+     Do not predefine any system-specific or GCC-specific macros.  The
+     standard predefined macros remain defined.
+
+`-I DIR'
+     Add the directory DIR to the list of directories to be searched
+     for header files.  Directories named by `-I' are searched before
+     the standard system include directories.  If the directory DIR is
+     a standard system include directory, the option is ignored to
+     ensure that the default search order for system directories and
+     the special treatment of system headers are not defeated .  If DIR
+     begins with `=', then the `=' will be replaced by the sysroot
+     prefix; see `--sysroot' and `-isysroot'.
+
+`-o FILE'
+     Write output to FILE.  This is the same as specifying FILE as the
+     second non-option argument to `cpp'.  `gcc' has a different
+     interpretation of a second non-option argument, so you must use
+     `-o' to specify the output file.
+
+`-Wall'
+     Turns on all optional warnings which are desirable for normal code.
+     At present this is `-Wcomment', `-Wtrigraphs', `-Wmultichar' and a
+     warning about integer promotion causing a change of sign in `#if'
+     expressions.  Note that many of the preprocessor's warnings are on
+     by default and have no options to control them.
+
+`-Wcomment'
+`-Wcomments'
+     Warn whenever a comment-start sequence `/*' appears in a `/*'
+     comment, or whenever a backslash-newline appears in a `//' comment.
+     (Both forms have the same effect.)
+
+`-Wtrigraphs'
+     Most trigraphs in comments cannot affect the meaning of the
+     program.  However, a trigraph that would form an escaped newline
+     (`??/' at the end of a line) can, by changing where the comment
+     begins or ends.  Therefore, only trigraphs that would form escaped
+     newlines produce warnings inside a comment.
+
+     This option is implied by `-Wall'.  If `-Wall' is not given, this
+     option is still enabled unless trigraphs are enabled.  To get
+     trigraph conversion without warnings, but get the other `-Wall'
+     warnings, use `-trigraphs -Wall -Wno-trigraphs'.
+
+`-Wtraditional'
+     Warn about certain constructs that behave differently in
+     traditional and ISO C.  Also warn about ISO C constructs that have
+     no traditional C equivalent, and problematic constructs which
+     should be avoided.
+
+`-Wimport'
+     Warn the first time `#import' is used.
+
+`-Wundef'
+     Warn whenever an identifier which is not a macro is encountered in
+     an `#if' directive, outside of `defined'.  Such identifiers are
+     replaced with zero.
+
+`-Wunused-macros'
+     Warn about macros defined in the main file that are unused.  A
+     macro is "used" if it is expanded or tested for existence at least
+     once.  The preprocessor will also warn if the macro has not been
+     used at the time it is redefined or undefined.
+
+     Built-in macros, macros defined on the command line, and macros
+     defined in include files are not warned about.
+
+     _Note:_ If a macro is actually used, but only used in skipped
+     conditional blocks, then CPP will report it as unused.  To avoid
+     the warning in such a case, you might improve the scope of the
+     macro's definition by, for example, moving it into the first
+     skipped block.  Alternatively, you could provide a dummy use with
+     something like:
+
+          #if defined the_macro_causing_the_warning
+          #endif
+
+`-Wendif-labels'
+     Warn whenever an `#else' or an `#endif' are followed by text.
+     This usually happens in code of the form
+
+          #if FOO
+          ...
+          #else FOO
+          ...
+          #endif FOO
+
+     The second and third `FOO' should be in comments, but often are not
+     in older programs.  This warning is on by default.
+
+`-Werror'
+     Make all warnings into hard errors.  Source code which triggers
+     warnings will be rejected.
+
+`-Wsystem-headers'
+     Issue warnings for code in system headers.  These are normally
+     unhelpful in finding bugs in your own code, therefore suppressed.
+     If you are responsible for the system library, you may want to see
+     them.
+
+`-w'
+     Suppress all warnings, including those which GNU CPP issues by
+     default.
+
+`-pedantic'
+     Issue all the mandatory diagnostics listed in the C standard.
+     Some of them are left out by default, since they trigger
+     frequently on harmless code.
+
+`-pedantic-errors'
+     Issue all the mandatory diagnostics, and make all mandatory
+     diagnostics into errors.  This includes mandatory diagnostics that
+     GCC issues without `-pedantic' but treats as warnings.
+
+`-M'
+     Instead of outputting the result of preprocessing, output a rule
+     suitable for `make' describing the dependencies of the main source
+     file.  The preprocessor outputs one `make' rule containing the
+     object file name for that source file, a colon, and the names of
+     all the included files, including those coming from `-include' or
+     `-imacros' command line options.
+
+     Unless specified explicitly (with `-MT' or `-MQ'), the object file
+     name consists of the name of the source file with any suffix
+     replaced with object file suffix and with any leading directory
+     parts removed.  If there are many included files then the rule is
+     split into several lines using `\'-newline.  The rule has no
+     commands.
+
+     This option does not suppress the preprocessor's debug output,
+     such as `-dM'.  To avoid mixing such debug output with the
+     dependency rules you should explicitly specify the dependency
+     output file with `-MF', or use an environment variable like
+     `DEPENDENCIES_OUTPUT' (*note Environment Variables::).  Debug
+     output will still be sent to the regular output stream as normal.
+
+     Passing `-M' to the driver implies `-E', and suppresses warnings
+     with an implicit `-w'.
+
+`-MM'
+     Like `-M' but do not mention header files that are found in system
+     header directories, nor header files that are included, directly
+     or indirectly, from such a header.
+
+     This implies that the choice of angle brackets or double quotes in
+     an `#include' directive does not in itself determine whether that
+     header will appear in `-MM' dependency output.  This is a slight
+     change in semantics from GCC versions 3.0 and earlier.
+
+`-MF FILE'
+     When used with `-M' or `-MM', specifies a file to write the
+     dependencies to.  If no `-MF' switch is given the preprocessor
+     sends the rules to the same place it would have sent preprocessed
+     output.
+
+     When used with the driver options `-MD' or `-MMD', `-MF' overrides
+     the default dependency output file.
+
+`-MG'
+     In conjunction with an option such as `-M' requesting dependency
+     generation, `-MG' assumes missing header files are generated files
+     and adds them to the dependency list without raising an error.
+     The dependency filename is taken directly from the `#include'
+     directive without prepending any path.  `-MG' also suppresses
+     preprocessed output, as a missing header file renders this useless.
+
+     This feature is used in automatic updating of makefiles.
+
+`-MP'
+     This option instructs CPP to add a phony target for each dependency
+     other than the main file, causing each to depend on nothing.  These
+     dummy rules work around errors `make' gives if you remove header
+     files without updating the `Makefile' to match.
+
+     This is typical output:
+
+          test.o: test.c test.h
+
+          test.h:
+
+`-MT TARGET'
+     Change the target of the rule emitted by dependency generation.  By
+     default CPP takes the name of the main input file, deletes any
+     directory components and any file suffix such as `.c', and appends
+     the platform's usual object suffix.  The result is the target.
+
+     An `-MT' option will set the target to be exactly the string you
+     specify.  If you want multiple targets, you can specify them as a
+     single argument to `-MT', or use multiple `-MT' options.
+
+     For example, `-MT '$(objpfx)foo.o'' might give
+
+          $(objpfx)foo.o: foo.c
+
+`-MQ TARGET'
+     Same as `-MT', but it quotes any characters which are special to
+     Make.  `-MQ '$(objpfx)foo.o'' gives
+
+          $$(objpfx)foo.o: foo.c
+
+     The default target is automatically quoted, as if it were given
+     with `-MQ'.
+
+`-MD'
+     `-MD' is equivalent to `-M -MF FILE', except that `-E' is not
+     implied.  The driver determines FILE based on whether an `-o'
+     option is given.  If it is, the driver uses its argument but with
+     a suffix of `.d', otherwise it takes the name of the input file,
+     removes any directory components and suffix, and applies a `.d'
+     suffix.
+
+     If `-MD' is used in conjunction with `-E', any `-o' switch is
+     understood to specify the dependency output file (*note -MF:
+     dashMF.), but if used without `-E', each `-o' is understood to
+     specify a target object file.
+
+     Since `-E' is not implied, `-MD' can be used to generate a
+     dependency output file as a side-effect of the compilation process.
+
+`-MMD'
+     Like `-MD' except mention only user header files, not system
+     header files.
+
+`-fpch-deps'
+     When using precompiled headers (*note Precompiled Headers::), this
+     flag will cause the dependency-output flags to also list the files
+     from the precompiled header's dependencies.  If not specified only
+     the precompiled header would be listed and not the files that were
+     used to create it because those files are not consulted when a
+     precompiled header is used.
+
+`-fpch-preprocess'
+     This option allows use of a precompiled header (*note Precompiled
+     Headers::) together with `-E'.  It inserts a special `#pragma',
+     `#pragma GCC pch_preprocess "<filename>"' in the output to mark
+     the place where the precompiled header was found, and its
+     filename.  When `-fpreprocessed' is in use, GCC recognizes this
+     `#pragma' and loads the PCH.
+
+     This option is off by default, because the resulting preprocessed
+     output is only really suitable as input to GCC.  It is switched on
+     by `-save-temps'.
+
+     You should not write this `#pragma' in your own code, but it is
+     safe to edit the filename if the PCH file is available in a
+     different location.  The filename may be absolute or it may be
+     relative to GCC's current directory.
+
+`-x c'
+`-x c++'
+`-x objective-c'
+`-x assembler-with-cpp'
+     Specify the source language: C, C++, Objective-C, or assembly.
+     This has nothing to do with standards conformance or extensions;
+     it merely selects which base syntax to expect.  If you give none
+     of these options, cpp will deduce the language from the extension
+     of the source file: `.c', `.cc', `.m', or `.S'.  Some other common
+     extensions for C++ and assembly are also recognized.  If cpp does
+     not recognize the extension, it will treat the file as C; this is
+     the most generic mode.
+
+     _Note:_ Previous versions of cpp accepted a `-lang' option which
+     selected both the language and the standards conformance level.
+     This option has been removed, because it conflicts with the `-l'
+     option.
+
+`-std=STANDARD'
+`-ansi'
+     Specify the standard to which the code should conform.  Currently
+     CPP knows about C and C++ standards; others may be added in the
+     future.
+
+     STANDARD may be one of:
+    `iso9899:1990'
+    `c89'
+          The ISO C standard from 1990.  `c89' is the customary
+          shorthand for this version of the standard.
+
+          The `-ansi' option is equivalent to `-std=c89'.
+
+    `iso9899:199409'
+          The 1990 C standard, as amended in 1994.
+
+    `iso9899:1999'
+    `c99'
+    `iso9899:199x'
+    `c9x'
+          The revised ISO C standard, published in December 1999.
+          Before publication, this was known as C9X.
+
+    `gnu89'
+          The 1990 C standard plus GNU extensions.  This is the default.
+
+    `gnu99'
+    `gnu9x'
+          The 1999 C standard plus GNU extensions.
+
+    `c++98'
+          The 1998 ISO C++ standard plus amendments.
+
+    `gnu++98'
+          The same as `-std=c++98' plus GNU extensions.  This is the
+          default for C++ code.
+
+`-I-'
+     Split the include path.  Any directories specified with `-I'
+     options before `-I-' are searched only for headers requested with
+     `#include "FILE"'; they are not searched for `#include <FILE>'.
+     If additional directories are specified with `-I' options after
+     the `-I-', those directories are searched for all `#include'
+     directives.
+
+     In addition, `-I-' inhibits the use of the directory of the current
+     file directory as the first search directory for `#include "FILE"'.
+     This option has been deprecated.
+
+`-nostdinc'
+     Do not search the standard system directories for header files.
+     Only the directories you have specified with `-I' options (and the
+     directory of the current file, if appropriate) are searched.
+
+`-nostdinc++'
+     Do not search for header files in the C++-specific standard
+     directories, but do still search the other standard directories.
+     (This option is used when building the C++ library.)
+
+`-include FILE'
+     Process FILE as if `#include "file"' appeared as the first line of
+     the primary source file.  However, the first directory searched
+     for FILE is the preprocessor's working directory _instead of_ the
+     directory containing the main source file.  If not found there, it
+     is searched for in the remainder of the `#include "..."' search
+     chain as normal.
+
+     If multiple `-include' options are given, the files are included
+     in the order they appear on the command line.
+
+`-imacros FILE'
+     Exactly like `-include', except that any output produced by
+     scanning FILE is thrown away.  Macros it defines remain defined.
+     This allows you to acquire all the macros from a header without
+     also processing its declarations.
+
+     All files specified by `-imacros' are processed before all files
+     specified by `-include'.
+
+`-idirafter DIR'
+     Search DIR for header files, but do it _after_ all directories
+     specified with `-I' and the standard system directories have been
+     exhausted.  DIR is treated as a system include directory.  If DIR
+     begins with `=', then the `=' will be replaced by the sysroot
+     prefix; see `--sysroot' and `-isysroot'.
+
+`-iprefix PREFIX'
+     Specify PREFIX as the prefix for subsequent `-iwithprefix'
+     options.  If the prefix represents a directory, you should include
+     the final `/'.
+
+`-iwithprefix DIR'
+`-iwithprefixbefore DIR'
+     Append DIR to the prefix specified previously with `-iprefix', and
+     add the resulting directory to the include search path.
+     `-iwithprefixbefore' puts it in the same place `-I' would;
+     `-iwithprefix' puts it where `-idirafter' would.
+
+`-isysroot DIR'
+     This option is like the `--sysroot' option, but applies only to
+     header files.  See the `--sysroot' option for more information.
+
+`-imultilib DIR'
+     Use DIR as a subdirectory of the directory containing
+     target-specific C++ headers.
+
+`-isystem DIR'
+     Search DIR for header files, after all directories specified by
+     `-I' but before the standard system directories.  Mark it as a
+     system directory, so that it gets the same special treatment as is
+     applied to the standard system directories.  If DIR begins with
+     `=', then the `=' will be replaced by the sysroot prefix; see
+     `--sysroot' and `-isysroot'.
+
+`-iquote DIR'
+     Search DIR only for header files requested with `#include "FILE"';
+     they are not searched for `#include <FILE>', before all
+     directories specified by `-I' and before the standard system
+     directories.  If DIR begins with `=', then the `=' will be replaced
+     by the sysroot prefix; see `--sysroot' and `-isysroot'.
+
+`-fdirectives-only'
+     When preprocessing, handle directives, but do not expand macros.
+
+     The option's behavior depends on the `-E' and `-fpreprocessed'
+     options.
+
+     With `-E', preprocessing is limited to the handling of directives
+     such as `#define', `#ifdef', and `#error'.  Other preprocessor
+     operations, such as macro expansion and trigraph conversion are
+     not performed.  In addition, the `-dD' option is implicitly
+     enabled.
+
+     With `-fpreprocessed', predefinition of command line and most
+     builtin macros is disabled.  Macros such as `__LINE__', which are
+     contextually dependent, are handled normally.  This enables
+     compilation of files previously preprocessed with `-E
+     -fdirectives-only'.
+
+     With both `-E' and `-fpreprocessed', the rules for
+     `-fpreprocessed' take precedence.  This enables full preprocessing
+     of files previously preprocessed with `-E -fdirectives-only'.
+
+`-fdollars-in-identifiers'
+     Accept `$' in identifiers.
+
+`-fextended-identifiers'
+     Accept universal character names in identifiers.  This option is
+     experimental; in a future version of GCC, it will be enabled by
+     default for C99 and C++.
+
+`-fpreprocessed'
+     Indicate to the preprocessor that the input file has already been
+     preprocessed.  This suppresses things like macro expansion,
+     trigraph conversion, escaped newline splicing, and processing of
+     most directives.  The preprocessor still recognizes and removes
+     comments, so that you can pass a file preprocessed with `-C' to
+     the compiler without problems.  In this mode the integrated
+     preprocessor is little more than a tokenizer for the front ends.
+
+     `-fpreprocessed' is implicit if the input file has one of the
+     extensions `.i', `.ii' or `.mi'.  These are the extensions that
+     GCC uses for preprocessed files created by `-save-temps'.
+
+`-ftabstop=WIDTH'
+     Set the distance between tab stops.  This helps the preprocessor
+     report correct column numbers in warnings or errors, even if tabs
+     appear on the line.  If the value is less than 1 or greater than
+     100, the option is ignored.  The default is 8.
+
+`-fexec-charset=CHARSET'
+     Set the execution character set, used for string and character
+     constants.  The default is UTF-8.  CHARSET can be any encoding
+     supported by the system's `iconv' library routine.
+
+`-fwide-exec-charset=CHARSET'
+     Set the wide execution character set, used for wide string and
+     character constants.  The default is UTF-32 or UTF-16, whichever
+     corresponds to the width of `wchar_t'.  As with `-fexec-charset',
+     CHARSET can be any encoding supported by the system's `iconv'
+     library routine; however, you will have problems with encodings
+     that do not fit exactly in `wchar_t'.
+
+`-finput-charset=CHARSET'
+     Set the input character set, used for translation from the
+     character set of the input file to the source character set used
+     by GCC.  If the locale does not specify, or GCC cannot get this
+     information from the locale, the default is UTF-8.  This can be
+     overridden by either the locale or this command line option.
+     Currently the command line option takes precedence if there's a
+     conflict.  CHARSET can be any encoding supported by the system's
+     `iconv' library routine.
+
+`-fworking-directory'
+     Enable generation of linemarkers in the preprocessor output that
+     will let the compiler know the current working directory at the
+     time of preprocessing.  When this option is enabled, the
+     preprocessor will emit, after the initial linemarker, a second
+     linemarker with the current working directory followed by two
+     slashes.  GCC will use this directory, when it's present in the
+     preprocessed input, as the directory emitted as the current
+     working directory in some debugging information formats.  This
+     option is implicitly enabled if debugging information is enabled,
+     but this can be inhibited with the negated form
+     `-fno-working-directory'.  If the `-P' flag is present in the
+     command line, this option has no effect, since no `#line'
+     directives are emitted whatsoever.
+
+`-fno-show-column'
+     Do not print column numbers in diagnostics.  This may be necessary
+     if diagnostics are being scanned by a program that does not
+     understand the column numbers, such as `dejagnu'.
+
+`-A PREDICATE=ANSWER'
+     Make an assertion with the predicate PREDICATE and answer ANSWER.
+     This form is preferred to the older form `-A PREDICATE(ANSWER)',
+     which is still supported, because it does not use shell special
+     characters.
+
+`-A -PREDICATE=ANSWER'
+     Cancel an assertion with the predicate PREDICATE and answer ANSWER.
+
+`-dCHARS'
+     CHARS is a sequence of one or more of the following characters,
+     and must not be preceded by a space.  Other characters are
+     interpreted by the compiler proper, or reserved for future
+     versions of GCC, and so are silently ignored.  If you specify
+     characters whose behavior conflicts, the result is undefined.
+
+    `M'
+          Instead of the normal output, generate a list of `#define'
+          directives for all the macros defined during the execution of
+          the preprocessor, including predefined macros.  This gives
+          you a way of finding out what is predefined in your version
+          of the preprocessor.  Assuming you have no file `foo.h', the
+          command
+
+               touch foo.h; cpp -dM foo.h
+
+          will show all the predefined macros.
+
+          If you use `-dM' without the `-E' option, `-dM' is
+          interpreted as a synonym for `-fdump-rtl-mach'.  *Note
+          Debugging Options: (gcc)Debugging Options.
+
+    `D'
+          Like `M' except in two respects: it does _not_ include the
+          predefined macros, and it outputs _both_ the `#define'
+          directives and the result of preprocessing.  Both kinds of
+          output go to the standard output file.
+
+    `N'
+          Like `D', but emit only the macro names, not their expansions.
+
+    `I'
+          Output `#include' directives in addition to the result of
+          preprocessing.
+
+`-P'
+     Inhibit generation of linemarkers in the output from the
+     preprocessor.  This might be useful when running the preprocessor
+     on something that is not C code, and will be sent to a program
+     which might be confused by the linemarkers.
+
+`-C'
+     Do not discard comments.  All comments are passed through to the
+     output file, except for comments in processed directives, which
+     are deleted along with the directive.
+
+     You should be prepared for side effects when using `-C'; it causes
+     the preprocessor to treat comments as tokens in their own right.
+     For example, comments appearing at the start of what would be a
+     directive line have the effect of turning that line into an
+     ordinary source line, since the first token on the line is no
+     longer a `#'.
+
+`-CC'
+     Do not discard comments, including during macro expansion.  This is
+     like `-C', except that comments contained within macros are also
+     passed through to the output file where the macro is expanded.
+
+     In addition to the side-effects of the `-C' option, the `-CC'
+     option causes all C++-style comments inside a macro to be
+     converted to C-style comments.  This is to prevent later use of
+     that macro from inadvertently commenting out the remainder of the
+     source line.
+
+     The `-CC' option is generally used to support lint comments.
+
+`-traditional-cpp'
+     Try to imitate the behavior of old-fashioned C preprocessors, as
+     opposed to ISO C preprocessors.
+
+`-trigraphs'
+     Process trigraph sequences.  These are three-character sequences,
+     all starting with `??', that are defined by ISO C to stand for
+     single characters.  For example, `??/' stands for `\', so `'??/n''
+     is a character constant for a newline.  By default, GCC ignores
+     trigraphs, but in standard-conforming modes it converts them.  See
+     the `-std' and `-ansi' options.
+
+     The nine trigraphs and their replacements are
+
+          Trigraph:       ??(  ??)  ??<  ??>  ??=  ??/  ??'  ??!  ??-
+          Replacement:      [    ]    {    }    #    \    ^    |    ~
+
+`-remap'
+     Enable special code to work around file systems which only permit
+     very short file names, such as MS-DOS.
+
+`--help'
+`--target-help'
+     Print text describing all the command line options instead of
+     preprocessing anything.
+
+`-v'
+     Verbose mode.  Print out GNU CPP's version number at the beginning
+     of execution, and report the final form of the include path.
+
+`-H'
+     Print the name of each header file used, in addition to other
+     normal activities.  Each name is indented to show how deep in the
+     `#include' stack it is.  Precompiled header files are also
+     printed, even if they are found to be invalid; an invalid
+     precompiled header file is printed with `...x' and a valid one
+     with `...!' .
+
+`-version'
+`--version'
+     Print out GNU CPP's version number.  With one dash, proceed to
+     preprocess as normal.  With two dashes, exit immediately.
+
+
+File: gcc.info,  Node: Assembler Options,  Next: Link Options,  Prev: Preprocessor Options,  Up: Invoking GCC
+
+3.12 Passing Options to the Assembler
+=====================================
+
+You can pass options to the assembler.
+
+`-Wa,OPTION'
+     Pass OPTION as an option to the assembler.  If OPTION contains
+     commas, it is split into multiple options at the commas.
+
+`-Xassembler OPTION'
+     Pass OPTION as an option to the assembler.  You can use this to
+     supply system-specific assembler options which GCC does not know
+     how to recognize.
+
+     If you want to pass an option that takes an argument, you must use
+     `-Xassembler' twice, once for the option and once for the argument.
+
+
+
+File: gcc.info,  Node: Link Options,  Next: Directory Options,  Prev: Assembler Options,  Up: Invoking GCC
+
+3.13 Options for Linking
+========================
+
+These options come into play when the compiler links object files into
+an executable output file.  They are meaningless if the compiler is not
+doing a link step.
+
+`OBJECT-FILE-NAME'
+     A file name that does not end in a special recognized suffix is
+     considered to name an object file or library.  (Object files are
+     distinguished from libraries by the linker according to the file
+     contents.)  If linking is done, these object files are used as
+     input to the linker.
+
+`-c'
+`-S'
+`-E'
+     If any of these options is used, then the linker is not run, and
+     object file names should not be used as arguments.  *Note Overall
+     Options::.
+
+`-lLIBRARY'
+`-l LIBRARY'
+     Search the library named LIBRARY when linking.  (The second
+     alternative with the library as a separate argument is only for
+     POSIX compliance and is not recommended.)
+
+     It makes a difference where in the command you write this option;
+     the linker searches and processes libraries and object files in
+     the order they are specified.  Thus, `foo.o -lz bar.o' searches
+     library `z' after file `foo.o' but before `bar.o'.  If `bar.o'
+     refers to functions in `z', those functions may not be loaded.
+
+     The linker searches a standard list of directories for the library,
+     which is actually a file named `libLIBRARY.a'.  The linker then
+     uses this file as if it had been specified precisely by name.
+
+     The directories searched include several standard system
+     directories plus any that you specify with `-L'.
+
+     Normally the files found this way are library files--archive files
+     whose members are object files.  The linker handles an archive
+     file by scanning through it for members which define symbols that
+     have so far been referenced but not defined.  But if the file that
+     is found is an ordinary object file, it is linked in the usual
+     fashion.  The only difference between using an `-l' option and
+     specifying a file name is that `-l' surrounds LIBRARY with `lib'
+     and `.a' and searches several directories.
+
+`-lobjc'
+     You need this special case of the `-l' option in order to link an
+     Objective-C or Objective-C++ program.
+
+`-nostartfiles'
+     Do not use the standard system startup files when linking.  The
+     standard system libraries are used normally, unless `-nostdlib' or
+     `-nodefaultlibs' is used.
+
+`-nodefaultlibs'
+     Do not use the standard system libraries when linking.  Only the
+     libraries you specify will be passed to the linker.  The standard
+     startup files are used normally, unless `-nostartfiles' is used.
+     The compiler may generate calls to `memcmp', `memset', `memcpy'
+     and `memmove'.  These entries are usually resolved by entries in
+     libc.  These entry points should be supplied through some other
+     mechanism when this option is specified.
+
+`-nostdlib'
+     Do not use the standard system startup files or libraries when
+     linking.  No startup files and only the libraries you specify will
+     be passed to the linker.  The compiler may generate calls to
+     `memcmp', `memset', `memcpy' and `memmove'.  These entries are
+     usually resolved by entries in libc.  These entry points should be
+     supplied through some other mechanism when this option is
+     specified.
+
+     One of the standard libraries bypassed by `-nostdlib' and
+     `-nodefaultlibs' is `libgcc.a', a library of internal subroutines
+     that GCC uses to overcome shortcomings of particular machines, or
+     special needs for some languages.  (*Note Interfacing to GCC
+     Output: (gccint)Interface, for more discussion of `libgcc.a'.)  In
+     most cases, you need `libgcc.a' even when you want to avoid other
+     standard libraries.  In other words, when you specify `-nostdlib'
+     or `-nodefaultlibs' you should usually specify `-lgcc' as well.
+     This ensures that you have no unresolved references to internal GCC
+     library subroutines.  (For example, `__main', used to ensure C++
+     constructors will be called; *note `collect2': (gccint)Collect2.)
+
+`-pie'
+     Produce a position independent executable on targets which support
+     it.  For predictable results, you must also specify the same set
+     of options that were used to generate code (`-fpie', `-fPIE', or
+     model suboptions) when you specify this option.
+
+`-rdynamic'
+     Pass the flag `-export-dynamic' to the ELF linker, on targets that
+     support it. This instructs the linker to add all symbols, not only
+     used ones, to the dynamic symbol table. This option is needed for
+     some uses of `dlopen' or to allow obtaining backtraces from within
+     a program.
+
+`-s'
+     Remove all symbol table and relocation information from the
+     executable.
+
+`-static'
+     On systems that support dynamic linking, this prevents linking
+     with the shared libraries.  On other systems, this option has no
+     effect.
+
+`-shared'
+     Produce a shared object which can then be linked with other
+     objects to form an executable.  Not all systems support this
+     option.  For predictable results, you must also specify the same
+     set of options that were used to generate code (`-fpic', `-fPIC',
+     or model suboptions) when you specify this option.(1)
+
+`-shared-libgcc'
+`-static-libgcc'
+     On systems that provide `libgcc' as a shared library, these options
+     force the use of either the shared or static version respectively.
+     If no shared version of `libgcc' was built when the compiler was
+     configured, these options have no effect.
+
+     There are several situations in which an application should use the
+     shared `libgcc' instead of the static version.  The most common of
+     these is when the application wishes to throw and catch exceptions
+     across different shared libraries.  In that case, each of the
+     libraries as well as the application itself should use the shared
+     `libgcc'.
+
+     Therefore, the G++ and GCJ drivers automatically add
+     `-shared-libgcc' whenever you build a shared library or a main
+     executable, because C++ and Java programs typically use
+     exceptions, so this is the right thing to do.
+
+     If, instead, you use the GCC driver to create shared libraries,
+     you may find that they will not always be linked with the shared
+     `libgcc'.  If GCC finds, at its configuration time, that you have
+     a non-GNU linker or a GNU linker that does not support option
+     `--eh-frame-hdr', it will link the shared version of `libgcc' into
+     shared libraries by default.  Otherwise, it will take advantage of
+     the linker and optimize away the linking with the shared version
+     of `libgcc', linking with the static version of libgcc by default.
+     This allows exceptions to propagate through such shared libraries,
+     without incurring relocation costs at library load time.
+
+     However, if a library or main executable is supposed to throw or
+     catch exceptions, you must link it using the G++ or GCJ driver, as
+     appropriate for the languages used in the program, or using the
+     option `-shared-libgcc', such that it is linked with the shared
+     `libgcc'.
+
+`-symbolic'
+     Bind references to global symbols when building a shared object.
+     Warn about any unresolved references (unless overridden by the
+     link editor option `-Xlinker -z -Xlinker defs').  Only a few
+     systems support this option.
+
+`-Xlinker OPTION'
+     Pass OPTION as an option to the linker.  You can use this to
+     supply system-specific linker options which GCC does not know how
+     to recognize.
+
+     If you want to pass an option that takes an argument, you must use
+     `-Xlinker' twice, once for the option and once for the argument.
+     For example, to pass `-assert definitions', you must write
+     `-Xlinker -assert -Xlinker definitions'.  It does not work to write
+     `-Xlinker "-assert definitions"', because this passes the entire
+     string as a single argument, which is not what the linker expects.
+
+`-Wl,OPTION'
+     Pass OPTION as an option to the linker.  If OPTION contains
+     commas, it is split into multiple options at the commas.
+
+`-u SYMBOL'
+     Pretend the symbol SYMBOL is undefined, to force linking of
+     library modules to define it.  You can use `-u' multiple times with
+     different symbols to force loading of additional library modules.
+
+ ---------- Footnotes ----------
+
+ (1) On some systems, `gcc -shared' needs to build supplementary stub
+code for constructors to work.  On multi-libbed systems, `gcc -shared'
+must select the correct support libraries to link against.  Failing to
+supply the correct flags may lead to subtle defects.  Supplying them in
+cases where they are not necessary is innocuous.
+
+
+File: gcc.info,  Node: Directory Options,  Next: Spec Files,  Prev: Link Options,  Up: Invoking GCC
+
+3.14 Options for Directory Search
+=================================
+
+These options specify directories to search for header files, for
+libraries and for parts of the compiler:
+
+`-IDIR'
+     Add the directory DIR to the head of the list of directories to be
+     searched for header files.  This can be used to override a system
+     header file, substituting your own version, since these
+     directories are searched before the system header file
+     directories.  However, you should not use this option to add
+     directories that contain vendor-supplied system header files (use
+     `-isystem' for that).  If you use more than one `-I' option, the
+     directories are scanned in left-to-right order; the standard
+     system directories come after.
+
+     If a standard system include directory, or a directory specified
+     with `-isystem', is also specified with `-I', the `-I' option will
+     be ignored.  The directory will still be searched but as a system
+     directory at its normal position in the system include chain.
+     This is to ensure that GCC's procedure to fix buggy system headers
+     and the ordering for the include_next directive are not
+     inadvertently changed.  If you really need to change the search
+     order for system directories, use the `-nostdinc' and/or
+     `-isystem' options.
+
+`-iquoteDIR'
+     Add the directory DIR to the head of the list of directories to be
+     searched for header files only for the case of `#include "FILE"';
+     they are not searched for `#include <FILE>', otherwise just like
+     `-I'.
+
+`-LDIR'
+     Add directory DIR to the list of directories to be searched for
+     `-l'.
+
+`-BPREFIX'
+     This option specifies where to find the executables, libraries,
+     include files, and data files of the compiler itself.
+
+     The compiler driver program runs one or more of the subprograms
+     `cpp', `cc1', `as' and `ld'.  It tries PREFIX as a prefix for each
+     program it tries to run, both with and without `MACHINE/VERSION/'
+     (*note Target Options::).
+
+     For each subprogram to be run, the compiler driver first tries the
+     `-B' prefix, if any.  If that name is not found, or if `-B' was
+     not specified, the driver tries two standard prefixes, which are
+     `/usr/lib/gcc/' and `/usr/local/lib/gcc/'.  If neither of those
+     results in a file name that is found, the unmodified program name
+     is searched for using the directories specified in your `PATH'
+     environment variable.
+
+     The compiler will check to see if the path provided by the `-B'
+     refers to a directory, and if necessary it will add a directory
+     separator character at the end of the path.
+
+     `-B' prefixes that effectively specify directory names also apply
+     to libraries in the linker, because the compiler translates these
+     options into `-L' options for the linker.  They also apply to
+     includes files in the preprocessor, because the compiler
+     translates these options into `-isystem' options for the
+     preprocessor.  In this case, the compiler appends `include' to the
+     prefix.
+
+     The run-time support file `libgcc.a' can also be searched for using
+     the `-B' prefix, if needed.  If it is not found there, the two
+     standard prefixes above are tried, and that is all.  The file is
+     left out of the link if it is not found by those means.
+
+     Another way to specify a prefix much like the `-B' prefix is to use
+     the environment variable `GCC_EXEC_PREFIX'.  *Note Environment
+     Variables::.
+
+     As a special kludge, if the path provided by `-B' is
+     `[dir/]stageN/', where N is a number in the range 0 to 9, then it
+     will be replaced by `[dir/]include'.  This is to help with
+     boot-strapping the compiler.
+
+`-specs=FILE'
+     Process FILE after the compiler reads in the standard `specs'
+     file, in order to override the defaults that the `gcc' driver
+     program uses when determining what switches to pass to `cc1',
+     `cc1plus', `as', `ld', etc.  More than one `-specs=FILE' can be
+     specified on the command line, and they are processed in order,
+     from left to right.
+
+`--sysroot=DIR'
+     Use DIR as the logical root directory for headers and libraries.
+     For example, if the compiler would normally search for headers in
+     `/usr/include' and libraries in `/usr/lib', it will instead search
+     `DIR/usr/include' and `DIR/usr/lib'.
+
+     If you use both this option and the `-isysroot' option, then the
+     `--sysroot' option will apply to libraries, but the `-isysroot'
+     option will apply to header files.
+
+     The GNU linker (beginning with version 2.16) has the necessary
+     support for this option.  If your linker does not support this
+     option, the header file aspect of `--sysroot' will still work, but
+     the library aspect will not.
+
+`-I-'
+     This option has been deprecated.  Please use `-iquote' instead for
+     `-I' directories before the `-I-' and remove the `-I-'.  Any
+     directories you specify with `-I' options before the `-I-' option
+     are searched only for the case of `#include "FILE"'; they are not
+     searched for `#include <FILE>'.
+
+     If additional directories are specified with `-I' options after
+     the `-I-', these directories are searched for all `#include'
+     directives.  (Ordinarily _all_ `-I' directories are used this way.)
+
+     In addition, the `-I-' option inhibits the use of the current
+     directory (where the current input file came from) as the first
+     search directory for `#include "FILE"'.  There is no way to
+     override this effect of `-I-'.  With `-I.' you can specify
+     searching the directory which was current when the compiler was
+     invoked.  That is not exactly the same as what the preprocessor
+     does by default, but it is often satisfactory.
+
+     `-I-' does not inhibit the use of the standard system directories
+     for header files.  Thus, `-I-' and `-nostdinc' are independent.
+
+
+File: gcc.info,  Node: Spec Files,  Next: Target Options,  Prev: Directory Options,  Up: Invoking GCC
+
+3.15 Specifying subprocesses and the switches to pass to them
+=============================================================
+
+`gcc' is a driver program.  It performs its job by invoking a sequence
+of other programs to do the work of compiling, assembling and linking.
+GCC interprets its command-line parameters and uses these to deduce
+which programs it should invoke, and which command-line options it
+ought to place on their command lines.  This behavior is controlled by
+"spec strings".  In most cases there is one spec string for each
+program that GCC can invoke, but a few programs have multiple spec
+strings to control their behavior.  The spec strings built into GCC can
+be overridden by using the `-specs=' command-line switch to specify a
+spec file.
+
+ "Spec files" are plaintext files that are used to construct spec
+strings.  They consist of a sequence of directives separated by blank
+lines.  The type of directive is determined by the first non-whitespace
+character on the line and it can be one of the following:
+
+`%COMMAND'
+     Issues a COMMAND to the spec file processor.  The commands that can
+     appear here are:
+
+    `%include <FILE>'
+          Search for FILE and insert its text at the current point in
+          the specs file.
+
+    `%include_noerr <FILE>'
+          Just like `%include', but do not generate an error message if
+          the include file cannot be found.
+
+    `%rename OLD_NAME NEW_NAME'
+          Rename the spec string OLD_NAME to NEW_NAME.
+
+
+`*[SPEC_NAME]:'
+     This tells the compiler to create, override or delete the named
+     spec string.  All lines after this directive up to the next
+     directive or blank line are considered to be the text for the spec
+     string.  If this results in an empty string then the spec will be
+     deleted.  (Or, if the spec did not exist, then nothing will
+     happened.)  Otherwise, if the spec does not currently exist a new
+     spec will be created.  If the spec does exist then its contents
+     will be overridden by the text of this directive, unless the first
+     character of that text is the `+' character, in which case the
+     text will be appended to the spec.
+
+`[SUFFIX]:'
+     Creates a new `[SUFFIX] spec' pair.  All lines after this directive
+     and up to the next directive or blank line are considered to make
+     up the spec string for the indicated suffix.  When the compiler
+     encounters an input file with the named suffix, it will processes
+     the spec string in order to work out how to compile that file.
+     For example:
+
+          .ZZ:
+          z-compile -input %i
+
+     This says that any input file whose name ends in `.ZZ' should be
+     passed to the program `z-compile', which should be invoked with the
+     command-line switch `-input' and with the result of performing the
+     `%i' substitution.  (See below.)
+
+     As an alternative to providing a spec string, the text that
+     follows a suffix directive can be one of the following:
+
+    `@LANGUAGE'
+          This says that the suffix is an alias for a known LANGUAGE.
+          This is similar to using the `-x' command-line switch to GCC
+          to specify a language explicitly.  For example:
+
+               .ZZ:
+               @c++
+
+          Says that .ZZ files are, in fact, C++ source files.
+
+    `#NAME'
+          This causes an error messages saying:
+
+               NAME compiler not installed on this system.
+
+     GCC already has an extensive list of suffixes built into it.  This
+     directive will add an entry to the end of the list of suffixes, but
+     since the list is searched from the end backwards, it is
+     effectively possible to override earlier entries using this
+     technique.
+
+
+ GCC has the following spec strings built into it.  Spec files can
+override these strings or create their own.  Note that individual
+targets can also add their own spec strings to this list.
+
+     asm          Options to pass to the assembler
+     asm_final    Options to pass to the assembler post-processor
+     cpp          Options to pass to the C preprocessor
+     cc1          Options to pass to the C compiler
+     cc1plus      Options to pass to the C++ compiler
+     endfile      Object files to include at the end of the link
+     link         Options to pass to the linker
+     lib          Libraries to include on the command line to the linker
+     libgcc       Decides which GCC support library to pass to the linker
+     linker       Sets the name of the linker
+     predefines   Defines to be passed to the C preprocessor
+     signed_char  Defines to pass to CPP to say whether `char' is signed
+                  by default
+     startfile    Object files to include at the start of the link
+
+ Here is a small example of a spec file:
+
+     %rename lib                 old_lib
+
+     *lib:
+     --start-group -lgcc -lc -leval1 --end-group %(old_lib)
+
+ This example renames the spec called `lib' to `old_lib' and then
+overrides the previous definition of `lib' with a new one.  The new
+definition adds in some extra command-line options before including the
+text of the old definition.
+
+ "Spec strings" are a list of command-line options to be passed to their
+corresponding program.  In addition, the spec strings can contain
+`%'-prefixed sequences to substitute variable text or to conditionally
+insert text into the command line.  Using these constructs it is
+possible to generate quite complex command lines.
+
+ Here is a table of all defined `%'-sequences for spec strings.  Note
+that spaces are not generated automatically around the results of
+expanding these sequences.  Therefore you can concatenate them together
+or combine them with constant text in a single argument.
+
+`%%'
+     Substitute one `%' into the program name or argument.
+
+`%i'
+     Substitute the name of the input file being processed.
+
+`%b'
+     Substitute the basename of the input file being processed.  This
+     is the substring up to (and not including) the last period and not
+     including the directory.
+
+`%B'
+     This is the same as `%b', but include the file suffix (text after
+     the last period).
+
+`%d'
+     Marks the argument containing or following the `%d' as a temporary
+     file name, so that that file will be deleted if GCC exits
+     successfully.  Unlike `%g', this contributes no text to the
+     argument.
+
+`%gSUFFIX'
+     Substitute a file name that has suffix SUFFIX and is chosen once
+     per compilation, and mark the argument in the same way as `%d'.
+     To reduce exposure to denial-of-service attacks, the file name is
+     now chosen in a way that is hard to predict even when previously
+     chosen file names are known.  For example, `%g.s ... %g.o ... %g.s'
+     might turn into `ccUVUUAU.s ccXYAXZ12.o ccUVUUAU.s'.  SUFFIX
+     matches the regexp `[.A-Za-z]*' or the special string `%O', which
+     is treated exactly as if `%O' had been preprocessed.  Previously,
+     `%g' was simply substituted with a file name chosen once per
+     compilation, without regard to any appended suffix (which was
+     therefore treated just like ordinary text), making such attacks
+     more likely to succeed.
+
+`%uSUFFIX'
+     Like `%g', but generates a new temporary file name even if
+     `%uSUFFIX' was already seen.
+
+`%USUFFIX'
+     Substitutes the last file name generated with `%uSUFFIX',
+     generating a new one if there is no such last file name.  In the
+     absence of any `%uSUFFIX', this is just like `%gSUFFIX', except
+     they don't share the same suffix _space_, so `%g.s ... %U.s ...
+     %g.s ... %U.s' would involve the generation of two distinct file
+     names, one for each `%g.s' and another for each `%U.s'.
+     Previously, `%U' was simply substituted with a file name chosen
+     for the previous `%u', without regard to any appended suffix.
+
+`%jSUFFIX'
+     Substitutes the name of the `HOST_BIT_BUCKET', if any, and if it is
+     writable, and if save-temps is off; otherwise, substitute the name
+     of a temporary file, just like `%u'.  This temporary file is not
+     meant for communication between processes, but rather as a junk
+     disposal mechanism.
+
+`%|SUFFIX'
+`%mSUFFIX'
+     Like `%g', except if `-pipe' is in effect.  In that case `%|'
+     substitutes a single dash and `%m' substitutes nothing at all.
+     These are the two most common ways to instruct a program that it
+     should read from standard input or write to standard output.  If
+     you need something more elaborate you can use an `%{pipe:`X'}'
+     construct: see for example `f/lang-specs.h'.
+
+`%.SUFFIX'
+     Substitutes .SUFFIX for the suffixes of a matched switch's args
+     when it is subsequently output with `%*'.  SUFFIX is terminated by
+     the next space or %.
+
+`%w'
+     Marks the argument containing or following the `%w' as the
+     designated output file of this compilation.  This puts the argument
+     into the sequence of arguments that `%o' will substitute later.
+
+`%o'
+     Substitutes the names of all the output files, with spaces
+     automatically placed around them.  You should write spaces around
+     the `%o' as well or the results are undefined.  `%o' is for use in
+     the specs for running the linker.  Input files whose names have no
+     recognized suffix are not compiled at all, but they are included
+     among the output files, so they will be linked.
+
+`%O'
+     Substitutes the suffix for object files.  Note that this is
+     handled specially when it immediately follows `%g, %u, or %U',
+     because of the need for those to form complete file names.  The
+     handling is such that `%O' is treated exactly as if it had already
+     been substituted, except that `%g, %u, and %U' do not currently
+     support additional SUFFIX characters following `%O' as they would
+     following, for example, `.o'.
+
+`%p'
+     Substitutes the standard macro predefinitions for the current
+     target machine.  Use this when running `cpp'.
+
+`%P'
+     Like `%p', but puts `__' before and after the name of each
+     predefined macro, except for macros that start with `__' or with
+     `_L', where L is an uppercase letter.  This is for ISO C.
+
+`%I'
+     Substitute any of `-iprefix' (made from `GCC_EXEC_PREFIX'),
+     `-isysroot' (made from `TARGET_SYSTEM_ROOT'), `-isystem' (made
+     from `COMPILER_PATH' and `-B' options) and `-imultilib' as
+     necessary.
+
+`%s'
+     Current argument is the name of a library or startup file of some
+     sort.  Search for that file in a standard list of directories and
+     substitute the full name found.
+
+`%eSTR'
+     Print STR as an error message.  STR is terminated by a newline.
+     Use this when inconsistent options are detected.
+
+`%(NAME)'
+     Substitute the contents of spec string NAME at this point.
+
+`%[NAME]'
+     Like `%(...)' but put `__' around `-D' arguments.
+
+`%x{OPTION}'
+     Accumulate an option for `%X'.
+
+`%X'
+     Output the accumulated linker options specified by `-Wl' or a `%x'
+     spec string.
+
+`%Y'
+     Output the accumulated assembler options specified by `-Wa'.
+
+`%Z'
+     Output the accumulated preprocessor options specified by `-Wp'.
+
+`%a'
+     Process the `asm' spec.  This is used to compute the switches to
+     be passed to the assembler.
+
+`%A'
+     Process the `asm_final' spec.  This is a spec string for passing
+     switches to an assembler post-processor, if such a program is
+     needed.
+
+`%l'
+     Process the `link' spec.  This is the spec for computing the
+     command line passed to the linker.  Typically it will make use of
+     the `%L %G %S %D and %E' sequences.
+
+`%D'
+     Dump out a `-L' option for each directory that GCC believes might
+     contain startup files.  If the target supports multilibs then the
+     current multilib directory will be prepended to each of these
+     paths.
+
+`%L'
+     Process the `lib' spec.  This is a spec string for deciding which
+     libraries should be included on the command line to the linker.
+
+`%G'
+     Process the `libgcc' spec.  This is a spec string for deciding
+     which GCC support library should be included on the command line
+     to the linker.
+
+`%S'
+     Process the `startfile' spec.  This is a spec for deciding which
+     object files should be the first ones passed to the linker.
+     Typically this might be a file named `crt0.o'.
+
+`%E'
+     Process the `endfile' spec.  This is a spec string that specifies
+     the last object files that will be passed to the linker.
+
+`%C'
+     Process the `cpp' spec.  This is used to construct the arguments
+     to be passed to the C preprocessor.
+
+`%1'
+     Process the `cc1' spec.  This is used to construct the options to
+     be passed to the actual C compiler (`cc1').
+
+`%2'
+     Process the `cc1plus' spec.  This is used to construct the options
+     to be passed to the actual C++ compiler (`cc1plus').
+
+`%*'
+     Substitute the variable part of a matched option.  See below.
+     Note that each comma in the substituted string is replaced by a
+     single space.
+
+`%<`S''
+     Remove all occurrences of `-S' from the command line.  Note--this
+     command is position dependent.  `%' commands in the spec string
+     before this one will see `-S', `%' commands in the spec string
+     after this one will not.
+
+`%:FUNCTION(ARGS)'
+     Call the named function FUNCTION, passing it ARGS.  ARGS is first
+     processed as a nested spec string, then split into an argument
+     vector in the usual fashion.  The function returns a string which
+     is processed as if it had appeared literally as part of the
+     current spec.
+
+     The following built-in spec functions are provided:
+
+    ``getenv''
+          The `getenv' spec function takes two arguments: an environment
+          variable name and a string.  If the environment variable is
+          not defined, a fatal error is issued.  Otherwise, the return
+          value is the value of the environment variable concatenated
+          with the string.  For example, if `TOPDIR' is defined as
+          `/path/to/top', then:
+
+               %:getenv(TOPDIR /include)
+
+          expands to `/path/to/top/include'.
+
+    ``if-exists''
+          The `if-exists' spec function takes one argument, an absolute
+          pathname to a file.  If the file exists, `if-exists' returns
+          the pathname.  Here is a small example of its usage:
+
+               *startfile:
+               crt0%O%s %:if-exists(crti%O%s) crtbegin%O%s
+
+    ``if-exists-else''
+          The `if-exists-else' spec function is similar to the
+          `if-exists' spec function, except that it takes two
+          arguments.  The first argument is an absolute pathname to a
+          file.  If the file exists, `if-exists-else' returns the
+          pathname.  If it does not exist, it returns the second
+          argument.  This way, `if-exists-else' can be used to select
+          one file or another, based on the existence of the first.
+          Here is a small example of its usage:
+
+               *startfile:
+               crt0%O%s %:if-exists(crti%O%s) \
+               %:if-exists-else(crtbeginT%O%s crtbegin%O%s)
+
+    ``replace-outfile''
+          The `replace-outfile' spec function takes two arguments.  It
+          looks for the first argument in the outfiles array and
+          replaces it with the second argument.  Here is a small
+          example of its usage:
+
+               %{fgnu-runtime:%:replace-outfile(-lobjc -lobjc-gnu)}
+
+    ``print-asm-header''
+          The `print-asm-header' function takes no arguments and simply
+          prints a banner like:
+
+               Assembler options
+               =================
+
+               Use "-Wa,OPTION" to pass "OPTION" to the assembler.
+
+          It is used to separate compiler options from assembler options
+          in the `--target-help' output.
+
+`%{`S'}'
+     Substitutes the `-S' switch, if that switch was given to GCC.  If
+     that switch was not specified, this substitutes nothing.  Note that
+     the leading dash is omitted when specifying this option, and it is
+     automatically inserted if the substitution is performed.  Thus the
+     spec string `%{foo}' would match the command-line option `-foo'
+     and would output the command line option `-foo'.
+
+`%W{`S'}'
+     Like %{`S'} but mark last argument supplied within as a file to be
+     deleted on failure.
+
+`%{`S'*}'
+     Substitutes all the switches specified to GCC whose names start
+     with `-S', but which also take an argument.  This is used for
+     switches like `-o', `-D', `-I', etc.  GCC considers `-o foo' as
+     being one switch whose names starts with `o'.  %{o*} would
+     substitute this text, including the space.  Thus two arguments
+     would be generated.
+
+`%{`S'*&`T'*}'
+     Like %{`S'*}, but preserve order of `S' and `T' options (the order
+     of `S' and `T' in the spec is not significant).  There can be any
+     number of ampersand-separated variables; for each the wild card is
+     optional.  Useful for CPP as `%{D*&U*&A*}'.
+
+`%{`S':`X'}'
+     Substitutes `X', if the `-S' switch was given to GCC.
+
+`%{!`S':`X'}'
+     Substitutes `X', if the `-S' switch was _not_ given to GCC.
+
+`%{`S'*:`X'}'
+     Substitutes `X' if one or more switches whose names start with
+     `-S' are specified to GCC.  Normally `X' is substituted only once,
+     no matter how many such switches appeared.  However, if `%*'
+     appears somewhere in `X', then `X' will be substituted once for
+     each matching switch, with the `%*' replaced by the part of that
+     switch that matched the `*'.
+
+`%{.`S':`X'}'
+     Substitutes `X', if processing a file with suffix `S'.
+
+`%{!.`S':`X'}'
+     Substitutes `X', if _not_ processing a file with suffix `S'.
+
+`%{,`S':`X'}'
+     Substitutes `X', if processing a file for language `S'.
+
+`%{!,`S':`X'}'
+     Substitutes `X', if not processing a file for language `S'.
+
+`%{`S'|`P':`X'}'
+     Substitutes `X' if either `-S' or `-P' was given to GCC.  This may
+     be combined with `!', `.', `,', and `*' sequences as well,
+     although they have a stronger binding than the `|'.  If `%*'
+     appears in `X', all of the alternatives must be starred, and only
+     the first matching alternative is substituted.
+
+     For example, a spec string like this:
+
+          %{.c:-foo} %{!.c:-bar} %{.c|d:-baz} %{!.c|d:-boggle}
+
+     will output the following command-line options from the following
+     input command-line options:
+
+          fred.c        -foo -baz
+          jim.d         -bar -boggle
+          -d fred.c     -foo -baz -boggle
+          -d jim.d      -bar -baz -boggle
+
+`%{S:X; T:Y; :D}'
+     If `S' was given to GCC, substitutes `X'; else if `T' was given to
+     GCC, substitutes `Y'; else substitutes `D'.  There can be as many
+     clauses as you need.  This may be combined with `.', `,', `!',
+     `|', and `*' as needed.
+
+
+ The conditional text `X' in a %{`S':`X'} or similar construct may
+contain other nested `%' constructs or spaces, or even newlines.  They
+are processed as usual, as described above.  Trailing white space in
+`X' is ignored.  White space may also appear anywhere on the left side
+of the colon in these constructs, except between `.' or `*' and the
+corresponding word.
+
+ The `-O', `-f', `-m', and `-W' switches are handled specifically in
+these constructs.  If another value of `-O' or the negated form of a
+`-f', `-m', or `-W' switch is found later in the command line, the
+earlier switch value is ignored, except with {`S'*} where `S' is just
+one letter, which passes all matching options.
+
+ The character `|' at the beginning of the predicate text is used to
+indicate that a command should be piped to the following command, bu

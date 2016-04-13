@@ -1,0 +1,1660 @@
+led mode 0755 instead of 0555 to
+    make rpmlint happy.
+
+    Make clobber cleanup as suggested by Martin Buck <m at rtin-buck dot de>.
+    The clobber rule now depends on the clean rule.
+
+
+The following are the changes from calc version 2.12.1.6 to 2.12.1.7:
+
+    Added the calc builtin function, usertime(), to return the amount of
+    user CPU time used by the current process.  Unlike the old runtime()
+    builtin, the CPU time reported for long running processes will not
+    wrap around to 0 after only a few months.
+
+    Added the calc built0in function, systime(), to return the amount of
+    kernel CPU time used by the current process.
+
+    The runtime() builtin function now returns the total amount of CPU
+    time used by the current process.  This time includes both user mode
+    and kernel mode time.  Unlike the old runtime() builtin, the builtin
+    includes time spent executing operating system code on behalf of
+    the current process.
+
+    Fixed runtime() so that the CPU time reported for long running
+    processes will wrap around to 0 for a long time.
+
+    Added config("hz") to return the clock tick rate.  This is
+    a read-only configuration value.
+
+    Added regression tests for recently added config() parameters.
+
+    Fixed the #define symbols that were created in have_strdup.h.
+    Previously this file looked as if have_rusage.h has been
+    included already.
+
+    Restored the function of "help" (without any args) printing the
+    default help file.  Thanks for this fix goes to Silvan Minghetti
+    <bullet at users dot sourceforge dot net>.
+
+    Fixed a problem where some old MS environments failed some of the
+    regression tests because "read -once foo.cal" was not behaving
+    correctly due to how the _fullpath() was being called.  Thanks for
+    this fix goes to Anatoly <notexistent-anb at yandex dot ru>.
+
+    Documented the mis-feature about how calc parses if, for, while
+    and do statements in an unexpected way.   For example:
+
+	This works as expected:
+
+	    if (expr) {
+		...
+	    }
+
+	However this WILL NOT WORK AS EXPECTED:
+
+	    if (expr)
+	    {
+		...
+	    }
+
+	because calc will parse the if being terminated by
+	an empty statement followed by a
+
+	    if (expr) ;
+	    {
+		...
+	    }
+
+    See also "help statement", "help unexpected", "help todo", and
+    "help bugs".
+
+
+The following are the changes from calc version 2.12.1 to 2.12.1.5:
+
+    Fixed minor typos in the 'version 2.12.0 to 2.12.0.8' section below.
+    Made minor formatting changes as well.
+
+    Changed use of ${Q} in the Makefile to avoid an make "feature"
+    related to OpenBSD.  Added ${RM} make variable for make tools that
+    do not have builtin defined terms.
+
+    Removed the ECHO_PROG Makefile variable.  Also removed it from
+    the sysinfo() custom function.
+
+    Improved the support for cross-compiled environments by using
+    make symbols for all non-shell commands executed by Makefiles.
+
+    Fixed a problem with the make chk awk script which failed under
+    OS X 10.4.7.
+
+    Fixed a few minor variables that were not set to default values in
+    lower level Makefiles.
+
+    Fixed a reference to a non-existent make variable in HOWTO.INSTALL.
+
+
+The following are the changes from calc version 2.12.0 to 2.12.0.8:
+
+    Fixed ellip.cal to deal with a calc syntax change that happened
+    many ages ago but was never applied to this file until now.
+    This bug was fixed by Ernest Bowen <ebowen at une dot edu dot au>.
+
+    Fixed a problem where comments using # followed by a !, newline or
+    another # works.  This bug was fixed by Ernest Bowen <ebowen at une
+    dot edu dot au>.
+
+    The show builtins display for functions with long descriptions
+    is now broken into multi-line descriptions.
+
+    The str functions, such as strcpy(s1, s2), will now copy as many
+    characters as possible from s2 to s1, treating '\0' like any other
+    character until the end of s2 is reached. If s2 is shorter than s1,
+    a '\0' is inserted.
+
+    The strcmp(s1, s2) builtin, for strings s1, s2: strcmp(s1, s2) == 0 now
+    means the same as s1 == s2.
+
+    The str(s) builtin has been changed so that it will return only the
+    string formed by the characters of 's' up to the first '\0'.
+
+    The substr(s, start, num) builtin has been changed so that '\0' characters
+    are treated like any other.
+
+    Fixed a bug where strcpy("", "a") used to cause a segmentation fault.
+    This bug was fixed by Ernest Bowen <ebowen at une dot edu dot au>.
+
+    Make minor change to natnumset.cal in how the tail variable is initialized.
+
+    Fixed bugs in the strcmp, strncmp, strcpy, and strncpy help files.
+    This bug was fixed by Ernest Bowen <ebowen at une dot edu dot au>.
+
+    Added cal/screen.cal which Defines ANSI control sequences providing
+    (i.e., cursor movement, changing foreground or background color,
+    etc.) for VT100 terminals and terminal window emulators (i.e., xterm,
+    Apple OS/X Terminal, etc.) that support them.  For example:
+
+	; read screen
+	; print green:"This is green. ":red:"This is red.":black
+
+    Fixed a bug where too many open files returned E_FOPEN3.  Now
+    a new error symbol F_MANYOPEN is used for too many open files.
+
+    Added the builtin function fpathopen() to open a file while
+    searching along a path:
+
+    	; fd2 = fpathopen("tmp/date", "r", ".:~:~sc:/tmp:/var/tmp:/var")
+	; print fd2
+	"/var/tmp/date"
+
+    By default, fpathopen() searches along CALCPATH.
+
+    Added the calcpath() builtin function to return the current value
+    of CALCPATH.
+
+    Fixed prompt characters in the EXAMPLE section of help files.
+
+    Fixed problems related to the protect function and its documentation.
+    This bug was reported by David Gilham <davidgilham at gmail dot com>.
+    This bug was fixed by Ernest Bowen <ebowen at une dot edu dot au>.
+
+    Raised the limit of exponent in exponential notation.  It was set to
+    arbitrary 1000000 (making 1e1000001 in invalid exponential notation
+    value).  The exponent for exponential notation is now int(MAXLONG/10).
+    On 32 bit machines, this means a limit of 214748364.  On 64 bit
+    machines, this means 922337203685477580.  Of course, you may not
+    have enough memory to hold such huge values, but if you did you can
+    now express such values in exponential notation.
+
+    Added log() builtin for base 10 logarithm.
+
+    Fixed problems where internal use of libc strcpy() might have caused
+    a buffer overflow.  Calc now only uses libc strcpy() when the source
+    string is a constant.
+
+    The calc STRING and STRINGHEAD now use the standard size_t (an unsigned
+    type) length.  Calc mostly uses size_t in dealing with string lengths
+    and object sizes when possible.
+
+    Added ${CCWERR} make variable to allow one to force compiler warnings
+    to be treated as errors.  The ${CC} make variable now uses ${CCWERR}
+    however the ${LCC} (used by the Makefile test code for building hsrc
+    files) does not use ${CCWERR}.  By default, ${CCWERR} is empty.
+    In development Makefiles, we set CCWERR= -Werror to force us to
+    address compiler warnings before the next release.
+
+    The calc make variable, CALCPAGER, now defaults to CALCPAGER= less
+    because the less utility is now very common.  Set CALCPAGER= more
+    if you do not have less.
+
+    Calc source had two styles of switch indentation.  Converted the
+    style where case statements were indented with respect to the switch
+    statement into the style where the case statements are at the same
+    level.  When comparing with older source, one may use the -b argument
+    of the diff command to ignore changes in amount of white space:
+
+    	diff -b -r -u calc-2.11.11 calc-2.12.0
+
+    The read, write, and help commands use the value of global string
+    variable if the symbol name starts with a $.  For example:
+
+    	global x = "lucas.cal";
+	read $x;	/* same as read lucas.cal or read "lucas.cal" */
+
+    Added dotest.cal resource.  Based on a design by Ernest Bowen
+    <ebowen at une dot edu dot au>, the dotest evaluates individual
+    lines from a file.  The dotest() function takes 1 to 3 arguments:
+
+	dotest(dotest_file [,dotest_code [,dotest_maxcond]])
+
+	dotest_file
+
+	    Search along CALCPATH for dotest_file, which contains lines that
+	    should evaluate to 1.  Comment lines and empty lines are ignored.
+	    Comment lines should use ## instead of the multi like /* ... */
+	    because lines are evaluated one line at a time.
+
+	dotest_code
+
+	    Assign the code number that is to be printed at the start of
+	    each non-error line and after **** in each error line.
+	    The default code number is 999.
+
+	dotest_maxcond
+
+	    The maximum number of error conditions that may be detected.
+	    An error condition is not a sign of a problem, in some cases
+	    a line deliberately forces an error condition.  A value of -1,
+	    the default, implies a maximum of 2147483647.
+
+	Global variables and functions must be declared ahead of time because
+	the dotest scope of evaluation is a line at a time.  For example:
+
+	    ; read dotest.cal
+	    ; read set8700.cal
+	    ; dotest("set8700.line");
+
+    Updated the todo / wish list items.  The top priority now is to
+    convert calc to GNU autoconf / configure to build the calc.
+
+	; help todo
+
+    Added missing help file for the stoponerror() builtin.
+
+    Corrected and improved the help documentation for factor and lfactor.
+
+    Fixed a problem where some error messages that should have been
+    written to a file or string, went to stderr instead.  This bug was
+    fixed by Ernest Bowen <ebowen at une dot edu dot au>.
+
+    Corrected the documentation relating to the calc -c command line option.
+    The -c relates to scan/parse errors only, not execution errors.
+
+    Corrected a stack overflow problem where the math_fmt() in zio.c
+    could be induced to overflow the stack.  This problem was independently
+    reported by Chew Keong Tan of Secunia Research <vuln at secunia dot com>.
+
+    Corrected a stack overflow problem where the scanerror() in token.c
+    could be induced to overflow the stack by a malformed token.
+
+    Made math_error() in math_error.c more robust against a error
+    message constant that is too long.
+
+    Made read_bindings() in hist.c more robust against very long bindings
+    config lines.
+
+    Made listsort() in listfunc.c and matsort() matfunc.c more robust
+    against sorting of impossibly huge lists and matrices.
+
+    Warnings about an undefining a builtin or undefined function, a
+    constant before the comma operator, and an unterminated comment is
+    now processed by scanerrors (not simply written directly to stderr).
+    These warnings file and line number in which the "error" occurred
+    as well as a more precise message than before.  If using -c on the
+    calc command line or if stoponerror(-1), then assuming there are
+    no other compile errors, only the unterminated comment will stop
+    completion of the function being defined.
+
+    The cal/regress.cal now reads most of the calc resource files.
+
+    The issq() test had a slight performance boost.  A minor note
+    was added to the help/issq file.
+
+    Improved the documentation of the mul2, sq2, pow2, and redc2 config
+    parameters in help/config.
+
+    Added config("baseb"), a read-only configuration value to return
+    the number of bits in the fundamental base in which calculations
+    are performed.  This is a read-only configuration value.
+
+    Calc now will allow syntax such as ++*p-- and  ++*----*++p----
+    where p is an lvalue; successful evaluation of course require the
+    successive operations to be performed to have operands of appropriate
+    types; e.g. in *A, A is usually an lvalue whose current value is a
+    pointer. ++ and -- act on lvalues. In the above examples there are
+    implied parentheses from the beginning to immediately after p. If
+    there are no pre ++ or -- operations, as in **p++.  The implied
+    parentheses are from immediately before p to the end.
+
+    Improved the error message when && is used as a prefix operator.
+
+    Changed the help/config file to read like a builtin function help file.
+
+    One can no longer set to 1, or to a value < 0, the config()
+    parameters: "mul2", "sq2", "pow2", and "redc2".  These values
+    in the past would result in improper configuration of internal
+    calc algorithms.  Changed cal/test4100.cal to use the minimal
+    value of 2 for "pow2", and "redc2".
+
+    Changed the default values for the following config() parameters:
+
+    	config("mul2") == 1780
+	config("sq2") == 3388
+	config("pow2") == 176
+
+	These values were determined established on a 1.8GHz AMD 32-bit
+	CPU of ~3406 BogoMIPS by the new resource file:
+
+	    cal/alg_config.cal
+
+   Regarding the alg_config.cal resource file:
+
+	The best_mul2() function returns the optimal value of config("mul2").
+	The best_sq2() function returns the optimal value of config("sq2").
+	The best_pow2() function returns the optimal value of config("pow2").
+	The other functions are just support functions.
+
+	By design, best_mul2(), best_sq2(), and best_pow2() take a few
+	minutes to run.  These functions increase the number of times a
+	given computational loop is executed until a minimum amount of CPU
+	time is consumed.  To watch these functions progress, one can set
+	the config("user_debug") value.
+
+	Here is a suggested way to use the alg_config.cal resource file:
+
+	    ; read alg_config
+	    ; config("user_debug",2),;
+	    ; best_mul2(); best_sq2(); best_pow2();
+	    ; best_mul2(); best_sq2(); best_pow2();
+	    ; best_mul2(); best_sq2(); best_pow2();
+
+	NOTE: It is perfectly normal for the optimal value returned
+	to differ slightly from run to run.  Slight variations due to
+	inaccuracy in CPU timings will cause the best value returned to
+	differ slightly from run to run.
+
+	See "help resource" for more information on alg_config.cal.
+
+    Updated the "help variable" text to reflect the current calc
+    use of ` (backquote), * (star), and & (ampersand).
+
+    Removal of some restrictions on the use of the same identifier
+    for more than one of parameter, local, static or global variable.
+
+	For example, at command level, one could use:
+
+	    for (local x = 0; x < 10; x++) print sqrt(x);
+
+	At the beginning of a statement, "(global A)" is a way of
+	indicating a reference to the variable A, whereas "global A"
+	would be taken as a declaration. Parentheses are not required in
+	"++global A" or "global A++" when "global" is used in this way.
+
+	The patch extends this "specifier" (or "qualifier") feature
+	to static variables, but such that "static A" refers only
+	to a static variable at the current file and function scope
+	levels. (If there is already a static variable A at the current
+	file and function levels, a declaration statement "static A"
+	would end the scope of that variable and define a new static
+	variable with identifier A. A "global A" declaration is more
+	drastic in that it ends the scope of any static variable A at
+	the same or higher scope levels.)
+
+	Unlike a static declaration in which an "initialization" occurs at
+	most once, in the specifier case, "static A = expr" is simply an
+	assignment which may be repeated any number of times.  An example
+	of its use is:
+
+	    define np() = static a = nextprime(a);
+
+	For n not too large, the n-th call to this function will
+	return the n-th prime. The variable a here will be private to
+	the function.
+
+	Because one can use "global", "local" or "static" to specify a
+	type of variable, there seems little point in restricting the
+	ways identifiers that can be used in more than one of these
+	or as parameters. Obviously, introducing A as a local variable
+	when it is being used as a parameter can lead to confusion and a
+	warning is appropriate, but if it is to be used only occasionally,
+	it might be convenient to be able to refer to it as "local A"
+	rather than introducing another identifier. While it may be
+	silly to use the same identifier for both a parameter and local
+	variable, it should not be illegal.
+
+    Added warnings for possibly questionable code in function definitions.
+
+    Added config("redecl_warn", boolean) to control if calc issues
+    warnings about variables being declared.  The config("redecl_warn")
+    value is TRUE by default.
+
+    Added config("dupvar_warn", boolean) to control if calc issues
+    warnings about when variable names collide.  The config("dupvar_warn")
+    value is TRUE by default.  Examples of variable name collisions
+    include when:
+
+    	* both local and static variables have the same name
+    	* both local and global variables have the same name
+    	* both function parameter and local variables have the same name
+    	* both function parameter and global variables have the same name
+
+    Fix of a bug which causes some static variables not to be correctly
+    unscoped when their identifiers are used in a global declaration.
+
+    Change of "undefine" from a command-level keyword to statement level and
+    introduction of an "undefine static A" statement to end the scope of a
+    static variable A at the current file/function levels.
+
+    Change/restored the syntax rules for "for" and "while" loops to
+    recognize an unescaped newline in top-level command-level statements.
+
+    Updated help/avg, help/define, help/fprintf, help/gcd, help/hash,
+    help/hmean, help/lcm, help/max, help/min, help/null, help/poly,
+    help/printf, help/ssq, help/strcat, help/strprintf, help/sum,
+    help/xor.
+
+    Changed the definition of the function ssq() to enable list arguments
+    to be processed in the same way as in sum().  For example:
+
+    	ssq(1,2, list(3,4,list(5,6)), list(), 7, 8)
+
+    returns the value of 1^2 + 2^2 + ... + 8^2 == 204.
+
+    Added the calc resource sumtimes.cal, to give the runtimes for
+    various ways of evaluating sums, sums of squares, etc, for large
+    lists and matrices.  For example:
+
+    	read sumtimes
+	doalltimes(1e6)
+
+    Calc now ignores carriage returns (\r), vertical tabs (\v), and
+    form feeds (\f) when token parsing.  Thus users on Windoz systems
+    can write files using their \r\n format and users on non-Windoz
+    systems can read them without errors.
+
+    The quomod() builtin function now takes an optional 5th argument
+    which controls the rounding mode like config("quomod") does, but
+    only for that call.  Now quomod() is in line with quo() and mod()
+    in that the final argument is an optional rounding mode.
+
+    Added a "make uninstall" rule which will attempt to remove everything
+    that was installed by a "make install".
+
+    Changed the "Copyright" line in the rpm spec file to a "License" line
+    as per new rpm v4.4 syntax.
+
+    The quomod() builtin function does not allow constants for its 3rd
+    and 4th arguments.  Updated the "help quomod" file and added more
+    quomod regression tests.
+
+    Added patch from Ernest Bowen <ebowen at une dot edu dot au> to
+    add the builtin: estr().  The estr(x) will return a representation
+    of a null, string, real number, complex number, list, matrix,
+    object. block, named block, error as a string.
+
+    Added patch from Ernest Bowen <ebowen at une dot edu dot au> to
+    add the builtin: fgetfile().  The fgetfile(x) will return the rest
+    of an open file as a string.
+
+    Improved help files for fgetfield, fputs, name, or quomod.
+
+
+The following are the changes from calc version 2.11.10.1 to 2.11.11:
+
+    Fixed a bug reported by the sourceforge user: cedars where:
+
+    	ln(exp(6)) == 3		/* WRONG!!! */
+
+    incorrectly returned 1.  This bug was fixed by Ernest Bowen
+    <ebowen at une dot edu dot au>.  The regression test
+    was expanded to cover this issue.
+
+    Added minor improvements to hash regression testing of pi().
+
+    Fixed "help script" and the calc man page regarding the requirement
+    of -f to be the last -flag in shell script mode.  Further clarified
+    the meaning and placement of the -f flag.
+
+    Moved issues with chi.cal intfile.cal into a "mis-features" section
+    of the BUGS file.  See "help bugs" or the BUGS source file for details.
+
+    Added the bug about:
+
+	calc 'read ellip; efactor(13*17*19)'
+
+    to the BUGS file.  See "help bugs" or the BUGS source file for details.
+    Anyone want to track down and fix this bug?
+
+    Fixed typo in the "help mat" example and improved the mat_print example.
+
+    Renamed most COMPLEX C function names to start with c_ to avoid
+    conflicts with new C standard functions.  Note that the calc
+    builtin function names remain the same.   The C function names
+    inside the C source that calc is written in changed.  This means
+    that code that linked to libcalc.a will need to change in order
+    to call calc's functions instead of the C standard functions.
+    See cmath.h, comfunc.c, and commath.c for details.  See also
+    http://www.opengroup.org/onlinepubs/009695399/basedefs/complex.h.html
+    for names of the new C standard functions.
+
+    Changed the calc man page to note that using -- in the command will
+    separate calc options from arguments as in:
+
+	calc -p -- -1 - -7
+
+    Noted how Apple OS X can make use of readline in the Makefile.
+    In particular:
+
+	# For Apple OS X: install fink from http://fink.sourceforge.net
+	#                 and then do a 'fink install readline' and then use:
+	#
+	READLINE_LIB= -L/sw/lib -lreadline -lhistory -lncurses
+
+    Added linear.cal as a calc standard resource file.
+
+
+The following are the changes from calc version 2.11.10 to 2.11.10:
+
+    The cygwin config value is correctly tested while doing comparisons
+    between config states.
+
+    Added config("compile_custom") to determine if calc was compiled
+    with -DCUSTOM.  By default, the Makefile uses ALLOW_CUSTOM= -DCUSTOM
+    so by default, config("compile_custom") is TRUE.  If, however,
+    calc is compiled without -DCUSTOM, then config("compile_custom")
+    will be FALSE.  NOTE: The config("compile_custom") value is only
+    affected by compile flags.  The calc -D runtime command line option
+    does not change the config("compile_custom") value.  This is a
+    read-only configuration value.
+
+    Added config("allow_custom") to determine if the use of custom
+    functions are allowed.  To allow the use of custom functions, calc
+    must be compiled with -DCUSTOM (which it is by default) AND calc run
+    be run with the -D runtime command line option (which it is not by
+    default).  If config("allow_custom") is TRUE, then custom functions
+    are allowed.  If config("allow_custom") is FALSE, then custom
+    functions are not allowed.  This is a read-only configuration value.
+
+    Correctly hash config state for windows and cygwin values.  The value
+    of config("compile_custom") and config("allow_custom") also affect
+    the hash of the config state.
+
+    Fixed the custom/argv.cal test code to avoid use of a reserved
+    builtin function name.
+
+    Fixed custom/*.cal scripts to conform better with the cal/*.cal
+    resource files.
+
+    Removed the Makefile variables ${LONGLONG_BITS}, ${HAVE_LONGLONG},
+    and ${L64_FORMAT}.  Removed longlong.c and longlong.h.  The use
+    of HAVE_LONGLONG=0 was problematic.  The lack of complaints about
+    the HAVE_LONGLONG=0 shows that the 'long long' type is wide spread
+    enough warrent not trying to support compilers without 'long long'.
+
+    Removed the SVAL and SHVAL macros from zrand.c, zrand.h, and zmath.h
+    as they were causing too many broken C pre-processors and C checkers
+    to become confused.
+
+    Added a 'make splint' rule to use the splint statically checking
+    tool on the calc source.
+
+    Removed support of the BSDI platform.  The BSDI platform is no longer
+    directly supported and we lost our last BSDI machine on which we
+    could test calc.  Best wishes to the former BSDI folk and thanks
+    for breaking important ground in the Open Source Movement!
+
+    Fixed several typos found in the documentation and buildin
+    function output by C Smith <smichr at hotmail dot com>.
+
+    Fixed -d so that:
+
+    	calc -d 2/3
+
+    will print 0.66666666666666666667 without the leading tilde as
+    advertised in the man page.
+
+    Added a missing help file for the display builtin function as
+    requested by Igor Furlan <primorec at sbcglobal dot net>.
+
+    Changed the "help environment" file to reflect modern default
+    values of CALCPATH and CALCRC.
+
+    Added missing variables for printing by the "make env" rule.
+
+    Added EXT Makefile variable so that Cygwin can install calc as
+    calc.exe.  By default, EXT is empty so that calc is calc on most
+    modern operating systems.  Thanks goes to Ullal Devappa Kini <wmbfqj
+    at vsnl dot net> for helping identify this problem and testing our fix.
+
+    Added custom function:
+
+    	custom("pmodm127", q)
+
+    to compute 2^(2^127-1) mod q.  While currently slower than just
+    doing pmod(2,2^127-1,q), it is added to give an example of a
+    more complex custom function.  Call calc with the -C flag to
+    use custom functions.
+
+    Made slight changes to the custom/HOW_TO_ADD documentation.
+
+    Fixed some \ formatting man page problems as reported by Keh-Cheng
+    Chu <kehcheng at quake dot Stanford dot edu>.
+
+    Fixed some comparison between signed and unsigned in md5.c
+    that was reported for the PowerMac G5 2GHz MacOS 10.3 by
+    Guillaume VERGNAUD <vergnaud at via dot ecp dot fr>.
+
+    Fixed a number of pending issues with help files filling in
+    missing  LIMITS, LINK LIBRARY, and SEE ALSO information,
+
+
+The following are the changes from calc version 2.11.9 to 2.11.9.3:
+
+    Fixed calc man page examples to move -f to the end of the line.
+    Thanks goes to Michael Somos <somos at grail dot cba dot csuohio
+    dot edu> for pointing this out.
+
+    Linux and gcc now compiled with -Wall -W -Wno-comment.
+
+    Fixed a post increment that was reported by R. Trinler <trinler at
+    web dot de> and fixed by Ernest Bowen <ernie at turing dot une dot
+    edu dot au>.
+
+    Fixed pi.cal to not depend on the buggy pre-2.11.9 post increment
+    behavior.
+
+    Added config("cygwin") to determine if calc was compiled under Cygwin.
+    The config("cygwin") is a read-only configuration value that is 1
+    when calc was compiled under Cygwin and 0 otherwise.  Regression
+    tests 949 and 950 are skipped when config("cygwin") is true.
+
+    The Makefile variable HAVE_NO_IMPLICIT is empty by default so that
+    the Makefile will test if the compiler has a -Wno-implicit flag.
+
+    Added HAVE_UNUSED Makefile variable.  If HAVE_UNUSED is empty,
+    then the Makefile will run the have_unused program to determine
+    if the unused attribute is supported.  If HAVE_UNUSED is set to
+    -DHAVE_NO_UNUSED, then the unused attribute will not be used.
+
+    The Makefile builds have_unused.h which defines, if the unused
+    attribute is supported:
+
+	#define HAVE_UNUSED /* yes */
+	#define UNUSED __attribute__((unused)) /* yes */
+
+    or defines, if the unused is not supported (or if the Makefile
+    variable is HAVE_UNUSED= -DHAVE_NO_UNUSED):
+
+	#undef HAVE_UNUSED /* no */
+	#define UNUSED /* no */
+
+    Fixed numerous warnings about comparison between signed and unsigned
+    value warnings and unused parameter warnings in version.c, zrand.c,
+    string.c, shs1.c, shs.c, qtrans.c, qmath.c, qfunc.c, md5.c, matfunc.c,
+    hist.c, file.c, const.c, blkcpy.c, seed.c, opcodes.c, func.c, qio.c,
+    zrandom.c, custom/c_argv.c, custom/c_devnull.c, custom/c_help.c,
+    custom/c_sysinfo.c, addop.c and calc.c.
+
+    Fixed some typos in this file.
+
+    By default, compile with -O3 -g3.  The Makefile comments on how some
+    distributions might need to use -O2 -g or -O -g.
+
+
+The following are the changes from calc version 2.11.8.0 to 2.11.8.1:
+
+    Updated HOWTO.INSTALL to reflect the new RPM files.
+
+    Clarify that the internal hash as well as the hash builtin
+    function used by calc, while based on the Fowler/Noll/Vo
+    hash is NOT an FNV hash.
+
+    Made slight performance improvements to calc by an optimization of how
+    calc's internal hash is computed.  The "make chk" regression test
+    runs about 1.5% faster (when compiled with -O3 on an AMD Athlon)
+    NO_HASH_CPU_OPTIMIZATION is not defined.  Calc's internal hash values
+    have not changed.  By default, NO_HASH_CPU_OPTIMIZATION is NOT defined
+    and the slightly faster expression is used.
+
+    A slight modification of what was known as the "calc new standard"
+    configuration (calc -n or config("all", "newstd")) is now the default
+    calc configuration.  The flag:
+
+    	calc -O
+
+    was added to get the old classic calc configuration.  The flag command
+    line flag, -n, now does nothing.  Use of -n is deprecated and may go
+    away / be used for something else in the future.
+
+    The following table gives the summary of these changes:
+
+	     pre v2.11.8		     v2.11.8
+	     default         pre v2.11.8     -O & oldstd      v2.11.8
+	     and oldstd	     -n & newstd     classic cfg      default
+	     --------------------------------------------------------
+    epsilon	1e-20		1e-10		1e-20		1e-20
+    quo	    	2		2		2		2
+    outround	2		24		2		24
+    leadzero	0		1		0		1
+    fullzero	0		1		0		0
+    prompt	>		;		>		;
+    more	>>		;;		>>		;;
+
+    With the exception of epsilon being 1e-20, and fullzero being unset,
+    the new default calc config is like it was (pre-2.11.8) with calc -n /
+    config("all", "newstd").
+
+    The new default config is the old classic config with outround being
+    24, leadzero being set, and the prompts being ;'s.
+
+    Fixed a bug in the evaluation of tanh(1e-23) with an epsilon(1e-100).
+    Thanks goes to Dmitry G. Baksheyev <bd at nbsp dot nsk dot su>
+    for reporting the problem, and thanks goes to Ernest Bowen
+    <ernie at turing dot une dot edu dot au> for the fix.
+
+
+The following are the changes from calc version 2.11.7.0 to 2.11.7.1:
+
+    Added support to build calc RPMs thanks to Petteri Kettunen
+    <petterik at users dot sourceforge dot net>.
+
+    Added rpm rule to Makefile to build rpm set.  The rpm rule
+    uses the rpm.mk Makefile and the calc.spec.in spec template.
+
+    The default Makefile is now the Makefile used during rpm
+    creation.  This Makefile assumes that system has readline,
+    ncurses (-lreadline -lhistory -lncurses), and less.
+    It compiled with a high gcc optimization level (-O3 -g3).
+    The Makefile used during rpm creation is the Makefile
+    that appears in the calc-src rpm as well.
+
+    The Makefile shipped with the old style gziped tarball
+    is still the same generic Makefile.
+
+    The Makefile now uses ${MKDIR} ${MKDIR_ARG} when creating
+    directories during installation.  By default, it does
+    a mkdir -p when forming directories.
+
+    Fixed attributes on include and lib calc-devel files.
+
+    Adjusted the interaction between rpm.mk, and the calc.spec.in.
+    Release number now comes from calc.spec.in only.
+
+    Renamed calc and calc-devel RPMs to use .i686 instead of .i386.
+
+
+The following are the changes from calc version 2.11.6.3 to date:
+
+    Fixed a bug in deg.cal where fixdms() was being called with
+    the wrong type of argument.
+
+    Changed the value of digits(1) and digits(0) to be 1.  Now digits()
+    returns number of digits in the standard base-b representation
+    when x is truncated to an integer and the sign is ignored.
+    To be more precise: when abs(int(x)) > 0, this function returns
+    the value 1 + ilog(x, b).  When abs(int(x)) == 0, then this
+    function returns the value 1.
+
+    As the result of the above digits() change, the repeat.cal
+    resource file script was modified to remove the special
+    case for repeating a value of 1.  Also the regress tests
+    #715, #977 and #978 were changed.
+
+    Made a minor improvement to the "help places" documentation.
+
+    Fixed dms_neg(a) in deg.cal thanks to a bug report by kaa
+    <kaa76 at pochtamt dot ru>.
+
+
+The following are the changes from calc version 2.11.6.0 to 2.11.6.2:
+
+    Clarified remark in lucas.cal about use of n mod 2^n == 0.
+
+    Fixed help typos reported by Marc Mezzarobba <mm at mm dot ovh dot org>.
+
+    Forced system("") to return 0 under windoz.
+
+    The direct.h include file is not used when compiling under Cygwin.
+
+    Fixed bug where random(10,11) caused calc to dump core when issued
+    the 2nd time.
+
+    Moved the setting of the Makefile variable ${CALC_INCDIR} to
+    the section where things like ${BINDIR} and ${LIBDIR} are set.
+    Idea from Clifford Kite <kite_public1 at ev1 dot net>.
+
+    The Makefile is shipped mode 0644 since a number of folks
+    edit it (to build and check calc) as a non-root user and later
+    on su to root to install.  Idea from Clifford Kite <kite_public1
+    at ev1 dot net>.
+
+    Added base2() builtin function to calc.  Normally calc prints
+    values according to base().  Frequently some users want to see
+    a value in two bases.  Flipping back and forth between to bases
+    is a bit of a pain.  With base2(), calc will output a value twice:
+
+	; 234567
+		234567
+	; base2(16),
+	; 234567
+		234567 /* 0x39447 */
+	; 131072
+		131072 /* 0x20000 */
+	; base2(0),
+	; 131072
+        131072
+
+    By default, base2() is disabled.  Calling base2(0) will also turn
+    off the double base mode.  Thanks goes to Erik Anggard
+    <erik dot anggard at packetfront dot com> for his idea and
+    his initial patch.
+
+    Added repeat.cal as a calc resource file script:
+
+	repeat(digit_set, repeat_count)
+
+	Return the value of the digit_set repeated repeat_count times.
+	Both digit_set and repeat_count must be integers > 0.
+
+	For example repeat(423,5) returns the value 423423423423423,
+	which is the digit_set 423 repeated 5 times.
+
+    Makefile no longer makes a direct reference to Red Hat 6.0.
+
+    Added missing math_setmode2() prototype to zmath.h.
+
+    Fixed some implicit declarations of functions by either making
+    them explicit or by including the proper system .h files.
+
+    Makefile no longer uses -Wno-implicit flag, by default, for
+    gcc based compiles on calc source.  Makefile now attempts to
+    compile no_implicit.c with an explicit -Wno-implicit arg in an
+    effort to determine of -Wno-implicit is a valid compiler flag.
+    If no_implicit.c is compiled with -Wno-implicit, then
+    the file no_implicit.arg is created with the contents
+    of the -Wno-implicit flag.  Otherwise no_implicit.arg
+    is created as an empty file.
+
+    Added the Makefile variable ${HAVE_NO_IMPLICIT}, which if
+    not set to YES will prevent no_implicit.c from being
+    compiled and prevent the -Wno-implicit flag from being used.
+    If ${HAVE_NO_IMPLICIT} is not YES, then an empty no_implicit.arg
+    file is created and no_implicit.c is not compiled.
+
+    The seed.c file, because the pseudo_seed() function contains
+    calls to a number of various system functions, attempts to
+    compile with the -Wno-implicit flag (if allowed by the
+    formation of the no_implicit.arg file).
+
+    Misc make depend fixes and cleanup.
+
+    Fixed formation of the custom/.all file.
+
+    Fixed repeat(1, repeat_count) bug.
+
+
+The following are the changes from calc version 2.11.5.5 to 2.11.5.9:
+
+    Now using version numbers of one of these forms:
+
+    	x.y.z.w
+    	x.y.z
+    	x.y
+
+    Changed the READLINE_LIB Makefile variable to not link with -lreadline
+    by default.  If you do have readline, we recommend that you use it.
+    If you can install the GNU readline:
+
+	http://freshmeat.net/projects/gnureadline/
+    	http://cnswww.cns.cwru.edu/php/chet/readline/rltop.html
+
+    we recommend it.  But if not, you should set the USE_READLINE,
+    READLINE_LIB, and READLINE_INCLUDE Makefile variables to empty.
+    NOTE: See the BUGS file for a Linux issue when compiling calc
+    with -O (or -O2 or -O3) AND with -g (or -g3) AND with readline.
+
+    Removed an obsolete reference to TOPDIR.  This was fixed thanks to
+    a bug report by Clifford Kite <kite_public1 at ev1 dot net>.
+    Fixed other inconsistencies related to things like BINDIR.
+
+    Fixed calc man page so that is refers to -f instead of the old -S flag.
+    Fixed thanks to Clifford Kite <kite_public1 at ev1 dot net> for
+    point this out.
+
+    All for loops end with /dev/null to avoid any problems related
+    to systems that cannot grok empty for loops.
+
+    Changed the libcalc functions creal and cimag to c_real and c_imag
+    to about conflicts with new libc such as those used by gcc v3.
+    Thanks Eli Zaretskii <eliz at is dot elta dot co dot il> and
+    Martin Buck <m at rtin-buck dot de> for alerting us to this conflict.
+
+    The Makefile no longer hard code's /usr/include.  Instead it uses
+    the ${INCDIR} Makefile variable.  Thanks goes to Eli Zaretskii
+    <eliz at is dot elta dot co dot il> for pointing out this inconsistency.
+
+    Added mods to support compilation under DJGPP.  DJGPP runs on 386
+    and newer PCs running DOS or dos-compatible operating systems.
+    See http://www.delorie.com/djgpp/.  Thanks goes to Eli Zaretskii
+    <eliz at is dot elta dot co dot il> for sending in these mods.
+
+    Updated README.WINDOWS to include information on building with DJGPP.
+
+    The pld folks are building RPMs based on our calc distributions.
+    See:  ftp://ftp.pld.org.pl/dists/ra/PLD/i686/PLD/RPMS or
+    http://ftp.pld.org.pl/dists/ra/PLD/i686/PLD/RPMS more information.
+    We appreciate their work in this regard.  In the next release, we
+    plan to also build and release our own RPMs based on their efforts.
+
+    Changed the Makefile variable CUSTOMLIBDIR to CUSTOMCALDIR.
+    Changed the Makefile variable CSHAREDIR to CALC_SHAREDIR.
+    Changed the Makefile variable INCDIRCALC to CALC_INCDIR.
+    Removed the Makefile variable SHAREDIR.
+
+    Updated the HOWTO.INSTALL and README.WINDOWS files.
+
+    Fixed definition of MAXUFULL.  Thanks to a bus report from
+    Jill Poland <jpoland at cadence dot com>.
+
+The following are the changes from calc version 2.11.5t4.1 to 2.11.5t4.4:
+
+    Updated dependency rules in Makefiles.
+
+    NOTE: -DSRC, as used in 2.11.5t4.1 was renamed -DCALC_SRC
+    in a later version.
+
+    Calc include files use #include "foo.h" to include other calc
+    header files if -DCALC_SRC.  Otherwise they use <calc/foo.h>.
+    The -DCALC_SRC symbol is defined by default in calc's Makefile
+    and so it uses the header files from within the calc src tree.
+    If an external non-calc program includes an installed calc
+    header file (from under /usr/include), and it does NOT define
+    CALC_SRC, then it will obtain the calc header files from the
+    correct system location (such as /usr/include/calc/foo.h).
+
+    Added calc builtin function: version() which returns the calc
+    version string.
+
+    Added subject requirements for the calc-tester-request and
+    calc-bugs-mail EMail aliases.  See:
+
+    	http://www.isthe.com/chongo/tech/comp/calc/email.html
+
+    for details.
+
+    Corrected a bug that incorrectly set the default calc path
+    back in version 2.11.5t4.  The default CALCPATH is now:
+
+	.:./cal:~/.cal:/usr/share/calc:/usr/share/calc/custom
+
+    and the default CALCRC is now:
+
+	/usr/share/calc/startup:~/.calcrc:./.calcinit
+
+    This fixes the missing bindings error and it places the calc
+    resource files into the default path.
+
+    If you are using the GNU readline then the Makefile recommends that
+    you link with the ncurses library.
+
+    Applied Makefile, cscript/Makefile and custom/Makefile patches to
+    fix install mode problems, to deal with sorting and dates in I18n
+    environments (such as Japanese), to fix some problems with calc.spec
+    and to fix the cscript #! header lines.  Thanks goes to KAWAMURA Masao
+    (kawamura at mlb.co.jp) for the bug report and patch!
+
+    Fixed headers on fproduct.calc powerterm.calc 4dsphere.calc so
+    that they are correcly changed on installation.
+
+    Added ${GREP} Makefile variable.
+
+    The top level Makefile now sets LANG=C and passes it down to
+    lower level Makefiles.
+
+    Updated URLs in cal/lucas.cal comments.
+
+    Now shipping calc.spec, inst_files, spec-template and Makefile.linux
+    with the standard calc source distribution.  Note that the standard
+    Makefile has not changed.  The Makefile.linux only in minor ways
+    needed to build calc rpms.
+
+    Added $T Makefile variable.  $T is the top level directory under
+    which calc will be installed.  The calc install is performed under $T,
+    the calc build is performed under /.  The purpose for $T is to allow
+    someone to install calc somewhere other than into the system area.
+    For example when forming the calc rpm, the Makefile is called with
+    T=$RPM_BUILD_ROOT.  If $T is empty, calc is installed under /.
+
+    Removed all echo_XYZ rules except for echo_inst_files from lower
+    level makefile.  The calc.spec will use a make install rule
+    with T=$RPM_BUILD_ROOT.
+
+    Updated LIBRARY file with instructions related to -DCALC_SRC,
+    the new default include file location and -lcustcalc.
+
+
+The following are the changes from calc version 2.11.5t3 to 2.11.5t4:
+
+    The Makefile will now send both stdout and stderr to /dev/null
+    when compiling hsrc intermediates.
+
+    The config("verbose_quit") value was restored to a default
+    value of FALSE.
+
+    Added the cscript:
+
+	powerterm [base_limit] value
+
+    to write the value as the sum (or difference) of powers <= base_limit
+    where base_limit by default is 10000.
+
+    Applied a bug fix by Dr.D.J.Picton <dave at aps5.ph.bham.ac.uk>
+    to have help with no args print the default help file.
+
+    Renamed lavarand to LavaRnd.
+
+    Added rules to build a calc rpm.
+
+    All installed files are first formed as foo.new, and then moved
+    into place as foo via a atomic rename.
+
+    During installation, only files that are different are installed.
+    If the built file and the installed file are the same, no
+    installation is performed.
+
+    Calc has new default installation locations:
+
+    Makefile var   old location			      new location
+    ------------   ------------			      ------------
+    TOPDIR	   /usr/local/lib		        <<no longer used>>
+    BINDIR	   /usr/local/bin		      /usr/bin
+    SHAREDIR	      <<not set>>		      /usr/share
+    INCDIR	   /usr/local/include		      /usr/include
+    LIBDIR	   /usr/local/lib/calc		      /usr/lib
+    CSHAREDIR	      <<not set>>		      /usr/share/calc
+    HELPDIR	   /usr/local/lib/calc/help           /usr/share/calc/help
+    INCDIRCALC	   /usr/local/include/calc	      /usr/include/calc
+    CUSTOMLIBDIR   /usr/local/lib/calc/custom	      /usr/share/calc/custom
+    CUSTOMHELPDIR  /usr/local/lib/calc/help/custhelp  /usr/share/calc/custhelp
+    CUSTOMINCDIR     <<not set>>		      /usr/include/calc/custom
+    SCRIPTDIR	   /usr/local/bin/cscript	      /usr/bin/cscript
+    MANDIR	     <<not set>>		      /usr/share/man/man1
+    CATDIR	     <<not set>>		        <<not set>>
+
+    The Makefile variable ${TOPDIR} is no longer used.  In some places
+    it has been replaced by a new Makefile variable ${SHAREDIR}.  Some
+    of the old TOPDIR functionality has been replaced by ${CSHAREDIR}.
+
+    The install rules no longer remove old obsolete files.  We assume
+    that these old files have long since vanished!  :-)
+
+    Reduced the amount of output when doing a make all where nothing
+    needs to be made.
+
+    Reduced the amount of output when doing a make install where nothing
+    needs to be installed.
+
+    If you install using the new default locations, you can remove
+    old calc files installed in the old default location by doing:
+
+	make olduninstall
+
+
+The following are the changes from calc version 2.11.5t2 to 2.11.5t2.1:
+
+    Fixed a bug, reported by Ernest Bowen <ernie at turing dot
+    une dot edu dot au> that caused command lines to be echoed in
+    interactive mode.  Fixed a bug that sometimes left the terminal
+    in a non-echoing state when calc exited.
+
+    Renamed error codes E_FGETWORD1 and E_FGETWORD2 symbols to
+    E_FGETFIELD1 and E_FGETFIELD2.
+
+    Made a minor format change to the top of the calc man page.
+
+    The findid() function in file.c 2nd argument changed.  The argument
+    is now mostly a writable flag.  This function now finds the file
+    I/O structure for the specified file id, and verifies that
+    it is opened in the required manner (0 for reading or 1 for writing).
+    If the 2nd argument is -1, then no open checks are made at all and
+    NULL is then returned if the id represents a closed file.
+
+    The calc builtin function, fopen(), now allows one to specify
+    opening files in binary modes.  On POSIX / Linux / Un*x-like systems,
+    text file is the same as a binary file and so 'b' to an fopen has
+    no effect and is ignored.  However on systems such as MS Windoz
+    the 'b' / binary mode has meaning.  See 'help fopen' for details.
+
+    On systems (such as MS Windoz), calc will produce a different error
+    message when it attempts to open /dev/tty.  This will condition
+    will occur in things like calc scripts when they switch from ``batch
+    processing'' commands from and want to start interactive mode.
+
+    Regression tests fopen in binary mode in a few places where a
+    difference between text and binary string lengths matter.
+    The intfile calc resource file also uses binary mode.
+
+    Changed the rand() builtin and its related functions srand() and
+    randbit() to use the Subtractive 100 generator instead of the
+    additive 55 generator.  This generator as improved random properties.
+    As a result, of this change, the values produced by rand(),
+    rand() and randbit() are now different.
+
+    Updated regression tests for new rand() and randbit() output.
+
+    Applied a bug fix from Ernest Bowen <ernie at turing dot une dot
+    edu dot au> dealing with one-line "static" declaration like:
+
+    	static a = 1, b;
+
+    Added regression test 8310 to test for the static bug fix.
+
+
+The following are the changes from calc version 2.11.5t0 to 2.11.5t1.1:
+
+    Fixed a compile problem with Linux 2.4 / Debian.  Thanks goes
+    to Martin Buck <m at rtin-buck dot de> for help with this issue.
+
+    Fixed a bug in how L64_FORMAT (it determined if "%ld" or "%lld"
+    is appropriate for printing of 64 bit long longs) was determined.
+    Thanks goes to Martin Buck <m at rtin-buck dot de> for reporting
+    this bug and testing the fix.
+
+    An effort was made to make calc easier to build under Windoz
+    using the Cygwin project (http://sources.redhat.com/cygwin/).
+    Thanks to the work of Thomas Jones-Low (tjoneslo at softstart
+    dot com), a number of #if defined(_WIN32)'s have been added
+    to calc source.  These changes should not effect Windoz
+    free system such as GNU/Linux, Solaris, POSIX-like, etc ...
+
+    Added windll.h to deal with Windoz related DLL issues.
+    Using the convention of 'extern DLL' instead of 'DLL extern'
+    to deal with symbols that export to or import from a DLL.
+
+    Added HAVE_MALLOC_H, HAVE_STDLIB_H, HAVE_STRING_H, HAVE_TIMES_H,
+    HAVE_SYS_TIMES_H, HAVE_TIME_H, HAVE_SYS_TIME_H, HAVE_UNISTD_H
+    and HAVE_URANDOM to the Makefile.  If these symbols are empty,
+    then the Makefile looks for the appropriate system include file.
+    If they are YES, then the Makefile will assume they exist.
+    If they are NO, then the Makefile will assume they do not exist.
+
+    Changed HAVE_URANDOM to match the empty, YES, NO values.
+    If HAVE_URANDOM is empty, then the Makefile will look for /dev/urandom.
+    If HAVE_URANDOM is YES, then the Makefile will assume /dev/urandom exists.
+    If HAVE_URANDOM is NO, then the Makefile will assume /dev/urandom does
+    not exist.
+
+    If TERMCONTROL is -DUSE_WIN32, then the Windoz terminal control
+    (no TERMIOS, no TERMIO, no SGTTY) will be assumed.
+
+    Added a win32_hsrc Makefile rule to create hsrc files appropriate
+    for a Windoz system using Cygwin gcc environment.  Added win32.mkdef
+    which is used by the win32_hsrc rule to set the Windoz specific
+    Makefile values to build hsrc files.  The hsrc files are built
+    under the win32 directory.
+
+    Added FPOS_POS_BITS, OFF_T_BITS, DEV_BITS and INODE_BITS Makefile
+    symbols to allow one to force the size of a file position, file
+    offset, dev and inode value.  Leaving these values blank will
+    Makefile to determine their size.
+
+    Fixed a bug in the way file offsets, device and inode values are copied.
+
+    Added chi.cal for a initial stab as a Chi^2 function.  The chi_prob()
+    function does not work well with odd degrees of freedom, however.
+
+    Added big 3 to config("resource_debug").  Calc resource file scripts
+    check for config("resource_debug") & 8 prior to printing internal debug
+    statements.  Thus by default they do not print them.
+
+    Added intfile.cal as a calc resource file script:
+
+	file2be(filename)
+
+	    Read filename and return an integer that is built from the
+	    octets in that file in Big Endian order.  The first octets
+	    of the file become the most significant bits of the integer.
+
+	file2le(filename)
+
+	    Read filename and return an integer that is built from the
+	    octets in that file in Little Endian order.  The first octets
+	    of the file become the most significant bits of the integer.
+
+	be2file(v, filename)
+
+	    Write the absolute value of v into filename in Big Endian order.
+	    The v argument must be on integer.  The most significant bits
+	    of the integer become the first octets of the file.
+
+	le2file(v, filename)
+
+	    Write the absolute value of v into filename in Little Endian order.
+	    The v argument must be on integer.  The least significant bits
+	    of the integer become the last octets of the file.
+
+    Added the following help aliases:
+
+	copy	blkcpy
+	read	command
+	write	command
+	quit	command
+	exit	command
+	abort	command
+	cd	command
+	show	command
+
+    Added the cscript:
+
+	fproduct filename term ...
+
+    to write the big Endian product of terms to a filename.  Use - for stdout.
+
+    Fixed calc path in help/script.
+
+    Added read-only parameter, config("windows") to indicate if the system
+    is MS windowz WIN32 like system.
+
+    Configuration values that used to return "true" or "false" now return
+    1 (a true value) or 0 (a false value).  Thus one can do:
+
+    	if (config("tab")) { ... } else { ... }
+
+    The configuration values that now return 1 or 0 are:
+
+	config("tilde")
+	config("tab")
+	config("leadzero")
+	config("blkverbose")
+	config("verbose_quit")
+	config("windows")
+
+    Now shipping a win32 sub-directory that contains hsrc .h files
+    that have been attempted to be built for windoz.
+
+
+The following are the changes from calc version 2.11.4t1 to 2.11.4t2:
+
+    Added missing test8600.cal test file.
+
+    Fixes cscript files to deal with the -S flag being replaced by
+    -f and possibly other flags.
+
+    Added regression tests for builtin functions bernoulli, catalan,
+    euler, freeeuler, and sleep.  Added non-base 10 regression tests
+    for digit, digits and places.
+
+    The bernoulli.cal script now just calls the bernoulli() builtin
+    function.  It remains for backward compatibility.
+
+    The Makefile now builds have_fpos_pos.h to determine if the
+    a non-scalar FILEPOS has a __pos stucture element.  If it does,
+    the FILEPOS_BITS is taken to be the size of just the __pos element.
+
+    Misc fixes related to non-scalar (e.g., structure) FILEPOS.  Fixed
+    a compile problems where non-scalar FILEPOS were incorrectly assigned.
+
+    Fixed make depend rule.
+
+    Return an error on malloc / realloc failures for bernoulli and
+    euler functions.
+
+    Added MAKEFILE_REV make variable to help determine Makefile version.
+    Fixed the way the env rule reports Makefile values.
+
+
+The following are the changes from calc version 2.11.3t0 to 2.11.4:
+
+    Increased the maximum number of args for functions from 100 to 1024.
+    Increased calc's internal evaluation stack from 1024 to 2048 args.
+    Added test8600.cal to the regression suite to test these new limits.
+
+    Updated and fixed misc typos in calc/README.
+
+    Clarified in the COPYING file that ALL calc source files, both
+    LGPL covered and exceptions to the LGPL files may be freely used
+    and distributed.
+
+    Added help files or updated for: bernoulli, calc_tty, catalan,
+    digit, digits, euler, freeeuler, places and sleep.
+
+    A collection of 18 patches from Ernest Bowen
+    <ernie at turing dot une dot edu dot au>:
+
+    (1)  A new flag -f has been defined which has the effect of a read
+    command without the need to terminate the file name with a semicolon
+    or newline.  Thus:
+
+	    calc "read alpha; read beta;"
+
+    may be replaced by:
+
+	    calc -f alpha -f beta
+
+    Quotations marks are recognized in a command like
+
+	    calc -f 'alpha beta'
+
+    in which the name of the file to be read includes a space.
+
+    (2) Flags are interpreted even if they are in a string, as in:
+
+	    calc "-q -i define f(x) = x^2;"
+
+    which has the effect of:
+
+	    calc -q -i "define f(x) = x^2;"
+
+    To achieve this, the use of getopts() in calc.c has been dropped in
+    favor of direct reading of the arguments produced by the shell.
+    In effect, until a "--" or "-s" or a calc command (recognized
+    by not starting with '-') is encountered, the quotation signs in
+    command lines like the above example are ignored.  Dropping getopts()
+    permits calc to specify completely the syntax rules calc will apply
+    to whatever it is given by the shell being used.
+
+    (3) For executable script (also called interpreter) files with first
+    line starting with "#!", the starting of options with -S has been
+    replaced by ending the options with -f.  For example, the first line:
+
+	    #! full_pathname_for_calc -S -q -i
+
+    is to be replaced by:
+
+	    #! full_pathname_for_calc -q -i -f
+
+    Thus, if the pathname is /usr/bin/calc and myfile contains:
+
+	    #!/usr/bin/calc -q -i -f
+	    global deg = pi()/180;
+	    define Sin(x) = sin(x * deg);
+
+    and has been made executable by:
+
+	    chmod u+x myfile
+
+    myfile would be like a version of calc that ignored any startup
+    files and had an already defined global variable deg and a function
+    Sin(x) which will return an approximation to the sine of x degrees.
+    The invocation of myfile may be followed by other options (since
+    the first line in the script has only flagged options) and/or calc
+    commands as in:
+
+	    ./myfile -c read alpha '; define f(x) = Sin(x)^2'
+
+    (The quotation marks avoid shell interpretation of the semicolon and
+    parentheses.)
+
+    (4) The old -S syntax for executable scripts implied the -s flag so that
+    arguments in an invocation like
+
+	    ./myfile alpha beta
+
+    are passed to calc; in this example argv(0) = 'alpha', argv(1) =
+    'beta'.  This has been changed in two ways: an explicit -s is required
+    in the first line of the script and then the arguments passed in the
+    above example are argv(0) = 'myfile', argv(1) = 'alpha', argv(1) = 'beta'.
+
+    In an ordinary command line, "-s" indicates that the shell words
+    after the one in which "-s" occurred are to be passed as arguments
+    rather than commands or options.  For example:
+
+	    calc "-q -s A = 27;" alpha beta
+
+    invokes calc with the q-flag set, one command "A = 27;", and two arguments.
+
+    (5) Piping to calc may be followed by calc becoming interactive.
+    This should occur if there is no -p flag but -i is specified, e.g.:
+
+	    cat beta | calc -i -f alpha
+
+    which will do essentially the same as:
+
+	    calc -i -f alpha -f beta
+
+    (6) The read and help commands have been  changed so that several
+    files may be referred to in succession by separating their names
+    by whitespace.  For example:
+
+	    ; read alpha beta gamma;
+
+    does essentially the same as:
+
+	    ; read alpha; read beta; read gamma;
+
+    This is convenient for commands like:
+
+	    calc read file?.cal
+
+    when file?.cal expands to something like file1.cal file2.cal file3.cal:
+
+	    myfiles='alpha beta gamma'
+	    calc read $myfiles
+
+    or for C-shell users:
+
+	    set myfiles=(alpha beta gamma)
+	    calc read $myfiles
+
+
+    (7) The -once option for read has been extended to -f.  For example,
+
+	    calc -f -once alpha
+
+    will ignore alpha if alpha has been read in the startup files.  In a
+    multiple read statement, -once applies only to the next named file.
+    For example
+
+	    ; read -once alpha beta -once gamma;
+
+    will read alpha and gamma only if they have not already been read,
+    but in any case, will read beta.
+
+    (8) A fault in the programming for the cd command has been corrected
+    so that specifying a directory by a string constant will work.  E.g:
+
+	    ; cd "my work"
+
+    should work if the current directory has a directory with name "my work".
+
+    (9) new functions bernoulli(n) and euler(n) have been defined to
+    return the Bernoulli number and the Euler number with index n.
+    After evaluation for an even positive n, this value and these for
+    smaller positive even n are stored in a table from which the values
+    can be reread when required.  The memory used for the stored values
+    can be freed by calling the function freebernoulli() or freeeuler().
+
+    The function catalan(n) returns the catalan number with index n.
+    This is evaluated using essentially comb(2*n, n)/(n+1).
+
+    (10) A function sleep(n) has been defined which for positive n calls
+    the system function sleep(n) if n is an integer, usleep(n) for other
+    real n.  This suspends operation for n seconds and returns the null
+    value except when n is integral and the sleep is interrupted by a
+    SIGINT, in which case the remaining number of seconds is returned.
+
+    (11) The effect of config("trace", 8) which displays opcodes of
+    functions as they are successfully defined has been restricted to
+    functions defined with explicit use of "define".  Thus, it has been
+    deactivated for the ephemeral functions used for evaluation of calc
+    command lines or eval() functions.
+
+    (12) The functions digit(), digits(), places() have been extended to
+    admit an optional additional argument for an integral greater-than-one
+    base which defaults to 10.  There is now no builtin limit on the
+    size of n in digit(x, n, b), for example, digit(1/7, -1e100) which
+    would not work before can now be handled.
+
+    (13) The function, digits(x), which returns the number of decimal
+    digits in the integer part of x has been changed so that if abs(x) <
+    1, it returns 0 rather than 1.  This also now applies to digits(x,b).
+
+    (14) Some programming in value.c has been improved.  In particular,
+    several occurrences of:
+
+	    vres->v_type = v1->v_type;
+	    ...
+	    if (v1->v_type < 0) {
+		    copyvalue(v1, vres);
+		    return;
+	    }
+
+    have been replaced by code that achieves exactly the same result:
+
+	    vres->v_type = v1->v_type;
+	    ...
+	    if (v1->v_type < 0)
+		    return;
+
+    (15) Some operations and functions involving null-valued arguments
+    have been changed so that they return null-value rather than "bad
+    argument-type" error-value.  E.g. null() << 2 is now null-valued
+    rather than a "bad argument for <<" error-value.
+
+    (16) "global" and "local" may now be used in expressions.  For example:
+
+	    ; for (local i = 0; i < 5; i++) print i^2;
+
+    is now acceptable, as is:
+
+	    ; define f(x = global x) = (global x = x)^2;
+
+    which breaks wise programming rules and would probably better be handled
+    by something like:
+
+	    ; global x
+	    ; define f(t = x) = (x = t)^2;
+
+    Both definitions produce the same code for f.  For non-null t, f(t)
+    returns t^2 and assigns the value of t to x;  f() and f(t) with null t
+    return x^2.
+
+    Within expressions, "global" and "local" are to be followed by just one
+    identifier.  In "(global a = 2, b)" the comma is a comma-operator; the
+    global variable a is created if necessary and assigned the value 2, the
+    variable b has to already exist.   The statement "global a = 2, b" is
+    a declaration of global variables and creates both a and b if they
+    don't already exist.
+
+    (18) In a config object, several components have been changed from
+    long to LEN so that they will now be 32 bit integers for machines with
+    either 32 or 64-bit longs.  In setting such components, the arguments
+    are now to less than 2^31.  Before this change:
+
+	    ; config("mul2", 2^32 + 3)
+
+    would be accepted on a 64-bit machine but result in the same as:
+
+	    ; config("mul2", 3)
+
+
+The following are the changes from calc version 2.11.2t0 to 2.11.2t1.0:
+
+    Fixed a bug whereby help files are not displayed correctly on
+    systems such as NetBSD 1.4.1.  Thanks to a fix from Jakob Naumann.
+
+    Changed EMail addresses to use asthe.com.  Changed URLs to use
+    www.isthe.com.  NOTE: The EMail address uses 'asthe' and the web
+    site URL uses 'isthe'.
+
+    Using calc-bugs at asthe dot com for calc bug reports,
+    calc-contrib at asthe dot com for calc contributions,
+    calc-tester-request at asthe dot com for requests to join calc-tester and
+    calc-tester at asthe dot com for the calc tester mailing list.
+
+    Replaced explicit EMail addresses found this file with the <user at
+    site dot domain> notation to reduce the potential for those folks
+    to be spammed.
+
+    The Makefile attempts to detect the existence of /dev/urandom with -e
+    instead of the less portable -c.
+
+    Misc Makefile fixes.
+
+
+The following are the changes from calc version 2.11.1t3 to 2.11.1t4:
+
+    Removed non-portable strerror() tests (3715, 3724 and 3728) from
+    calc/regress.cal.
+
+    Fixed missing strdup() from func.c problem.
+
+    Fixed a problem that would have come up on a very long #! command line
+    if the system permitted it.
+
+
+The following are the changes from calc version 2.11.1 to 2.11.1t2.2:
+
+    Placed calc under version 2.1 of the GNU Lesser General Public License.
+
+	The calc commands:
+
+	    help copyright
+	    help copying
+	    help copying-lgpl
+
+	should display the generic calc copyright as well as the contents
+	of the COPYING and COPYING-LGPL files.
+
+	Those files contain information about the calc's GNU Lesser General
+	Public License, and in particular the conditions under which you
+	are allowed to change it and/or distribute copies of it.
+
+    Removed the lint facility from the Makefile.  Eliminated Makefile
+    variables: ${LCFLAGS}, ${LINT}, ${LINTLIB} and ${LINTFLAGS}.
+    Removed the lint.sed file.
+
+    Cleaned up help display system.  Help file lines that begin with
+    '##' are not displayed.
+
+    Calc source and documentation now uses the the these terms:
+
+	*.cal files	calc resource file
+	*.a files	calc binary link library
+	#! files	calc shell script
+
+    Renamed 'help stdlib' to 'help resource'.	The 'help stdlib' is
+    aliased to 'help resource' for arg compatibility.
+
+    Renamed config("lib_debug") to config("resource_debug").
+    The config("lib_debug") will have the same effect as
+    config("resource_debug") for backward compatibility.
+
+    Renamed the source sub-directory lib to cal.  The default $CALCPATH
+    now uses ./cal:~/cal (instead of ./lib:~/lib).  Changed LIB_PASSDOWN
+    Makefile variable to CAL_PASSDOWN.
+
+    Fixed misc compile warnings and bugs.
+
+    Fixed problem of incorrect paths in the formation of installed
+    calc shell scripts.
+
+    Changed the recommended Comqaq cc compile to be -std0 -fast -O4 -static.
+
+    Fixed a problem related to asking for help for a non-existent file.
+
+    Added ./.calcinit to the default calcrc.
+
+    Added cscript/README and help cscript to document the calc shell
+    script supplied with calc.
+
+
+The following are the changes from calc version 2.11.0t10 to 2.11.0t11:
+
+    Misc code cleanup.	Removed dead code.  Removed trailing whitespace.
+    Fixed whitespace to make the best use of 8 character tabs.
+
+    Fixed some bugs relating to '// and %' in combination with some
+    of the the rounding modes based on a patch from Ernest Bowen
+    <ernie at turing dot une dot edu dot au>.
+
+    A patch from Klaus Alexander Seistrup <klaus at seistrup dot dk>, when
+    used in combination with the GNU-readline facility, will prevent
+    it from saving empty lines.
+
+    Minor typos fixed in regress.cal
+
+    Added 8500 test series and test8500.cal to perform more extensive
+    tests on // and % with various rounding modes.
+
+    The 'unused value ignored' messages now start with Line 999: instead
+    of just 999:.
+
+    Fixed the long standing issue first reported by Saber-C in the
+    domul() function in zmil.c thanks to a patch by Ernest Bowen
+    <ernie at turing dot une dot edu dot au>.
+
+    Added zero dimensional matrices.  A zero dimensional matrix is defined as:
+
+	mat A[]	  or	A = mat[]
+
+    Updated the help/mat file to reflect the current status of matrices
+    including zero dimensional matrices.
+
+    Added indices() builtin function as written by Ernest Bowen <ernie
+    at turing dot une dot edu dot au> developed from an idea of Klaus
+    Seistrup <klaus at seistrup dot dk>.  See help/indices for details.
+
+    Fixed a number of insure warnings as reported by Michel van der List
+    <vanderlistmj at sbphrd dot com>.
+
+    Fixed a number of help file typos discovered by Klaus Alexander
+    Seistrup <klaus at seistrup dot .dk>.
+
+    Removed REGRESS_CAL as a Makefile variable.
+
+    Added calcliblist and calcliblistfmt utility Makefile rules to allow
+    one to print the list of distribution files that are used (but not
+    built) to form either the libcalc.a or the libcustcalc.a library.
+
+    Added a pat

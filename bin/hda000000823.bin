@@ -1,0 +1,1872 @@
+t when called again with the same epsilon it
+	     is copied rather than recalculated.
+
+	(12) defining trace() for square matrices
+
+	(13) expression in parentheses may now be followed by a qualifier
+	     computable with its type
+
+	     When an expression in parentheses evaluates to an lvalue
+	     whose current value is a matrix, list or object, it may
+	     now be followed by a qualifier compatible with its type.
+
+	     For example:
+
+		; A = list(1,2,4);
+		; B = mat[2,2] = {5,6,7,8};
+		; define f(x) = (x ? A : B)[[1]];
+		; print f(1), f(0)
+		2 6
+
+		; obj xy {x,y}
+		; C = obj xy = {4,5}
+		; p = &C
+		; *p.x
+		Not indexing matrix or object
+		; (*p).x
+		4
+
+	(14) swap(a,b) now permits swapping of octets in the same or different
+	     blocks.
+
+	     For example:
+
+		; A = blk() = {1,2,3}
+		; B = blk() = {4,5,6}
+		; swap(A[0], B[2])
+		; A
+			chunksize = 256, maxsize = 256, datalen = 3
+			060203
+
+    A few bug fixes from Ernest Bowen:
+
+	B1: qcmpi(q, n) in qmath.c sometimes gave the wrong result if
+		LONG_BITS > BASEB, len = 1 and nf = 0, since it then
+		reduces to the value of (nf != q->num.v[1]) in which
+		q->num.v[1] is not part of the size-1 array of HALFs for
+		q->num.	 At present this is used only for changing opcodes
+		for ^2 and ^4 from sequences involving OP_POWER to
+		sequences using OP_SQUARE, which has no effect on the
+		results of calculations.
+
+	B2: in matdet(m) in matfunc.c, a copy of the matrix m was not freed
+		when the determinant turned out have zero value.
+
+	B3: in f_search() in func.c, a qlinking of the NUMBER * storing the
+		the size of a file was not qfreed.
+
+	B4: in comalloc() in commath.c the initial zero values for real and
+		imag parts are qlinked but not qfreed when nonzero values are
+		assigned to them.  Rather than changing
+		the definition of comalloc(), I have included any relevant
+		qfrees with the calls to comalloc() as in
+			c = comalloc();
+			qfree(c->real);
+			c->real = ...
+
+	B5: in calls to matsum(), zeros are qlinked but not qfreed.  Rather
+		than changing addnumeric(), I have changed the definition
+		of matsum(m) so that it simply adds the components of m,
+		which requires only that the relevant additions be defined,
+		not that all components of m be numbers.
+
+
+    Simple arithmetic expressions with literal numbers are evaluated
+    during compilation rather than execution.  So:
+
+	define f(x) = 2 + 3 + x;
+
+    will be stored as if defined by:
+
+	define f(x) = 5 + x;
+
+    Fixed bug with lowhex2bin conversation in lib_util.c.  It did not
+    correctly convert from hex ASCII to binary values due to a table
+    loading error.
+
+    Fixed porting problem for NetBSD and FreeBSD by renaming the
+    qdiv() function in qmath.c to qqdiv().
+
+    Improved the speed of mfactor (from mfactor.cal library) for
+    long Mersenne factorizations.  The default reporting loop
+    is now 10000 cycles.
+
+    SGI Mips r10k compile set is speced for IRIX6.5 with v7.2
+    compilers.	A note for pre-IRIX6.5 and/or pre-v7.2 compilers
+    is given in the compile set.
+
+    Added regression tests related to saveval(), dot and pointers.
+
+
+The following are the changes from calc version 2.10.3t5.11 to 2.10.3t5.27:
+
+    The todo help file as been updated with the in-progress items:
+
+	xxx - block print function is not written yet ...
+
+    Expanded the role of blk() to produce unnamed blocks as in:
+
+		B = blk(len, chunk)
+
+    and named blocks as in:
+
+		B = blk(str, len, chunk)
+
+    A block may be changed (with possible loss of data only if len is less
+    than the old len) by:
+
+		C = blk(B, len, chunk)
+
+    For an unnamed block B, this creates a new block C and copies
+    min(len, oldlen) octets to it, B remaining unchanged.   For a named
+    block, the block B is changed and C refers to the same block as B,
+    so that for example, C[i] = x will result in B[i] == x.  Thus, for a
+    named block, "B = " does nothing (other than B = B) in:
+
+		B = blk(B, len, chunk)
+
+    but is necessary for changing an unnamed block.
+
+    Renamed rmblk() to blkfree().
+
+    The builtin function blkfree(val) will free memory allocated to block.
+    If val is a named block, or the name of a named block, or the
+    identifying index for a named block, blkfree(val) frees the
+    memory block allocated to this named block.	 The block remains
+    in existence with the same name, identifying index, and chunksize,
+    but its size and maxsize becomes zero and the pointer for the start
+    of its data block null.
+
+    The builtin function blocks() returns the number of blocks that
+    have been created but not freed by the blkfree() function.	When called
+    as blocks(id) and the argument id less than the number of named
+    blocks that have been created, blocks(id) returns the named block
+    with identifying index id.
+
+    Removed the artificial limit of 20 named blocks.
+
+    Added name() builtin to return the name of a type of value
+    as a string.
+
+    Added isdefined() to determine of a value is defined.
+
+    Added isobjtype() to determine the type of an object.
+
+    The isatty(v) builtin will return 1 if v is a file that associated
+    with a tty (terminal, xterm, etc.) and 0 otherwise.	 The isatty(v)
+    builtin will no longer return an error if v is not a file or
+    is a closed file.
+
+    The isident(m) builtin will return 1 if m is a  identity matrix
+    and 0 otherwise.  The isident(m) builtin will no longer return an
+    error if m is not a matrix.
+
+    Added extensive testing of isxxx() builtins and their operations
+    on various types.
+
+    Added md5() builtin to perform the MD5 Message-Digest Algorithm.
+
+    Renamed isset() to bit().
+
+    Blocks will expand when required by the copy() builtin function:
+
+	; f = fopen("help/full", "r")
+	; B = blk()
+	; B
+		chunksize = 256, maxsize = 256, datalen = 0
+	; copy(B, f)
+	; B
+		chunksize = 256, maxsize = 310272, datalen = 310084
+		2a2a2a2a2a2a2a2a2a2a2a2a2a0a2a20696e74726f0a2a2a2a2a2a2a2a2a...
+
+	NOTE: Your results will differ because changes to help/full.
+
+    The blkcpy() builtin args now more closely match that
+    of memcpy(), strncpy:
+
+	blkcpy(dst, src [, num [, dsi [, ssi]]])
+
+    The copy() builtin args now more closely match that the cp command:
+
+	copy(src, dst [, num [, ssi [, dsi]]])
+
+    but otherwise does the same thing as blkcpy.
+
+    Fixed lint problems for SunOS.
+
+    Added have_memmv.c and HAVE_MEMMOVE Makefile variable to control
+    use of memmove().  If empty, then memmove() is tested for and if
+    not found, or if HAVE_MEMMOVE= -DHAVE_NO_MEMMOVE then an internal
+    version of memmove() is used instead.
+
+    Added regression tests for sha, sha1 and md5 builtin hash functions.
+
+    Added xx_print to to the list of object routines are definable.
+    Added xx_print.cal to the library to demo this feature.
+
+    Moved blkcpy() routines have been moved to blkcpy.[ch].
+
+    The blkcpy() & copy() builtins can not copy to/from numbers.
+    For purposes of the copy, only the numerator is ignored.
+
+    Resolved a number of missing symbols for libcalc users.
+
+    Added lib_util.{c,h} to the calc source to support users of
+    libcalc.a.	These utility routines are not directly used by
+    calc but are otherwise have utility to those programmers who
+    directly use libcalc.a instead.
+
+    Added sample sub-directory.	 This sub-directory contains a few
+    sample programs that use libcalc.a.	 These sample programs are
+    built via the all rule because they will help check to see that
+    libcalc.a library does not contain external references that
+    cannot be resolved.	 At the current time none of these sample
+    programs are installed.
+
+    Added a libcalc_call_me_last() call to return storage created
+    by the libcalc_call_me_first() call.  This allows users of libcalc.a
+    to free up a small amount of storage.
+
+    Fixed some memory leaks associated with the random() Blum generator.
+
+    Fixed fseek() file operations for SunOS.
+
+    Fixed convz2hex() fencepost error.	It also removes leading 0's.
+
+    Plugged a memory leak relating to pmod.  The following calculation:
+
+	pmod(2, x, something)
+
+    where x was not 2^n-1 would leak memory.  This has been fixed.
+
+
+The following are the changes from calc version 2.10.3t5.1 to 2.10.3t5.10:
+
+    Misc printf warning bug fixes.
+
+    Calc now permits chains of initializations as in:
+
+		obj point {x,y} P = {1,2} = {3,4} = {5,6}
+
+    Here the initializations are applied from left to right.  It may
+    look silly, but the 1, 2, ... could be replaced by expressions with
+    side effects.  As an example of its use suppose A and B are
+    expressions with side effects:
+
+		P = {A, B}
+
+    has the effect of P.x = A; P.y = B.	 Sometimes one might want these in
+    the reverse order: P.y = B; P.x = A.  This is achieved by:
+
+		P = { , B} = {A}
+
+    Another example of its use:
+
+		obj point Q = {P, P} = {{1, 2}, {3, 4}}
+
+    which results in Q having Q.x.x = 1, Q.x.y = 2, etc.
+
+    The role of the comma in has been changed.	Expressions such as:
+
+		mat A[2], B[3]
+
+    are equivalent to:
+
+		(mat A[2]), (mat B[3])
+
+    Now, expr1, expr2  returns type of expr2 rather than EXPR_RVALUE.  This
+    permits expressions such as:
+
+		(a = 2, b) = 3
+
+    Also, expr1 ? expr2 : expr3	 returns type(expr2) | type(expr3).
+    This will make the result an lvalue (i.e. EXPR_RVALUE bit not set)
+    For example, if both expr2 and expr3 are lvalues.  Then:
+
+		a ? b : c = d
+
+    has the effect of b = d if a is "nonzero", otherwise c = d.
+
+    This may be compared with
+
+		d = a ? b : c
+
+    which does d = b if a is "nonzero", otherwise d = c.
+
+    And now, expr1 || expr2 and expr1 && expr2 each return
+    htype(expr1)| type(expr2).	So for example:
+
+		a || b = c
+
+    has the effect of a = c if a is "nonzero", otherwise b = c.
+    And for example:
+
+		a && b = c
+
+    has the effect of a = c if a is "zero", otherwise b = c.
+
+    At top level, newlines are neglected between '(' and the matching
+    ')' in expressions and function calls.  For example, if f() has been
+    already defined, then:
+
+
+		a = (
+			2
+			+
+			f
+			(
+			3
+			)
+		    )
+
+    and
+
+		b = sqrt (
+			20
+			,
+			1
+		    )
+
+    will be accepted, and in interactive mode the continue-line prompt
+    will be displayed.
+
+    When calc sees a "for", "while", "do", or "switch", newlines will be
+    ignored (and the line-continuation prompt displayed in interactive mode)
+    until the expected conditions and statements are completed.
+    For example:
+
+	s = 0;
+	for (i = 0; i < 5; i++)
+	{
+		s += i;
+	}
+	print s;
+
+    Now 's' will print '10' instead of '5'.
+
+    Added more regression tests to regress.cal.	 Changed the error
+    counter from 'err' to 'prob'.  The errmax() is set very high and
+    the expected value of errcount() is kept in ecnt.
+
+    Added the 'unexpected' help file which gives some unexpected
+    surprises that C programmers may encounter.
+
+    Updated the 'help', 'intro' and 'overview' to reflect the
+    full list of non-builtin function help files.  Reorered the
+    'full' help file.
+
+    The blkalloc() builtin has been renamed blk().
+
+    Only a "fixed" type of BLOCK will be used.	Other types of
+    blocks in the future will be different VALUE types.
+
+    Introduced an undefine command so that
+
+		    undefine f, g, ...
+
+    frees the memory used to store code for user-defined functions f,
+    g, ..., effectively removing them from the list of defined
+    functions.
+
+    When working from a terminal or when config("lib_debug") > 0 advice
+    that a function has been defined, undefined, or redefined is
+    displayed in format "f() defined".
+
+    Some experimental changes to block and octet handling, so that after:
+
+		    B = blk(N)
+
+    B[i] for 0 <= i < N behaves for some operations like an lvalue for
+    a USB8 in B.
+
+    xx_assign added to object functions to permit the possibility of
+    specifying what A = B will do if A is an xx-object.	 Normal
+    assignment use of = is restored by the command: undefine
+    xx_assign.
+
+    For error-value err, errno(err) returns the error-code for err and
+    stores this in calc_errno;	error(err) returns err as if
+    error(errno(err)) were called.
+
+    Anticipating probable future use, names have been introduced for
+    the four characters @, #, $, `.  This completes the coverage of
+    printable characters on a standard keyboard.
+
+    Added sha() builtin to perform the old Secure Hash Algorithm
+    (SHS FIPS Pub 180).
+
+    Added sha1() builtin to perform the new Secure Hash Standard-1
+    (SHS-1 FIPS Pub 180-1).
+
+    Added ${LD_DEBUG} Makefile variable to allow for additional
+    libraries to be compiled into calc ... for debugging purposes.
+    In most cases, LD_DEBUG= is sufficient.
+
+    Added ${CALC_ENV} makefile variable to allow for particular
+    environment variables to be supplied for make {check,chk,debug}.
+    In most cases, CALC_ENV= CALCPATH=./lib is sufficient.
+
+    Added ${CALC_LIBS} to list the libraries created and used to
+    build calc.	 The CALC_LIBS= custom/libcustcalc.a libcalc.a
+    is standard for everyone.
+
+    Improved how 'make calc' and 'make all' rules work with respect
+    to building .h files.
+
+    Added 'make run' to only run calc interactively with the
+    ${CALC_ENV} calc environment.  Added 'make cvd', 'make dbx'
+    and 'make gdb' rules to run debug calc with the respective
+    debugger with the ${CALC_ENV} calc environment.
+
+    Added cvmalloc_error() function to lib_calc.c as a hook for
+    users of the SGI Workshop malloc debugging library.
+
+    Cut down on places where *.h files include system files.
+    The *.c should do that instead where it is reasonable.
+
+    To avoid symbol conflicts, *.h files produced and shipped
+    with calc are enclosed that as similar to the following:
+
+	#if !defined(__CALC_H__)
+	#define __CALC_H__
+	..
+	#endif /* !__CALC_H__ */
+
+    Added memsize(x) builtin to print the best approximation of the
+    size of 'x' including overhead.  The sizeof(x) builtin attempts
+    to cover just the storage of the value and not the overhead.
+    Because -1, 0 and 1 ZVALUES are static common values, sizeof(x)
+    ignores their storage.  Also sizeof(x) ignores the denominator of
+    integers, and the imaginary parts of pure real numbers.  Added
+    regression tests for memsize(), sizeof() and size().
+
+
+The following are the changes from calc version 2.10.3t4.16 to 2.10.3t5.0:
+
+    The calc source now comes with a custom sub-directory which
+    contains the custom interface code.	 The main Makefile now
+    drives the building and installing of this code in a similar
+    way that it drives the lib and help sub-directories.  (see below)
+
+    Made minor edits to most help files beginning with a thru e.
+
+    The errno(n) sets a C-like errno to the value n; errno() returns
+    the current errno value.  The argument for strerror() and error()
+    defaults to this errno.
+
+    Added more error() and errno() regression tests.
+
+    The convention of using the global variable lib_debug at the
+    end of calc library scripts has been replaced with config("lib_debug").
+    The "lib_debug" is reserved by convention for calc library scripts.
+    This config parameter takes the place of the lib_debug global variable.
+    By convention, "lib_debug" has the following meanings:
+
+	<-1	no debug messages are printed though some internal
+		    debug actions and information may be collected
+
+	-1	no debug messages are printed, no debug actions will be taken
+
+	0	only usage message regarding each important object are
+		    printed at the time of the read (default)
+
+	>0	messages regarding each important object are
+		    printed at the time of the read in addition
+		    to other debug messages
+
+    The "calc_debug" is reserved by convention for internal calc routines.
+    The output of "calc_debug" will change from release to release.
+    Generally this value is used by calc wizards and by the regress.cal
+    routine (make check).  By convention, "calc_debug" has the following
+    meanings:
+
+	<-1	reserved for future use
+
+	-1	no debug messages are printed, no debug actions will be taken
+
+	0	very little, if any debugging is performed (and then mostly
+		    in alpha test code).  The only output is as a result of
+		    internal fatal errors (typically either math_error() or
+		    exit() will be called). (default)
+
+	>0	a greater degree of debugging is performed and more
+		    verbose messages are printed (regress.cal uses 1).
+
+    The "user_debug" is provided for use by users.  Calc ignores this value
+    other than to set it to 0 by default (for both "oldstd" and "newstd").
+    No calc code or shipped library will change this value other than
+    during startup or during a config("all", xyz) call.
+
+    The following is suggested as a convention for use of "user_debug".
+    These are only suggestions: feel free to use it as you like:
+
+	<-1	no debug messages are printed though some internal
+		    debug actions and information may be collected
+
+	-1	no debug messages are printed, no debug actions will be taken
+
+	0	very little, if any debugging is performed.  The only output
+		    are from fatal errors. (default)
+
+	>0	a greater degree of debugging is performed and more
+		    verbose messages are printed
+
+    Added more code related to the BLOCK type.
+
+    Added blkalloc() builtin.
+
+    Split NAMETYPE definition out into nametype.h.
+
+    Added OCTET type for use in processing block[i].
+
+    Added free, copy, cmp, quickhash and print functions for
+    HASH, BLOCK and OCTET.
+
+    Added notes to config.h about what needs to be looked at when
+    new configuration items are added.
+
+    The null() builtin now takes arguments.
+
+    Given the following:
+
+	obj point {x,y}
+	obj point P, Q
+
+    will will now create P and Q as obj point objects.
+
+    Added xx_or, xx_and, xx_not and xx_fact objfuncs.
+
+    Added the custom() builtin function.  The custom() builtin
+    interface is designed to make it easier for local custom
+    modification to be added to calc.  Custom functions are
+    non-standard or non-portable code.	For these reasons, one must can
+    only execute custom() code by way of an explicit action.
+
+    By default, custom() returns an error.  A new calc command line
+    option of '-C' is required (as well as ALLOW_CUSTOM= -DCUSTOM
+    Makefile variable set) to enable it.
+
+    Added -C as a calc command line option.  This permits the
+    custom() interface to be used.
+
+    Added ALLOW_CUSTOM Makefile variable to permanently disable
+    or selective enable the custom builtin interface.
+
+    The rm() builtin now takes multiple filenames.  If the first
+    arg is "-f", then 'no-such-file' errors are ignored.
+
+    Added errcount([count]) builtin to return or set the error
+    counter.  Added errmax([limit]) to return or set the error
+    count limiter.
+
+    Added -n as a calc command line option.  This has the effect
+    of calling config("all", "newstd") at startup time.
+
+    Added -e as a calc command line option to ignore all environment
+    variables at startup time.	The getenv() builtin function will
+    still return values, however.
+
+    Added -i as a calc command line option.  This has the effect
+    ignoring when errcount() exceeds errmax().
+
+    Changed the config("maxerr") name to config("maxscan").  The
+    old name of "maxerr" is kept for backward compatibility.
+
+    Using an unknown -flag on the calc command like will
+    generate a short usage message.
+
+    Doing a 'help calc' displays the same info as 'help usage'.
+
+    The 'make check' rule now uses the -i calc command line flag
+    so that regress.cal can continue beyond when errcount exceeds
+    errmax.  In regress.cal, vrfy() reports when errcount exceeds
+    errmax and resets errmax to match errcount.	 This check
+    and report is independent of the test success of failure.
+
+    Fixed missing or out of order tests in regress.cal.
+
+    Misc Makefile cleanup in lib/Makefile and help/Makefile.
+
+    The default errmax() value on startup is now 20.
+
+    The custom() interface is now complete.  See help/custom and
+    custom/HOW_TO_ADD files, which show up as the custom and new_custom
+    help files, for more information.
+
+    The help command will search ${LIBDIR}/custhelp if it fails to find
+    a file in ${LIBDIR}.  This allows the help command to also print
+    help for a custom function.	 However if a standard help file and a
+    custom help file share the same name, help will only print the
+    standard help file.	 One can skip the standard help file and print
+    the custom help file by:
+
+	help custhelp/name
+
+    or by:
+
+	custom("help", "name")
+
+    Added minor sanity checks the help command's filename.
+
+    Added show custom to display custom function information.
+
+    Added the contrib help page to give information on how
+    and where to submit new calc code, modes or custom functions.
+
+    Added comment information to value.h about what needs to be
+    checked or modified when a new value type is added.
+
+    Both size(x) and sizeof(x) return information on all value types.
+    Moved size and sizeof information from func.c and into new file: size.c.
+
+    Added custom("devnull") to serve as a do-nothing interface tester.
+
+    Added custom("argv" [,arg ...]) to print information about args.
+
+    Added custom("sysinfo", "item") to print an internal calc #define
+    parameter.
+
+    The make depend rule also processes the custom/Makefile.
+
+    Added xx_max and xx_min for objfuncs.
+
+    The max(), min() builtins work for lists.
+
+
+The following are the changes from calc version 2.10.3t3 to 2.10.3t4.15:
+
+    The priority of unary + and - to that of binary + and - when they are
+    applied to a first or only term.  Thus:
+
+	-16^-2 == -1/256
+	-7^2 == -49
+	-3! == -6
+
+    Running ranlib is no longer the default.  Systems that need RANLIB
+    should edit the Makefile and comment back in:
+
+	RANLIB=ranlib
+
+    Dropped support of SGI r8k.
+
+    Added support for the SGI r5k.
+
+    Added support for SGI Mips compiler version 7.1 or later.
+
+    Removed "random" as a config() option.
+
+    Removed CCZPRIME Makefile variable.
+
+    Added zsquaremod() back into zmod.c to be used by the Blum-Blum-Shub
+    generator for the special case of needing x^2 mod y.
+
+    Moved the Blum-Blum-Shub code and defines from zrand.c and zrand.h
+    into zrandom.c and zrandom.h.  Now only the a55 generator resides
+    in zrand.c and zrand.h.
+
+    Added random, srandom and randombit help files.
+
+    Added random(), srandom() and randombit() builtin functions.  The
+    cryptographically strong random number generator is code complete!
+
+    Removed cryrand.cal now that a Blum-Blum-Shub generator is builtin.
+
+    Improved the speed of seedrandom.cal.  It now uses the 13th
+    builtin Blum-Blum-Shub seed.
+
+    The randmprime.cal script makes use of the Blum-Blum-Shub generator.
+
+    Added randombitrun.cal and randomrun.cal calc library files.
+    These are the Blum-Blum-Shub analogs to the randbitrun.cal
+    and randrun.cal a55 tests.
+
+    Improved hash.c interface to lower level hash functions.  The hash
+    interface does not yet have a func.c interface ...	it is still
+    under test.
+
+    Added randombitrun.cal to test the Blum-Blum-Shub generator.
+
+    Added calc.h, hash.h, shs.h and value.h to LIB_H_SRC because some
+    of the libcalc.a files need them.
+
+    In the original version, each call to newerror(str) created a new
+    error-value.  Now a new value will be created only if str has not
+    been used in a previous call to newerror().	 In effect, the string
+    serves to identify the error-value; for example:
+
+	    return newerror("Non-integer argument");
+
+    can be used in one or more functions, some of which may be
+    repeatedly called, but after it has been called once, it will
+    always return the same value as if one had initially used the
+    assignment:
+
+	    non_integer_argument_error = newerror("Non-integer argument")
+
+    and then in each function used:
+
+	    return non_integer_argument_error;
+
+    The new definition of newerror() permits its freer use in cases like:
+
+	    define foo(a) {
+
+		    if (!isint(a))
+			    return newerror("Non-integer argument");
+		    ...
+	    }
+
+    One might say that "new" in "newerror" used to mean being different
+    from any earlier error-value.  Now it means being not one of the
+    "original" or "old" error-values defined internally by calc.
+
+    As newerror() and newerror("") specify no non-null string, it has
+    been arranged that they return the same as newerror("???").
+
+    Added "show errors" command analogous to "show functions" for
+    user-defined functions.  One difference is that whereas the
+    functions are created by explicit definitions, a new described
+    error is created only when a newerror(...) is executed.
+
+    Fixed macro symbol substitution problem uncovered by HPUX cpp bug in
+    HVAL and related zrand.h macros.
+
+    Added +e to CCMISC for HP-UX users.
+
+    Fixed the prompt bug.
+
+    Eliminated the hash_init() initialization function.
+
+    The 'struct block' has been moved from value.c to a new file: block.h.
+
+    Added "blkmaxprint" config value, which limits the octets to print
+    for a block.  A "blkmaxprint" of 0 means to print all octets of a
+    block, regardless of size.	The default is to print only the first
+    256 octets.
+
+    The "blkverbose" determines if all lines, including duplicates
+    should be printed.	If TRUE, then all lines are printed.  If false,
+    duplicate lines are skipped and only a "*" is printed in a style
+    similar to od.  This config value has not meaning if "blkfmt" is
+    "str".  The default value for "blkverbose" is FALSE: duplicate
+    lines are not printed.
+
+    The "blkbase" determines the base in which octets of a block
+    are printed.  Possible values are:
+
+	"hexadecimal"		Octets printed in 2 digit hex
+	"hex"
+
+	"octal"			Octets printed in 3 digit octal
+	"oct"
+
+	"character"		Octets printed as chars with non-printing
+	"char"			    chars as \123 or \n, \t, \r
+
+	"binary"		Octets printed as 0 or 1 chars
+	"bin"
+
+	"raw"			Octets printed as is, i.e. raw binary
+	"none"
+
+    The default "blkbase" is "hex".
+
+    The "blkfmt" determines for format of how block are printed:
+
+	"line"		print in lines of up to 79 chars + newline
+	"lines"
+
+	"str"		print as one long string
+	"string"
+	"strings"
+
+	"od"		print in od-like format, with leading offset,
+	"odstyle"	   followed by octets in the given base
+	"od_style"
+
+	"hd"		print in hex dump format, with leading offset,
+	"hdstyle"	   followed by octets in the given base, followed
+	"hd_style"	   by chars or '.' if no-printable or blank
+
+    The default "blkfmt" is "hd".
+
+    Fixed a bug in coth() when testing acoth using coth(acoth(x)) == x
+    within the rounding error.
+
+    Assignments to matrices and objects has been changed.  The assignments in:
+
+	A = list(1,2,3,4);
+	B = makelist(4) = {1,2,3,4};
+
+    will result in A == B.  Then:
+
+	A = {,,5}
+
+    will result in A == list(1,2,5,4).
+
+    Made minor edits to most help files beginning with a thru d.
+
+    Fixed error in using cmdbuf("").
+
+
+The following are the changes from calc version 2.10.3t0 to 2.10.3t2:
+
+    Bumped to version 2.10.3 due to the amount of changes.
+
+    Renamed qabs() to qqabs() to avoid conflicts with stdlib.h.
+
+    Fixed a casting problem in label.c.
+
+    A lot of work was performed on the code generation by Ernest Bowen
+    <ernie at turing dot une dot edu dot au>.	 Declarations no longer
+    need to precede code:
+
+	define f(x) {
+		local i = x^2;
+		print "i = ":i;
+		local j = i;
+		...
+	}
+
+    The scope of a variable extends from the end of the declaration (including
+    initialization code for the variable) at which it is first created
+    to the limit given by the following rules:
+
+	local variable: to the end of the function being defined
+
+	global variable: to the end of the session with calc
+
+	static within a function definition: to the the first of:
+
+	    an end of a global, static or local declaration (including
+	    initialization code) with the same identifier
+
+	    the end of the definition
+
+	static at top level within a file: to the first of:
+
+	    the next static declaration of the identifier at top level
+	    in the file,
+
+	    the next global declaration of the identifier at top level
+	    in the file or in any function definition in the file,
+
+	    the next global declaration of the identifier at any level
+	    in a file being read as a result of a "read" command,
+
+	    the end of the file.
+
+    The scope of a top-level global or static variable may be
+    interrupted by the use of the identifier as a parameter or local or
+    static variable within a function definition in the file being
+    read; it is restored (without change of value) after the definition.
+
+    For example, The two static variables a and b are created,
+    with zero value, when the definition is read; a is initialized
+    with the value x if and when f(x) is first called with a positive
+    even x, b is similarly initialized if and when f(x) is first called
+    positive odd x.  Each time f(x) is called with positive integer x,
+    a or b is incremented.  Finally the values of the static variables
+    are assigned to the global variables a and b, and the resulting
+    values displayed.  Immediately after the last of several calls to
+    f(x), a = 0 if none of the x's have been positive even, otherwise
+    a = the first positive even x + the number of positive even x's,
+    and b = 0 if none of the x's have been positive odd, otherwise
+    b = the first positive odd x + the number of positive odd x's:
+
+	define f(x) {
+		if (isint(x) && x > 0) {
+			if (iseven(x)) {
+				static a = x;
+				a++;
+			} else {
+				static b = x;
+				b++;
+			}
+		}
+		global a = a, b = b;
+		print "a =",a,"b =",b;
+	}
+
+    Fixed some faults in the handling of syntax errors for the matrix
+    and object creation operators mat and obj.	In previous versions of calc:
+
+	mat;				<- Bad dimension 0 for matrix
+	mat A;				<- Bad dimension 0 for matrix
+	global mat A;			<- Bad dimension 0 for matrix
+	mat A[2], mat B[3]		<- Semicolon expected
+	global mat A[2], mat B[3]	<- Bad syntax in declaration statement
+
+    Now:
+
+	this statement			has the same effect as
+	--------------			----------------------
+	mat A[2], B[3]			(A = mat[2]), B[3]
+
+	global mat A[2], B[3]		global A, B; A = mat[2]; B = mat[3];
+
+    Initialization remains essentially as before except that for objects,
+    spaces between identifiers indicate assignments as in simple variable
+    declarations.  Thus, after:
+
+	obj point {x,y};
+	obj point P, Q R = {1,2}
+
+    P has {0,0}, Q and R have {1,2}.  In the corresponding expression with
+    matrices commas between identifiers before the initialization are ignored.
+    For example:
+
+	this statement			has the same effect as
+	--------------			----------------------
+	mat A, B C [2] = {1,2}		A = B = C = (mat[2] = {1,2})
+
+    One can also do things like:
+
+	L = list(mat[2] = {1,2}, obj point = {3,4}, mat[2] = {5,6})
+	A = mat[2,2] = {1,2,3,4}^2
+	B = mat[2,2] = {1,2,3,4} * mat[2,2] = {5,6,7,8}
+
+    where the initialization = has stronger binding than the assignment = and
+    the * sign.
+
+    Matrices and objects can be mixed in declarations after any simple
+    variables as in:
+
+	global a, b, mat A, B[2] = {3,4}, C[2] = {4,5}, obj point P = {5,6}, Q
+
+    Fixed some bugs related to global and static scoping.  See the the
+    5200 regress test and lib/test5200.cal for details.
+
+    Optimized opcode generator so that functions defined using '=' do not
+    have two unreached opcodes.	 I.e.,:
+
+	define f(x) = x^2
+	show opcodes f
+
+    Also unreachable opcodes UNDEF and RETURN are now not included at
+    the end of any user-defined function.
+
+    Changed the "no offset" indicator in label.c from 0 to -1; this
+    permits goto jumps to the zero opcode position.
+
+    Changed the opcode generation for "if (...)" followed by
+    "break", "continue", or "goto", so that only one jump opcode is
+    required.
+
+    A label can now be immediately by a right-brace.  For example:
+
+	define test_newop3(x) {if (x < 0) goto l132; ++x; l132: return x;}
+
+    The LONG_BITS make variable, if set, will force the size of a long
+    as well as forcing the USB8, SB8, USB16, SB16, USB32, SB32,
+    HAVE_B64, USB64, SB64, U(x) and L(x) types.	 If the longbits
+    program is given an arg (of 32 or 64), then it will output
+    based on a generic 32 or 64 bit machine where the long is
+    the same size as the wordsize.
+
+    Fixed how the SVAL and HVAL macros were formed for BASEB==16 machines.
+
+    Dropped explicit Makefile support for MIPS r8k since these processors
+    no longer need special compiler flags.
+
+    SGI 6.2 and later uses -xansi.
+
+
+The following are the changes from calc version 2.10.2t33 to 2.10.2t34:
+
+    Fixed a bug related to fact().
+
+    Thanks to Ernest Bowen <ernie at turing dot une dot edu dot au>,
+    for two or three arguments,
+
+	    search(x, val, start);
+	    rsearch(x, val, start);
+
+    and for matrix, list or association x:
+
+	    search(f, str, start);
+	    rsearch(f, str, start);
+
+    for a file stream f open for reading, behave as before except for a few
+    differences:
+
+	(1) there are no limits on the integer-valued start.
+
+	(2) negative values of start are interpreted as offsets from the size of
+	    x and f.  For example,
+
+		    search(x, val, -100)
+
+	    searches the last 100 elements of x for the first i for which
+	    x[[i]] = val.
+
+	(3) for a file f, when start + strlen(str) >= size(f) and
+	    search(f, str, start) returns null, i.e. str is
+	    not found, the file position after the search will be
+
+		    size(f) - strlen(str) + 1
+
+	    rather than size(f).
+
+    For four arguments:
+
+	    search(a, b, c, d)
+	    rsearch(a, b, c, d),
+
+    a has the role of x or f, and b the role of val or str as described
+    above for the three-argument case, and for search(), c is
+    essentially "start" as before, but for rsearch() is better for c
+    and d to be the same as for search().  For a non-file case, if:
+
+	     0 <= c < d <= size(a),
+
+    the index-interval over which the search is to take place is:
+
+	     c <= i < d.
+
+    If the user has defined a function accept(v,b), this is used rather
+    than the test v == b to decide for matrix, list, or association
+    searches when a "match" of v = a[[i]] with b occurs. E.g.  after:
+
+	     define accept(v,b) = (v >= b);
+
+    then calling:
+
+	     search(a, 5, 100, 200)
+
+    will return, if it exists, the smallest index i for which
+    100 <= i < 200 and a[[i]] >= 5.  To restore the effect of
+    the original "match" function, one would then have to:
+
+	     define accept(v,b) == (v == b).
+
+    Renamed the calc symbol BYTE_ORDER to CALC_BYTE_ORDER in order
+    to avoid conflict.
+
+    Added beer.cal and hello.cal lib progs in support of:   :-)
+
+	http://www.ionet.net/~timtroyr/funhouse/beer.html
+	http://www.latech.edu/~acm/HelloWorld.shtml
+
+
+The following are the changes from calc version 2.10.2t25 to 2.10.2t32:
+
+    Eliminated use of VARARG and <varargs.h>.  Calc supports only
+    <stdarg.h>.	 The VARARGS Makefile variable has been eliminated.
+
+    Source is converted to ANSI C.  In particular, functions
+    will now have ANSI C style args.  Any comments from old K&R
+    style args have been moved to function comment section.
+
+    Removed prototype.h.  The PROTO() macro is no longer needed
+    or supported.
+
+    Added mfactor.cal to find the smallest factor of a Mersenne number.
+
+    The built .h file: have_times.h, determines if the system has
+    <time.h>, <times.h>, <sys/time.h> and <sys/times.h>.
+
+    Because shs.c depends on HASHFUNC, which in turn depends on
+    VALUE, shs.o has been moved out of libcalc.a.  For the same
+    reasons, hash.h and shs.h are not being installed into
+    the ${LIBDIR} for now.
+
+    A number of the regression tests that need random numbers now
+    use different seeds.
+
+    Fixes for compiling under BSDI's BSD/OS 2.0.  Added a Makefile
+    section for BSD/OS.
+
+    Added a Makefile compile section for Dec Alpha without gcc ...
+    provides a hack-a-round for Dec Alpha cc bug.
+
+    Minor comment changes to lucas.cal.
+
+    Added pix.cal, a slow painful but interesting way to compute pix(x).
+
+    Confusion over the scope of static and global values has been reduced
+    by a patch from Ernest Bowen <ernie at turing dot une dot edu dot au>.
+
+	The change introduced by the following patch terminates the
+	scope of a static variable at any static declaration with the
+	same name at the same level, or at any global declaration with
+	the same name at any level.  With the example above, the scope
+	of the static "a" introduced in the third line ends when the
+	"global a" is read in the last line.  Thus one may now use the
+	same name in several "static" areas as in:
+
+	    ; static a = 10;
+	    ; define f(x) = a + x;
+	    ; static a = 20;
+	    ; define g(x) = a + x;
+	    ; gåÍ  æÍ  çÍ  èÍ  éÍ  êÍ  ëÍ  ìÍ  íÍ  îÍ  ïÍ  ðÍ  ñÍ  òÍ  óÍ  ôÍ  õÍ  öÍ  ÷Í  øÍ  ùÍ  úÍ  ûÍ  üÍ  ýÍ  þÍ  ÿÍ   Î  Î  Î  Î  Î  Î  Î  Î  Î  	Î  
+Î  Î  Î  Î  Î  Î  Î  Î  Î  Î  Î  Î  Î  Î  Î  Î  Î  Î  Î  Î  Î  Î   Î  !Î  "Î  #Î  $Î  %Î  &Î  'Î  (Î  )Î  *Î  +Î  ,Î  -Î  .Î  /Î  0Î  1Î  2Î  3Î  4Î  5Î  6Î  7Î  8Î  9Î  :Î  ;Î  <Î  =Î  >Î  ?Î  @Î  AÎ  BÎ  CÎ  DÎ  EÎ  FÎ  GÎ  HÎ  IÎ  JÎ  KÎ  LÎ  MÎ  NÎ  OÎ  PÎ  QÎ  RÎ  SÎ  TÎ  UÎ  VÎ  WÎ  XÎ  YÎ  ZÎ  [Î                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      lobal a;
+
+	The first "a" exists only for the definition of f(); the second
+	"a" only for the definition of g().  At the end one has only
+	the global "a".
+
+	Ending the scope of a static variable in this way is consistent
+	with the normal use of static variables as in:
+
+	    ; static a = 10;
+	    ; define f(x) {static a = 20; return a++ + x;}
+	    ; define g(x) = a + x;
+	    ; global a;
+
+	The scope of the first "a" is temporarily interrupted by the
+	"static a" in the second line; the second "a" remains active
+	until its scope ends with the ending of the definition of f().
+	Thus one ends with g(x) = 10 + x and on successive calls to
+	f(), f(x) returns 20 + x, 21 + x, etc.	With successive "static
+	a" declarations at the same level, the active one at any stage
+	is the most recent; if the instructions are being read from a
+	file, the scope of the last "static a" ends at the end-of-file.
+
+	Here I have assumed that no "global a" is encountered.	As
+	there can be only one global variable with name "a", it seems
+	to me that its use must end the scope of any static "a".  Thus
+	the changes I introduce are such that after:
+
+	    ; global a = 10;
+	    ; define f(x) = a + x;
+	    ; static a = 20;
+	    ; define g(x) = a + x;
+	    ; define h(x) {global a = 30; return a + x;}
+	    ; define i(x) = a + x;
+
+	g(x) will always return 20 + x, and until h(x) has been called,
+	f(x) and i(x) will return 10 + x; when h(x) is called, it
+	returns 30 + x and any later call to f(x) or i(x) will return
+	30 + x.	 It is the reading of "global a" in the definition of
+	h() that terminates the scope of the static a = 20, so that the
+	"a" for the last line is the global variable defined in the
+	first line.  The "a = 30" is executed only when h() is called.
+
+	Users who find this confusing might be well advised to use
+	different names for different variables at the same scope level.
+
+	The other changes produced by the patch are more straightforward,
+	but some tricky programming was needed to get the possibility of
+	multiple assignments and what seems to be the appropriate order
+	of executions and assignments.	For example, the order for the
+	declaration:
+
+		global a, b = expr1, c, d = expr2, e, f
+
+	will be:
+
+		evaluation of expr1;
+		assignment to b;
+		evaluation of expr2;
+		assignment to d;
+
+	Thus the effect is the same as for:
+
+		a = 0; b = expr1; c = 0; d = expr2; e = 0; f = 0;
+
+	The order is important when the same name is used for different
+	variables in the same context.	E.g. one may have:
+
+		define f(x) {
+			global a = 10;
+			static a = a;
+			local a = a--;
+
+			while (--a > 0)
+				x++;
+			return x;
+		}
+
+	Every time this is called, the global "a" is assigned the value
+	10.  The first time it is called, the value 10 is passed on to
+	the static "a" and then to the local "a".  In each later call
+	the "static a = a" is ignored and the static "a" is one less than
+	it was in the preceding call.  I'm not recommending this style of
+	programming but it is good that calc will be able to handle it.
+
+	I've also changed dumpop to do something recent versions do not do:
+	distinguish between static and global variables with the same name.
+
+	Other changes: commas may be replaced by spaces in a sequence of
+	identifiers in a declaration. so one may now write:
+
+		global a b c = 10, d e = 20
+
+	The comma after the 10 is still required.  Multiple occurrences
+	of an identifier in a local declaration are now acceptable as
+	they are for global or static declarations:
+
+		local a b c = 10, a = 20;
+
+	does the same as:
+
+		local a b c;
+		a = b = c = 10;
+		a = 20;
+
+	The static case is different in that:
+
+		static a b c = 10, a = 20;
+
+	creates four static variables, the first "a" having a very short and
+	useless life.
+
+    Added new tests to verify the new assignments above.
+
+    Added the builtin test(x) which returns 1 or 0 according as x tests
+    as true or false for conditions.
+
+    Added have_posscl.c which attempts to determine if FILEPOS is
+    a scalar and defines HAVE_FILEPOS_SCALAR in have_posscl.h
+    accordingly.  The Makefile variable HAVE_POSSCL determines
+    if have_posscl.c will test this condition or assume non-scalar.
+
+    Added have_offscl.c which attempts to determine if off_t is
+    a scalar and defines HAVE_OFF_T_SCALAR in have_posscl.h
+    accordingly.  The Makefile variable HAVE_OFFSCL determines
+    if have_offscl.c will test this condition or assume non-scalar.
+
+    Reading to EOF leaves you positioned one character beyond
+    the last character in the file, just like Un*x read behavior.
+
+    Calc supports files and offsets up to 2^64 bytes, if the OS
+    and file system permits.
+
+
+The following are the changes from calc version 2.10.2t4 to 2.10.2t24:
+
+    Added makefile debugging rules:
+
+	make chk	like a 'make check' (run the regression tests)
+			except that only a few lines around interesting
+			(and presumable error messages) are printed.
+			No output if no errors are found.
+
+	make env	print important makefile values
+
+	make mkdebug	'make env' + version information and a
+			make with verbose output and printing of
+			constructed files
+
+	make debug	'make mkdebug' with a 'make clobber'
+			so that the entire make is verbose and
+			a constructed files are printed
+
+     Improved instructions in 'BUGS' section on reporting problems.
+     In particular we made it easy for people to send in a full
+     diagnostic output by sending 'debug.out' which is made as follows:
+
+	make debug > debug.out
+
+     Added -v to calc command line to print the version and exit.
+
+     Fixed declarations of memcpy(), strcpy() and memset() in the
+     case of them HAVE_NEWSTR is false.
+
+     Fixed some compile time warnings.
+
+     Attempting to rewind a file this is not open generates an error.
+
+     Noted conversion problems in file.c in triple X comments.
+
+     Some extremely brain dead shells cannot correctly deal with if
+     clauses that do not have a non-empty else statement.  Their
+     exit bogosity results in make problems.  As a work-a-round,
+     Makefile if clauses have 'else true;' clauses for if statements
+     that previously did not have an else clause.
+
+     Fixed problems where the input stack depth reached the 10 levels.
+
+     The show keyword is now a statement instead of a command:
+
+	; define demo() {local f = open("foo", "w"); show files; fclose(f);}
+	; demo()
+
+     Added a new trace option for display of links to real and complex
+     numbers.  This is activated by config("trace", 4).  The printing of
+     a real number is immediately followed by "#" and the number of links
+     to that number; complex numbers are printed in the same except for
+     having "##" instead of "#".  <ernie at turing dot une dot edu dot au>
+
+     The number of links for a number value is essentially the number of value
+     locations at which it is either stored or deemed to be stored.  Here a
+     number value is the result of a reading or evaluation; when the result
+     is assigned to lvalues, "linking" rather than copying occurs.  Different
+     sets of mutually linked values may contain the same number.  For example:
+
+	a = b = 2 + 3; x, y = 2 + 3;
+
+     a and b are linked, and x and y are linked, but a and x are not linked.
+
+     Revised the credits help file and man page.  Added archive help
+     file to indicate where recent versions of calc are available.
+
+     The regression test suite output has been changed so that it will
+     output the same information regardless of CPU performance.	 In
+     particular, cpu times of certain tests are not printed.  This allows
+     one to compare the regression output of two different systems easier.
+
+     A matrix or object declaration is now considered an expression
+     and returns a matrix or object of the specified type.  Thus one may
+     use assignments like:
+
+	A = mat[2];		/* same as: mat A[2]; */
+	P = obj point;		/* same as: obj point P; */
+
+     The obj and mat keywords may be with "local", "global", "static" as in:
+
+	local mat A[2];
+
+     Several matrices or objects may be assigned or declared in the one
+     statement, as in:
+
+	mat A, B[2], C[3];	/* same as: mat A[2], B[2], C[3] */
+
+     except that only one matrix creation occurs and is copied as in:
+
+	A = B = mat[2];
+
+     Initialization of matrices and objects now occur before assignments:
+
+	mat A, B [2] = {1,2};	/* same as: A = B = (mat[2] = {1,2}); */
+
+     Missing arguments are considered as "no change" rather than
+     "assign null values".  As in recent versions of calc, the default
+     value assigned to matrix elements is zero and the default for object
+     elements is a null value).	 Thus:
+
+	mat A[2] = {1,2};
+	A = { , 3};
+
+     will change the value of A to {1,3}.
+
+     If the relevant operation exists for matrices or has been defined for
+     the type of object A is, the assignment = may be combined with +, -, *,
+     etc. as in:
+
+	A += {3, 4};		/* same as: A[0] += 3; A[1] += 4; */
+	A += { };		/* same as: A += A; */
+
+     In (non-local) declarations, the earlier value of a variable may be
+     used in the initialization list:
+
+	mat A[3]={1,2,3}; mat A[3]={A[2],A[1],A[0]}; /* same as: A={3,2,1} */
+
+     Also:
+
+	mat A[3] = {1,2,3};
+	mat A[3] = {A, A, A};
+
+     produces a 3-element matrix, each of whose elements is a 3-element matrix.
+
+     The notation A[i][j] requires A[i] to be a matrix, whereas B[i,j]
+     accesses an element in a 2-dimensional matrix.  Thus:
+
+	B == A[i]	implies		A[i][j] = B[j]
+
+     There is requirement in the use of A[i][j] that the matrices A[i]
+     for i = 0, 1, ... all be of the same size.	 Thus:
+
+	mat A[3] = {(mat[2]), (mat[3]), (mat[2])};
+
+     produces a matrix with a 7-element structure:
+
+	A[0][0], A[0][1], A[1][0], A[1][1], A[1][2], A[2][0], A[2][1]
+
+     One can initialize matrices and objects whose elements are matrices
+     and/or objects:
+
+	obj point {x,y}
+	obj point P;
+	obj point A = {P,P};
+
+     or:
+
+	obj point {x,y};
+	obj point P;
+	mat A[2] = {P,P};
+	A = {{1,2}, {3,4}};
+
+     The config("trace", 8) causes opcodes of newly defined functions
+     are displayed.  Also show can now show the opcodes for a function.
+     For example:
+
+	config("trace", 8);
+	define f(x) = x^2;
+	show opcodes f;
+	define g(x,y) {static mat A[2]; A += {x,y}; return A;}
+	show opcodes g
+	g(2,3);
+	show opcodes g;
+	g(3,4);
+
+     The two sequences displayed for f should show the different ways
+     the parameter is displayed.  The third sequence for g should also
+     show the effects of the static declaration of A.
+
+     Fixed a number of compiler warning and type cast problems.
+
+     Added a number of new error codes.
+
+     Misc bug fixes for gcc2 based Sparc systems.
+
+     Fixed a bug in the SVAL() macro on systems with 'long long'
+     type and on systems with 16 bit HALFs.
+
+     Reduced the Makefile CC set:
+
+	 CCOPT are flags given to ${CC} for optimization
+	 CCWARN are flags given to ${CC} for warning message control
+	 CCMISC are misc flags given to ${CC}
+
+	 CFLAGS are all flags given to ${CC}
+		[[often includes CCOPT, CCWARN, CCMISC]]
+	 ICFLAGS are given to ${CC} for intermediate progs
+
+	 CCMAIN are flags for ${CC} when files with main() instead of CFLAGS
+	 CCSHS are flags given to ${CC} for compiling shs.c instead of CFLAGS
+
+	 LCFLAGS are CC-style flags for ${LINT}
+	 LDFLAGS are flags given to ${CC} for linking .o files
+	 ILDFLAGS are flags given to ${CC} for linking .o files
+		  for intermediate progs
+
+	 CC is how the the C compiler is invoked
+
+    Added more tests to regress.cal.
+
+    Port to HP-UX.
+
+    Moved config_print() from config.c to value.c so prevent printvalue()
+    and freevalue() from being unresolved symbols for libcalc.a users.
+
+    Calc will generate "maximum depth reached" messages or errors when
+    reading or eval() is attempted at maximum input depth.
+
+    Now each invocation of make is done via ${MAKE} and includes:
+
+	MAKE_FILE=${MAKE_FILE}
+	TOPDIR=${TOPDIR}
+	LIBDIR=${LIBDIR}
+	HELPDIR=${HELPDIR}
+
+    Setting MAKE_FILE= will cause make to not re-make if the Makefile
+    is edited.
+
+    Added libinit.c which contains the function libcalc_call_me_first().
+    Users of libcalc.a MUST CALL libcalc_call_me_first BEFORE THEY USE
+    ANY OTHER libcalc.a functions!
+
+    Added support for the SGI IRIX6.2 (or later) Mongoose 7.0 (or later)
+    C Compiler for the r4k, r8k and r10k.  Added LD_NO_SHARED for
+    non-shared linker support.
+
+    Re-ordered and expanded options for the DEBUG make variable.
+
+    Make a few minor cosmetic comment changes/fixes in the main Makefile.
+
+    Statements such as:
+
+		mat A[2][3];
+
+    now to the same as:
+
+		mat M[3];
+		mat A[2] = {M, M};
+
+    To initialize such an A one can use a statement like
+
+		A = {{1,2,3}, {4,5,6}};
+
+    or combine initialization with creation by:
+
+		mat A[2][3] = {{1,2,3}, {4,5,6}};
+
+    One would then have, for example, A[1][0] = 4.  Also, the inner braces
+    cannot be removed from the initialization for A:
+
+		mat A[2][3] = {1,2};
+
+    results in exactly the same as:
+
+		mat A[2] = {1,2};
+
+    Added rm("file") builtin to remove a file.
+
+    The regress test sections that create files also use rm() to remove
+    them before and afterward.
+
+    Added 4400-4500 set to test new mat and obj initialization rules.
+
+    Added 4600 to test version file operations.
+
+    Added CCZPRIME Makefile variable to the set for the short term
+    to work around a CC -O2 bug on some SGI machines.
+
+    Added regression test of _ variables and function names.
+
+    Added read of read and write, including read and write test for
+    long strings.
+
+    Fixed bug associated with read of a long string variable.
+
+    Renumbered some of the early regress.cal test numbers to make room
+    for more tests.  Fixed all out of sequence test numbers.  Fixed some
+    malformed regression reports.
+
+    Renamed STSIZE_BITS to OFF_T_BITS.	Renamed SWAP_HALF_IN_STSIZE to
+    SWAP_HALF_IN_OFF_T.
+
+
+The following are the changes from calc version 2.10.2t1 to 2.10.2t3:
+
+    Fixed bug in the regression suite that made test3400 and test4100
+    fail on correct computations.
+
+    The randbit() builtin, when given to argument, returns 1 random bit.
+
+    Fixed a bug in longlong.c which made is generate a syntax error
+    on systems such as the PowerPC where the make variable LONGLONG
+    was left empty.
+
+    By default, the Makefile leaves LONGLONG_BITS empty to allow for
+    testing of 64 bit data types.  A few hosts may have problems with
+    this, but hopefully not.  Such hosts can revert back to LONGLONG_BITS=0.
+
+    Improved SGI support.  Understands SGI IRIX6.2 performance issues
+    for multiple architectures.
+
+    Fixed a number of implicit conversion from unsigned long to long to avoid
+    unexpected rounding, sign extension, or loss of accuracy side effects.
+
+    Added SHSCC because shs.c contains a large expression that some
+    systems need help in optimizing.
+
+    Added "show files" to display information about all currently open files.
+
+    Calc now prevents user-defined function having the same name as a
+    builtin function.
+
+    A number of new error codes (more than 100) have been added.
+
+    Added ctime() builtin for date and time as string value.
+    Added time() builtin for seconds since 00:00:00 1 Jan 1970 UTC.
+    Added strerror() builtin for string describing error type.
+    Added freopen() builtin to reopen a file.
+    Added frewind() builtin to rewind a file.
+    Added fputstr() builtin to write a null-terminated string to a file.
+    Added fgetstr() builtin to read a null-terminated string from a file.
+    Added fgetfield() builtin to read next field from file.
+    Added strscan() builtin to scan a string.
+    Added scan() builtin to scan of a file.
+    Added fscan() builtin to scan of a file.
+    Added fscanf() builtin to do a formatted scan of a file.
+    Added scanf() builtin to do a formatted scan of stdin.
+    Added strscanf() builtin to do a formatted scan of a string.
+    Added ungetc() builtin to unget character read from a file.
+
+    As before, files opened with fopen() will have an id different from
+    earlier files.  But instead of returning the id to the FILEIO slot
+    used to store information about it, calc simply uses consecutive
+    numbers starting with 3.  A calc file retains its id, even when the
+    file has been closed.
+
+    The builtin files(i) now returns the file opened with id == i
+    rather than the file with slot number i.  For any i <= lastid,
+    files(i) has at some time been opened.  Whether open or closed, it
+    may be "reopened" with the freopen() command.  This write to a file
+    and then read it, use:
+
+	f = fopen("junk", "w")
+	freopen(f, "r")
+
+	To use the same stream f for a new file, one may use:
+
+	    freopen(f, mode, newfilename)
+
+	which closes f (assuming it is open) and then opens newfilename on f.
+
+	And as before:
+
+	    f = fopen("curds", "r")
+	    g = fopen("curds", "r")
+
+	results in two file ids (f and g) that refer to the same file
+	name but with different pointers.
+
+    Calc now understands "w+", "a+" and "r+" file modes.
+
+    If calc opens a file without a mode there is a "guess" that mode
+    "r+" will work for any files with small descriptors found to be
+    open.  In case it doesn't (as apparently happens if the file had
+    not been opened for both reading and reading) the function now also
+    tries "w" and "r", and if none work, gives up.  This avoids having
+    "open" files with null fp.
+
+    The builtin rewind() calls the C rewind() function, but one may
+    now rewind several files at once by a call like rewind(f1, f2).
+    With no argument, rewind() rewinds all open files with id >= 3.
+
+    The functions fputstr(), fgetstr() have been defined to include the
+    terminating '\0' when writing a string to a file.  This can be done
+    at present with a sequence of instructions like:
+
+	fputs(f, "Landon"); fputc(f, 0);
+	fputs(f, "Curt"); fputc(f, 0);
+	fputs(f, "Noll"); fputc(f, 0);
+
+	One may now do:
+
+	    fputstr(f, "Landon", "Curt", "Noll");
+
+	and read them back by:
+
+	    rewind(f);
+	    x = fgetstr(f);	/* returns "Landon" */
+	    y = fgetstr(f);	/* returns "Curt" */
+	    z = fgetstr(f);	/* returns "Noll" */
+
+    The builtin fgetfield() returns the next field of non-whitepsace
+    characters.
+
+    The builtins scan(), fscan(), strscan() read tokens (fields of
+    non-whitepsace characters) and evaluates them.  Thus:
+
+	global a,b,c;
+	strscan("2+3  4^2\n c=a+b", a, b, 0);
+
+	results in a = 5, b = 16, c = 21
+
+    The functions scanf, fscanf, strscanf behave like the C functions
+    scanf, fscanf, sscanf.   The conversion specifiers recognized are "%c",
+    "%s", "%[...]" as in C, with the options of *, width-specification,
+    and complementation (as in [^abc]), and "%n" for file-position, and
+    "%f", "%r", "%e", "%i" for numbers or simple number-expressions - any
+    width-specification is ignored; the expressions are not to include any
+    white space or characters other than decimal digits, +, -, *, /, e, and i.
+    E.g. expressions like 2e4i+7/8 are acceptable.
+
+    The builtin size(x) now returns the size of x if x is an open file
+    or -1 if x is a file but not open.	If s is a string, size(s) returns
+    characters in s.
+
+    Added builtin access("foo", "w") returns the null value if a file
+    "foo" exists and is writable.
+
+    Some systems has a libc symbolic qadd() that conflicted with calc's
+    qadd function.  To avoid this, qadd() has been renamed to qqadd().
+
+    The calc error codes are produced from the the calcerr.tbl file.
+    Instead of changing #defines in value.h, one can not edit calcerr.tbl.
+    The Makefile builds calcerr.h from this file.
+
+    Calc error codes are now as follows:
+
+	<0			invalid
+	0 .. sys_nerr-1		system error ala C's errno values
+	sys_nerr .. E__BASE-1	reserved for future system errors
+	E__BASE .. E__HIGHEST	calc internal errors
+	E__HIGHEST+1 .. E_USERDEF-1	invalid
+	E_USERDEF ..		user defined errors
+
+    Currently, E__BASE == 10000 and E_USERDEF == 20000.	 Of course,
+    sys_nerr is system defined however is likely to be < E__BASE.
+
+    Renamed CONST_TYPE (as defined in have_const.h) to just CONST.
+    This symbol will either be 'const' or an empty string depending
+    on if your compiler understands const.
+
+    CONST is beginning to be used with read-only tables and some
+    function arguments.	 This allows certain compilers to better
+    optimize the code as well as alerts one to when some value
+    is being changed inappropriately.  Use of CONST as in:
+
+	int foo(CONST int curds, char *CONST whey)
+
+    while legal C is not as useful because the caller is protected
+    by the fact that args are passed by value.	However, the
+    in the following:
+
+	int bar(CONST char *fizbin, CONST HALF *data)
+
+    is useful because it calls the compiler that the string pointed
+    at by 'fizbin' and the HALF array pointer at by 'data' should be
+    treated as read-only.
+
+
+The following are the changes from calc version 2.10.1t21 to 2.10.2t0:
+
+    Bumped patch level 2.10.2t0 in honor of having help files for
+    all builtin functions.  Beta release will happen at the end of
+    the 2.10.2 cycle!!!
+
+    Fewer items listed in BUGS due to a number of bug fixes.
+
+    Less todo in the help/todo file because more has already been done.	 :-)
+
+    All builtin functions have help files!  While a number need cleanup
+    and some of the LIMITS, LIBRARY and SEE ALSO sections need fixing
+    (or are missing), most of it is there.  A Big round of thanks goes to
+    <ernie at turing dot une dot edu dot au> for his efforts in initial
+    write-ups for many of these files!
+
+    The recognition of '\' as an escape character in the format argument
+    of printf() has been dropped.  Thus:
+
+	printf("\\n");
+
+    will print the two-character string "\n" rather than the a
+    one-character carriage return.  <ernie at turing dot une dot edu dot au>
+
+    Missing args to printf-like functions will be treated as null values.
+
+    The scope of of config("fullzero") has been extended to integers,
+    so that for example, after config("mode","real"), config("display", 5),
+    config("fullzero", 1), both:
+
+	print 0, 1, 2;
+	printf("%d %d %d\n", 0, 1, 2);
+
+    print:
+
+	.00000 1.00000, 2.00000
+
+    The bug which caused calc to exit on:
+
+	b = "print 27+"
+	eval(b)
+
+    has been fixed.  <ernie at turing dot une dot edu dot au>
+
+    Fixed bugs in zio.c which caused eval(str(x)) == x to fail
+    in non-real modes such as "oct".  <ernie at turing dot une dot edu dot au>
+
+    The following:
+
+	for (i = 1; i < 10; i++) print i^2,;
+
+    now prints the same as:
+
+	for (i = 1; i < 10; i++) print i^2,;
+
+    The show globals will print '...' in the middle of large values.
+    <ernie at turing dot une dot edu dot au>
+
+    The param(n) builtin, then n > 0, returns the address rather than
+    the value of the n-th argument to save time and memory usage.  This
+    is useful when a matrix with big number entries is passed as an arg.
+    <ernie at turing dot une dot edu dot au>
+
+    The param(n) builtin, then n > 0, may be used as an lvalue:
+
+	; define g() = (param(2) = param(1));
+	; define h() = (param(1)++, param(2)--);
+	; u = 5
+	; v = 10
+	; print g(u, &v), u, v;
+	5 5 5
+	; print h(&u, &v), u, v;
+	5 6 4
+
+    Missing args now evaluate to null as in:
+
+	A = list(1,,3)
+	B = list(,,)
+	mat C[] = {,,}
+	mat D[] = { }
+
+
+The following are the changes from calc version 2.10.1t20 to 2.10.1t20:
+
+    Changes made in preparation for Blum Blum Shub random number generator.
+
+    REDC bug fixes: <ernie at turing dot une dot edu dot au>
+
+	Fixed yet another bug in zdiv which occasionally caused the "top digit"
+	of a nonzero quotient to be zero.
+
+	Fixed a bug in zredcmul() where a rarely required "topdigit" is
+	sometimes lost rather than added to the appropriate carry.
+
+    A new function zredcmodinv(ZVALUE z, ZVALUE *res) has been defined
+    for evaluating rp->inv in zredcalloc().  <ernie at turing dot une
+    dot edu dot au>
+
+    New functions zmod5(ZVALUE *zp) and zmod6(ZVALUE z, ZVALUE *res)
+    have been defined to give O(N^1.585)-runtime evaluation of z % m
+    for large N-word m.  These require m and BASE^(2*N) // m to have
+    been stored at named locations lastmod, lastmodinv.  zmod5() is
+    essentially for internal use by zmod6() and zpowermod().  <ernie at
+    turing dot une dot edu dot au>
+
+    Changes to rcmul(x,y,m) so that the result is always in [0, m-1].
+    <ernie at turing dot une dot edu dot au>
+
+    Changes to some of the detail of zredcmul() so that it should run slightly
+    faster.  Also changes to zredcsq() in the hope that it might achieve
+    something like the improvement in speed of x^2 compared with x * x.
+    <ernie at turing dot une dot edu dot au>
+
+    A new "bignum" algorithm for evaluating pmod(x,k,m) when
+    N >= config("pow2").  For the multiplications and squaring
+    modulo m, or their equivalent, when N >= config("redc2"),
+    calc has used evaluations corresponding to rcout(x * y, m),
+    for which the runtime is essentially that of three multiplications.
+    <ernie at turing dot une dot edu dot au>
+
+    Yet more additions to the regress.cal test suite.
+
+    Fixed some ANSI-C compile nits in shs.c and quickhash.c.
+
+    Plugs some potential memory leaks in definitions in func.c.
+    Expressions such as qlink(vals[2]) in some circumstances are
+    neither qfreed nor returned as function values.
+    <ernie at turing dot une dot edu dot au>
+
+    The nextcand() and prevcand() functions handle modval, modulus
+    and skip by using ZVALUE rather than ZVALUE * and dropping
+    the long modulus, etc.  <ernie at turing dot une dot edu dot au>
+
+    Changed a couple of occurrences of itoq(1) or itoq(0) to &_qone_
+    and &_qzero_.  <ernie at turing dot une dot edu dot au>
+
+    In definition of f_primetest, changed ztolong(q2->num) to ztoi(q2->num)
+    so that the sign of count in ptest(n, count, skip) is not lost; and
+    ztolong(q3->num) to q3->num so that skip can be any integer.
+    <ernie at turing dot une dot edu dot au>
+
+    In zprime.c, in definition of small_factor(), adds "&& *tp != 1" to
+    the exit condition in the for loop so that searching for a factor
+    will continue beyond the table of primes, as required for e.g.
+    factor(2^59 - 1).  <ernie at turing dot une dot edu dot au>
+
+    Changed zprimetest() so that skip in ptest(n, count, skip)
+    determines the way bases for the tests are selected.  Neg values of
+    n are treated differently.	 When considering factorization,
+    primeness, etc. one is concerned with equivalence classes which for
+    the rational integers are {0}, {-1, 1}, {-2, 2}, etc.  To refer to
+    an equivalence class users may use any of its elements but when
+    returning a value for a factor the computer normally gives the
+    non-negative member.  The same sort of thing happens with integers
+    modulo an integer, with fractions, etc., etc.  E.g. users may refer
+    to 3/4 as 6/8 or 9/12, etc.	 A simple summary of the way negative n
+    is treated is "the sign is ignored". E.g. isprime(-97) and
+    nextprime(-97) now return the same as isprime(97) and nextprime(97).
+    <ernie at turing dot une dot edu dot au>
+
+
+The following are the changes from calc version 2.10.1t11 to 2.10.1t19:
+
+    Added many more regression tests to lib/regress.cal.  Some
+    due to <ernie at turing dot une dot edu dot au>.
+
+    Added many help files, most due to <ernie at turing dot une dot edu dot au>.
+
+    Fixed exp() and ln() so that when they return a complex value with
+    a zero imaginary component, isreal() is true.  <ernie at turing dot
+    une dot edu dot au>
+
+    Fixed cast problem in byteswap.c.  <ernie at turing dot une dot edu dot au>
+
+    Fixe

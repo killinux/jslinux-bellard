@@ -1,0 +1,1430 @@
+The `Makefile' target `all-target-DIR' will build that library.
+
+   Every `configure-target-DIR' target depends upon `all-gcc', since
+gcc, the target compiler, is required to configure the tool.  Every
+`all-target-DIR' target depends upon the corresponding
+`configure-target-DIR' target.
+
+   There are several other targets which may be of interest for each
+directory: `install-DIR', `clean-DIR', and `check-DIR'.  There are also
+corresponding `target' versions of these for the target libraries ,
+such as `install-target-DIR'.
+
+
+File: configure.info,  Node: Target libiberty,  Prev: Make Targets in Cygnus Tree,  Up: Cross Tools in the Cygnus Tree
+
+5.6.4 Target libiberty
+----------------------
+
+The `libiberty' subdirectory is currently a special case, in that it is
+the only directory which is built both using the host compiler and
+using the target compiler.
+
+   This is because the files in `libiberty' are used when building the
+host tools, and they are also incorporated into the `libstdc++' target
+library as support code.
+
+   This duality does not pose any particular difficulties.  It means
+that there are targets for both `all-libiberty' and
+`all-target-libiberty'.
+
+   In a native configuration, when target libraries are not built in a
+subdirectory, the same objects are normally used as both the host build
+and the target build.  This is normally OK, since libiberty contains
+only C code, and in a native configuration the results of the host
+compiler and the target compiler are normally interoperable.
+
+   Irix 6 is again an exception here, since the SGI native compiler
+defaults to using the `O32' ABI, and gcc defaults to using the `N32'
+ABI.  On Irix 6, the target libraries are built in a subdirectory even
+for a native configuration, avoiding this problem.
+
+   There are currently no other libraries built for both the host and
+the target, but there is no conceptual problem with adding more.
+
+
+File: configure.info,  Node: Canadian Cross,  Next: Cygnus Configure,  Prev: Cross Compilation Tools,  Up: Top
+
+6 Canadian Cross
+****************
+
+It is possible to use the GNU configure and build system to build a
+program which will run on a system which is different from the system on
+which the tools are built.  In other words, it is possible to build
+programs using a cross compiler.
+
+   This is referred to as a "Canadian Cross".
+
+* Menu:
+
+* Canadian Cross Example::		Canadian Cross Example.
+* Canadian Cross Concepts::		Canadian Cross Concepts.
+* Build Cross Host Tools::		Build Cross Host Tools.
+* Build and Host Options::		Build and Host Options.
+* CCross not in Cygnus Tree::		Canadian Cross not in Cygnus Tree.
+* CCross in Cygnus Tree::		Canadian Cross in Cygnus Tree.
+* Supporting Canadian Cross::		Supporting Canadian Cross.
+
+
+File: configure.info,  Node: Canadian Cross Example,  Next: Canadian Cross Concepts,  Up: Canadian Cross
+
+6.1 Canadian Cross Example
+==========================
+
+Here is an example of a Canadian Cross.
+
+   While running on a GNU/Linux, you can build a program which will run
+on a Solaris system.  You would use a GNU/Linux cross Solaris compiler
+to build the program.
+
+   Of course, you could not run the resulting program on your GNU/Linux
+system.  You would have to copy it over to a Solaris system before you
+would run it.
+
+   Of course, you could also simply build the programs on the Solaris
+system in the first place.  However, perhaps the Solaris system is not
+available for some reason; perhaps you actually don't have one, but you
+want to build the tools for somebody else to use.  Or perhaps your
+GNU/Linux system is much faster than your Solaris system.
+
+   A Canadian Cross build is most frequently used when building
+programs to run on a non-Unix system, such as DOS or Windows.  It may
+be simpler to configure and build on a Unix system than to support the
+configuration machinery on a non-Unix system.
+
+
+File: configure.info,  Node: Canadian Cross Concepts,  Next: Build Cross Host Tools,  Prev: Canadian Cross Example,  Up: Canadian Cross
+
+6.2 Canadian Cross Concepts
+===========================
+
+When building a Canadian Cross, there are at least two different systems
+involved: the system on which the tools are being built, and the system
+on which the tools will run.
+
+   The system on which the tools are being built is called the "build"
+system.
+
+   The system on which the tools will run is called the host system.
+
+   For example, if you are building a Solaris program on a GNU/Linux
+system, as in the previous section, the build system would be GNU/Linux,
+and the host system would be Solaris.
+
+   It is, of course, possible to build a cross compiler using a Canadian
+Cross (i.e., build a cross compiler using a cross compiler).  In this
+case, the system for which the resulting cross compiler generates code
+is called the target system.  (For a more complete discussion of host
+and target systems, *note Host and Target::).
+
+   An example of building a cross compiler using a Canadian Cross would
+be building a Windows cross MIPS ELF compiler on a GNU/Linux system.  In
+this case the build system would be GNU/Linux, the host system would be
+Windows, and the target system would be MIPS ELF.
+
+   The name Canadian Cross comes from the case when the build, host, and
+target systems are all different.  At the time that these issues were
+all being hashed out, Canada had three national political parties.
+
+
+File: configure.info,  Node: Build Cross Host Tools,  Next: Build and Host Options,  Prev: Canadian Cross Concepts,  Up: Canadian Cross
+
+6.3 Build Cross Host Tools
+==========================
+
+In order to configure a program for a Canadian Cross build, you must
+first build and install the set of cross tools you will use to build the
+program.
+
+   These tools will be build cross host tools.  That is, they will run
+on the build system, and will produce code that runs on the host system.
+
+   It is easy to confuse the meaning of build and host here.  Always
+remember that the build system is where you are doing the build, and the
+host system is where the resulting program will run.  Therefore, you
+need a build cross host compiler.
+
+   In general, you must have a complete cross environment in order to do
+the build.  This normally means a cross compiler, cross assembler, and
+so forth, as well as libraries and include files for the host system.
+
+
+File: configure.info,  Node: Build and Host Options,  Next: CCross not in Cygnus Tree,  Prev: Build Cross Host Tools,  Up: Canadian Cross
+
+6.4 Build and Host Options
+==========================
+
+When you run `configure', you must use both the `--build' and `--host'
+options.
+
+   The `--build' option is used to specify the configuration name of
+the build system.  This can normally be the result of running the
+`config.guess' shell script, and it is reasonable to use
+`--build=`config.guess`'.
+
+   The `--host' option is used to specify the configuration name of the
+host system.
+
+   As we explained earlier, `config.guess' is used to set the default
+value for the `--host' option (*note Using the Host Type::).  We can
+now see that since `config.guess' returns the type of system on which
+it is run, it really identifies the build system.  Since the host
+system is normally the same as the build system (i.e., people do not
+normally build using a cross compiler), it is reasonable to use the
+result of `config.guess' as the default for the host system when the
+`--host' option is not used.
+
+   It might seem that if the `--host' option were used without the
+`--build' option that the configure script could run `config.guess' to
+determine the build system, and presume a Canadian Cross if the result
+of `config.guess' differed from the `--host' option.  However, for
+historical reasons, some configure scripts are routinely run using an
+explicit `--host' option, rather than using the default from
+`config.guess'.  As noted earlier, it is difficult or impossible to
+reliably compare configuration names (*note Using the Target Type::).
+Therefore, by convention, if the `--host' option is used, but the
+`--build' option is not used, then the build system defaults to the
+host system.
+
+
+File: configure.info,  Node: CCross not in Cygnus Tree,  Next: CCross in Cygnus Tree,  Prev: Build and Host Options,  Up: Canadian Cross
+
+6.5 Canadian Cross not in Cygnus Tree.
+======================================
+
+If you are not using the Cygnus tree, you must explicitly specify the
+cross tools which you want to use to build the program.  This is done by
+setting environment variables before running the `configure' script.
+
+   You must normally set at least the environment variables `CC', `AR',
+and `RANLIB' to the cross tools which you want to use to build.
+
+   For some programs, you must set additional cross tools as well, such
+as `AS', `LD', or `NM'.
+
+   You would set these environment variables to the build cross tools
+which you are going to use.
+
+   For example, if you are building a Solaris program on a GNU/Linux
+system, and your GNU/Linux cross Solaris compiler were named
+`solaris-gcc', then you would set the environment variable `CC' to
+`solaris-gcc'.
+
+
+File: configure.info,  Node: CCross in Cygnus Tree,  Next: Supporting Canadian Cross,  Prev: CCross not in Cygnus Tree,  Up: Canadian Cross
+
+6.6 Canadian Cross in Cygnus Tree
+=================================
+
+This section describes configuring and building a Canadian Cross when
+using the Cygnus tree.
+
+* Menu:
+
+* Standard Cygnus CCross::	Building a Normal Program.
+* Cross Cygnus CCross::		Building a Cross Program.
+
+
+File: configure.info,  Node: Standard Cygnus CCross,  Next: Cross Cygnus CCross,  Up: CCross in Cygnus Tree
+
+6.6.1 Building a Normal Program
+-------------------------------
+
+When configuring a Canadian Cross in the Cygnus tree, all the
+appropriate environment variables are automatically set to `HOST-TOOL',
+where HOST is the value used for the `--host' option, and TOOL is the
+name of the tool (e.g., `gcc', `as', etc.).  These tools must be on
+your `PATH'.
+
+   Adding a prefix of HOST will give the usual name for the build cross
+host tools.  To see this, consider that when these cross tools were
+built, they were configured to run on the build system and to produce
+code for the host system.  That is, they were configured with a
+`--target' option that is the same as the system which we are now
+calling the host.  Recall that the default name for installed cross
+tools uses the target system as a prefix (*note Using the Target
+Type::).  Since that is the system which we are now calling the host,
+HOST is the right prefix to use.
+
+   For example, if you configure with `--build=i386-linux-gnu' and
+`--host=solaris', then the Cygnus tree will automatically default to
+using the compiler `solaris-gcc'.  You must have previously built and
+installed this compiler, probably by doing a build with no `--host'
+option and with a `--target' option of `solaris'.
+
+
+File: configure.info,  Node: Cross Cygnus CCross,  Prev: Standard Cygnus CCross,  Up: CCross in Cygnus Tree
+
+6.6.2 Building a Cross Program
+------------------------------
+
+There are additional considerations if you want to build a cross
+compiler, rather than a native compiler, in the Cygnus tree using a
+Canadian Cross.
+
+   When you build a cross compiler using the Cygnus tree, then the
+target libraries will normally be built with the newly built target
+compiler (*note Host and Target Libraries::).  However, this will not
+work when building with a Canadian Cross.  This is because the newly
+built target compiler will be a program which runs on the host system,
+and therefore will not be able to run on the build system.
+
+   Therefore, when building a cross compiler with the Cygnus tree, you
+must first install a set of build cross target tools.  These tools will
+be used when building the target libraries.
+
+   Note that this is not a requirement of a Canadian Cross in general.
+For example, it would be possible to build just the host cross target
+tools on the build system, to copy the tools to the host system, and to
+build the target libraries on the host system.  The requirement for
+build cross target tools is imposed by the Cygnus tree, which expects
+to be able to build both host programs and target libraries in a single
+`configure'/`make' step.  Because it builds these in a single step, it
+expects to be able to build the target libraries on the build system,
+which means that it must use a build cross target toolchain.
+
+   For example, suppose you want to build a Windows cross MIPS ELF
+compiler on a GNU/Linux system.  You must have previously installed
+both a GNU/Linux cross Windows compiler and a GNU/Linux cross MIPS ELF
+compiler.
+
+   In order to build the Windows (configuration name `i386-cygwin32')
+cross MIPS ELF (configure name `mips-elf') compiler, you might execute
+the following commands (long command lines are broken across lines with
+a trailing backslash as a continuation character).
+
+     mkdir linux-x-cygwin32
+     cd linux-x-cygwin32
+     SRCDIR/configure --target i386-cygwin32 --prefix=INSTALLDIR \
+       --exec-prefix=INSTALLDIR/H-i386-linux
+     make
+     make install
+     cd ..
+     mkdir linux-x-mips-elf
+     cd linux-x-mips-elf
+     SRCDIR/configure --target mips-elf --prefix=INSTALLDIR \
+       --exec-prefix=INSTALLDIR/H-i386-linux
+     make
+     make install
+     cd ..
+     mkdir cygwin32-x-mips-elf
+     cd cygwin32-x-mips-elf
+     SRCDIR/configure --build=i386-linux-gnu --host=i386-cygwin32 \
+       --target=mips-elf --prefix=WININSTALLDIR \
+       --exec-prefix=WININSTALLDIR/H-i386-cygwin32
+     make
+     make install
+
+   You would then copy the contents of WININSTALLDIR over to the
+Windows machine, and run the resulting programs.
+
+
+File: configure.info,  Node: Supporting Canadian Cross,  Prev: CCross in Cygnus Tree,  Up: Canadian Cross
+
+6.7 Supporting Canadian Cross
+=============================
+
+If you want to make it possible to build a program you are developing
+using a Canadian Cross, you must take some care when writing your
+configure and make rules.  Simple cases will normally work correctly.
+However, it is not hard to write configure and make tests which will
+fail in a Canadian Cross.
+
+* Menu:
+
+* CCross in Configure::		Supporting Canadian Cross in Configure Scripts.
+* CCross in Make::		Supporting Canadian Cross in Makefiles.
+
+
+File: configure.info,  Node: CCross in Configure,  Next: CCross in Make,  Up: Supporting Canadian Cross
+
+6.7.1 Supporting Canadian Cross in Configure Scripts
+----------------------------------------------------
+
+In a `configure.in' file, after calling `AC_PROG_CC', you can find out
+whether this is a Canadian Cross configure by examining the shell
+variable `cross_compiling'.  In a Canadian Cross, which means that the
+compiler is a cross compiler, `cross_compiling' will be `yes'.  In a
+normal configuration, `cross_compiling' will be `no'.
+
+   You ordinarily do not need to know the type of the build system in a
+configure script.  However, if you do need that information, you can get
+it by using the macro `AC_CANONICAL_SYSTEM', the same macro that is
+used to determine the target system.  This macro will set the variables
+`build', `build_alias', `build_cpu', `build_vendor', and `build_os',
+which correspond to the similar `target' and `host' variables, except
+that they describe the build system.
+
+   When writing tests in `configure.in', you must remember that you
+want to test the host environment, not the build environment.
+
+   Macros like `AC_CHECK_FUNCS' which use the compiler will test the
+host environment.  That is because the tests will be done by running the
+compiler, which is actually a build cross host compiler.  If the
+compiler can find the function, that means that the function is present
+in the host environment.
+
+   Tests like `test -f /dev/ptyp0', on the other hand, will test the
+build environment.  Remember that the configure script is running on the
+build system, not the host system.  If your configure scripts examines
+files, those files will be on the build system.  Whatever you determine
+based on those files may or may not be the case on the host system.
+
+   Most autoconf macros will work correctly for a Canadian Cross.  The
+main exception is `AC_TRY_RUN'.  This macro tries to compile and run a
+test program.  This will fail in a Canadian Cross, because the program
+will be compiled for the host system, which means that it will not run
+on the build system.
+
+   The `AC_TRY_RUN' macro provides an optional argument to tell the
+configure script what to do in a Canadian Cross.  If that argument is
+not present, you will get a warning when you run `autoconf':
+     warning: AC_TRY_RUN called without default to allow cross compiling
+   This tells you that the resulting `configure' script will not work
+with a Canadian Cross.
+
+   In some cases while it may better to perform a test at configure
+time, it is also possible to perform the test at run time.  In such a
+case you can use the cross compiling argument to `AC_TRY_RUN' to tell
+your program that the test could not be performed at configure time.
+
+   There are a few other autoconf macros which will not work correctly
+with a Canadian Cross: a partial list is `AC_FUNC_GETPGRP',
+`AC_FUNC_SETPGRP', `AC_FUNC_SETVBUF_REVERSED', and
+`AC_SYS_RESTARTABLE_SYSCALLS'.  The `AC_CHECK_SIZEOF' macro is
+generally not very useful with a Canadian Cross; it permits an optional
+argument indicating the default size, but there is no way to know what
+the correct default should be.
+
+
+File: configure.info,  Node: CCross in Make,  Prev: CCross in Configure,  Up: Supporting Canadian Cross
+
+6.7.2 Supporting Canadian Cross in Makefiles.
+---------------------------------------------
+
+The main Canadian Cross issue in a `Makefile' arises when you want to
+use a subsidiary program to generate code or data which you will then
+include in your real program.
+
+   If you compile this subsidiary program using `$(CC)' in the usual
+way, you will not be able to run it.  This is because `$(CC)' will
+build a program for the host system, but the program is being built on
+the build system.
+
+   You must instead use a compiler for the build system, rather than the
+host system.  In the Cygnus tree, this make variable `$(CC_FOR_BUILD)'
+will hold a compiler for the build system.
+
+   Note that you should not include `config.h' in a file you are
+compiling with `$(CC_FOR_BUILD)'.  The `configure' script will build
+`config.h' with information for the host system.  However, you are
+compiling the file using a compiler for the build system (a native
+compiler).  Subsidiary programs are normally simple filters which do no
+user interaction, and it is normally possible to write them in a highly
+portable fashion so that the absence of `config.h' is not crucial.
+
+   The gcc `Makefile.in' shows a complex situation in which certain
+files, such as `rtl.c', must be compiled into both subsidiary programs
+run on the build system and into the final program.  This approach may
+be of interest for advanced build system hackers.  Note that the build
+system compiler is rather confusingly called `HOST_CC'.
+
+
+File: configure.info,  Node: Cygnus Configure,  Next: Multilibs,  Prev: Canadian Cross,  Up: Top
+
+7 Cygnus Configure
+******************
+
+The Cygnus configure script predates autoconf.  All of its interesting
+features have been incorporated into autoconf.  No new programs should
+be written to use the Cygnus configure script.
+
+   However, the Cygnus configure script is still used in a few places:
+at the top of the Cygnus tree and in a few target libraries in the
+Cygnus tree.  Until those uses have been replaced with autoconf, some
+brief notes are appropriate here.  This is not complete documentation,
+but it should be possible to use this as a guide while examining the
+scripts themselves.
+
+* Menu:
+
+* Cygnus Configure Basics::		Cygnus Configure Basics.
+* Cygnus Configure in C++ Libraries::	Cygnus Configure in C++ Libraries.
+
+
+File: configure.info,  Node: Cygnus Configure Basics,  Next: Cygnus Configure in C++ Libraries,  Up: Cygnus Configure
+
+7.1 Cygnus Configure Basics
+===========================
+
+Cygnus configure does not use any generated files; there is no program
+corresponding to `autoconf'.  Instead, there is a single shell script
+named `configure' which may be found at the top of the Cygnus tree.
+This shell script was written by hand; it was not generated by
+autoconf, and it is incorrect, and indeed harmful, to run `autoconf' in
+the top level of a Cygnus tree.
+
+   Cygnus configure works in a particular directory by examining the
+file `configure.in' in that directory.  That file is broken into four
+separate shell scripts.
+
+   The first is the contents of `configure.in' up to a line that starts
+with `# per-host:'.  This is the common part.
+
+   The second is the rest of `configure.in' up to a line that starts
+with `# per-target:'.  This is the per host part.
+
+   The third is the rest of `configure.in' up to a line that starts
+with `# post-target:'.  This is the per target part.
+
+   The fourth is the remainder of `configure.in'.  This is the post
+target part.
+
+   If any of these comment lines are missing, the corresponding shell
+script is empty.
+
+   Cygnus configure will first execute the common part.  This must set
+the shell variable `srctrigger' to the name of a source file, to
+confirm that Cygnus configure is looking at the right directory.  This
+may set the shell variables `package_makefile_frag' and
+`package_makefile_rules_frag'.
+
+   Cygnus configure will next set the `build' and `host' shell
+variables, and execute the per host part.  This may set the shell
+variable `host_makefile_frag'.
+
+   Cygnus configure will next set the `target' variable, and execute
+the per target part.  This may set the shell variable
+`target_makefile_frag'.
+
+   Any of these scripts may set the `subdirs' shell variable.  This
+variable is a list of subdirectories where a `Makefile.in' file may be
+found.  Cygnus configure will automatically look for a `Makefile.in'
+file in the current directory.  The `subdirs' shell variable is not
+normally used, and I believe that the only directory which uses it at
+present is `newlib'.
+
+   For each `Makefile.in', Cygnus configure will automatically create a
+`Makefile' by adding definitions for `make' variables such as `host'
+and `target', and automatically editing the values of `make' variables
+such as `prefix' if they are present.
+
+   Also, if any of the `makefile_frag' shell variables are set, Cygnus
+configure will interpret them as file names relative to either the
+working directory or the source directory, and will read the contents of
+the file into the generated `Makefile'.  The file contents will be read
+in after the first line in `Makefile.in' which starts with `####'.
+
+   These `Makefile' fragments are used to customize behaviour for a
+particular host or target.  They serve to select particular files to
+compile, and to define particular preprocessor macros by providing
+values for `make' variables which are then used during compilation.
+Cygnus configure, unlike autoconf, normally does not do feature tests,
+and normally requires support to be added manually for each new host.
+
+   The `Makefile' fragment support is similar to the autoconf
+`AC_SUBST_FILE' macro.
+
+   After creating each `Makefile', the post target script will be run
+(i.e., it may be run several times).  This script may further customize
+the `Makefile'.  When it is run, the shell variable `Makefile' will
+hold the name of the `Makefile', including the appropriate directory
+component.
+
+   Like an autoconf generated `configure' script, Cygnus configure will
+create a file named `config.status' which, when run, will automatically
+recreate the configuration.  The `config.status' file will simply
+execute the Cygnus configure script again with the appropriate
+arguments.
+
+   Any of the parts of `configure.in' may set the shell variables
+`files' and `links'.  Cygnus configure will set up symlinks from the
+names in `links' to the files named in `files'.  This is similar to the
+autoconf `AC_LINK_FILES' macro.
+
+   Finally, any of the parts of `configure.in' may set the shell
+variable `configdirs' to a set of subdirectories.  If it is set, Cygnus
+configure will recursively run the configure process in each
+subdirectory.  If the subdirectory uses Cygnus configure, it will
+contain a `configure.in' file but no `configure' file, in which case
+Cygnus configure will invoke itself recursively.  If the subdirectory
+has a `configure' file, Cygnus configure assumes that it is an autoconf
+generated `configure' script, and simply invokes it directly.
+
+
+File: configure.info,  Node: Cygnus Configure in C++ Libraries,  Prev: Cygnus Configure Basics,  Up: Cygnus Configure
+
+7.2 Cygnus Configure in C++ Libraries
+=====================================
+
+The C++ library configure system, written by Per Bothner, deserves
+special mention.  It uses Cygnus configure, but it does feature testing
+like that done by autoconf generated `configure' scripts.  This
+approach is used in the libraries `libio', `libstdc++', and `libg++'.
+
+   Most of the `Makefile' information is written out by the shell
+script `libio/config.shared'.  Each `configure.in' file sets certain
+shell variables, and then invokes `config.shared' to create two package
+`Makefile' fragments.  These fragments are then incorporated into the
+resulting `Makefile' by the Cygnus configure script.
+
+   The file `_G_config.h' is created in the `libio' object directory by
+running the shell script `libio/gen-params'.  This shell script uses
+feature tests to define macros and typedefs in `_G_config.h'.
+
+
+File: configure.info,  Node: Multilibs,  Next: FAQ,  Prev: Cygnus Configure,  Up: Top
+
+8 Multilibs
+***********
+
+For some targets gcc may have different processor requirements depending
+upon command line options.  An obvious example is the `-msoft-float'
+option supported on several processors.  This option means that the
+floating point registers are not available, which means that floating
+point operations must be done by calling an emulation subroutine rather
+than by using machine instructions.
+
+   For such options, gcc is often configured to compile target libraries
+twice: once with `-msoft-float' and once without.  When gcc compiles
+target libraries more than once, the resulting libraries are called
+"multilibs".
+
+   Multilibs are not really part of the GNU configure and build system,
+but we discuss them here since they require support in the `configure'
+scripts and `Makefile's used for target libraries.
+
+* Menu:
+
+* Multilibs in gcc::		        Multilibs in gcc.
+* Multilibs in Target Libraries::	Multilibs in Target Libraries.
+
+
+File: configure.info,  Node: Multilibs in gcc,  Next: Multilibs in Target Libraries,  Up: Multilibs
+
+8.1 Multilibs in gcc
+====================
+
+In gcc, multilibs are defined by setting the variable
+`MULTILIB_OPTIONS' in the target `Makefile' fragment.  Several other
+`MULTILIB' variables may also be defined there.  *Note The Target
+Makefile Fragment: (gcc)Target Fragment.
+
+   If you have built gcc, you can see what multilibs it uses by running
+it with the `-print-multi-lib' option.  The output `.;' means that no
+multilibs are used.  In general, the output is a sequence of lines, one
+per multilib.  The first part of each line, up to the `;', is the name
+of the multilib directory.  The second part is a list of compiler
+options separated by `@' characters.
+
+   Multilibs are built in a tree of directories.  The top of the tree,
+represented by `.' in the list of multilib directories, is the default
+library to use when no special compiler options are used.  The
+subdirectories of the tree hold versions of the library to use when
+particular compiler options are used.
+
+
+File: configure.info,  Node: Multilibs in Target Libraries,  Prev: Multilibs in gcc,  Up: Multilibs
+
+8.2 Multilibs in Target Libraries
+=================================
+
+The target libraries in the Cygnus tree are automatically built with
+multilibs.  That means that each library is built multiple times.
+
+   This default is set in the top level `configure.in' file, by adding
+`--enable-multilib' to the list of arguments passed to configure when
+it is run for the target libraries (*note Host and Target Libraries::).
+
+   Each target library uses the shell script `config-ml.in', written by
+Doug Evans, to prepare to build target libraries.  This shell script is
+invoked after the `Makefile' has been created by the `configure'
+script.  If multilibs are not enabled, it does nothing, otherwise it
+modifies the `Makefile' to support multilibs.
+
+   The `config-ml.in' script makes one copy of the `Makefile' for each
+multilib in the appropriate subdirectory.  When configuring in the
+source directory (which is not recommended), it will build a symlink
+tree of the sources in each subdirectory.
+
+   The `config-ml.in' script sets several variables in the various
+`Makefile's.  The `Makefile.in' must have definitions for these
+variables already; `config-ml.in' simply changes the existing values.
+The `Makefile' should use default values for these variables which will
+do the right thing in the subdirectories.
+
+`MULTISRCTOP'
+     `config-ml.in' will set this to a sequence of `../' strings, where
+     the number of strings is the number of multilib levels in the
+     source tree.  The default value should be the empty string.
+
+`MULTIBUILDTOP'
+     `config-ml.in' will set this to a sequence of `../' strings, where
+     the number of strings is number of multilib levels in the object
+     directory.  The default value should be the empty string.  This
+     will differ from `MULTISRCTOP' when configuring in the source tree
+     (which is not recommended).
+
+`MULTIDIRS'
+     In the top level `Makefile' only, `config-ml.in' will set this to
+     the list of multilib subdirectories.  The default value should be
+     the empty string.
+
+`MULTISUBDIR'
+     `config-ml.in' will set this to the installed subdirectory name to
+     use for this subdirectory, with a leading `/'.  The default value
+     shold be the empty string.
+
+`MULTIDO'
+`MULTICLEAN'
+     In the top level `Makefile' only, `config-ml.in' will set these
+     variables to commands to use when doing a recursive make.  These
+     variables should both default to the string `true', so that by
+     default nothing happens.
+
+   All references to the parent of the source directory should use the
+variable `MULTISRCTOP'.  Instead of writing `$(srcdir)/..', you must
+write `$(srcdir)/$(MULTISRCTOP)..'.
+
+   Similarly, references to the parent of the object directory should
+use the variable `MULTIBUILDTOP'.
+
+   In the installation target, the libraries should be installed in the
+subdirectory `MULTISUBDIR'.  Instead of installing
+`$(libdir)/libfoo.a', install `$(libdir)$(MULTISUBDIR)/libfoo.a'.
+
+   The `config-ml.in' script also modifies the top level `Makefile' to
+add `multi-do' and `multi-clean' targets which are used when building
+multilibs.
+
+   The default target of the `Makefile' should include the following
+command:
+     @$(MULTIDO) $(FLAGS_TO_PASS) DO=all multi-do
+   This assumes that `$(FLAGS_TO_PASS)' is defined as a set of
+variables to pass to a recursive invocation of `make'.  This will build
+all the multilibs.  Note that the default value of `MULTIDO' is `true',
+so by default this command will do nothing.  It will only do something
+in the top level `Makefile' if multilibs were enabled.
+
+   The `install' target of the `Makefile' should include the following
+command:
+     @$(MULTIDO) $(FLAGS_TO_PASS) DO=install multi-do
+
+   In general, any operation, other than clean, which should be
+performed on all the multilibs should use a `$(MULTIDO)' line, setting
+the variable `DO' to the target of each recursive call to `make'.
+
+   The `clean' targets (`clean', `mostlyclean', etc.) should use
+`$(MULTICLEAN)'.  For example, the `clean' target should do this:
+     @$(MULTICLEAN) DO=clean multi-clean
+
+
+File: configure.info,  Node: FAQ,  Next: Index,  Prev: Multilibs,  Up: Top
+
+9 Frequently Asked Questions
+****************************
+
+Which do I run first, `autoconf' or `automake'?
+     Except when you first add autoconf or automake support to a
+     package, you shouldn't run either by hand.  Instead, configure
+     with the `--enable-maintainer-mode' option, and let `make' take
+     care of it.
+
+`autoconf' says something about undefined macros.
+     This means that you have macros in your `configure.in' which are
+     not defined by `autoconf'.  You may be using an old version of
+     `autoconf'; try building and installing a newer one.  Make sure the
+     newly installled `autoconf' is first on your `PATH'.  Also, see
+     the next question.
+
+My `configure' script has stuff like `CY_GNU_GETTEXT' in it.
+     This means that you have macros in your `configure.in' which should
+     be defined in your `aclocal.m4' file, but aren't.  This usually
+     means that `aclocal' was not able to appropriate definitions of the
+     macros.  Make sure that you have installed all the packages you
+     need.  In particular, make sure that you have installed libtool
+     (this is where `AM_PROG_LIBTOOL' is defined) and gettext (this is
+     where `CY_GNU_GETTEXT' is defined, at least in the Cygnus version
+     of gettext).
+
+My `Makefile' has `@' characters in it.
+     This may mean that you tried to use an autoconf substitution in
+     your `Makefile.in' without adding the appropriate `AC_SUBST' call
+     to your `configure' script.  Or it may just mean that you need to
+     rebuild `Makefile' in your build directory.  To rebuild `Makefile'
+     from `Makefile.in', run the shell script `config.status' with no
+     arguments.  If you need to force `configure' to run again, first
+     run `config.status --recheck'.  These runs are normally done
+     automatically by `Makefile' targets, but if your `Makefile' has
+     gotten messed up you'll need to help them along.
+
+Why do I have to run both `config.status --recheck' and `config.status'?
+     Normally, you don't; they will be run automatically by `Makefile'
+     targets.  If you do need to run them, use `config.status --recheck'
+     to run the `configure' script again with the same arguments as the
+     first time you ran it.  Use `config.status' (with no arguments) to
+     regenerate all files (`Makefile', `config.h', etc.) based on the
+     results of the configure script.  The two cases are separate
+     because it isn't always necessary to regenerate all the files
+     after running `config.status --recheck'.  The `Makefile' targets
+     generated by automake will use the environment variables
+     `CONFIG_FILES' and `CONFIG_HEADERS' to only regenerate files as
+     they are needed.
+
+What is the Cygnus tree?
+     The Cygnus tree is used for various packages including gdb, the GNU
+     binutils, and egcs.  It is also, of course, used for Cygnus
+     releases.  It is the build system which was developed at Cygnus,
+     using the Cygnus configure script.  It permits building many
+     different packages with a single configure and make.  The
+     configure scripts in the tree are being converted to autoconf, but
+     the general build structure remains intact.
+
+Why do I have to keep rebuilding and reinstalling the tools?
+     I know, it's a pain.  Unfortunately, there are bugs in the tools
+     themselves which need to be fixed, and each time that happens
+     everybody who uses the tools need to reinstall new versions of
+     them.  I don't know if there is going to be a clever fix until the
+     tools stabilize.
+
+Why not just have a Cygnus tree `make' target to update the tools?
+     The tools unfortunately need to be installed before they can be
+     used.  That means that they must be built using an appropriate
+     prefix, and it seems unwise to assume that every configuration
+     uses an appropriate prefix.  It might be possible to make them
+     work in place, or it might be possible to install them in some
+     subdirectory; so far these approaches have not been implemented.
+
+
+File: configure.info,  Node: Index,  Prev: FAQ,  Up: Top
+
+Index
+*****
+
+ [index ]
+* Menu:
+
+* --build option:                        Build and Host Options.
+                                                              (line   9)
+* --host option:                         Build and Host Options.
+                                                              (line  14)
+* --target option:                       Specifying the Target.
+                                                              (line  10)
+* _GNU_SOURCE:                           Write configure.in.  (line 134)
+* AC_CANONICAL_HOST:                     Using the Host Type. (line  10)
+* AC_CANONICAL_SYSTEM:                   Using the Target Type.
+                                                              (line   6)
+* AC_CONFIG_HEADER:                      Write configure.in.  (line  66)
+* AC_EXEEXT:                             Write configure.in.  (line  86)
+* AC_INIT:                               Write configure.in.  (line  38)
+* AC_OUTPUT:                             Write configure.in.  (line 142)
+* AC_PREREQ:                             Write configure.in.  (line  42)
+* AC_PROG_CC:                            Write configure.in.  (line 103)
+* AC_PROG_CXX:                           Write configure.in.  (line 117)
+* acconfig.h:                            Written Developer Files.
+                                                              (line  27)
+* acconfig.h, writing:                   Write acconfig.h.    (line   6)
+* acinclude.m4:                          Written Developer Files.
+                                                              (line  37)
+* aclocal.m4:                            Generated Developer Files.
+                                                              (line  33)
+* AM_CONFIG_HEADER:                      Write configure.in.  (line  53)
+* AM_DISABLE_SHARED:                     Write configure.in.  (line 127)
+* AM_EXEEXT:                             Write configure.in.  (line  86)
+* AM_INIT_AUTOMAKE:                      Write configure.in.  (line  48)
+* AM_MAINTAINER_MODE:                    Write configure.in.  (line  70)
+* AM_PROG_LIBTOOL:                       Write configure.in.  (line 122)
+* AM_PROG_LIBTOOL in configure:          FAQ.                 (line  19)
+* build option:                          Build and Host Options.
+                                                              (line   9)
+* building with a cross compiler:        Canadian Cross.      (line   6)
+* canadian cross:                        Canadian Cross.      (line   6)
+* canadian cross in configure:           CCross in Configure. (line   6)
+* canadian cross in cygnus tree:         CCross in Cygnus Tree.
+                                                              (line   6)
+* canadian cross in makefile:            CCross in Make.      (line   6)
+* canadian cross, configuring:           Build and Host Options.
+                                                              (line   6)
+* canonical system names:                Configuration Names. (line   6)
+* config.cache:                          Build Files Description.
+                                                              (line  28)
+* config.h:                              Build Files Description.
+                                                              (line  23)
+* config.h.in:                           Generated Developer Files.
+                                                              (line  45)
+* config.in:                             Generated Developer Files.
+                                                              (line  45)
+* config.status:                         Build Files Description.
+                                                              (line   9)
+* config.status --recheck:               FAQ.                 (line  40)
+* configuration names:                   Configuration Names. (line   6)
+* configuration triplets:                Configuration Names. (line   6)
+* configure:                             Generated Developer Files.
+                                                              (line  21)
+* configure build system:                Build and Host Options.
+                                                              (line   9)
+* configure host:                        Build and Host Options.
+                                                              (line  14)
+* configure target:                      Specifying the Target.
+                                                              (line  10)
+* configure.in:                          Written Developer Files.
+                                                              (line   9)
+* configure.in, writing:                 Write configure.in.  (line   6)
+* configuring a canadian cross:          Build and Host Options.
+                                                              (line   6)
+* cross compiler:                        Cross Compilation Concepts.
+                                                              (line   6)
+* cross compiler, building with:         Canadian Cross.      (line   6)
+* cross tools:                           Cross Compilation Tools.
+                                                              (line   6)
+* CY_GNU_GETTEXT in configure:           FAQ.                 (line  19)
+* cygnus configure:                      Cygnus Configure.    (line   6)
+* goals:                                 Goals.               (line   6)
+* history:                               History.             (line   6)
+* host names:                            Configuration Names. (line   6)
+* host option:                           Build and Host Options.
+                                                              (line  14)
+* host system:                           Host and Target.     (line   6)
+* host triplets:                         Configuration Names. (line   6)
+* HOST_CC:                               CCross in Make.      (line  27)
+* libg++ configure:                      Cygnus Configure in C++ Libraries.
+                                                              (line   6)
+* libio configure:                       Cygnus Configure in C++ Libraries.
+                                                              (line   6)
+* libstdc++ configure:                   Cygnus Configure in C++ Libraries.
+                                                              (line   6)
+* Makefile:                              Build Files Description.
+                                                              (line  18)
+* Makefile, garbage characters:          FAQ.                 (line  29)
+* Makefile.am:                           Written Developer Files.
+                                                              (line  18)
+* Makefile.am, writing:                  Write Makefile.am.   (line   6)
+* Makefile.in:                           Generated Developer Files.
+                                                              (line  26)
+* multilibs:                             Multilibs.           (line   6)
+* stamp-h:                               Build Files Description.
+                                                              (line  41)
+* stamp-h.in:                            Generated Developer Files.
+                                                              (line  54)
+* system names:                          Configuration Names. (line   6)
+* system types:                          Configuration Names. (line   6)
+* target option:                         Specifying the Target.
+                                                              (line  10)
+* target system:                         Host and Target.     (line   6)
+* triplets:                              Configuration Names. (line   6)
+* undefined macros:                      FAQ.                 (line  12)
+
+
+
+Tag Table:
+Node: Top971
+Node: Introduction1499
+Node: Goals2581
+Node: Tools3305
+Node: History4299
+Node: Building7297
+Node: Getting Started10560
+Node: Write configure.in11073
+Node: Write Makefile.am18324
+Node: Write acconfig.h21501
+Node: Generate files23038
+Node: Getting Started Example25004
+Node: Getting Started Example 125759
+Node: Getting Started Example 227680
+Node: Getting Started Example 330675
+Node: Generate Files in Example33039
+Node: Files34129
+Node: Developer Files34740
+Node: Developer Files Picture35120
+Node: Written Developer Files36408
+Node: Generated Developer Files38960
+Node: Build Files42104
+Node: Build Files Picture42765
+Node: Build Files Description43529
+Node: Support Files45535
+Node: Configuration Names48417
+Node: Configuration Name Definition48917
+Node: Using Configuration Names51240
+Node: Cross Compilation Tools53210
+Node: Cross Compilation Concepts53901
+Node: Host and Target54869
+Node: Using the Host Type56370
+Node: Specifying the Target57719
+Node: Using the Target Type58508
+Node: Cross Tools in the Cygnus Tree61939
+Node: Host and Target Libraries62996
+Node: Target Library Configure Scripts66745
+Node: Make Targets in Cygnus Tree69837
+Node: Target libiberty71185
+Node: Canadian Cross72572
+Node: Canadian Cross Example73413
+Node: Canadian Cross Concepts74532
+Node: Build Cross Host Tools76044
+Node: Build and Host Options76996
+Node: CCross not in Cygnus Tree78782
+Node: CCross in Cygnus Tree79760
+Node: Standard Cygnus CCross80181
+Node: Cross Cygnus CCross81545
+Node: Supporting Canadian Cross84345
+Node: CCross in Configure84960
+Node: CCross in Make88128
+Node: Cygnus Configure89731
+Node: Cygnus Configure Basics90566
+Node: Cygnus Configure in C++ Libraries95244
+Node: Multilibs96251
+Node: Multilibs in gcc97296
+Node: Multilibs in Target Libraries98374
+Node: FAQ102565
+Node: Index106665
+
+End Tag Table
+                                                                                                                                                                                                                                                                                                                                 This is bfd.info, produced by makeinfo version 4.8 from bfd.texinfo.
+
+INFO-DIR-SECTION Software development
+START-INFO-DIR-ENTRY
+* Bfd: (bfd).                   The Binary File Descriptor library.
+END-INFO-DIR-ENTRY
+
+   This file documents the BFD library.
+
+   Copyright (C) 1991, 2000, 2001, 2003, 2006, 2007, 2008 Free Software
+Foundation, Inc.
+
+   Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being "GNU General Public License" and "Funding Free
+Software", the Front-Cover texts being (a) (see below), and with the
+Back-Cover Texts being (b) (see below).  A copy of the license is
+included in the section entitled "GNU Free Documentation License".
+
+   (a) The FSF's Front-Cover Text is:
+
+   A GNU Manual
+
+   (b) The FSF's Back-Cover Text is:
+
+   You have freedom to copy and modify this GNU Manual, like GNU
+software.  Copies published by the Free Software Foundation raise
+funds for GNU development.
+
+
+File: bfd.info,  Node: Top,  Next: Overview,  Prev: (dir),  Up: (dir)
+
+   This file documents the binary file descriptor library libbfd.
+
+* Menu:
+
+* Overview::			Overview of BFD
+* BFD front end::		BFD front end
+* BFD back ends::		BFD back ends
+* GNU Free Documentation License::  GNU Free Documentation License
+* BFD Index::		BFD Index
+
+
+File: bfd.info,  Node: Overview,  Next: BFD front end,  Prev: Top,  Up: Top
+
+1 Introduction
+**************
+
+BFD is a package which allows applications to use the same routines to
+operate on object files whatever the object file format.  A new object
+file format can be supported simply by creating a new BFD back end and
+adding it to the library.
+
+   BFD is split into two parts: the front end, and the back ends (one
+for each object file format).
+   * The front end of BFD provides the interface to the user. It manages
+     memory and various canonical data structures. The front end also
+     decides which back end to use and when to call back end routines.
+
+   * The back ends provide BFD its view of the real world. Each back
+     end provides a set of calls which the BFD front end can use to
+     maintain its canonical form. The back ends also may keep around
+     information for their own use, for greater efficiency.
+
+* Menu:
+
+* History::			History
+* How It Works::		How It Works
+* What BFD Version 2 Can Do::	What BFD Version 2 Can Do
+
+
+File: bfd.info,  Node: History,  Next: How It Works,  Prev: Overview,  Up: Overview
+
+1.1 History
+===========
+
+One spur behind BFD was the desire, on the part of the GNU 960 team at
+Intel Oregon, for interoperability of applications on their COFF and
+b.out file formats.  Cygnus was providing GNU support for the team, and
+was contracted to provide the required functionality.
+
+   The name came from a conversation David Wallace was having with
+Richard Stallman about the library: RMS said that it would be quite
+hard--David said "BFD".  Stallman was right, but the name stuck.
+
+   At the same time, Ready Systems wanted much the same thing, but for
+different object file formats: IEEE-695, Oasys, Srecords, a.out and 68k
+coff.
+
+   BFD was first implemented by members of Cygnus Support; Steve
+Chamberlain (`sac@cygnus.com'), John Gilmore (`gnu@cygnus.com'), K.
+Richard Pixley (`rich@cygnus.com') and David Henkel-Wallace
+(`gumby@cygnus.com').
+
+
+File: bfd.info,  Node: How It Works,  Next: What BFD Version 2 Can Do,  Prev: History,  Up: Overview
+
+1.2 How To Use BFD
+==================
+
+To use the library, include `bfd.h' and link with `libbfd.a'.
+
+   BFD provides a common interface to the parts of an object file for a
+calling application.
+
+   When an application successfully opens a target file (object,
+archive, or whatever), a pointer to an internal structure is returned.
+This pointer points to a structure called `bfd', described in `bfd.h'.
+Our convention is to call this pointer a BFD, and instances of it
+within code `abfd'.  All operations on the target object file are
+applied as methods to the BFD.  The mapping is defined within `bfd.h'
+in a set of macros, all beginning with `bfd_' to reduce namespace
+pollution.
+
+   For example, this sequence does what you would probably expect:
+return the number of sections in an object file attached to a BFD
+`abfd'.
+
+     #include "bfd.h"
+
+     unsigned int number_of_sections (abfd)
+     bfd *abfd;
+     {
+       return bfd_count_sections (abfd);
+     }
+
+   The abstraction used within BFD is that an object file has:
+
+   * a header,
+
+   * a number of sections containing raw data (*note Sections::),
+
+   * a set of relocations (*note Relocations::), and
+
+   * some symbol information (*note Symbols::).
+   Also, BFDs opened for archives have the additional attribute of an
+index and contain subordinate BFDs. This approach is fine for a.out and
+coff, but loses efficiency when applied to formats such as S-records and
+IEEE-695.
+
+
+File: bfd.info,  Node: What BFD Version 2 Can Do,  Prev: How It Works,  Up: Overview
+
+1.3 What BFD Version 2 Can Do
+=============================
+
+When an object file is opened, BFD subroutines automatically determine
+the format of the input object file.  They then build a descriptor in
+memory with pointers to routines that will be used to access elements of
+the object file's data structures.
+
+   As different information from the object files is required, BFD
+reads from different sections of the file and processes them.  For
+example, a very common operation for the linker is processing symbol
+tables.  Each BFD back end provides a routine for converting between
+the object file's representation of symbols and an internal canonical
+format. When the linker asks for the symbol table of an object file, it
+calls through a memory pointer to the routine from the relevant BFD
+back end which reads and converts the table into a canonical form.  The
+linker then operates upon the canonical form. When the link is finished
+and the linker writes the output file's symbol table, another BFD back
+end routine is called to take the newly created symbol table and
+convert it into the chosen output format.
+
+* Menu:
+
+* BFD information loss::	Information Loss
+* Canonical format::		The BFD	canonical object-file format
+
+
+File: bfd.info,  Node: BFD information loss,  Next: Canonical format,  Up: What BFD Version 2 Can Do
+
+1.3.1 Information Loss
+----------------------
+
+_Information can be lost during output._ The output formats supported
+by BFD do not provide identical facilities, and information which can
+be described in one form has nowhere to go in another format. One
+example of this is alignment information in `b.out'. There is nowhere
+in an `a.out' format file to store alignment information on the
+contained data, so when a file is linked from `b.out' and an `a.out'
+image is produced, alignment information will not propagate to the
+output file. (The linker will still use the alignment information
+internally, so the link is performed correctly).
+
+   Another example is COFF section names. COFF files may contain an
+unlimited number of sections, each one with a textual section name. If
+the target of the link is a format which does not have many sections
+(e.g., `a.out') or has sections without names (e.g., the Oasys format),
+the link cannot be done simply. You can circumvent this problem by
+describing the desired input-to-output section mapping with the linker
+command language.
+
+   _Information can be lost during canonicalization._ The BFD internal
+canonical form of the external formats is not exhaustive; there are
+structures in input formats for which there is no direct representation
+internally.  This means that the BFD back ends cannot maintain all
+possible data richness through the transformation between external to
+internal and back to external formats.
+
+   This limitation is only a problem when an application reads one
+format and writes another.  Each BFD back end is responsible for
+maintaining as much data as possible, and the internal BFD canonical
+form has structures which are opaque to the BFD core, and exported only
+to the back ends. When a file is read in one format, the canonical form
+is generated for BFD and the application. At the same time, the back
+end saves away any information which may otherwise be lost. If the data
+is then written back in the same format, the back end routine will be
+able to use the canonical form provided by the BFD core as well as the
+information it prepared earlier.  Since there is a great deal of
+commonality between back ends, there is no information lost when
+linking or copying big endian COFF to little endian COFF, or `a.out' to
+`b.out'.  When a mixture of formats is linked, the information is only
+lost from the files whose format differs from the destination.
+
+
+File: bfd.info,  Node: Canonical format,  Prev: BFD information loss,  Up: What BFD Version 2 Can Do
+
+1.3.2 The BFD canonical object-file format
+------------------------------------------
+
+The greatest potential for loss of information occurs when there is the
+least overlap between the information provided by the source format,
+that stored by the canonical format, and that needed by the destination
+format. A brief description of the canonical form may help you
+understand which kinds of data you can count on preserving across
+conversions.  
+
+_files_
+     Information stored on a per-file basis includes target machine
+     architecture, particular implementation format type, a demand
+     pageable bit, and a write protected bit.  Information like Unix
+     magic numbers is not stored here--only the magic numbers' meaning,
+     so a `ZMAGIC' file would have both the demand pageable bit and the
+     write protected text bit set.  The byte order of the target is
+     stored on a per-file basis, so that big- and little-endian object
+     files may be used with one another.
+
+_sections_
+     Each section in the input file contains the name of the section,
+     the section's original address in the object file, size and
+     alignment information, various flags, and pointers into other BFD
+     data structures.
+
+_symbols_
+     Each symbol contains a pointer to the information for the object
+     file which originally defined it, its name, its value, and various
+     flag bits.  When a BFD back end reads in a symbol table, it
+     relocates all symbols to make them relative to the base of the
+     section where they were defined.  Doing this ensures that each
+     symbol points to its containing section.  Each symbol also has a
+     varying amount of hidden private data for the BFD back end.  Since
+     the symbol points to the original file, the private data format
+     for that symbol is accessible.  `ld' can operate on a collection
+     of symbols of wildly different formats without problems.
+
+     Normal global and simple local symbols are maintained on output,
+     so an output file (no matter its format) will retain symbols
+     pointing to functions and to global, static, and common variables.
+     Some symbol information is not worth retaining; in `a.out', type
+     information is stored in the symbol table as long symbol names.
+     This information would be useless to most COFF debuggers; the
+     linker has command line switches to allow users to throw it away.
+
+     There is one word of type information within the symbol, so if the
+     format supports symbol type information within symbols (for
+     example, COFF, IEEE, Oasys) and the type is simple enough to fit
+     within one word (nearly everything but aggregates), the
+     information will be preserved.
+
+_relocation level_
+     Each canonical BFD relocation record contains a pointer to the
+     symbol to relocate to, the offset of the data to relocate, the
+     section the data is in, and a pointer to a relocation type
+     descriptor. Relocation is performed by passing messages through
+     the relocation type descriptor and the symbol pointer. Therefore,
+     relocations can be performed on output data using a relocation
+     method that is only available in one of the input formats. For
+     instance, Oasys provides a byte relocation format.  A relocation
+     record requesting this relocation type would point indirectly to a
+     routine to perfor:  ;  <  =  >  ?  @  A  B  C  D  E  F  G  H  I  J  K  L  M  N  O  P  Q  R  S  T  U  V  W  X  Y  Z  [  \  ]  ^  _  `  a  b  c  d  e  f  g  h  i  j  k  l  m  n  o  p  q  r  s  t  u  v  w  x  y  z  {  |  }  ~    Ä  Å  Ç  É  Ñ  Ö  Ü  á  à  â  ä  ã  å  ç  é  è  ê  ë  í  ì  î  ï  ñ  ó  ò  ô  ö  õ  ú  ù  û  ü  †  °  ¢  £  §  •  ¶  ß  ®  ©  ™  ´  ¨  ≠  Æ  Ø  ∞  ±  ≤  ≥  ¥  µ  ∂  ∑  ∏  π  ∫  ª  º  Ω  æ  ø  ¿  ¡  ¬  √  ƒ  ≈  ∆  «  »  …     À  Ã  Õ  Œ  œ  –  —  “  ”  ‘  ’  ÷  ◊  ÿ  Ÿ  ⁄  €  ‹  ›  ﬁ  ﬂ  ‡  ·  ‚  „  ‰  Â  Ê  Á  Ë  È  Í  Î  Ï  Ì  Ó  Ô    Ò  Ú  Û  Ù  ı  ˆ  ˜  ¯  ˘  ˙  ˚  ¸  ˝  ˛  ˇ                     	  
+                                               !  "  #  $  %  &  '  (  )  *  +  ,  -  .  /  0  1  2  3  4  5  6  7  8  9  m this, so the relocation may be performed on a
+     byte being written to a 68k COFF file, even though 68k COFF has no
+     such relocation type.
+
+_line numbers_
+     Object formats can contain, for debugging purposes, some form of
+     mapping between symbols, source line numbers, and addresses in the
+     output file.  These addresses have to be relocated along with the
+     symbol information.  Each symbol with an associated list of line
+     number records points to the first record of the list.  The head
+     of a line number list consists of a pointer to the symbol, which
+     allows finding out the address of the function whose line number
+     is being described. The rest of the list is made up of pairs:
+     offsets into the section and line numbers. Any format which can
+     simply derive this information can pass it successfully between
+     formats (COFF, IEEE and Oasys).
+
+
+File: bfd.info,  Node: BFD front end,  Next: BFD back ends,  Prev: Overview,  Up: Top
+
+2 BFD Front End
+***************
+
+2.1 `typedef bfd'
+=================
+
+A BFD has type `bfd'; objects of this type are the cornerstone of any
+application using BFD. Using BFD consists of making references though
+the BFD and to data in the BFD.
+
+   Here is the structure that defines the type `bfd'.  It contains the
+major data about the file and pointers to the rest of the data.
+
+
+     enum bfd_direction
+       {
+         no_direction = 0,
+         read_direction = 1,
+         write_direction = 2,
+         both_direction = 3
+       };
+
+     struct bfd
+     {
+       /* A unique identifier of the BFD  */
+       unsigned int id;
+
+       /* The filename the application opened the BFD with.  */
+       const char *filename;
+
+       /* A pointer to the target jump table.  */
+       const struct bfd_target *xvec;
+
+       /* The IOSTREAM, and corresponding IO vector that provide access
+          to the file backing the BFD.  */
+       void *iostream;
+       const struct bfd_iovec *iovec;
+
+       /* The caching routines use these to maintain a
+          least-recently-used list of BFDs.  */
+       struct bfd *lru_prev, *lru_next;
+
+       /* When a file is closed by the caching routines, BFD retains
+          state information on the file here...  */
+       ufile_ptr where;
+
+       /* File modified time, if mtime_set is TRUE.  */
+       long mtime;
+
+       /* Reserved for an unimplemented file locking extension.  */
+       int ifd;
+
+       /* The format which belongs to the BFD. (object, core, etc.)  */
+       bfd_format format;
+
+       /* The direction with which the BFD was opened.  */
+       enum bfd_direction direction;
+
+       /* Format_specific flags.  */
+       flagword flags;
+
+       /* Values that may appear in the flags field of a BFD.  These also
+          appear in the object_flags field of the bfd_target structure, where
+          they indicate the set of flags used by that backend (not all flags
+          are meaningful for all object file formats) (FIXME: at the moment,
+          the object_flags values have mostly just been copied from backend
+          to another, and are not necessarily correct).  */
+
+     #define BFD_NO_FLAGS   0x00
+
+       /* BFD contains relocation entries.  */
+     #define HAS_RELOC      0x01
+
+       /* BFD is directly executable.  */
+     #define EXEC_P         0x02
+
+       /* BFD has line number information (basically used for F_LNNO in a
+          COFF header).  */
+     #define HAS_LINENO     0x04
+
+       /* BFD has debugging information.  */
+     #define HAS_DEBUG      0x08
+
+       /* BFD has symbols.  */
+     #define HAS_SYMS       0x10
+
+       /* BFD has local symbols (basically used for F_LSYMS in a COFF
+          header).  */
+     #define HAS_LOCALS     0x20
+
+       /* BFD is a dynamic object.  */
+     #define DYNAMIC        0x40
+
+       /* Text section is write protected (if D_PAGED is not set, this is
+          like an a.out NMAGIC file) (the linker sets this by default, but
+          clears it for -r or -N).  */
+     #define WP_TEXT        0x80
+
+       /* BFD is dynamically paged (this is like an a.out ZMAGIC file) (the
+          linker sets this by default, but clears it for -r or -n or -N).  */
+     #define D_PAGED        0x100
+
+       /* BFD is relaxable (this means that bfd_relax_section may be able to
+          do something) (sometimes bfd_relax_section can do something even if
+          this is not set).  */
+     #define BFD_IS_RELAXABLE 0x200
+
+       /* This may be set before writing out a BFD to request using a
+          traditional format.  For example, this is used to request that when
+          writing out an a.out object the symbols not be hashed to eliminate
+          duplicates.  */
+     #define BFD_TRADITIONAL_FORMAT 0x400
+
+       /* This flag indicates that the BFD contents are actually cached
+          in memory.  If this is set, iostream points to a bfd_in_memory
+          struct.  */
+     #define BFD_IN_MEMORY 0x800
+
+       /* The sections in this BFD specify a memory page.  */
+     #define HAS_LOAD_PAGE 0x1000
+
+       /* This BFD has been created by the linker and doesn't correspond
+          to any input file.  */
+     #define BFD_LINKER_CREATED 0x2000
+
+       /* This may be set before writing out a BFD to request that it
+          be written using values for UIDs, GIDs, timestamps, etc. that
+          will be consistent from run to run.  */
+     #define BFD_DETERMINISTIC_OUTPUT 0x4000
+
+       /* Compress sections in this BFD.  */
+     #define BFD_COMPRESS 0x8000
+
+       /* Decompress sections in this BFD.  */
+     #define BFD_DECOMPRESS 0x10000
+
+       /* Flags bits to be saved in bfd_preserve_save.  */
+     #define BFD_FLAGS_SAVED \
+       (BFD_IN_MEMORY | BFD_COMPRESS | BFD_DECOMPRESS)
+
+       /* Flags bits which are for BFD use only.  */
+     #define BFD_FLAGS_FOR_BFD_USE_MASK \
+       (BFD_IN_MEMORY | BFD_COMPRESS | BFD_DECOMPRESS | BFD_LINKER_CREATED \
+        | BFD_TRADITIONAL_FORMAT | BFD_DETERMINISTIC_OUTPUT)
+
+       /* Currently my_archive is tested before adding origin to
+          anything. I believe that this can become always an add of
+          origin, with origin set to 0 for non archive f

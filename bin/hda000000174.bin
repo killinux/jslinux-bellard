@@ -1,0 +1,1845 @@
+(__first, __middle);
+      __glibcxx_requires_valid_range(__middle, __last);
+
+      std::__heap_select(__first, __middle, __last, __comp);
+      std::sort_heap(__first, __middle, __comp);
+    }
+
+  /**
+   *  @brief Sort a sequence just enough to find a particular position.
+   *  @param  first   An iterator.
+   *  @param  nth     Another iterator.
+   *  @param  last    Another iterator.
+   *  @return  Nothing.
+   *
+   *  Rearranges the elements in the range @p [first,last) so that @p *nth
+   *  is the same element that would have been in that position had the
+   *  whole sequence been sorted.
+   *  whole sequence been sorted. The elements either side of @p *nth are
+   *  not completely sorted, but for any iterator @i in the range
+   *  @p [first,nth) and any iterator @j in the range @p [nth,last) it
+   *  holds that @p *j<*i is false.
+  */
+  template<typename _RandomAccessIterator>
+    inline void
+    nth_element(_RandomAccessIterator __first, _RandomAccessIterator __nth,
+		_RandomAccessIterator __last)
+    {
+      typedef typename iterator_traits<_RandomAccessIterator>::value_type
+	_ValueType;
+
+      // concept requirements
+      __glibcxx_function_requires(_Mutable_RandomAccessIteratorConcept<
+				  _RandomAccessIterator>)
+      __glibcxx_function_requires(_LessThanComparableConcept<_ValueType>)
+      __glibcxx_requires_valid_range(__first, __nth);
+      __glibcxx_requires_valid_range(__nth, __last);
+
+      if (__first == __last || __nth == __last)
+	return;
+
+      std::__introselect(__first, __nth, __last,
+			 std::__lg(__last - __first) * 2);
+    }
+
+  /**
+   *  @brief Sort a sequence just enough to find a particular position
+   *         using a predicate for comparison.
+   *  @param  first   An iterator.
+   *  @param  nth     Another iterator.
+   *  @param  last    Another iterator.
+   *  @param  comp    A comparison functor.
+   *  @return  Nothing.
+   *
+   *  Rearranges the elements in the range @p [first,last) so that @p *nth
+   *  is the same element that would have been in that position had the
+   *  whole sequence been sorted. The elements either side of @p *nth are
+   *  not completely sorted, but for any iterator @i in the range
+   *  @p [first,nth) and any iterator @j in the range @p [nth,last) it
+   *  holds that @p comp(*j,*i) is false.
+  */
+  template<typename _RandomAccessIterator, typename _Compare>
+    inline void
+    nth_element(_RandomAccessIterator __first, _RandomAccessIterator __nth,
+		_RandomAccessIterator __last, _Compare __comp)
+    {
+      typedef typename iterator_traits<_RandomAccessIterator>::value_type
+	_ValueType;
+
+      // concept requirements
+      __glibcxx_function_requires(_Mutable_RandomAccessIteratorConcept<
+				  _RandomAccessIterator>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
+				  _ValueType, _ValueType>)
+      __glibcxx_requires_valid_range(__first, __nth);
+      __glibcxx_requires_valid_range(__nth, __last);
+
+      if (__first == __last || __nth == __last)
+	return;
+
+      std::__introselect(__first, __nth, __last,
+			 std::__lg(__last - __first) * 2, __comp);
+    }
+
+
+  /**
+   *  @brief Sort the elements of a sequence.
+   *  @param  first   An iterator.
+   *  @param  last    Another iterator.
+   *  @return  Nothing.
+   *
+   *  Sorts the elements in the range @p [first,last) in ascending order,
+   *  such that @p *(i+1)<*i is false for each iterator @p i in the range
+   *  @p [first,last-1).
+   *
+   *  The relative ordering of equivalent elements is not preserved, use
+   *  @p stable_sort() if this is needed.
+  */
+  template<typename _RandomAccessIterator>
+    inline void
+    sort(_RandomAccessIterator __first, _RandomAccessIterator __last)
+    {
+      typedef typename iterator_traits<_RandomAccessIterator>::value_type
+	_ValueType;
+
+      // concept requirements
+      __glibcxx_function_requires(_Mutable_RandomAccessIteratorConcept<
+	    _RandomAccessIterator>)
+      __glibcxx_function_requires(_LessThanComparableConcept<_ValueType>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      if (__first != __last)
+	{
+	  std::__introsort_loop(__first, __last,
+				std::__lg(__last - __first) * 2);
+	  std::__final_insertion_sort(__first, __last);
+	}
+    }
+
+  /**
+   *  @brief Sort the elements of a sequence using a predicate for comparison.
+   *  @param  first   An iterator.
+   *  @param  last    Another iterator.
+   *  @param  comp    A comparison functor.
+   *  @return  Nothing.
+   *
+   *  Sorts the elements in the range @p [first,last) in ascending order,
+   *  such that @p comp(*(i+1),*i) is false for every iterator @p i in the
+   *  range @p [first,last-1).
+   *
+   *  The relative ordering of equivalent elements is not preserved, use
+   *  @p stable_sort() if this is needed.
+  */
+  template<typename _RandomAccessIterator, typename _Compare>
+    inline void
+    sort(_RandomAccessIterator __first, _RandomAccessIterator __last,
+	 _Compare __comp)
+    {
+      typedef typename iterator_traits<_RandomAccessIterator>::value_type
+	_ValueType;
+
+      // concept requirements
+      __glibcxx_function_requires(_Mutable_RandomAccessIteratorConcept<
+	    _RandomAccessIterator>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare, _ValueType,
+				  _ValueType>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      if (__first != __last)
+	{
+	  std::__introsort_loop(__first, __last,
+				std::__lg(__last - __first) * 2, __comp);
+	  std::__final_insertion_sort(__first, __last, __comp);
+	}
+    }
+
+  /**
+   *  @brief Merges two sorted ranges.
+   *  @param  first1  An iterator.
+   *  @param  first2  Another iterator.
+   *  @param  last1   Another iterator.
+   *  @param  last2   Another iterator.
+   *  @param  result  An iterator pointing to the end of the merged range.
+   *  @return         An iterator pointing to the first element "not less
+   *                  than" @a val.
+   *
+   *  Merges the ranges [first1,last1) and [first2,last2) into the sorted range
+   *  [result, result + (last1-first1) + (last2-first2)).  Both input ranges
+   *  must be sorted, and the output range must not overlap with either of
+   *  the input ranges.  The sort is @e stable, that is, for equivalent
+   *  elements in the two ranges, elements from the first range will always
+   *  come before elements from the second.
+  */
+  template<typename _InputIterator1, typename _InputIterator2,
+	   typename _OutputIterator>
+    _OutputIterator
+    merge(_InputIterator1 __first1, _InputIterator1 __last1,
+	  _InputIterator2 __first2, _InputIterator2 __last2,
+	  _OutputIterator __result)
+    {
+      typedef typename iterator_traits<_InputIterator1>::value_type
+	_ValueType1;
+      typedef typename iterator_traits<_InputIterator2>::value_type
+	_ValueType2;
+
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator1>)
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator2>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType1>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType2>)
+      __glibcxx_function_requires(_LessThanOpConcept<_ValueType2, _ValueType1>)	
+      __glibcxx_requires_sorted_set(__first1, __last1, __first2);
+      __glibcxx_requires_sorted_set(__first2, __last2, __first1);
+
+      while (__first1 != __last1 && __first2 != __last2)
+	{
+	  if (*__first2 < *__first1)
+	    {
+	      *__result = *__first2;
+	      ++__first2;
+	    }
+	  else
+	    {
+	      *__result = *__first1;
+	      ++__first1;
+	    }
+	  ++__result;
+	}
+      return std::copy(__first2, __last2, std::copy(__first1, __last1,
+						    __result));
+    }
+
+  /**
+   *  @brief Merges two sorted ranges.
+   *  @param  first1  An iterator.
+   *  @param  first2  Another iterator.
+   *  @param  last1   Another iterator.
+   *  @param  last2   Another iterator.
+   *  @param  result  An iterator pointing to the end of the merged range.
+   *  @param  comp    A functor to use for comparisons.
+   *  @return         An iterator pointing to the first element "not less
+   *                  than" @a val.
+   *
+   *  Merges the ranges [first1,last1) and [first2,last2) into the sorted range
+   *  [result, result + (last1-first1) + (last2-first2)).  Both input ranges
+   *  must be sorted, and the output range must not overlap with either of
+   *  the input ranges.  The sort is @e stable, that is, for equivalent
+   *  elements in the two ranges, elements from the first range will always
+   *  come before elements from the second.
+   *
+   *  The comparison function should have the same effects on ordering as
+   *  the function used for the initial sort.
+  */
+  template<typename _InputIterator1, typename _InputIterator2,
+	   typename _OutputIterator, typename _Compare>
+    _OutputIterator
+    merge(_InputIterator1 __first1, _InputIterator1 __last1,
+	  _InputIterator2 __first2, _InputIterator2 __last2,
+	  _OutputIterator __result, _Compare __comp)
+    {
+      typedef typename iterator_traits<_InputIterator1>::value_type
+	_ValueType1;
+      typedef typename iterator_traits<_InputIterator2>::value_type
+	_ValueType2;
+
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator1>)
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator2>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType1>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType2>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
+				  _ValueType2, _ValueType1>)
+      __glibcxx_requires_sorted_set_pred(__first1, __last1, __first2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first2, __last2, __first1, __comp);
+
+      while (__first1 != __last1 && __first2 != __last2)
+	{
+	  if (__comp(*__first2, *__first1))
+	    {
+	      *__result = *__first2;
+	      ++__first2;
+	    }
+	  else
+	    {
+	      *__result = *__first1;
+	      ++__first1;
+	    }
+	  ++__result;
+	}
+      return std::copy(__first2, __last2, std::copy(__first1, __last1,
+						    __result));
+    }
+
+
+  /**
+   *  @brief Sort the elements of a sequence, preserving the relative order
+   *         of equivalent elements.
+   *  @param  first   An iterator.
+   *  @param  last    Another iterator.
+   *  @return  Nothing.
+   *
+   *  Sorts the elements in the range @p [first,last) in ascending order,
+   *  such that @p *(i+1)<*i is false for each iterator @p i in the range
+   *  @p [first,last-1).
+   *
+   *  The relative ordering of equivalent elements is preserved, so any two
+   *  elements @p x and @p y in the range @p [first,last) such that
+   *  @p x<y is false and @p y<x is false will have the same relative
+   *  ordering after calling @p stable_sort().
+  */
+  template<typename _RandomAccessIterator>
+    inline void
+    stable_sort(_RandomAccessIterator __first, _RandomAccessIterator __last)
+    {
+      typedef typename iterator_traits<_RandomAccessIterator>::value_type
+	_ValueType;
+      typedef typename iterator_traits<_RandomAccessIterator>::difference_type
+	_DistanceType;
+
+      // concept requirements
+      __glibcxx_function_requires(_Mutable_RandomAccessIteratorConcept<
+	    _RandomAccessIterator>)
+      __glibcxx_function_requires(_LessThanComparableConcept<_ValueType>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      _Temporary_buffer<_RandomAccessIterator, _ValueType> __buf(__first,
+								 __last);
+      if (__buf.begin() == 0)
+	std::__inplace_stable_sort(__first, __last);
+      else
+	std::__stable_sort_adaptive(__first, __last, __buf.begin(),
+				    _DistanceType(__buf.size()));
+    }
+
+  /**
+   *  @brief Sort the elements of a sequence using a predicate for comparison,
+   *         preserving the relative order of equivalent elements.
+   *  @param  first   An iterator.
+   *  @param  last    Another iterator.
+   *  @param  comp    A comparison functor.
+   *  @return  Nothing.
+   *
+   *  Sorts the elements in the range @p [first,last) in ascending order,
+   *  such that @p comp(*(i+1),*i) is false for each iterator @p i in the
+   *  range @p [first,last-1).
+   *
+   *  The relative ordering of equivalent elements is preserved, so any two
+   *  elements @p x and @p y in the range @p [first,last) such that
+   *  @p comp(x,y) is false and @p comp(y,x) is false will have the same
+   *  relative ordering after calling @p stable_sort().
+  */
+  template<typename _RandomAccessIterator, typename _Compare>
+    inline void
+    stable_sort(_RandomAccessIterator __first, _RandomAccessIterator __last,
+		_Compare __comp)
+    {
+      typedef typename iterator_traits<_RandomAccessIterator>::value_type
+	_ValueType;
+      typedef typename iterator_traits<_RandomAccessIterator>::difference_type
+	_DistanceType;
+
+      // concept requirements
+      __glibcxx_function_requires(_Mutable_RandomAccessIteratorConcept<
+	    _RandomAccessIterator>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
+				  _ValueType,
+				  _ValueType>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      _Temporary_buffer<_RandomAccessIterator, _ValueType> __buf(__first,
+								 __last);
+      if (__buf.begin() == 0)
+	std::__inplace_stable_sort(__first, __last, __comp);
+      else
+	std::__stable_sort_adaptive(__first, __last, __buf.begin(),
+				    _DistanceType(__buf.size()), __comp);
+    }
+
+
+  /**
+   *  @brief Return the union of two sorted ranges.
+   *  @param  first1  Start of first range.
+   *  @param  last1   End of first range.
+   *  @param  first2  Start of second range.
+   *  @param  last2   End of second range.
+   *  @return  End of the output range.
+   *  @ingroup setoperations
+   *
+   *  This operation iterates over both ranges, copying elements present in
+   *  each range in order to the output range.  Iterators increment for each
+   *  range.  When the current element of one range is less than the other,
+   *  that element is copied and the iterator advanced.  If an element is
+   *  contained in both ranges, the element from the first range is copied and
+   *  both ranges advance.  The output range may not overlap either input
+   *  range.
+  */
+  template<typename _InputIterator1, typename _InputIterator2,
+	   typename _OutputIterator>
+    _OutputIterator
+    set_union(_InputIterator1 __first1, _InputIterator1 __last1,
+	      _InputIterator2 __first2, _InputIterator2 __last2,
+	      _OutputIterator __result)
+    {
+      typedef typename iterator_traits<_InputIterator1>::value_type
+	_ValueType1;
+      typedef typename iterator_traits<_InputIterator2>::value_type
+	_ValueType2;
+
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator1>)
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator2>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType1>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType2>)
+      __glibcxx_function_requires(_LessThanOpConcept<_ValueType1, _ValueType2>)
+      __glibcxx_function_requires(_LessThanOpConcept<_ValueType2, _ValueType1>)
+      __glibcxx_requires_sorted_set(__first1, __last1, __first2);
+      __glibcxx_requires_sorted_set(__first2, __last2, __first1);
+
+      while (__first1 != __last1 && __first2 != __last2)
+	{
+	  if (*__first1 < *__first2)
+	    {
+	      *__result = *__first1;
+	      ++__first1;
+	    }
+	  else if (*__first2 < *__first1)
+	    {
+	      *__result = *__first2;
+	      ++__first2;
+	    }
+	  else
+	    {
+	      *__result = *__first1;
+	      ++__first1;
+	      ++__first2;
+	    }
+	  ++__result;
+	}
+      return std::copy(__first2, __last2, std::copy(__first1, __last1,
+						    __result));
+    }
+
+  /**
+   *  @brief Return the union of two sorted ranges using a comparison functor.
+   *  @param  first1  Start of first range.
+   *  @param  last1   End of first range.
+   *  @param  first2  Start of second range.
+   *  @param  last2   End of second range.
+   *  @param  comp    The comparison functor.
+   *  @return  End of the output range.
+   *  @ingroup setoperations
+   *
+   *  This operation iterates over both ranges, copying elements present in
+   *  each range in order to the output range.  Iterators increment for each
+   *  range.  When the current element of one range is less than the other
+   *  according to @a comp, that element is copied and the iterator advanced.
+   *  If an equivalent element according to @a comp is contained in both
+   *  ranges, the element from the first range is copied and both ranges
+   *  advance.  The output range may not overlap either input range.
+  */
+  template<typename _InputIterator1, typename _InputIterator2,
+	   typename _OutputIterator, typename _Compare>
+    _OutputIterator
+    set_union(_InputIterator1 __first1, _InputIterator1 __last1,
+	      _InputIterator2 __first2, _InputIterator2 __last2,
+	      _OutputIterator __result, _Compare __comp)
+    {
+      typedef typename iterator_traits<_InputIterator1>::value_type
+	_ValueType1;
+      typedef typename iterator_traits<_InputIterator2>::value_type
+	_ValueType2;
+
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator1>)
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator2>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType1>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType2>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
+				  _ValueType1, _ValueType2>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
+				  _ValueType2, _ValueType1>)
+      __glibcxx_requires_sorted_set_pred(__first1, __last1, __first2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first2, __last2, __first1, __comp);
+
+      while (__first1 != __last1 && __first2 != __last2)
+	{
+	  if (__comp(*__first1, *__first2))
+	    {
+	      *__result = *__first1;
+	      ++__first1;
+	    }
+	  else if (__comp(*__first2, *__first1))
+	    {
+	      *__result = *__first2;
+	      ++__first2;
+	    }
+	  else
+	    {
+	      *__result = *__first1;
+	      ++__first1;
+	      ++__first2;
+	    }
+	  ++__result;
+	}
+      return std::copy(__first2, __last2, std::copy(__first1, __last1,
+						    __result));
+    }
+
+  /**
+   *  @brief Return the intersection of two sorted ranges.
+   *  @param  first1  Start of first range.
+   *  @param  last1   End of first range.
+   *  @param  first2  Start of second range.
+   *  @param  last2   End of second range.
+   *  @return  End of the output range.
+   *  @ingroup setoperations
+   *
+   *  This operation iterates over both ranges, copying elements present in
+   *  both ranges in order to the output range.  Iterators increment for each
+   *  range.  When the current element of one range is less than the other,
+   *  that iterator advances.  If an element is contained in both ranges, the
+   *  element from the first range is copied and both ranges advance.  The
+   *  output range may not overlap either input range.
+  */
+  template<typename _InputIterator1, typename _InputIterator2,
+	   typename _OutputIterator>
+    _OutputIterator
+    set_intersection(_InputIterator1 __first1, _InputIterator1 __last1,
+		     _InputIterator2 __first2, _InputIterator2 __last2,
+		     _OutputIterator __result)
+    {
+      typedef typename iterator_traits<_InputIterator1>::value_type
+	_ValueType1;
+      typedef typename iterator_traits<_InputIterator2>::value_type
+	_ValueType2;
+
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator1>)
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator2>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType1>)
+      __glibcxx_function_requires(_LessThanOpConcept<_ValueType1, _ValueType2>)
+      __glibcxx_function_requires(_LessThanOpConcept<_ValueType2, _ValueType1>)
+      __glibcxx_requires_sorted_set(__first1, __last1, __first2);
+      __glibcxx_requires_sorted_set(__first2, __last2, __first1);
+
+      while (__first1 != __last1 && __first2 != __last2)
+	if (*__first1 < *__first2)
+	  ++__first1;
+	else if (*__first2 < *__first1)
+	  ++__first2;
+	else
+	  {
+	    *__result = *__first1;
+	    ++__first1;
+	    ++__first2;
+	    ++__result;
+	  }
+      return __result;
+    }
+
+  /**
+   *  @brief Return the intersection of two sorted ranges using comparison
+   *  functor.
+   *  @param  first1  Start of first range.
+   *  @param  last1   End of first range.
+   *  @param  first2  Start of second range.
+   *  @param  last2   End of second range.
+   *  @param  comp    The comparison functor.
+   *  @return  End of the output range.
+   *  @ingroup setoperations
+   *
+   *  This operation iterates over both ranges, copying elements present in
+   *  both ranges in order to the output range.  Iterators increment for each
+   *  range.  When the current element of one range is less than the other
+   *  according to @a comp, that iterator advances.  If an element is
+   *  contained in both ranges according to @a comp, the element from the
+   *  first range is copied and both ranges advance.  The output range may not
+   *  overlap either input range.
+  */
+  template<typename _InputIterator1, typename _InputIterator2,
+	   typename _OutputIterator, typename _Compare>
+    _OutputIterator
+    set_intersection(_InputIterator1 __first1, _InputIterator1 __last1,
+		     _InputIterator2 __first2, _InputIterator2 __last2,
+		     _OutputIterator __result, _Compare __comp)
+    {
+      typedef typename iterator_traits<_InputIterator1>::value_type
+	_ValueType1;
+      typedef typename iterator_traits<_InputIterator2>::value_type
+	_ValueType2;
+
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator1>)
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator2>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType1>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
+				  _ValueType1, _ValueType2>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
+				  _ValueType2, _ValueType1>)
+      __glibcxx_requires_sorted_set_pred(__first1, __last1, __first2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first2, __last2, __first1, __comp);
+
+      while (__first1 != __last1 && __first2 != __last2)
+	if (__comp(*__first1, *__first2))
+	  ++__first1;
+	else if (__comp(*__first2, *__first1))
+	  ++__first2;
+	else
+	  {
+	    *__result = *__first1;
+	    ++__first1;
+	    ++__first2;
+	    ++__result;
+	  }
+      return __result;
+    }
+
+  /**
+   *  @brief Return the difference of two sorted ranges.
+   *  @param  first1  Start of first range.
+   *  @param  last1   End of first range.
+   *  @param  first2  Start of second range.
+   *  @param  last2   End of second range.
+   *  @return  End of the output range.
+   *  @ingroup setoperations
+   *
+   *  This operation iterates over both ranges, copying elements present in
+   *  the first range but not the second in order to the output range.
+   *  Iterators increment for each range.  When the current element of the
+   *  first range is less than the second, that element is copied and the
+   *  iterator advances.  If the current element of the second range is less,
+   *  the iterator advances, but no element is copied.  If an element is
+   *  contained in both ranges, no elements are copied and both ranges
+   *  advance.  The output range may not overlap either input range.
+  */
+  template<typename _InputIterator1, typename _InputIterator2,
+	   typename _OutputIterator>
+    _OutputIterator
+    set_difference(_InputIterator1 __first1, _InputIterator1 __last1,
+		   _InputIterator2 __first2, _InputIterator2 __last2,
+		   _OutputIterator __result)
+    {
+      typedef typename iterator_traits<_InputIterator1>::value_type
+	_ValueType1;
+      typedef typename iterator_traits<_InputIterator2>::value_type
+	_ValueType2;
+
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator1>)
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator2>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType1>)
+      __glibcxx_function_requires(_LessThanOpConcept<_ValueType1, _ValueType2>)
+      __glibcxx_function_requires(_LessThanOpConcept<_ValueType2, _ValueType1>)	
+      __glibcxx_requires_sorted_set(__first1, __last1, __first2);
+      __glibcxx_requires_sorted_set(__first2, __last2, __first1);
+
+      while (__first1 != __last1 && __first2 != __last2)
+	if (*__first1 < *__first2)
+	  {
+	    *__result = *__first1;
+	    ++__first1;
+	    ++__result;
+	  }
+	else if (*__first2 < *__first1)
+	  ++__first2;
+	else
+	  {
+	    ++__first1;
+	    ++__first2;
+	  }
+      return std::copy(__first1, __last1, __result);
+    }
+
+  /**
+   *  @brief  Return the difference of two sorted ranges using comparison
+   *  functor.
+   *  @param  first1  Start of first range.
+   *  @param  last1   End of first range.
+   *  @param  first2  Start of second range.
+   *  @param  last2   End of second range.
+   *  @param  comp    The comparison functor.
+   *  @return  End of the output range.
+   *  @ingroup setoperations
+   *
+   *  This operation iterates over both ranges, copying elements present in
+   *  the first range but not the second in order to the output range.
+   *  Iterators increment for each range.  When the current element of the
+   *  first range is less than the second according to @a comp, that element
+   *  is copied and the iterator advances.  If the current element of the
+   *  second range is less, no element is copied and the iterator advances.
+   *  If an element is contained in both ranges according to @a comp, no
+   *  elements are copied and both ranges advance.  The output range may not
+   *  overlap either input range.
+  */
+  template<typename _InputIterator1, typename _InputIterator2,
+	   typename _OutputIterator, typename _Compare>
+    _OutputIterator
+    set_difference(_InputIterator1 __first1, _InputIterator1 __last1,
+		   _InputIterator2 __first2, _InputIterator2 __last2,
+		   _OutputIterator __result, _Compare __comp)
+    {
+      typedef typename iterator_traits<_InputIterator1>::value_type
+	_ValueType1;
+      typedef typename iterator_traits<_InputIterator2>::value_type
+	_ValueType2;
+
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator1>)
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator2>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType1>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
+				  _ValueType1, _ValueType2>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
+				  _ValueType2, _ValueType1>)
+      __glibcxx_requires_sorted_set_pred(__first1, __last1, __first2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first2, __last2, __first1, __comp);
+
+      while (__first1 != __last1 && __first2 != __last2)
+	if (__comp(*__first1, *__first2))
+	  {
+	    *__result = *__first1;
+	    ++__first1;
+	    ++__result;
+	  }
+	else if (__comp(*__first2, *__first1))
+	  ++__first2;
+	else
+	  {
+	    ++__first1;
+	    ++__first2;
+	  }
+      return std::copy(__first1, __last1, __result);
+    }
+
+  /**
+   *  @brief  Return the symmetric difference of two sorted ranges.
+   *  @param  first1  Start of first range.
+   *  @param  last1   End of first range.
+   *  @param  first2  Start of second range.
+   *  @param  last2   End of second range.
+   *  @return  End of the output range.
+   *  @ingroup setoperations
+   *
+   *  This operation iterates over both ranges, copying elements present in
+   *  one range but not the other in order to the output range.  Iterators
+   *  increment for each range.  When the current element of one range is less
+   *  than the other, that element is copied and the iterator advances.  If an
+   *  element is contained in both ranges, no elements are copied and both
+   *  ranges advance.  The output range may not overlap either input range.
+  */
+  template<typename _InputIterator1, typename _InputIterator2,
+	   typename _OutputIterator>
+    _OutputIterator
+    set_symmetric_difference(_InputIterator1 __first1, _InputIterator1 __last1,
+			     _InputIterator2 __first2, _InputIterator2 __last2,
+			     _OutputIterator __result)
+    {
+      typedef typename iterator_traits<_InputIterator1>::value_type
+	_ValueType1;
+      typedef typename iterator_traits<_InputIterator2>::value_type
+	_ValueType2;
+
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator1>)
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator2>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType1>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType2>)
+      __glibcxx_function_requires(_LessThanOpConcept<_ValueType1, _ValueType2>)
+      __glibcxx_function_requires(_LessThanOpConcept<_ValueType2, _ValueType1>)	
+      __glibcxx_requires_sorted_set(__first1, __last1, __first2);
+      __glibcxx_requires_sorted_set(__first2, __last2, __first1);
+
+      while (__first1 != __last1 && __first2 != __last2)
+	if (*__first1 < *__first2)
+	  {
+	    *__result = *__first1;
+	    ++__first1;
+	    ++__result;
+	  }
+	else if (*__first2 < *__first1)
+	  {
+	    *__result = *__first2;
+	    ++__first2;
+	    ++__result;
+	  }
+	else
+	  {
+	    ++__first1;
+	    ++__first2;
+	  }
+      return std::copy(__first2, __last2, std::copy(__first1,
+						    __last1, __result));
+    }
+
+  /**
+   *  @brief  Return the symmetric difference of two sorted ranges using
+   *  comparison functor.
+   *  @param  first1  Start of first range.
+   *  @param  last1   End of first range.
+   *  @param  first2  Start of second range.
+   *  @param  last2   End of second range.
+   *  @param  comp    The comparison functor.
+   *  @return  End of the output range.
+   *  @ingroup setoperations
+   *
+   *  This operation iterates over both ranges, copying elements present in
+   *  one range but not the other in order to the output range.  Iterators
+   *  increment for each range.  When the current element of one range is less
+   *  than the other according to @a comp, that element is copied and the
+   *  iterator advances.  If an element is contained in both ranges according
+   *  to @a comp, no elements are copied and both ranges advance.  The output
+   *  range may not overlap either input range.
+  */
+  template<typename _InputIterator1, typename _InputIterator2,
+	   typename _OutputIterator, typename _Compare>
+    _OutputIterator
+    set_symmetric_difference(_InputIterator1 __first1, _InputIterator1 __last1,
+			     _InputIterator2 __first2, _InputIterator2 __last2,
+			     _OutputIterator __result,
+			     _Compare __comp)
+    {
+      typedef typename iterator_traits<_InputIterator1>::value_type
+	_ValueType1;
+      typedef typename iterator_traits<_InputIterator2>::value_type
+	_ValueType2;
+
+      // concept requirements
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator1>)
+      __glibcxx_function_requires(_InputIteratorConcept<_InputIterator2>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType1>)
+      __glibcxx_function_requires(_OutputIteratorConcept<_OutputIterator,
+				  _ValueType2>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
+				  _ValueType1, _ValueType2>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
+				  _ValueType2, _ValueType1>)
+      __glibcxx_requires_sorted_set_pred(__first1, __last1, __first2, __comp);
+      __glibcxx_requires_sorted_set_pred(__first2, __last2, __first1, __comp);
+
+      while (__first1 != __last1 && __first2 != __last2)
+	if (__comp(*__first1, *__first2))
+	  {
+	    *__result = *__first1;
+	    ++__first1;
+	    ++__result;
+	  }
+	else if (__comp(*__first2, *__first1))
+	  {
+	    *__result = *__first2;
+	    ++__first2;
+	    ++__result;
+	  }
+	else
+	  {
+	    ++__first1;
+	    ++__first2;
+	  }
+      return std::copy(__first2, __last2, 
+		       std::copy(__first1, __last1, __result));
+    }
+
+
+  /**
+   *  @brief  Return the minimum element in a range.
+   *  @param  first  Start of range.
+   *  @param  last   End of range.
+   *  @return  Iterator referencing the first instance of the smallest value.
+  */
+  template<typename _ForwardIterator>
+    _ForwardIterator
+    min_element(_ForwardIterator __first, _ForwardIterator __last)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_ForwardIteratorConcept<_ForwardIterator>)
+      __glibcxx_function_requires(_LessThanComparableConcept<
+	    typename iterator_traits<_ForwardIterator>::value_type>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      if (__first == __last)
+	return __first;
+      _ForwardIterator __result = __first;
+      while (++__first != __last)
+	if (*__first < *__result)
+	  __result = __first;
+      return __result;
+    }
+
+  /**
+   *  @brief  Return the minimum element in a range using comparison functor.
+   *  @param  first  Start of range.
+   *  @param  last   End of range.
+   *  @param  comp   Comparison functor.
+   *  @return  Iterator referencing the first instance of the smallest value
+   *  according to comp.
+  */
+  template<typename _ForwardIterator, typename _Compare>
+    _ForwardIterator
+    min_element(_ForwardIterator __first, _ForwardIterator __last,
+		_Compare __comp)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_ForwardIteratorConcept<_ForwardIterator>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
+	    typename iterator_traits<_ForwardIterator>::value_type,
+	    typename iterator_traits<_ForwardIterator>::value_type>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      if (__first == __last)
+	return __first;
+      _ForwardIterator __result = __first;
+      while (++__first != __last)
+	if (__comp(*__first, *__result))
+	  __result = __first;
+      return __result;
+    }
+
+  /**
+   *  @brief  Return the maximum element in a range.
+   *  @param  first  Start of range.
+   *  @param  last   End of range.
+   *  @return  Iterator referencing the first instance of the largest value.
+  */
+  template<typename _ForwardIterator>
+    _ForwardIterator
+    max_element(_ForwardIterator __first, _ForwardIterator __last)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_ForwardIteratorConcept<_ForwardIterator>)
+      __glibcxx_function_requires(_LessThanComparableConcept<
+	    typename iterator_traits<_ForwardIterator>::value_type>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      if (__first == __last)
+	return __first;
+      _ForwardIterator __result = __first;
+      while (++__first != __last)
+	if (*__result < *__first)
+	  __result = __first;
+      return __result;
+    }
+
+  /**
+   *  @brief  Return the maximum element in a range using comparison functor.
+   *  @param  first  Start of range.
+   *  @param  last   End of range.
+   *  @param  comp   Comparison functor.
+   *  @return  Iterator referencing the first instance of the largest value
+   *  according to comp.
+  */
+  template<typename _ForwardIterator, typename _Compare>
+    _ForwardIterator
+    max_element(_ForwardIterator __first, _ForwardIterator __last,
+		_Compare __comp)
+    {
+      // concept requirements
+      __glibcxx_function_requires(_ForwardIteratorConcept<_ForwardIterator>)
+      __glibcxx_function_requires(_BinaryPredicateConcept<_Compare,
+	    typename iterator_traits<_ForwardIterator>::value_type,
+	    typename iterator_traits<_ForwardIterator>::value_type>)
+      __glibcxx_requires_valid_range(__first, __last);
+
+      if (__first == __last) return __first;
+      _ForwardIterator __result = __first;
+      while (++__first != __last)
+	if (__comp(*__result, *__first))
+	  __result = __first;
+      return __result;
+    }
+
+_GLIBCXX_END_NESTED_NAMESPACE
+
+#endif /* _STL_ALGO_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           // The template and inlines for the -*- C++ -*- gslice class.
+
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2004, 2005, 2006
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file gslice.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+// Written by Gabriel Dos Reis <Gabriel.Dos-Reis@DPTMaths.ENS-Cachan.Fr>
+
+#ifndef _GSLICE_H
+#define _GSLICE_H 1
+
+#pragma GCC system_header
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  /**
+   *  @brief  Class defining multi-dimensional subset of an array.
+   *
+   *  The slice class represents a multi-dimensional subset of an array,
+   *  specified by three parameter sets: start offset, size array, and stride
+   *  array.  The start offset is the index of the first element of the array
+   *  that is part of the subset.  The size and stride array describe each
+   *  dimension of the slice.  Size is the number of elements in that
+   *  dimension, and stride is the distance in the array between successive
+   *  elements in that dimension.  Each dimension's size and stride is taken
+   *  to begin at an array element described by the previous dimension.  The
+   *  size array and stride array must be the same size.
+   *
+   *  For example, if you have offset==3, stride[0]==11, size[1]==3,
+   *  stride[1]==3, then slice[0,0]==array[3], slice[0,1]==array[6],
+   *  slice[0,2]==array[9], slice[1,0]==array[14], slice[1,1]==array[17],
+   *  slice[1,2]==array[20].
+   */
+  class gslice
+  {
+  public:
+    ///  Construct an empty slice.
+    gslice();
+
+    /**
+     *  @brief  Construct a slice.
+     *
+     *  Constructs a slice with as many dimensions as the length of the @a l
+     *  and @a s arrays.
+     *
+     *  @param  o  Offset in array of first element.
+     *  @param  l  Array of dimension lengths.
+     *  @param  s  Array of dimension strides between array elements.
+     */
+    gslice(size_t, const valarray<size_t>&, const valarray<size_t>&);
+
+    // XXX: the IS says the copy-ctor and copy-assignment operators are
+    //      synthesized by the compiler but they are just unsuitable
+    //      for a ref-counted semantic
+    ///  Copy constructor.
+    gslice(const gslice&);
+
+    ///  Destructor.
+    ~gslice();
+
+    // XXX: See the note above.
+    ///  Assignment operator.
+    gslice& operator=(const gslice&);
+
+    ///  Return array offset of first slice element.
+    size_t           start() const;
+
+    ///  Return array of sizes of slice dimensions.
+    valarray<size_t> size() const;
+    
+    ///  Return array of array strides for each dimension.
+    valarray<size_t> stride() const;
+
+  private:
+    struct _Indexer
+    {
+      size_t _M_count;
+      size_t _M_start;
+      valarray<size_t> _M_size;
+      valarray<size_t> _M_stride;
+      valarray<size_t> _M_index; // Linear array of referenced indices
+
+      _Indexer()
+      : _M_count(1), _M_start(0), _M_size(), _M_stride(), _M_index() {}
+
+      _Indexer(size_t, const valarray<size_t>&,
+	       const valarray<size_t>&);
+
+      void
+      _M_increment_use()
+      { ++_M_count; }
+      
+      size_t
+      _M_decrement_use()
+      { return --_M_count; }
+    };
+
+    _Indexer* _M_index;
+
+    template<typename _Tp> friend class valarray;
+  };
+
+  inline size_t
+  gslice::start() const
+  { return _M_index ? _M_index->_M_start : 0; }
+
+  inline valarray<size_t>
+  gslice::size() const
+  { return _M_index ? _M_index->_M_size : valarray<size_t>(); }
+
+  inline valarray<size_t>
+  gslice::stride() const
+  { return _M_index ? _M_index->_M_stride : valarray<size_t>(); }
+
+  // _GLIBCXX_RESOLVE_LIB_DEFECTS
+  // 543. valarray slice default constructor
+  inline
+  gslice::gslice()
+  : _M_index(new gslice::_Indexer()) {}
+
+  inline
+  gslice::gslice(size_t __o, const valarray<size_t>& __l,
+		 const valarray<size_t>& __s)
+  : _M_index(new gslice::_Indexer(__o, __l, __s)) {}
+
+  inline
+  gslice::gslice(const gslice& __g)
+  : _M_index(__g._M_index)
+  { if (_M_index) _M_index->_M_increment_use(); }
+
+  inline
+  gslice::~gslice()
+  {
+    if (_M_index && _M_index->_M_decrement_use() == 0)
+      delete _M_index;
+  }
+
+  inline gslice&
+  gslice::operator=(const gslice& __g)
+  {
+    if (__g._M_index)
+      __g._M_index->_M_increment_use();
+    if (_M_index && _M_index->_M_decrement_use() == 0)
+      delete _M_index;
+    _M_index = __g._M_index;
+    return *this;
+  }
+
+_GLIBCXX_END_NAMESPACE
+
+#endif /* _GSLICE_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                   // Stream iterators
+
+// Copyright (C) 2001, 2004, 2005 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file stream_iterator.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+#ifndef _STREAM_ITERATOR_H
+#define _STREAM_ITERATOR_H 1
+
+#pragma GCC system_header
+
+#include <debug/debug.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  /// Provides input iterator semantics for streams.
+  template<typename _Tp, typename _CharT = char,
+           typename _Traits = char_traits<_CharT>, typename _Dist = ptrdiff_t>
+    class istream_iterator
+    : public iterator<input_iterator_tag, _Tp, _Dist, const _Tp*, const _Tp&>
+    {
+    public:
+      typedef _CharT                         char_type;
+      typedef _Traits                        traits_type;
+      typedef basic_istream<_CharT, _Traits> istream_type;
+
+    private:
+      istream_type*	_M_stream;
+      _Tp		_M_value;
+      bool		_M_ok;
+
+    public:
+      ///  Construct end of input stream iterator.
+      istream_iterator()
+      : _M_stream(0), _M_value(), _M_ok(false) {}
+
+      ///  Construct start of input stream iterator.
+      istream_iterator(istream_type& __s)
+      : _M_stream(&__s)
+      { _M_read(); }
+
+      istream_iterator(const istream_iterator& __obj)
+      : _M_stream(__obj._M_stream), _M_value(__obj._M_value),
+        _M_ok(__obj._M_ok)
+      { }
+
+      const _Tp&
+      operator*() const
+      {
+	__glibcxx_requires_cond(_M_ok,
+				_M_message(__gnu_debug::__msg_deref_istream)
+				._M_iterator(*this));
+	return _M_value;
+      }
+
+      const _Tp*
+      operator->() const { return &(operator*()); }
+
+      istream_iterator&
+      operator++()
+      {
+	__glibcxx_requires_cond(_M_ok,
+				_M_message(__gnu_debug::__msg_inc_istream)
+				._M_iterator(*this));
+	_M_read();
+	return *this;
+      }
+
+      istream_iterator
+      operator++(int)
+      {
+	__glibcxx_requires_cond(_M_ok,
+				_M_message(__gnu_debug::__msg_inc_istream)
+				._M_iterator(*this));
+	istream_iterator __tmp = *this;
+	_M_read();
+	return __tmp;
+      }
+
+      bool
+      _M_equal(const istream_iterator& __x) const
+      { return (_M_ok == __x._M_ok) && (!_M_ok || _M_stream == __x._M_stream); }
+
+    private:
+      void
+      _M_read()
+      {
+	_M_ok = (_M_stream && *_M_stream) ? true : false;
+	if (_M_ok)
+	  {
+	    *_M_stream >> _M_value;
+	    _M_ok = *_M_stream ? true : false;
+	  }
+      }
+    };
+
+  ///  Return true if x and y are both end or not end, or x and y are the same.
+  template<typename _Tp, typename _CharT, typename _Traits, typename _Dist>
+    inline bool
+    operator==(const istream_iterator<_Tp, _CharT, _Traits, _Dist>& __x,
+	       const istream_iterator<_Tp, _CharT, _Traits, _Dist>& __y)
+    { return __x._M_equal(__y); }
+
+  ///  Return false if x and y are both end or not end, or x and y are the same.
+  template <class _Tp, class _CharT, class _Traits, class _Dist>
+    inline bool
+    operator!=(const istream_iterator<_Tp, _CharT, _Traits, _Dist>& __x,
+	       const istream_iterator<_Tp, _CharT, _Traits, _Dist>& __y)
+    { return !__x._M_equal(__y); }
+
+  /**
+   *  @brief  Provides output iterator semantics for streams.
+   *
+   *  This class provides an iterator to write to an ostream.  The type Tp is
+   *  the only type written by this iterator and there must be an
+   *  operator<<(Tp) defined.
+   *
+   *  @param  Tp  The type to write to the ostream.
+   *  @param  CharT  The ostream char_type.
+   *  @param  Traits  The ostream char_traits.
+  */
+  template<typename _Tp, typename _CharT = char,
+           typename _Traits = char_traits<_CharT> >
+    class ostream_iterator
+    : public iterator<output_iterator_tag, void, void, void, void>
+    {
+    public:
+      //@{
+      /// Public typedef
+      typedef _CharT                         char_type;
+      typedef _Traits                        traits_type;
+      typedef basic_ostream<_CharT, _Traits> ostream_type;
+      //@}
+
+    private:
+      ostream_type*	_M_stream;
+      const _CharT*	_M_string;
+
+    public:
+      /// Construct from an ostream.
+      ostream_iterator(ostream_type& __s) : _M_stream(&__s), _M_string(0) {}
+
+      /**
+       *  Construct from an ostream.
+       *
+       *  The delimiter string @a c is written to the stream after every Tp
+       *  written to the stream.  The delimiter is not copied, and thus must
+       *  not be destroyed while this iterator is in use.
+       *
+       *  @param  s  Underlying ostream to write to.
+       *  @param  c  CharT delimiter string to insert.
+      */
+      ostream_iterator(ostream_type& __s, const _CharT* __c)
+      : _M_stream(&__s), _M_string(__c)  { }
+
+      /// Copy constructor.
+      ostream_iterator(const ostream_iterator& __obj)
+      : _M_stream(__obj._M_stream), _M_string(__obj._M_string)  { }
+
+      /// Writes @a value to underlying ostream using operator<<.  If
+      /// constructed with delimiter string, writes delimiter to ostream.
+      ostream_iterator&
+      operator=(const _Tp& __value)
+      {
+	__glibcxx_requires_cond(_M_stream != 0,
+				_M_message(__gnu_debug::__msg_output_ostream)
+				._M_iterator(*this));
+	*_M_stream << __value;
+	if (_M_string) *_M_stream << _M_string;
+	return *this;
+      }
+
+      ostream_iterator&
+      operator*()
+      { return *this; }
+
+      ostream_iterator&
+      operator++()
+      { return *this; }
+
+      ostream_iterator&
+      operator++(int)
+      { return *this; }
+    };
+
+_GLIBCXX_END_NAMESPACE
+
+#endif
+                                                                                                                                                                                                                                                                                                                                                                                                                         // The template and inlines for the -*- C++ -*- internal _Array helper class.
+
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file valarray_array.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+// Written by Gabriel Dos Reis <Gabriel.Dos-Reis@DPTMaths.ENS-Cachan.Fr>
+
+#ifndef _VALARRAY_ARRAY_H
+#define _VALARRAY_ARRAY_H 1
+
+#pragma GCC system_header
+
+#include <bits/c++config.h>
+#include <bits/cpp_type_traits.h>
+#include <cstdlib>
+#include <new>
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  //
+  // Helper functions on raw pointers
+  //
+
+  // We get memory by the old fashion way
+  inline void*
+  __valarray_get_memory(size_t __n)
+  { return operator new(__n); }
+
+  template<typename _Tp>
+    inline _Tp*__restrict__
+    __valarray_get_storage(size_t __n)
+    {
+      return static_cast<_Tp*__restrict__>
+	(std::__valarray_get_memory(__n * sizeof(_Tp)));
+    }
+
+  // Return memory to the system
+  inline void
+  __valarray_release_memory(void* __p)
+  { operator delete(__p); }
+
+  // Turn a raw-memory into an array of _Tp filled with _Tp()
+  // This is required in 'valarray<T> v(n);'
+  template<typename _Tp, bool>
+    struct _Array_default_ctor
+    {
+      // Please note that this isn't exception safe.  But
+      // valarrays aren't required to be exception safe.
+      inline static void
+      _S_do_it(_Tp* __restrict__ __b, _Tp* __restrict__ __e)
+      {
+	while (__b != __e)
+	  new(__b++) _Tp();
+      }
+    };
+
+  template<typename _Tp>
+    struct _Array_default_ctor<_Tp, true>
+    {
+      // For fundamental types, it suffices to say 'memset()'
+      inline static void
+      _S_do_it(_Tp* __restrict__ __b, _Tp* __restrict__ __e)
+      { __builtin_memset(__b, 0, (__e - __b) * sizeof(_Tp)); }
+    };
+
+  template<typename _Tp>
+    inline void
+    __valarray_default_construct(_Tp* __restrict__ __b, _Tp* __restrict__ __e)
+    {
+      _Array_default_ctor<_Tp, __is_scalar<_Tp>::__value>::_S_do_it(__b, __e);
+    }
+
+  // Turn a raw-memory into an array of _Tp filled with __t
+  // This is the required in valarray<T> v(n, t).  Also
+  // used in valarray<>::resize().
+  template<typename _Tp, bool>
+    struct _Array_init_ctor
+    {
+      // Please note that this isn't exception safe.  But
+      // valarrays aren't required to be exception safe.
+      inline static void
+      _S_do_it(_Tp* __restrict__ __b, _Tp* __restrict__ __e, const _Tp __t)
+      {
+	while (__b != __e)
+	  new(__b++) _Tp(__t);
+      }
+    };
+
+  template<typename _Tp>
+    struct _Array_init_ctor<_Tp, true>
+    {
+      inline static void
+      _S_do_it(_Tp* __restrict__ __b, _Tp* __restrict__ __e,  const _Tp __t)
+      {
+	while (__b != __e)
+	  *__b++ = __t;
+      }
+    };
+
+  template<typename _Tp>
+    inline void
+    __valarray_fill_construct(_Tp* __restrict__ __b, _Tp* __restrict__ __e,
+			      const _Tp __t)
+    {
+      _Array_init_ctor<_Tp, __is_pod(_Tp)>::_S_do_it(__b, __e, __t);
+    }
+
+  //
+  // copy-construct raw array [__o, *) from plain array [__b, __e)
+  // We can't just say 'memcpy()'
+  //
+  template<typename _Tp, bool>
+    struct _Array_copy_ctor
+    {
+      // Please note that this isn't exception safe.  But
+      // valarrays aren't required to be exception safe.
+      inline static void
+      _S_do_it(const _Tp* __restrict__ __b, const _Tp* __restrict__ __e,
+	       _Tp* __restrict__ __o)
+      {
+	while (__b != __e)
+	  new(__o++) _Tp(*__b++);
+      }
+    };
+
+  template<typename _Tp>
+    struct _Array_copy_ctor<_Tp, true>
+    {
+      inline static void
+      _S_do_it(const _Tp* __restrict__ __b, const _Tp* __restrict__ __e,
+	       _Tp* __restrict__ __o)
+      { __builtin_memcpy(__o, __b, (__e - __b) * sizeof(_Tp)); }
+    };
+
+  template<typename _Tp>
+    inline void
+    __valarray_copy_construct(const _Tp* __restrict__ __b,
+			      const _Tp* __restrict__ __e,
+			      _Tp* __restrict__ __o)
+    {
+      _Array_copy_ctor<_Tp, __is_pod(_Tp)>::_S_do_it(__b, __e, __o);
+    }
+
+  // copy-construct raw array [__o, *) from strided array __a[<__n : __s>]
+  template<typename _Tp>
+    inline void
+    __valarray_copy_construct (const _Tp* __restrict__ __a, size_t __n,
+			       size_t __s, _Tp* __restrict__ __o)
+    {
+      if (__is_pod(_Tp))
+	while (__n--)
+	  {
+	    *__o++ = *__a;
+	    __a += __s;
+	  }
+      else
+	while (__n--)
+	  {
+	    new(__o++) _Tp(*__a);
+	    __a += __s;
+	  }
+    }
+
+  // copy-construct raw array [__o, *) from indexed array __a[__i[<__n>]]
+  template<typename _Tp>
+    inline void
+    __valarray_copy_construct (const _Tp* __restrict__ __a,
+			       const size_t* __restrict__ __i,
+			       _Tp* __restrict__ __o, size_t __n)
+    {
+      if (__is_pod(_Tp))
+	while (__n--)
+	  *__o++ = __a[*__i++];
+      else
+	while (__n--)
+	  new (__o++) _Tp(__a[*__i++]);
+    }
+
+  // Do the necessary cleanup when we're done with arrays.
+  template<typename _Tp>
+    inline void
+    __valarray_destroy_elements(_Tp* __restrict__ __b, _Tp* __restrict__ __e)
+    {
+      if (!__is_pod(_Tp))
+	while (__b != __e)
+	  {
+	    __b->~_Tp();
+	    ++__b;
+	  }
+    }
+
+  // Fill a plain array __a[<__n>] with __t
+  template<typename _Tp>
+    inline void
+    __valarray_fill(_Tp* __restrict__ __a, size_t __n, const _Tp& __t)
+    {
+      while (__n--)
+	*__a++ = __t;
+    }
+  
+  // fill strided array __a[<__n-1 : __s>] with __t
+  template<typename _Tp>
+    inline void
+    __valarray_fill(_Tp* __restrict__ __a, size_t __n,
+		    size_t __s, const _Tp& __t)
+    { 
+      for (size_t __i = 0; __i < __n; ++__i, __a += __s)
+	*__a = __t;
+    }
+
+  // fill indirect array __a[__i[<__n>]] with __i
+  template<typename _Tp>
+    inline void
+    __valarray_fill(_Tp* __restrict__ __a, const size_t* __restrict__ __i,
+		    size_t __n, const _Tp& __t)
+    {
+      for (size_t __j = 0; __j < __n; ++__j, ++__i)
+	__a[*__i] = __t;
+    }
+  
+  // copy plain array __a[<__n>] in __b[<__n>]
+  // For non-fundamental types, it is wrong to say 'memcpy()'
+  template<typename _Tp, bool>
+    struct _Array_copier
+    {
+      inline static void
+      _S_do_it(const _Tp* __restrict__ __a, size_t __n, _Tp* __restrict__ __b)
+      {
+	while(__n--)
+	  *__b++ = *__a++;
+      }
+    };
+
+  template<typename _Tp>
+    struct _Array_copier<_Tp, true>
+    {
+      inline static void
+      _S_do_it(const _Tp* __restrict__ __a, size_t __n, _Tp* __restrict__ __b)
+      { __builtin_memcpy(__b, __a, __n * sizeof (_Tp)); }
+    };
+
+  // Copy a plain array __a[<__n>] into a play array __b[<>]
+  template<typename _Tp>
+    inline void
+    __valarray_copy(const _Tp* __restrict__ __a, size_t __n,
+		    _Tp* __restrict__ __b)
+    {
+      _Array_copier<_Tp, __is_pod(_Tp)>::_S_do_it(__a, __n, __b);
+    }
+
+  // Copy strided array __a[<__n : __s>] in plain __b[<__n>]
+  template<typename _Tp>
+    inline void
+    __valarray_copy(const _Tp* __restrict__ __a, size_t __n, size_t __s,
+		    _Tp* __restrict__ __b)
+    {
+      for (size_t __i = 0; __i < __n; ++__i, ++__b, __a += __s)
+	*__b = *__a;
+    }
+
+  // Copy a plain array  __a[<__n>] into a strided array __b[<__n : __s>]
+  template<typename _Tp>
+    inline void
+    __valarray_copy(const _Tp* __restrict__ __a, _Tp* __restrict__ __b,
+		    size_t __n, size_t __s)
+    {
+      for (size_t __i = 0; __i < __n; ++__i, ++__a, __b += __s)
+	*__b = *__a;
+    }
+
+  // Copy strided array __src[<__n : __s1>] into another
+  // strided array __dst[< : __s2>].  Their sizes must match.
+  template<typename _Tp>
+    inline void
+    __valarray_copy(const _Tp* __restrict__ __src, size_t __n, size_t __s1,
+		    _Tp* __restrict__ __dst, size_t __s2)
+    {
+      for (size_t __i = 0; __i < __n; ++__i)
+	__dst[__i * __s2] = __src[__i * __s1];
+    }
+
+  // Copy an indexed array __a[__i[<__n>]] in plain array __b[<__n>]
+  template<typename _Tp>
+    inline void
+    __valarray_copy(const _Tp* __restrict__ __a,
+		    const size_t* __restrict__ __i,
+		    _Tp* __restrict__ __b, size_t __n)
+    {
+      for (size_t __j = 0; __j < __n; ++__j, ++__b, ++__i)
+	*__b = __a[*__i];
+    }
+
+  // Copy a plain array __a[<__n>] in an indexed array __b[__i[<__n>]]
+  template<typename _Tp>
+    inline void
+    __valarray_copy(const _Tp* __restrict__ __a, size_t __n,
+		    _Tp* __restrict__ __b, const size_t* __restrict__ __i)
+    {
+      for (size_t __j = 0; __j < __n; ++__j, ++__a, ++__i)
+	__b[*__i] = *__a;
+    }
+
+  // Copy the __n first elements of an indexed array __src[<__i>] into
+  // another indexed array __dst[<__j>].
+  template<typename _Tp>
+    inline void
+    __valarray_copy(const _Tp* __restrict__ __src, size_t __n,
+		    const size_t* __restrict__ __i,
+		    _Tp* __restrict__ __dst, const size_t* __restrict__ __j)
+    {
+      for (size_t __k = 0; __k < __n; ++__k)
+	__dst[*__j++] = __src[*__i++];
+    }
+
+  //
+  // Compute the sum of elements in range [__f, __l)
+  // This is a naive algorithm.  It suffers from cancelling.
+  // In the future try to specialize
+  // for _Tp = float, double, long double using a more accurate
+  // algorithm.
+  //
+  template<typename _Tp>
+    inline _Tp
+    __valarray_sum(const _Tp* __restrict__ __f, const _Tp* __restrict__ __l)
+    {
+      _Tp __r = _Tp();
+      while (__f != __l)
+	__r += *__f++;
+      return __r;
+    }
+
+  // Compute the product of all elements in range [__f, __l)
+  template<typename _Tp>
+    inline _Tp
+    __valarray_product(const _Tp* __restrict__ __f,
+		       const _Tp* __restrict__ __l)
+    {
+      _Tp __r = _Tp(1);
+      while (__f != __l)
+	__r = __r * *__f++;
+      return __r;
+    }
+
+  // Compute the min/max of an array-expression
+  template<typename _Ta>
+    inline typename _Ta::value_type
+    __valarray_min(const _Ta& __a)
+    {
+      size_t __s = __a.size();
+      typedef typename _Ta::value_type _Value_type;
+      _Value_type __r = __s == 0 ? _Value_type() : __a[0];
+      for (size_t __i = 1; __i < __s; ++__i)
+	{
+	  _Value_type __t = __a[__i];
+	  if (__t < __r)
+	    __r = __t;
+	}
+      return __r;
+    }
+
+  template<typename _Ta>
+    inline typename _Ta::value_type
+    __valarray_max(const _Ta& __a)
+    {
+      size_t __s = __a.size();
+      typedef typename _Ta::value_type _Value_type;
+      _Value_type __r = __s == 0 ? _Value_type() : __a[0];
+      for (size_t __i = 1; __i < __s; ++__i)
+	{
+	  _Value_type __t = __a[__i];
+	  if (__t > __r)
+	    __r = __t;
+	}
+      return __r;
+    }
+
+  //
+  // Helper class _Array, first layer of valarray abstraction.
+  // All operations on valarray should be forwarded to this class
+  // whenever possible. -- gdr
+  //
+
+  template<typename _Tp>
+    struct _Array
+    {
+      explicit _Array(size_t);
+      explicit _Array(_Tp* const __restrict__);
+      explicit _Array(const valarray<_Tp>&);
+      _Array(const _Tp* __restrict__, size_t);
+      
+      _Tp* begin() const;
+      
+      _Tp* const __restrict__ _M_data;
+    };
+
+
+  // Copy-construct plain array __b[<__n>] from indexed array __a[__i[<__n>]]
+  template<typename _Tp>
+    inline void
+    __valarray_copy_construct(_A¾+  ¿+  À+  Á+  Â+  Ã+  Ä+  Å+  Æ+  Ç+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          rray<_Tp> __a, _Array<size_t> __i,
+			      _Array<_Tp> __b, size_t __n)
+    { std::__valarray_copy_construct(__a._M_data, __i._M_data,
+				     __b._M_data, __n); }
+
+  // Copy-construct plain array __b[<__n>] from strided array __a[<__n : __s>]
+  template<typename _Tp>
+    inline void
+    __valarray_copy_construct(_Array<_Tp> __a, size_t __n, size_t __s,
+			      _Array<_Tp> __b)
+    { std::__valarray_copy_construct(__a._M_data, __n, __s, __b._M_data); }
+
+  template<typename _Tp>
+    inline void
+    __valarray_fill (_Array<_Tp> __a, size_t __n, const _Tp& __t)
+    { std::__valarray_fill(__a._M_data, __n, __t); }
+
+  template<typename _Tp>
+    inline void
+    __valarray_fill(_Array<_Tp> __a, size_t __n, size_t __s, const _Tp& __t)
+    { std::__valarray_fill(__a._M_data, __n, __s, __t); }
+
+  template<typename _Tp>
+    inline void
+    __valarray_fill(_Array<_Tp> __a, _Array<size_t> __i,
+		    size_t __n, const _Tp& __t)
+    { std::__valarray_fill(__a._M_data, __i._M_data, __n, __t); }
+
+  // Copy a plain array __a[<__n>] into a play array __b[<>]
+  template<typename _Tp>
+    inline void
+    __valarray_copy(_Array<_Tp> __a, size_t __n, _Array<_Tp> __b)
+    { std::__valarray_copy(__a._M_data, __n, __b._M_data); }
+
+  // Copy strided array __a[<__n : __s>] in plain __b[<__n>]
+  template<typename _Tp>
+    inline void
+    __valarray_copy(_Array<_Tp> __a, size_t __n, size_t __s, _Array<_Tp> __b)
+    { std::__valarray_copy(__a._M_data, __n, __s, __b._M_data); }
+
+  // Copy a plain array  __a[<__n>] into a strided array __b[<__n : __s>]
+  template<typename _Tp>
+    inline void
+    __valarray_copy(_Array<_Tp> __a, _Array<_Tp> __b, size_t __n, size_t __s)
+    { __valarray_copy(__a._M_data, __b._M_data, __n, __s); }
+
+  // Copy strided array __src[<__n : __s1>] into another
+  // strided array __dst[< : __s2>].  Their sizes must match.
+  template<typename _Tp>
+    inline void
+    __valarray_copy(_Array<_Tp> __a, size_t __n, size_t __s1,
+                    _Array<_Tp> __b, size_t __s2)
+    { std::__valarray_copy(__a._M_data, __n, _

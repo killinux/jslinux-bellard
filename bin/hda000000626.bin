@@ -1,0 +1,1616 @@
+.  The only ones not rewritten are those for varargs functions.
+
+ `protoize' optionally inserts prototype declarations at the beginning
+of the source file, to make them available for any calls that precede
+the function's definition.  Or it can insert prototype declarations
+with block scope in the blocks where undeclared functions are called.
+
+ Basic conversion with `unprotoize' consists of rewriting most function
+declarations to remove any argument types, and rewriting function
+definitions to the old-style pre-ISO form.
+
+ Both conversion programs print a warning for any function declaration
+or definition that they can't convert.  You can suppress these warnings
+with `-q'.
+
+ The output from `protoize' or `unprotoize' replaces the original
+source file.  The original file is renamed to a name ending with
+`.save' (for DOS, the saved filename ends in `.sav' without the
+original `.c' suffix).  If the `.save' (`.sav' for DOS) file already
+exists, then the source file is simply discarded.
+
+ `protoize' and `unprotoize' both depend on GCC itself to scan the
+program and collect information about the functions it uses.  So
+neither of these programs will work until GCC is installed.
+
+ Here is a table of the options you can use with `protoize' and
+`unprotoize'.  Each option works with both programs unless otherwise
+stated.
+
+`-B DIRECTORY'
+     Look for the file `SYSCALLS.c.X' in DIRECTORY, instead of the
+     usual directory (normally `/usr/local/lib').  This file contains
+     prototype information about standard system functions.  This option
+     applies only to `protoize'.
+
+`-c COMPILATION-OPTIONS'
+     Use COMPILATION-OPTIONS as the options when running `gcc' to
+     produce the `.X' files.  The special option `-aux-info' is always
+     passed in addition, to tell `gcc' to write a `.X' file.
+
+     Note that the compilation options must be given as a single
+     argument to `protoize' or `unprotoize'.  If you want to specify
+     several `gcc' options, you must quote the entire set of
+     compilation options to make them a single word in the shell.
+
+     There are certain `gcc' arguments that you cannot use, because they
+     would produce the wrong kind of output.  These include `-g', `-O',
+     `-c', `-S', and `-o' If you include these in the
+     COMPILATION-OPTIONS, they are ignored.
+
+`-C'
+     Rename files to end in `.C' (`.cc' for DOS-based file systems)
+     instead of `.c'.  This is convenient if you are converting a C
+     program to C++.  This option applies only to `protoize'.
+
+`-g'
+     Add explicit global declarations.  This means inserting explicit
+     declarations at the beginning of each source file for each function
+     that is called in the file and was not declared.  These
+     declarations precede the first function definition that contains a
+     call to an undeclared function.  This option applies only to
+     `protoize'.
+
+`-i STRING'
+     Indent old-style parameter declarations with the string STRING.
+     This option applies only to `protoize'.
+
+     `unprotoize' converts prototyped function definitions to old-style
+     function definitions, where the arguments are declared between the
+     argument list and the initial `{'.  By default, `unprotoize' uses
+     five spaces as the indentation.  If you want to indent with just
+     one space instead, use `-i " "'.
+
+`-k'
+     Keep the `.X' files.  Normally, they are deleted after conversion
+     is finished.
+
+`-l'
+     Add explicit local declarations.  `protoize' with `-l' inserts a
+     prototype declaration for each function in each block which calls
+     the function without any declaration.  This option applies only to
+     `protoize'.
+
+`-n'
+     Make no real changes.  This mode just prints information about the
+     conversions that would have been done without `-n'.
+
+`-N'
+     Make no `.save' files.  The original files are simply deleted.
+     Use this option with caution.
+
+`-p PROGRAM'
+     Use the program PROGRAM as the compiler.  Normally, the name `gcc'
+     is used.
+
+`-q'
+     Work quietly.  Most warnings are suppressed.
+
+`-v'
+     Print the version number, just like `-v' for `gcc'.
+
+ If you need special compiler options to compile one of your program's
+source files, then you should generate that file's `.X' file specially,
+by running `gcc' on that source file with the appropriate options and
+the option `-aux-info'.  Then run `protoize' on the entire set of
+files.  `protoize' will use the existing `.X' file because it is newer
+than the source file.  For example:
+
+     gcc -Dfoo=bar file1.c -aux-info file1.X
+     protoize *.c
+
+You need to include the special files along with the rest in the
+`protoize' command, even though their `.X' files already exist, because
+otherwise they won't get converted.
+
+ *Note Protoize Caveats::, for more information on how to use
+`protoize' successfully.
+
+
+File: gcc.info,  Node: C Implementation,  Next: C Extensions,  Prev: Invoking GCC,  Up: Top
+
+4 C Implementation-defined behavior
+***********************************
+
+A conforming implementation of ISO C is required to document its choice
+of behavior in each of the areas that are designated "implementation
+defined".  The following lists all such areas, along with the section
+numbers from the ISO/IEC 9899:1990 and ISO/IEC 9899:1999 standards.
+Some areas are only implementation-defined in one version of the
+standard.
+
+ Some choices depend on the externally determined ABI for the platform
+(including standard character encodings) which GCC follows; these are
+listed as "determined by ABI" below.  *Note Binary Compatibility:
+Compatibility, and `http://gcc.gnu.org/readings.html'.  Some choices
+are documented in the preprocessor manual.  *Note
+Implementation-defined behavior: (cpp)Implementation-defined behavior.
+Some choices are made by the library and operating system (or other
+environment when compiling for a freestanding environment); refer to
+their documentation for details.
+
+* Menu:
+
+* Translation implementation::
+* Environment implementation::
+* Identifiers implementation::
+* Characters implementation::
+* Integers implementation::
+* Floating point implementation::
+* Arrays and pointers implementation::
+* Hints implementation::
+* Structures unions enumerations and bit-fields implementation::
+* Qualifiers implementation::
+* Declarators implementation::
+* Statements implementation::
+* Preprocessing directives implementation::
+* Library functions implementation::
+* Architecture implementation::
+* Locale-specific behavior implementation::
+
+
+File: gcc.info,  Node: Translation implementation,  Next: Environment implementation,  Up: C Implementation
+
+4.1 Translation
+===============
+
+   * `How a diagnostic is identified (C90 3.7, C99 3.10, C90 and C99
+     5.1.1.3).'
+
+     Diagnostics consist of all the output sent to stderr by GCC.
+
+   * `Whether each nonempty sequence of white-space characters other
+     than new-line is retained or replaced by one space character in
+     translation phase 3 (C90 and C99 5.1.1.2).'
+
+     *Note Implementation-defined behavior: (cpp)Implementation-defined
+     behavior.
+
+
+
+File: gcc.info,  Node: Environment implementation,  Next: Identifiers implementation,  Prev: Translation implementation,  Up: C Implementation
+
+4.2 Environment
+===============
+
+The behavior of most of these points are dependent on the implementation
+of the C library, and are not defined by GCC itself.
+
+   * `The mapping between physical source file multibyte characters and
+     the source character set in translation phase 1 (C90 and C99
+     5.1.1.2).'
+
+     *Note Implementation-defined behavior: (cpp)Implementation-defined
+     behavior.
+
+
+
+File: gcc.info,  Node: Identifiers implementation,  Next: Characters implementation,  Prev: Environment implementation,  Up: C Implementation
+
+4.3 Identifiers
+===============
+
+   * `Which additional multibyte characters may appear in identifiers
+     and their correspondence to universal character names (C99 6.4.2).'
+
+     *Note Implementation-defined behavior: (cpp)Implementation-defined
+     behavior.
+
+   * `The number of significant initial characters in an identifier
+     (C90 6.1.2, C90 and C99 5.2.4.1, C99 6.4.2).'
+
+     For internal names, all characters are significant.  For external
+     names, the number of significant characters are defined by the
+     linker; for almost all targets, all characters are significant.
+
+   * `Whether case distinctions are significant in an identifier with
+     external linkage (C90 6.1.2).'
+
+     This is a property of the linker.  C99 requires that case
+     distinctions are always significant in identifiers with external
+     linkage and systems without this property are not supported by GCC.
+
+
+
+File: gcc.info,  Node: Characters implementation,  Next: Integers implementation,  Prev: Identifiers implementation,  Up: C Implementation
+
+4.4 Characters
+==============
+
+   * `The number of bits in a byte (C90 3.4, C99 3.6).'
+
+     Determined by ABI.
+
+   * `The values of the members of the execution character set (C90 and
+     C99 5.2.1).'
+
+     Determined by ABI.
+
+   * `The unique value of the member of the execution character set
+     produced for each of the standard alphabetic escape sequences (C90
+     and C99 5.2.2).'
+
+     Determined by ABI.
+
+   * `The value of a `char' object into which has been stored any
+     character other than a member of the basic execution character set
+     (C90 6.1.2.5, C99 6.2.5).'
+
+     Determined by ABI.
+
+   * `Which of `signed char' or `unsigned char' has the same range,
+     representation, and behavior as "plain" `char' (C90 6.1.2.5, C90
+     6.2.1.1, C99 6.2.5, C99 6.3.1.1).'
+
+     Determined by ABI.  The options `-funsigned-char' and
+     `-fsigned-char' change the default.  *Note Options Controlling C
+     Dialect: C Dialect Options.
+
+   * `The mapping of members of the source character set (in character
+     constants and string literals) to members of the execution
+     character set (C90 6.1.3.4, C99 6.4.4.4, C90 and C99 5.1.1.2).'
+
+     Determined by ABI.
+
+   * `The value of an integer character constant containing more than
+     one character or containing a character or escape sequence that
+     does not map to a single-byte execution character (C90 6.1.3.4,
+     C99 6.4.4.4).'
+
+     *Note Implementation-defined behavior: (cpp)Implementation-defined
+     behavior.
+
+   * `The value of a wide character constant containing more than one
+     multibyte character, or containing a multibyte character or escape
+     sequence not represented in the extended execution character set
+     (C90 6.1.3.4, C99 6.4.4.4).'
+
+     *Note Implementation-defined behavior: (cpp)Implementation-defined
+     behavior.
+
+   * `The current locale used to convert a wide character constant
+     consisting of a single multibyte character that maps to a member
+     of the extended execution character set into a corresponding wide
+     character code (C90 6.1.3.4, C99 6.4.4.4).'
+
+     *Note Implementation-defined behavior: (cpp)Implementation-defined
+     behavior.
+
+   * `The current locale used to convert a wide string literal into
+     corresponding wide character codes (C90 6.1.4, C99 6.4.5).'
+
+     *Note Implementation-defined behavior: (cpp)Implementation-defined
+     behavior.
+
+   * `The value of a string literal containing a multibyte character or
+     escape sequence not represented in the execution character set
+     (C90 6.1.4, C99 6.4.5).'
+
+     *Note Implementation-defined behavior: (cpp)Implementation-defined
+     behavior.
+
+
+File: gcc.info,  Node: Integers implementation,  Next: Floating point implementation,  Prev: Characters implementation,  Up: C Implementation
+
+4.5 Integers
+============
+
+   * `Any extended integer types that exist in the implementation (C99
+     6.2.5).'
+
+     GCC does not support any extended integer types.
+
+   * `Whether signed integer types are represented using sign and
+     magnitude, two's complement, or one's complement, and whether the
+     extraordinary value is a trap representation or an ordinary value
+     (C99 6.2.6.2).'
+
+     GCC supports only two's complement integer types, and all bit
+     patterns are ordinary values.
+
+   * `The rank of any extended integer type relative to another extended
+     integer type with the same precision (C99 6.3.1.1).'
+
+     GCC does not support any extended integer types.
+
+   * `The result of, or the signal raised by, converting an integer to a
+     signed integer type when the value cannot be represented in an
+     object of that type (C90 6.2.1.2, C99 6.3.1.3).'
+
+     For conversion to a type of width N, the value is reduced modulo
+     2^N to be within range of the type; no signal is raised.
+
+   * `The results of some bitwise operations on signed integers (C90
+     6.3, C99 6.5).'
+
+     Bitwise operators act on the representation of the value including
+     both the sign and value bits, where the sign bit is considered
+     immediately above the highest-value value bit.  Signed `>>' acts
+     on negative numbers by sign extension.
+
+     GCC does not use the latitude given in C99 only to treat certain
+     aspects of signed `<<' as undefined, but this is subject to change.
+
+   * `The sign of the remainder on integer division (C90 6.3.5).'
+
+     GCC always follows the C99 requirement that the result of division
+     is truncated towards zero.
+
+
+
+File: gcc.info,  Node: Floating point implementation,  Next: Arrays and pointers implementation,  Prev: Integers implementation,  Up: C Implementation
+
+4.6 Floating point
+==================
+
+   * `The accuracy of the floating-point operations and of the library
+     functions in `<math.h>' and `<complex.h>' that return
+     floating-point results (C90 and C99 5.2.4.2.2).'
+
+     The accuracy is unknown.
+
+   * `The rounding behaviors characterized by non-standard values of
+     `FLT_ROUNDS'  (C90 and C99 5.2.4.2.2).'
+
+     GCC does not use such values.
+
+   * `The evaluation methods characterized by non-standard negative
+     values of `FLT_EVAL_METHOD' (C99 5.2.4.2.2).'
+
+     GCC does not use such values.
+
+   * `The direction of rounding when an integer is converted to a
+     floating-point number that cannot exactly represent the original
+     value (C90 6.2.1.3, C99 6.3.1.4).'
+
+     C99 Annex F is followed.
+
+   * `The direction of rounding when a floating-point number is
+     converted to a narrower floating-point number (C90 6.2.1.4, C99
+     6.3.1.5).'
+
+     C99 Annex F is followed.
+
+   * `How the nearest representable value or the larger or smaller
+     representable value immediately adjacent to the nearest
+     representable value is chosen for certain floating constants (C90
+     6.1.3.1, C99 6.4.4.2).'
+
+     C99 Annex F is followed.
+
+   * `Whether and how floating expressions are contracted when not
+     disallowed by the `FP_CONTRACT' pragma (C99 6.5).'
+
+     Expressions are currently only contracted if
+     `-funsafe-math-optimizations' or `-ffast-math' are used.  This is
+     subject to change.
+
+   * `The default state for the `FENV_ACCESS' pragma (C99 7.6.1).'
+
+     This pragma is not implemented, but the default is to "off" unless
+     `-frounding-math' is used in which case it is "on".
+
+   * `Additional floating-point exceptions, rounding modes,
+     environments, and classifications, and their macro names (C99 7.6,
+     C99 7.12).'
+
+     This is dependent on the implementation of the C library, and is
+     not defined by GCC itself.
+
+   * `The default state for the `FP_CONTRACT' pragma (C99 7.12.2).'
+
+     This pragma is not implemented.  Expressions are currently only
+     contracted if `-funsafe-math-optimizations' or `-ffast-math' are
+     used.  This is subject to change.
+
+   * `Whether the "inexact" floating-point exception can be raised when
+     the rounded result actually does equal the mathematical result in
+     an IEC 60559 conformant implementation (C99 F.9).'
+
+     This is dependent on the implementation of the C library, and is
+     not defined by GCC itself.
+
+   * `Whether the "underflow" (and "inexact") floating-point exception
+     can be raised when a result is tiny but not inexact in an IEC
+     60559 conformant implementation (C99 F.9).'
+
+     This is dependent on the implementation of the C library, and is
+     not defined by GCC itself.
+
+
+
+File: gcc.info,  Node: Arrays and pointers implementation,  Next: Hints implementation,  Prev: Floating point implementation,  Up: C Implementation
+
+4.7 Arrays and pointers
+=======================
+
+   * `The result of converting a pointer to an integer or vice versa
+     (C90 6.3.4, C99 6.3.2.3).'
+
+     A cast from pointer to integer discards most-significant bits if
+     the pointer representation is larger than the integer type,
+     sign-extends(1) if the pointer representation is smaller than the
+     integer type, otherwise the bits are unchanged.
+
+     A cast from integer to pointer discards most-significant bits if
+     the pointer representation is smaller than the integer type,
+     extends according to the signedness of the integer type if the
+     pointer representation is larger than the integer type, otherwise
+     the bits are unchanged.
+
+     When casting from pointer to integer and back again, the resulting
+     pointer must reference the same object as the original pointer,
+     otherwise the behavior is undefined.  That is, one may not use
+     integer arithmetic to avoid the undefined behavior of pointer
+     arithmetic as proscribed in C99 6.5.6/8.
+
+   * `The size of the result of subtracting two pointers to elements of
+     the same array (C90 6.3.6, C99 6.5.6).'
+
+     The value is as specified in the standard and the type is
+     determined by the ABI.
+
+
+ ---------- Footnotes ----------
+
+ (1) Future versions of GCC may zero-extend, or use a target-defined
+`ptr_extend' pattern.  Do not rely on sign extension.
+
+
+File: gcc.info,  Node: Hints implementation,  Next: Structures unions enumerations and bit-fields implementation,  Prev: Arrays and pointers implementation,  Up: C Implementation
+
+4.8 Hints
+=========
+
+   * `The extent to which suggestions made by using the `register'
+     storage-class specifier are effective (C90 6.5.1, C99 6.7.1).'
+
+     The `register' specifier affects code generation only in these
+     ways:
+
+        * When used as part of the register variable extension, see
+          *note Explicit Reg Vars::.
+
+        * When `-O0' is in use, the compiler allocates distinct stack
+          memory for all variables that do not have the `register'
+          storage-class specifier; if `register' is specified, the
+          variable may have a shorter lifespan than the code would
+          indicate and may never be placed in memory.
+
+        * On some rare x86 targets, `setjmp' doesn't save the registers
+          in all circumstances.  In those cases, GCC doesn't allocate
+          any variables in registers unless they are marked `register'.
+
+
+   * `The extent to which suggestions made by using the inline function
+     specifier are effective (C99 6.7.4).'
+
+     GCC will not inline any functions if the `-fno-inline' option is
+     used or if `-O0' is used.  Otherwise, GCC may still be unable to
+     inline a function for many reasons; the `-Winline' option may be
+     used to determine if a function has not been inlined and why not.
+
+
+
+File: gcc.info,  Node: Structures unions enumerations and bit-fields implementation,  Next: Qualifiers implementation,  Prev: Hints implementation,  Up: C Implementation
+
+4.9 Structures, unions, enumerations, and bit-fields
+====================================================
+
+   * `A member of a union object is accessed using a member of a
+     different type (C90 6.3.2.3).'
+
+     The relevant bytes of the representation of the object are treated
+     as an object of the type used for the access.  *Note
+     Type-punning::.  This may be a trap representation.
+
+   * `Whether a "plain" `int' bit-field is treated as a `signed int'
+     bit-field or as an `unsigned int' bit-field (C90 6.5.2, C90
+     6.5.2.1, C99 6.7.2, C99 6.7.2.1).'
+
+     By default it is treated as `signed int' but this may be changed
+     by the `-funsigned-bitfields' option.
+
+   * `Allowable bit-field types other than `_Bool', `signed int', and
+     `unsigned int' (C99 6.7.2.1).'
+
+     No other types are permitted in strictly conforming mode.
+
+   * `Whether a bit-field can straddle a storage-unit boundary (C90
+     6.5.2.1, C99 6.7.2.1).'
+
+     Determined by ABI.
+
+   * `The order of allocation of bit-fields within a unit (C90 6.5.2.1,
+     C99 6.7.2.1).'
+
+     Determined by ABI.
+
+   * `The alignment of non-bit-field members of structures (C90
+     6.5.2.1, C99 6.7.2.1).'
+
+     Determined by ABI.
+
+   * `The integer type compatible with each enumerated type (C90
+     6.5.2.2, C99 6.7.2.2).'
+
+     Normally, the type is `unsigned int' if there are no negative
+     values in the enumeration, otherwise `int'.  If `-fshort-enums' is
+     specified, then if there are negative values it is the first of
+     `signed char', `short' and `int' that can represent all the
+     values, otherwise it is the first of `unsigned char', `unsigned
+     short' and `unsigned int' that can represent all the values.
+
+     On some targets, `-fshort-enums' is the default; this is
+     determined by the ABI.
+
+
+
+File: gcc.info,  Node: Qualifiers implementation,  Next: Declarators implementation,  Prev: Structures unions enumerations and bit-fields implementation,  Up: C Implementation
+
+4.10 Qualifiers
+===============
+
+   * `What constitutes an access to an object that has
+     volatile-qualified type (C90 6.5.3, C99 6.7.3).'
+
+     Such an object is normally accessed by pointers and used for
+     accessing hardware.  In most expressions, it is intuitively
+     obvious what is a read and what is a write.  For example
+
+          volatile int *dst = SOMEVALUE;
+          volatile int *src = SOMEOTHERVALUE;
+          *dst = *src;
+
+     will cause a read of the volatile object pointed to by SRC and
+     store the value into the volatile object pointed to by DST.  There
+     is no guarantee that these reads and writes are atomic, especially
+     for objects larger than `int'.
+
+     However, if the volatile storage is not being modified, and the
+     value of the volatile storage is not used, then the situation is
+     less obvious.  For example
+
+          volatile int *src = SOMEVALUE;
+          *src;
+
+     According to the C standard, such an expression is an rvalue whose
+     type is the unqualified version of its original type, i.e. `int'.
+     Whether GCC interprets this as a read of the volatile object being
+     pointed to or only as a request to evaluate the expression for its
+     side-effects depends on this type.
+
+     If it is a scalar type, or on most targets an aggregate type whose
+     only member object is of a scalar type, or a union type whose
+     member objects are of scalar types, the expression is interpreted
+     by GCC as a read of the volatile object; in the other cases, the
+     expression is only evaluated for its side-effects.
+
+
+
+File: gcc.info,  Node: Declarators implementation,  Next: Statements implementation,  Prev: Qualifiers implementation,  Up: C Implementation
+
+4.11 Declarators
+================
+
+   * `The maximum number of declarators that may modify an arithmetic,
+     structure or union type (C90 6.5.4).'
+
+     GCC is only limited by available memory.
+
+
+
+File: gcc.info,  Node: Statements implementation,  Next: Preprocessing directives implementation,  Prev: Declarators implementation,  Up: C Implementation
+
+4.12 Statements
+===============
+
+   * `The maximum number of `case' values in a `switch' statement (C90
+     6.6.4.2).'
+
+     GCC is only limited by available memory.
+
+
+
+File: gcc.info,  Node: Preprocessing directives implementation,  Next: Library functions implementation,  Prev: Statements implementation,  Up: C Implementation
+
+4.13 Preprocessing directives
+=============================
+
+*Note Implementation-defined behavior: (cpp)Implementation-defined
+behavior, for details of these aspects of implementation-defined
+behavior.
+
+   * `How sequences in both forms of header names are mapped to headers
+     or external source file names (C90 6.1.7, C99 6.4.7).'
+
+   * `Whether the value of a character constant in a constant expression
+     that controls conditional inclusion matches the value of the same
+     character constant in the execution character set (C90 6.8.1, C99
+     6.10.1).'
+
+   * `Whether the value of a single-character character constant in a
+     constant expression that controls conditional inclusion may have a
+     negative value (C90 6.8.1, C99 6.10.1).'
+
+   * `The places that are searched for an included `<>' delimited
+     header, and how the places are specified or the header is
+     identified (C90 6.8.2, C99 6.10.2).'
+
+   * `How the named source file is searched for in an included `""'
+     delimited header (C90 6.8.2, C99 6.10.2).'
+
+   * `The method by which preprocessing tokens (possibly resulting from
+     macro expansion) in a `#include' directive are combined into a
+     header name (C90 6.8.2, C99 6.10.2).'
+
+   * `The nesting limit for `#include' processing (C90 6.8.2, C99
+     6.10.2).'
+
+   * `Whether the `#' operator inserts a `\' character before the `\'
+     character that begins a universal character name in a character
+     constant or string literal (C99 6.10.3.2).'
+
+   * `The behavior on each recognized non-`STDC #pragma' directive (C90
+     6.8.6, C99 6.10.6).'
+
+     *Note Pragmas: (cpp)Pragmas, for details of pragmas accepted by
+     GCC on all targets.  *Note Pragmas Accepted by GCC: Pragmas, for
+     details of target-specific pragmas.
+
+   * `The definitions for `__DATE__' and `__TIME__' when respectively,
+     the date and time of translation are not available (C90 6.8.8, C99
+     6.10.8).'
+
+
+
+File: gcc.info,  Node: Library functions implementation,  Next: Architecture implementation,  Prev: Preprocessing directives implementation,  Up: C Implementation
+
+4.14 Library functions
+======================
+
+The behavior of most of these points are dependent on the implementation
+of the C library, and are not defined by GCC itself.
+
+   * `The null pointer constant to which the macro `NULL' expands (C90
+     7.1.6, C99 7.17).'
+
+     In `<stddef.h>', `NULL' expands to `((void *)0)'.  GCC does not
+     provide the other headers which define `NULL' and some library
+     implementations may use other definitions in those headers.
+
+
+
+File: gcc.info,  Node: Architecture implementation,  Next: Locale-specific behavior implementation,  Prev: Library functions implementation,  Up: C Implementation
+
+4.15 Architecture
+=================
+
+   * `The values or expressions assigned to the macros specified in the
+     headers `<float.h>', `<limits.h>', and `<stdint.h>' (C90 and C99
+     5.2.4.2, C99 7.18.2, C99 7.18.3).'
+
+     Determined by ABI.
+
+   * `The number, order, and encoding of bytes in any object (when not
+     explicitly specified in this International Standard) (C99
+     6.2.6.1).'
+
+     Determined by ABI.
+
+   * `The value of the result of the `sizeof' operator (C90 6.3.3.4,
+     C99 6.5.3.4).'
+
+     Determined by ABI.
+
+
+
+File: gcc.info,  Node: Locale-specific behavior implementation,  Prev: Architecture implementation,  Up: C Implementation
+
+4.16 Locale-specific behavior
+=============================
+
+The behavior of these points are dependent on the implementation of the
+C library, and are not defined by GCC itself.
+
+
+File: gcc.info,  Node: C Extensions,  Next: C++ Extensions,  Prev: C Implementation,  Up: Top
+
+5 Extensions to the C Language Family
+*************************************
+
+GNU C provides several language features not found in ISO standard C.
+(The `-pedantic' option directs GCC to print a warning message if any
+of these features is used.)  To test for the availability of these
+features in conditional compilation, check for a predefined macro
+`__GNUC__', which is always defined under GCC.
+
+ These extensions are available in C and Objective-C.  Most of them are
+also available in C++.  *Note Extensions to the C++ Language: C++
+Extensions, for extensions that apply _only_ to C++.
+
+ Some features that are in ISO C99 but not C89 or C++ are also, as
+extensions, accepted by GCC in C89 mode and in C++.
+
+* Menu:
+
+* Statement Exprs::     Putting statements and declarations inside expressions.
+* Local Labels::        Labels local to a block.
+* Labels as Values::    Getting pointers to labels, and computed gotos.
+* Nested Functions::    As in Algol and Pascal, lexical scoping of functions.
+* Constructing Calls::	Dispatching a call to another function.
+* Typeof::              `typeof': referring to the type of an expression.
+* Conditionals::        Omitting the middle operand of a `?:' expression.
+* Long Long::		Double-word integers---`long long int'.
+* Complex::             Data types for complex numbers.
+* Floating Types::      Additional Floating Types.
+* Decimal Float::       Decimal Floating Types.
+* Hex Floats::          Hexadecimal floating-point constants.
+* Fixed-Point::         Fixed-Point Types.
+* Zero Length::         Zero-length arrays.
+* Variable Length::     Arrays whose length is computed at run time.
+* Empty Structures::    Structures with no members.
+* Variadic Macros::	Macros with a variable number of arguments.
+* Escaped Newlines::    Slightly looser rules for escaped newlines.
+* Subscripting::        Any array can be subscripted, even if not an lvalue.
+* Pointer Arith::       Arithmetic on `void'-pointers and function pointers.
+* Initializers::        Non-constant initializers.
+* Compound Literals::   Compound literals give structures, unions
+                         or arrays as values.
+* Designated Inits::	Labeling elements of initializers.
+* Cast to Union::       Casting to union type from any member of the union.
+* Case Ranges::		`case 1 ... 9' and such.
+* Mixed Declarations::	Mixing declarations and code.
+* Function Attributes:: Declaring that functions have no side effects,
+                         or that they can never return.
+* Attribute Syntax::    Formal syntax for attributes.
+* Function Prototypes:: Prototype declarations and old-style definitions.
+* C++ Comments::        C++ comments are recognized.
+* Dollar Signs::        Dollar sign is allowed in identifiers.
+* Character Escapes::   `\e' stands for the character <ESC>.
+* Variable Attributes::	Specifying attributes of variables.
+* Type Attributes::	Specifying attributes of types.
+* Alignment::           Inquiring about the alignment of a type or variable.
+* Inline::              Defining inline functions (as fast as macros).
+* Extended Asm::        Assembler instructions with C expressions as operands.
+                         (With them you can define ``built-in'' functions.)
+* Constraints::         Constraints for asm operands
+* Asm Labels::          Specifying the assembler name to use for a C symbol.
+* Explicit Reg Vars::   Defining variables residing in specified registers.
+* Alternate Keywords::  `__const__', `__asm__', etc., for header files.
+* Incomplete Enums::    `enum foo;', with details to follow.
+* Function Names::	Printable strings which are the name of the current
+			 function.
+* Return Address::      Getting the return or frame address of a function.
+* Vector Extensions::   Using vector instructions through built-in functions.
+* Offsetof::            Special syntax for implementing `offsetof'.
+* Atomic Builtins::	Built-in functions for atomic memory access.
+* Object Size Checking:: Built-in functions for limited buffer overflow
+                        checking.
+* Other Builtins::      Other built-in functions.
+* Target Builtins::     Built-in functions specific to particular targets.
+* Target Format Checks:: Format checks specific to particular targets.
+* Pragmas::             Pragmas accepted by GCC.
+* Unnamed Fields::      Unnamed struct/union fields within structs/unions.
+* Thread-Local::        Per-thread variables.
+* Binary constants::    Binary constants using the `0b' prefix.
+
+
+File: gcc.info,  Node: Statement Exprs,  Next: Local Labels,  Up: C Extensions
+
+5.1 Statements and Declarations in Expressions
+==============================================
+
+A compound statement enclosed in parentheses may appear as an expression
+in GNU C.  This allows you to use loops, switches, and local variables
+within an expression.
+
+ Recall that a compound statement is a sequence of statements surrounded
+by braces; in this construct, parentheses go around the braces.  For
+example:
+
+     ({ int y = foo (); int z;
+        if (y > 0) z = y;
+        else z = - y;
+        z; })
+
+is a valid (though slightly more complex than necessary) expression for
+the absolute value of `foo ()'.
+
+ The last thing in the compound statement should be an expression
+followed by a semicolon; the value of this subexpression serves as the
+value of the entire construct.  (If you use some other kind of statement
+last within the braces, the construct has type `void', and thus
+effectively no value.)
+
+ This feature is especially useful in making macro definitions "safe"
+(so that they evaluate each operand exactly once).  For example, the
+"maximum" function is commonly defined as a macro in standard C as
+follows:
+
+     #define max(a,b) ((a) > (b) ? (a) : (b))
+
+But this definition computes either A or B twice, with bad results if
+the operand has side effects.  In GNU C, if you know the type of the
+operands (here taken as `int'), you can define the macro safely as
+follows:
+
+     #define maxint(a,b) \
+       ({int _a = (a), _b = (b); _a > _b ? _a : _b; })
+
+ Embedded statements are not allowed in constant expressions, such as
+the value of an enumeration constant, the width of a bit-field, or the
+initial value of a static variable.
+
+ If you don't know the type of the operand, you can still do this, but
+you must use `typeof' (*note Typeof::).
+
+ In G++, the result value of a statement expression undergoes array and
+function pointer decay, and is returned by value to the enclosing
+expression.  For instance, if `A' is a class, then
+
+             A a;
+
+             ({a;}).Foo ()
+
+will construct a temporary `A' object to hold the result of the
+statement expression, and that will be used to invoke `Foo'.  Therefore
+the `this' pointer observed by `Foo' will not be the address of `a'.
+
+ Any temporaries created within a statement within a statement
+expression will be destroyed at the statement's end.  This makes
+statement expressions inside macros slightly different from function
+calls.  In the latter case temporaries introduced during argument
+evaluation will be destroyed at the end of the statement that includes
+the function call.  In the statement expression case they will be
+destroyed during the statement expression.  For instance,
+
+     #define macro(a)  ({__typeof__(a) b = (a); b + 3; })
+     template<typename T> T function(T a) { T b = a; return b + 3; }
+
+     void foo ()
+     {
+       macro (X ());
+       function (X ());
+     }
+
+will have different places where temporaries are destroyed.  For the
+`macro' case, the temporary `X' will be destroyed just after the
+initialization of `b'.  In the `function' case that temporary will be
+destroyed when the function returns.
+
+ These considerations mean that it is probably a bad idea to use
+statement-expressions of this form in header files that are designed to
+work with C++.  (Note that some versions of the GNU C Library contained
+header files using statement-expression that lead to precisely this
+bug.)
+
+ Jumping into a statement expression with `goto' or using a `switch'
+statement outside the statement expression with a `case' or `default'
+label inside the statement expression is not permitted.  Jumping into a
+statement expression with a computed `goto' (*note Labels as Values::)
+yields undefined behavior.  Jumping out of a statement expression is
+permitted, but if the statement expression is part of a larger
+expression then it is unspecified which other subexpressions of that
+expression have been evaluated except where the language definition
+requires certain subexpressions to be evaluated before or after the
+statement expression.  In any case, as with a function call the
+evaluation of a statement expression is not interleaved with the
+evaluation of other parts of the containing expression.  For example,
+
+       foo (), (({ bar1 (); goto a; 0; }) + bar2 ()), baz();
+
+will call `foo' and `bar1' and will not call `baz' but may or may not
+call `bar2'.  If `bar2' is called, it will be called after `foo' and
+before `bar1'
+
+
+File: gcc.info,  Node: Local Labels,  Next: Labels as Values,  Prev: Statement Exprs,  Up: C Extensions
+
+5.2 Locally Declared Labels
+===========================
+
+GCC allows you to declare "local labels" in any nested block scope.  A
+local label is just like an ordinary label, but you can only reference
+it (with a `goto' statement, or by taking its address) within the block
+in which it was declared.
+
+ A local label declaration looks like this:
+
+     __label__ LABEL;
+
+or
+
+     __label__ LABEL1, LABEL2, /* ... */;
+
+ Local label declarations must come at the beginning of the block,
+before any ordinary declarations or statements.
+
+ The label declaration defines the label _name_, but does not define
+the label itself.  You must do this in the usual way, with `LABEL:',
+within the statements of the statement expression.
+
+ The local label feature is useful for complex macros.  If a macro
+contains nested loops, a `goto' can be useful for breaking out of them.
+However, an ordinary label whose scope is the whole function cannot be
+used: if the macro can be expanded several times in one function, the
+label will be multiply defined in that function.  A local label avoids
+this problem.  For example:
+
+     #define SEARCH(value, array, target)              \
+     do {                                              \
+       __label__ found;                                \
+       typeof (target) _SEARCH_target = (target);      \
+       typeof (*(array)) *_SEARCH_array = (array);     \
+       int i, j;                                       \
+       int value;                                      \
+       for (i = 0; i < max; i++)                       \
+         for (j = 0; j < max; j++)                     \
+           if (_SEARCH_array[i][j] == _SEARCH_target)  \
+             { (value) = i; goto found; }              \
+       (value) = -1;                                   \
+      found:;                                          \
+     } while (0)
+
+ This could also be written using a statement-expression:
+
+     #define SEARCH(array, target)                     \
+     ({                                                \
+       __label__ found;                                \
+       typeof (target) _SEARCH_target = (target);      \
+       typeof (*(array)) *_SEARCH_array = (array);     \
+       int i, j;                                       \
+       int value;                                      \
+       for (i = 0; i < max; i++)                       \
+         for (j = 0; j < max; j++)                     \
+           if (_SEARCH_array[i][j] == _SEARCH_target)  \
+             { value = i; goto found; }                \
+       value = -1;                                     \
+      found:                                           \
+       value;                                          \
+     })
+
+ Local label declarations also make the labels they declare visible to
+nested functions, if there are any.  *Note Nested Functions::, for
+details.
+
+
+File: gcc.info,  Node: Labels as Values,  Next: Nested Functions,  Prev: Local Labels,  Up: C Extensions
+
+5.3 Labels as Values
+====================
+
+You can get the address of a label defined in the current function (or
+a containing function) with the unary operator `&&'.  The value has
+type `void *'.  This value is a constant and can be used wherever a
+constant of that type is valid.  For example:
+
+     void *ptr;
+     /* ... */
+     ptr = &&foo;
+
+ To use these values, you need to be able to jump to one.  This is done
+with the computed goto statement(1), `goto *EXP;'.  For example,
+
+     goto *ptr;
+
+Any expression of type `void *' is allowed.
+
+ One way of using these constants is in initializing a static array that
+will serve as a jump table:
+
+     static void *array[] = { &&foo, &&bar, &&hack };
+
+ Then you can select a label with indexing, like this:
+
+     goto *array[i];
+
+Note that this does not check whether the subscript is in bounds--array
+indexing in C never does that.
+
+ Such an array of label values serves a purpose much like that of the
+`switch' statement.  The `switch' statement is cleaner, so use that
+rather than an array unless the problem does not fit a `switch'
+statement very well.
+
+ Another use of label values is in an interpreter for threaded code.
+The labels within the interpreter function can be stored in the
+threaded code for super-fast dispatching.
+
+ You may not use this mechanism to jump to code in a different function.
+If you do that, totally unpredictable things will happen.  The best way
+to avoid this is to store the label address only in automatic variables
+and never pass it as an argument.
+
+ An alternate way to write the above example is
+
+     static const int array[] = { &&foo - &&foo, &&bar - &&foo,
+                                  &&hack - &&foo };
+     goto *(&&foo + array[i]);
+
+This is more friendly to code living in shared libraries, as it reduces
+the number of dynamic relocations that are needed, and by consequence,
+allows the data to be read-only.
+
+ The `&&foo' expressions for the same label might have different values
+if the containing function is inlined or cloned.  If a program relies on
+them being always the same, `__attribute__((__noinline__))' should be
+used to prevent inlining.  If `&&foo' is used in a static variable
+initializer, inlining is forbidden.
+
+ ---------- Footnotes ----------
+
+ (1) The analogous feature in Fortran is called an assigned goto, but
+that name seems inappropriate in C, where one can do more than simply
+store label addresses in label variables.
+
+
+File: gcc.info,  Node: Nested Functions,  Next: Constructing Calls,  Prev: Labels as Values,  Up: C Extensions
+
+5.4 Nested Functions
+====================
+
+A "nested function" is a function defined inside another function.
+(Nested functions are not supported for GNU C++.)  The nested function's
+name is local to the block where it is defined.  For example, here we
+define a nested function named `square', and call it twice:
+
+     foo (double a, double b)
+     {
+       double square (double z) { return z * z; }
+
+       return square (a) + square (b);
+     }
+
+ The nested function can access all the variables of the containing
+function that are visible at the point of its definition.  This is
+called "lexical scoping".  For example, here we show a nested function
+which uses an inherited variable named `offset':
+
+     bar (int *array, int offset, int size)
+     {
+       int access (int *array, int index)
+         { return array[index + offset]; }
+       int i;
+       /* ... */
+       for (i = 0; i < size; i++)
+         /* ... */ access (array, i) /* ... */
+     }
+
+ Nested function definitions are permitted within functions in the
+places where variable definitions are allowed; that is, in any block,
+mixed with the other declarations and statements in the block.
+
+ It is possible to call the nested function from outside the scope of
+its name by storing its address or passing the address to another
+function:
+
+     hack (int *array, int size)
+     {
+       void store (int index, int value)
+         { array[index] = value; }
+
+       intermediate (store, size);
+     }
+
+ Here, the function `intermediate' receives the address of `store' as
+an argument.  If `intermediate' calls `store', the arguments given to
+`store' are used to store into `array'.  But this technique works only
+so long as the containing function (`hack', in this example) does not
+exit.
+
+ If you try to call the nested function through its address after the
+containing function has exited, all hell will break loose.  If you try
+to call it after a containing scope level has exited, and if it refers
+to some of the variables that are no longer in scope, you may be lucky,
+but it's not wise to take the risk.  If, however, the nested function
+does not refer to anything that has gone out of scope, you should be
+safe.
+
+ GCC implements taking the address of a nested function using a
+technique called "trampolines".  A paper describing them is available as
+
+`http://people.debian.org/~aaronl/Usenix88-lexic.pdf'.
+
+ A nested function can jump to a label inherited from a containing
+function, provided the label was explicitly declared in the containing
+function (*note Local Labels::).  Such a jump returns instantly to the
+containing function, exiting the nested function which did the `goto'
+and any intermediate functions as well.  Here is an example:
+
+     bar (int *array, int offset, int size)
+     {
+       __label__ failure;
+       int access (int *array, int index)
+         {
+           if (index > size)
+             goto failure;
+           return array[index + offset];
+         }
+       int i;
+       /* ... */
+       for (i = 0; i < size; i++)
+         /* ... */ access (array, i) /* ... */
+       /* ... */
+       return 0;
+
+      /* Control comes here from `access'
+         if it detects an error.  */
+      failure:
+       return -1;
+     }
+
+ A nested function always has no linkage.  Declaring one with `extern'
+or `static' is erroneous.  If you need to declare the nested function
+before its definition, use `auto' (which is otherwise meaningless for
+function declarations).
+
+     bar (int *array, int offset, int size)
+     {
+       __label__ failure;
+       auto int access (int *, int);
+       /* ... */
+       int access (int *array, int index)
+         {
+           if (index > size)
+             goto failure;
+           return array[index + offset];
+         }
+       /* ... */
+     }
+
+
+File: gcc.info,  Node: Constructing Calls,  Next: Typeof,  Prev: Nested Functions,  Up: C Extensions
+
+5.5 Constructing Function Calls
+===============================
+
+Using the built-in functions described below, you can record the
+arguments a function received, and call another function with the same
+arguments, without knowing the number or types of the arguments.
+
+ You can also record the return value of that function call, and later
+return that value, without knowing what data type the function tried to
+return (as long as your caller expects that data type).
+
+ However, these built-in functions may interact badly with some
+sophisticated features or other extensions of the language.  It is,
+therefore, not recommended to use them outside very simple functions
+acting as mere forwarders for their arguments.
+
+ -- Built-in Function: void * __builtin_apply_args ()
+     This built-in function returns a pointer to data describing how to
+     perform a call with the same arguments as were passed to the
+     current function.
+
+     The function saves the arg pointer register, structure value
+     address, and all registers that might be used to pass arguments to
+     a function into a block of memory allocated on the stack.  Then it
+     returns the address of that block.
+
+ -- Built-in Function: void * __builtin_apply (void (*FUNCTION)(), void
+          *ARGUMENTS, size_t SIZE)
+     This built-in function invokes FUNCTION with a copy of the
+     parameters described by ARGUMENTS and SIZE.
+
+     The value of ARGUMENTS should be the value returned by
+     `__builtin_apply_args'.  The argument SIZE specifies the size of
+     the stack argument data, in bytes.
+
+     This function returns a pointer to data describing how to return
+     whatever value was returned by FUNCTION.  The data is saved in a
+     block of memory allocated on the stack.
+
+     It is not always simple to compute the proper value for SIZE.  The
+     value is used by `__builtin_apply' to compute the amount of data
+     that should be pushed on the stack and copied from the incoming
+     argument area.
+
+ -- Built-in Function: void __builtin_return (void *RESULT)
+     This built-in function returns the value described by RESULT from
+     the containing function.  You should specify, for RESULT, a value
+     returned by `__builtin_apply'.
+
+ -- Built-in Function: __builtin_va_arg_pack ()
+     This built-in function represents all anonymous arguments of an
+     inline function.  It can be used only in inline functions which
+     will be always inlined, never compiled as a separate function,
+     such as those using `__attribute__ ((__always_inline__))' or
+     `__attribute__ ((__gnu_inline__))' extern inline functions.  It
+     must be only passed as last argument to some other function with
+     variable arguments.  This is useful for writing small wrapper
+     inlines for variable argument functions, when using preprocessor
+     macros is undesirable.  For example:
+          extern int myprintf (FILE *f, const char *format, ...);
+          extern inline __attribute__ ((__gnu_inline__)) int
+          myprintf (FILE *f, const char *format, ...)
+          {
+            int r = fprintf (f, "myprintf: ");
+            if (r < 0)
+              return r;
+            int s = fprintf (f, format, __builtin_va_arg_pack ());
+            if (s < 0)
+              return s;
+            return r + s;
+          }
+
+ -- Built-in Function: __builtin_va_arg_pack_len ()
+     This built-in function returns the number of anonymous arguments of
+     an inline function.  It can be used only in inline functions which
+     will be always inlined, never compiled as a separate function, such
+     as those using `__attribute__ ((__always_inline__))' or
+     `__attribute__ ((__gnu_inline__))' extern inline functions.  For
+     example following will do link or runtime checking of open
+     arguments for optimized code:
+          #ifdef __OPTIMIZE__
+          extern inline __attribute__((__gnu_inline__)) int
+          myopen (const char *path, int oflag, ...)
+          {
+            if (__builtin_va_arg_pack_len () > 1)
+              warn_open_too_many_arguments ();
+
+            if (__builtin_constant_p (oflag))
+              {
+                if ((oflag & O_CREAT) != 0 && __builtin_va_arg_pack_len () < 1)
+                  {
+                    warn_open_missing_mode ();
+                    return __open_2 (path, oflag);
+                  }
+                return open (path, oflag, __builtin_va_arg_pack ());
+              }
+
+            if (__builtin_va_arg_pack_len () < 1)
+              return __open_2 (path, oflag);
+
+            return open (path, oflag, __builtin_va_arg_pack ());
+          }
+          #endif
+
+
+File: gcc.info,  Node: Typeof,  Next: Conditionals,  Prev: Constructing Calls,  Up: C Extensions
+
+5.6 Referring to a Type with `typeof'
+=====================================
+
+Another way to refer to the type of an expression is with `typeof'.
+The syntax of using of this keyword looks like `sizeof', but the
+construct acts semantically like a type name defined with `typedef'.
+
+ There are two ways of writing the argument to `typeof': with an
+expression or with a type.  Here is an example with an expression:
+
+     typeof (x[0](1))
+
+This assumes that `x' is an array of pointers to functions; the type
+described is that of the values of the functions.
+
+ Here is an example with a typename as the argument:
+
+     typeof (int *)
+
+Here the type described is that of pointers to `int'.
+
+ If you are writing a header file that must work when included in ISO C
+programs, write `__typeof__' instead of `typeof'.  *Note Alternate
+Keywords::.
+
+ A `typeof'-construct can be used anywhere a typedef name could be
+used.  For example, you can use it in a declaration, in a cast, or
+inside of `sizeof' or `typeof'.
+
+ `typeof' is often useful in conjunction with the
+statements-within-expressions feature.  Here is how the two together can
+be used to define a safe "maximum" macro that operates on any
+arithmetic type and evaluates each of its arguments exactly once:
+
+     #define max(a,b) \
+       ({ typeof (a) _a = (a); \
+           typeof (b) _b = (b); \
+         _a > _b ? _a : _b; })
+
+ The reason for using names that start with underscores for the local
+variables is to avoid conflicts with variable names that occur within
+the expressions that are substituted for `a' and `b'.  Eventually we
+hope to design a new form of declaration syntax that allows you to
+declare variables whose scopes start only after their initializers;
+this will be a more reliable way to prevent such conflicts.
+
+Some more examples of the use of `typeof':
+
+   * This declares `y' with the type of what `x' points to.
+
+          typeof (*x) y;
+
+   * This declares `y' as an array of such values.
+
+          typeof (*x) y[4];
+
+   * This declares `y' as an array of pointers to characters:
+
+          typeof (typeof (char *)[4]) y;
+
+     It is equivalent to the following traditional C declaration:
+
+          char *y[4];
+
+     To see the meaning of the declaration using `typeof', and why it
+     might be a useful way to write, rewrite it with these macros:
+
+          #define pointer(T)  typeof(T *)
+          #define array(T, N) typeof(T [N])
+
+     Now the declaration can be rewritten this way:
+
+          array (pointer (char), 4) y;
+
+     Thus, `array (pointer (char), 4)' is the type of arrays of 4
+     pointers to `char'.
+
+ _Compatibility Note:_ In addition to `typeof', GCC 2 supported a more
+limited extension which permitted one to write
+
+     typedef T = EXPR;
+
+with the effect of declaring T to have the type of the expression EXPR.
+This extension does not work with GCC 3 (versions between 3.0 and 3.2
+will crash; 3.2.1 and later give an error).  Code which relies on it
+should be rewritten to use `typeof':
+
+     typedef typeof(EXPR) T;
+
+This will work with all versions of GCC.
+
+
+File: gcc.info,  Node: Conditionals,  Next: Long Long,  Prev: Typeof,  Up: C Extensions
+
+5.7 Conditionals with Omitted Operands
+======================================
+
+The middle operand in a conditional expression may be omitted.  Then if
+the first operand is nonzero, its value is the value of the conditional
+expression.
+
+ Therefore, the expression
+
+     x ? : y
+
+has the value of `x' if that is nonzero; otherwise, the value of `y'.
+
+ This example is perfectly equivalent to
+
+     x ? x : y
+
+In this simple case, the ability to omit the middle operand is not
+especially useful.  When it becomes useful is when the first operand
+does, or may (if it is a macro argument), contain a side effect.  Then
+repeating the operand in the middle would perform the side effect
+twice.  Omitting the middle operand uses the value already computed
+without the undesirable effects of recomputing it.
+
+
+File: gcc.info,  Node: Long Long,  Next: Complex,  Prev: Conditionals,  Up: C Extensions
+
+5.8 Double-Word Integers
+========================
+
+ISO C99 supports data types for integers that are at least 64 bits wide,
+and as an extension GCC supports them in C89 mode and in C++.  Simply
+write `long long int' for a signed integer, or `unsigned long long int'
+for an unsigned integer.  To make an integer constant of type `long
+long int', add the suffix `LL' to the integer.  To make an integer
+constant of type `unsigned long long int', add the suffix `ULL' to the
+integer.
+
+ You can use these types in arithmetic like any other integer types.
+Addition, subtraction, and bitwise boolean operations on these types
+are open-coded on all types of machines.  Multiplication is open-coded
+if the machine supports fullword-to-doubleword a widening multiply
+instruction.  Division and shifts are open-coded only on machines that
+provide special support.  The operations that are not open-coded use
+special library routines that come with GCC.
+
+ There may be pitfalls when you use `long long' types for function
+arguments, unless you declare function prototypes.  If a function
+expects type `int' for its argument, and you pass a value of type `long
+long int', confusion will result because the caller and the subroutine
+will disagree about the number of bytes for the argument.  Likewise, if
+the function expects `long long int' and you pass `int'.  The best way
+to avoid such problems is to use prototypes.
+
+
+File: gcc.info,  Node: Complex,  Next: Floating Types,  Prev: Long Long,  Up: C Extensions
+
+5.9 Complex Numbers
+===================
+
+ISO C99 supports complex floating data types, and as an extension GCC
+supports them in C89 mode and in C++, and supports complex integer data
+types which are not part of ISO C99.  You can declare complex types
+using the keyword `_Complex'.  As an extension, the older GNU keyword
+`__complex__' is also supported.
+
+ For example, `_Complex double x;' declares `x' as a variable whose
+real part and imaginary part are both of type `double'.  `_Complex
+short int y;' declares `y' to have real and imaginary parts of type
+`short int'; this is not likely to be useful, but it shows that the set
+of complex types is complete.
+
+ To write a constant with a complex data type, use the suffix `i' or
+`j' (either one; they are equivalent).  For example, `2.5fi' has type
+`_Complex float' and `3i' has type `_Complex int'.  Such a constant
+always has a pure imaginary value, but you can form any complex value
+you like by adding one to a real constant.  This is a GNU extension; if
+you have an ISO C99 conforming C library (such as GNU libc), and want
+to construct complex constants of floating type, you should include
+`<complex.h>' and use the macros `I' or `_Complex_I' instead.
+
+ To extract the real part of a complex-valued expression EXP, write
+`__real__ EXP'.  Likewise, use `__imag__' to extract the imaginary
+part.  This is a GNU extension; for values of floating type, you should
+use the ISO C99 functions `crealf', `creal', `creall', `cimagf',
+`cimag' and `cimagl', declared in `<complex.h>' and also provided as
+built-in functions by GCC.
+
+ The operator `~' performs complex conjugation when used on a value
+with a complex type.  This is a GNU extension; for values of floating
+type, you should use the ISO C99 functions `conjf', `conj' and `conjl',
+declared in `<complex.h>' and also provided as built-in functions by
+GCC.
+
+ GCC can allocate complex automatic variables in a noncontiguous
+fashion; it's even possible for the real part to be in a register while
+the imaginary part is on the stack (or vice-versa).  Only the DWARF2
+debug info format can represent this, so use of DWARF2 is recommended.
+If you are using the stabs debug info format, GCC describes a
+noncontiguous complex variable as if it were two separate variables of
+noncomplex type.  If the variable's actual name is `foo', the two
+fictitious variables are named `foo$real' and `foo$imag'.  You can
+examine and set these two fictitious variables with your debugger.
+
+
+File: gcc.info,  Node: Floating Types,  Next: Decimal Float,  Prev: Complex,  Up: C Extensions
+
+5.10 Additional Floating Types
+==============================
+
+As an extension, the GNU C compiler supports additional floating types,
+`__float80' and `__float128' to support 80bit (`XFmode') and 128 bit
+(`TFmode') floating types.  Support for additional types includes the
+arithmetic operators: add, subtract, multiply, divide; unary arithmetic
+operators; relational operators; equality operators; and conversions to
+and from integer and other floating types.  Use a suffix `w' or `W' in
+a literal constant of type `__float80' and `q' or `Q' for `_float128'.
+You can declare complex types using the corresponding internal complex
+type, `XCmode' for `__float80' type and `TCmode' for `__float128' type:
+
+     typedef _Complex float __attribute__((mode(TC))) _Complex128;
+     typedef _Complex float __attribute__((mode(XC))) _Complex80;
+
+ Not all targets support additional floating point types.  `__float80'
+is supported on i386, x86_64 and ia64 targets and target `__float128'
+is supported on x86_64 and ia64 targets.
+
+
+File: gcc.info,  Node: Decimal Float,  Next: Hex Floats,  Prev: Floating Types,  Up: C Extensions
+
+5.11 Decimal Floating Types
+===========================
+
+As an extension, the GNU C compiler supports decimal floating types as
+defined in the N1176 draft of ISO/IEC WDTR24732.  Support for decimal
+floating types in GCC will evolve as the draft technical report changes.
+Calling conventions for any target might also change.  Not all targets
+support decimal floating types.
+
+ The decimal floating types are `_Decimal32', `_Decimal64', and
+`_Decimal128'.  They use a radix of ten, unlike the floating types
+`float', `double', and `long double' whose radix is not specified by
+the C standard but is usually two.
+
+ Support for decimal floating types includes the arithmetic operators
+add, subtract, multiply, divide; unary arithmetic operators; relational
+operators; equality operators; and conversions to and from integer and
+other floating types.  Use a suffix `df' or `DF' in a literal constant
+of type `_Decimal32', `dd' or `DD' for `_Decimal64', and `dl' or `DL'
+for `_Decimal128'.
+
+ GCC support of decimal float as specified by the draft technical report
+is incomplete:
+
+   * Translation time data type (TTDT) is not supported.
+
+   * When the value of a decimal floating type cannot be represented in
+     the integer type to which it is being converted, the result is
+     undefined rather than the result value specified by the draft
+     technical report.
+
+ Types `_Decimal32', `_Decimal64', and `_Decimal128' are supported by
+the DWARF2 debug information format.
+
+
+File: gcc.info,  Node: Hex Floats,  Next: Fixed-Point,  Prev: Decimal Float,  Up: C Extensions
+
+5.12 Hex Floats
+===============
+
+ISO C99 supports floating-point numbers written not only in the usual
+decimal notation, such as `1.55e1', but also numbers such as `0x1.fp3'
+written in hexadecimal format.  As a GNU extension, GCC supports this
+in C89 mode (except in some cases when strictly conforming) and in C++.
+In that format the `0x' hex introducer and the `p' or `P' exponent
+field are mandatory.  The exponent is a decimal number that indicates
+the power of 2 by which the significant part will be multiplied.  Thus
+`0x1.f' is 1 15/16, `p3' multiplies it by 8, and the value of `0x1.fp3'
+is the same as `1.55e1'.
+
+ Unlike for floating-point numbers in the decimal notation the exponent
+is always required in the hexadecimal notation.  Otherwise the compiler
+would not be able to resolve the ambiguity of, e.g., `0x1.f'.  This
+could mean `1.0f' or `1.9375' since `f' is also the extension for
+floating-point constants of type `float'.
+
+
+File: gcc.info,  Node: Fixed-Point,  Next: Zero Length,  Prev: Hex Floats,  Up: C Extensions
+
+5.13 Fixed-Point Types
+======================
+
+As an extension, the GNU C compiler supports fixed-point types as
+defined in the N1169 draft of ISO/IEC DTR 18037.  Support for
+fixed-point types in GCC will evolve as the draft technical report
+changes.  Calling conventions for any target might also change.  Not
+all targets support fixed-point types.
+
+ The fixed-point types are `short _Fract', `_Fract', `long _Fract',
+`long long _Fract', `unsigned short _Fract', `unsigned _Fract',
+`unsigned long _Fract', `unsigned long long _Fract', `_Sat short
+_Fract', `_Sat _Fract', `_Sat long _Fract', `_Sat long long _Fract',
+`_Sat unsigned short _Fract', `_Sat unsigned _Fract', `_Sat unsigned
+long _Fract', `_Sat unsigned long long _Fract', `short _Accum',
+`_Accum', `long _Accum', `long long _Accum', `unsigned short _Accum',
+`unsigned _Accum', `unsigned long _Accum', `unsigned long long _Accum',
+`_Sat short _Accum', `_Sat _Accum', `_Sat long _Accum', `_Sat long long
+_Accum', `_Sat unsigned short _Accum', `_Sat unsigned _Accum', `_Sat
+unsigned long _Accum', `_Sat unsigned long long _Accum'.  Fixed-point
+data values contain fractional and optional integral parts.  The format
+of fixed-point data varies and depends on the target machine.
+
+ Support for fixed-point types includes prefix and postfix increment
+and decrement operators (`++', `--'); unary arithmetic operators (`+',
+`-', `!'); binary arithmetic operators (`+', `-', `*', `/'); binary
+shift operators (`<<', `>>'); relational operators (`<', `<=', `>=',
+`>'); equality operators (`==', `!='); assignment operators (`+=',
+`-=', `*=', `/=', `<<=', `>>='); and conversions to and from integer,
+floating-point, or fixed-point types.
+
+ Use a suffix `hr' or `HR' in a literal constant of type `short _Fract'
+and `_Sat short _Fract', `r' or `R' for `_Fract' and `_Sat _Fract',
+`lr' or `LR' for `long _Fract' and `_Sat long _Fract', `llr' or `LLR'
+for `long long _Fract' and `_Sat long long _Fract', `uhr' or `UHR' for
+`unsigned short _Fract' and `_Sat unsigned short _Fract', `ur' or `UR'
+for `unsigned _Fract' and `_Sat unsigned _Fract', `ulr' or `ULR' for
+`unsigned long _Fract' and `_Sat unsigned long _Fract', `ullr' or
+`ULLR' for `unsigned long long _Fract' and `_Sat unsigned long long
+_Fract', `hk' or `HK' for `short _Accum' and `_Sat short _Accum', `k'
+or `K' for `_Accum' and `_Sat _Accum', `lk' or `LK' for `long _Accum'
+and `_Sat long _Accum', `llk' or `LLK' for `long long _Accum' and `_Sat
+long long _Accum', `uhk' or `UHK' for `unsigned short _Accum' and `_Sat
+unsigned short _Accum', `uk' or `UK' for `unsigned _Accum' and `_Sat
+unsigned _Accum', `ulk' or `ULK' for `unsigned long _Accum' and `_Sat
+unsigned long _Accum', and `ullk' or `ULLK' for `unsigned long long
+_Accum' and `_Sat unsigned long long _Accum'.
+
+ GCC support of fixed-point types as specified by the draft technical
+report is incomplete:
+
+   * Pragmas to control over

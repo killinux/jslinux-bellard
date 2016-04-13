@@ -1,0 +1,2239 @@
+starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH string n 8.1 Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+string \- Manipulate strings
+.SH SYNOPSIS
+\fBstring \fIoption arg \fR?\fIarg ...?\fR
+.BE
+
+.SH DESCRIPTION
+.PP
+Performs one of several string operations, depending on \fIoption\fR.
+The legal \fIoption\fRs (which may be abbreviated) are:
+.TP
+\fBstring bytelength \fIstring\fR
+Returns a decimal string giving the number of bytes used to represent
+\fIstring\fR in memory.  Because UTF\-8 uses one to three bytes to
+represent Unicode characters, the byte length will not be the same as
+the character length in general.  The cases where a script cares about
+the byte length are rare.  In almost all cases, you should use the
+\fBstring length\fR operation (including determining the length of a
+Tcl ByteArray object).  Refer to the \fBTcl_NumUtfChars\fR manual
+entry for more details on the UTF\-8 representation.
+.TP
+\fBstring compare\fR ?\fB\-nocase\fR? ?\fB\-length int\fR? \fIstring1 string2\fR
+Perform a character-by-character comparison of strings \fIstring1\fR
+and \fIstring2\fR.  Returns \-1, 0, or 1, depending on whether
+\fIstring1\fR is lexicographically less than, equal to, or greater
+than \fIstring2\fR.  If \fB\-length\fR is specified, then only the
+first \fIlength\fR characters are used in the comparison.  If
+\fB\-length\fR is negative, it is ignored.  If \fB\-nocase\fR is
+specified, then the strings are compared in a case-insensitive manner.
+.TP
+\fBstring equal\fR ?\fB\-nocase\fR? ?\fB-length int\fR? \fIstring1 string2\fR
+Perform a character-by-character comparison of strings \fIstring1\fR
+and \fIstring2\fR.  Returns 1 if \fIstring1\fR and \fIstring2\fR are
+identical, or 0 when not.  If \fB\-length\fR is specified, then only
+the first \fIlength\fR characters are used in the comparison.  If
+\fB\-length\fR is negative, it is ignored.  If \fB\-nocase\fR is
+specified, then the strings are compared in a case-insensitive manner.
+.TP
+\fBstring first \fIstring1 string2\fR ?\fIstartIndex\fR?
+Search \fIstring2\fR for a sequence of characters that exactly match
+the characters in \fIstring1\fR.  If found, return the index of the
+first character in the first such match within \fIstring2\fR.  If not
+found, return \-1.  If \fIstartIndex\fR is specified (in any of the
+forms accepted by the \fBindex\fR method), then the search is
+constrained to start with the character in \fIstring2\fR specified by
+the index.  For example,
+.RS
+.CS
+\fBstring first a 0a23456789abcdef 5\fR
+.CE
+will return \fB10\fR, but
+.CS
+\fBstring first a 0123456789abcdef 11\fR
+.CE
+will return \fB\-1\fR.
+.RE
+.TP
+\fBstring index \fIstring charIndex\fR
+Returns the \fIcharIndex\fR'th character of the \fIstring\fR argument.
+A \fIcharIndex\fR of 0 corresponds to the first character of the
+string.  \fIcharIndex\fR may be specified as follows:
+.RS
+.IP \fIinteger\fR 10
+The char specified at this integral index.
+.IP \fBend\fR 10
+The last char of the string.
+.IP \fBend\-\fIinteger\fR 10
+The last char of the string minus the specified integer offset
+(e.g. \fBend\-1\fR would refer to the "c" in "abcd").
+.PP
+If \fIcharIndex\fR is less than 0 or greater than or equal to the
+length of the string then an empty string is returned.
+.RE
+.TP
+\fBstring is \fIclass\fR ?\fB\-strict\fR? ?\fB\-failindex \fIvarname\fR? \fIstring\fR
+Returns 1 if \fIstring\fR is a valid member of the specified character
+class, otherwise returns 0.  If \fB\-strict\fR is specified, then an
+empty string returns 0, otherwise and empty string will return 1 on
+any class.  If \fB\-failindex\fR is specified, then if the function
+returns 0, the index in the string where the class was no longer valid
+will be stored in the variable named \fIvarname\fR.  The \fIvarname\fR
+will not be set if the function returns 1.  The following character
+classes are recognized (the class name can be abbreviated):
+.RS
+.IP \fBalnum\fR 12
+Any Unicode alphabet or digit character.
+.IP \fBalpha\fR 12
+Any Unicode alphabet character.
+.IP \fBascii\fR 12
+Any character with a value less than \\u0080 (those that are in the
+7\-bit ascii range).
+.IP \fBboolean\fR 12
+Any of the forms allowed to \fBTcl_GetBoolean\fR.
+.IP \fBcontrol\fR 12
+Any Unicode control character.
+.IP \fBdigit\fR 12
+Any Unicode digit character.  Note that this includes characters
+outside of the [0\-9] range.
+.IP \fBdouble\fR 12
+Any of the valid forms for a double in Tcl, with optional surrounding
+whitespace.  In case of under/overflow in the value, 0 is returned and
+the \fIvarname\fR will contain \-1.
+.IP \fBfalse\fR 12
+Any of the forms allowed to \fBTcl_GetBoolean\fR where the value is
+false.
+.IP \fBgraph\fR 12
+Any Unicode printing character, except space.
+.IP \fBinteger\fR 12
+Any of the valid forms for an ordinary integer in Tcl, with optional
+surrounding whitespace.  In case of under/overflow in the value, 0 is
+returned and the \fIvarname\fR will contain \-1.
+.IP \fBlower\fR 12
+Any Unicode lower case alphabet character.
+.IP \fBprint\fR 12
+Any Unicode printing character, including space.
+.IP \fBpunct\fR 12
+Any Unicode punctuation character.
+.IP \fBspace\fR 12
+Any Unicode space character.
+.IP \fBtrue\fR 12
+Any of the forms allowed to \fBTcl_GetBoolean\fR where the value is
+true.
+.IP \fBupper\fR 12
+Any upper case alphabet character in the Unicode character set.
+.IP \fBwordchar\fR 12
+Any Unicode word character.  That is any alphanumeric character, and
+any Unicode connector punctuation characters (e.g. underscore).
+.IP \fBxdigit\fR 12
+Any hexadecimal digit character ([0\-9A\-Fa\-f]).
+.PP
+In the case of \fBboolean\fR, \fBtrue\fR and \fBfalse\fR, if the
+function will return 0, then the \fIvarname\fR will always be set to
+0, due to the varied nature of a valid boolean value.
+.RE
+.TP
+\fBstring last \fIstring1 string2\fR ?\fIlastIndex\fR?
+Search \fIstring2\fR for a sequence of characters that exactly match
+the characters in \fIstring1\fR.  If found, return the index of the
+first character in the last such match within \fIstring2\fR.  If there
+is no match, then return \-1.  If \fIlastIndex\fR is specified (in any
+of the forms accepted by the \fBindex\fR method), then only the
+characters in \fIstring2\fR at or before the specified \fIlastIndex\fR
+will be considered by the search.  For example,
+.RS
+.CS
+\fBstring last a 0a23456789abcdef 15\fR
+.CE
+will return \fB10\fR, but
+.CS
+\fBstring last a 0a23456789abcdef 9\fR
+.CE
+will return \fB1\fR.
+.RE
+.TP
+\fBstring length \fIstring\fR
+Returns a decimal string giving the number of characters in
+\fIstring\fR.  Note that this is not necessarily the same as the
+number of bytes used to store the string.  If the object is a
+ByteArray object (such as those returned from reading a binary encoded
+channel), then this will return the actual byte length of the object.
+.TP
+\fBstring map\fR ?\fB\-nocase\fR? \fImapping string\fR
+Replaces substrings in \fIstring\fR based on the key-value pairs in
+\fImapping\fR.  \fImapping\fR is a list of \fIkey value key value ...\fR
+as in the form returned by \fBarray get\
+[  [  [  [  [  [  [  [                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  fR.  Each instance of a
+key in the string will be replaced with its corresponding value.  If
+\fB\-nocase\fR is specified, then matching is done without regard to
+case differences. Both \fIkey\fR and \fIvalue\fR may be multiple
+characters.  Replacement is done in an ordered manner, so the key
+appearing first in the list will be checked first, and so on.
+\fIstring\fR is only iterated over once, so earlier key replacements
+will have no affect for later key matches.  For example,
+.RS
+.CS
+\fBstring map {abc 1 ab 2 a 3 1 0} 1abcaababcabababc\fR
+.CE
+will return the string \fB01321221\fR.
+.PP
+Note that if an earlier \fIkey\fR is a prefix of a later one, it will
+completely mask the later one.  So if the previous example is
+reordered like this,
+.CS
+\fBstring map {1 0 ab 2 a 3 abc 1} 1abcaababcabababc\fR
+.CE
+it will return the string \fB02c322c222c\fR.
+.RE
+.TP
+\fBstring match\fR ?\fB\-nocase\fR? \fIpattern\fR \fIstring\fR
+See if \fIpattern\fR matches \fIstring\fR; return 1 if it does, 0 if
+it doesn't.  If \fB\-nocase\fR is specified, then the pattern attempts
+to match against the string in a case insensitive manner.  For the two
+strings to match, their contents must be identical except that the
+following special sequences may appear in \fIpattern\fR:
+.RS
+.IP \fB*\fR 10
+Matches any sequence of characters in \fIstring\fR, including a null
+string.
+.IP \fB?\fR 10
+Matches any single character in \fIstring\fR.
+.IP \fB[\fIchars\fB]\fR 10
+Matches any character in the set given by \fIchars\fR.  If a sequence
+of the form \fIx\fB\-\fIy\fR appears in \fIchars\fR, then any
+character between \fIx\fR and \fIy\fR, inclusive, will match.  When
+used with \fB\-nocase\fR, the end points of the range are converted to
+lower case first.  Whereas {[A\-z]} matches '_' when matching
+case-sensitively ('_' falls between the 'Z' and 'a'), with
+\fB\-nocase\fR this is considered like {[A\-Za\-z]} (and probably what
+was meant in the first place).
+.IP \fB\e\fIx\fR 10
+Matches the single character \fIx\fR.  This provides a way of avoiding
+the special interpretation of the characters \fB*?[]\e\fR in
+\fIpattern\fR.
+.RE
+.TP
+\fBstring range \fIstring first last\fR
+Returns a range of consecutive characters from \fIstring\fR, starting
+with the character whose index is \fIfirst\fR and ending with the
+character whose index is \fIlast\fR. An index of 0 refers to the first
+character of the string.  \fIfirst\fR and \fIlast\fR may be specified
+as for the \fBindex\fR method.  If \fIfirst\fR is less than zero then
+it is treated as if it were zero, and if \fIlast\fR is greater than or
+equal to the length of the string then it is treated as if it were
+\fBend\fR.  If \fIfirst\fR is greater than \fIlast\fR then an empty
+string is returned.
+.TP
+\fBstring repeat \fIstring count\fR
+Returns \fIstring\fR repeated \fIcount\fR number of times.
+.TP
+\fBstring replace \fIstring first last\fR ?\fInewstring\fR?
+Removes a range of consecutive characters from \fIstring\fR, starting
+with the character whose index is \fIfirst\fR and ending with the
+character whose index is \fIlast\fR.  An index of 0 refers to the
+first character of the string.  \fIFirst\fR and \fIlast\fR may be
+specified as for the \fBindex\fR method.  If \fInewstring\fR is
+specified, then it is placed in the removed character range.  If
+\fIfirst\fR is less than zero then it is treated as if it were zero,
+and if \fIlast\fR is greater than or equal to the length of the string
+then it is treated as if it were \fBend\fR.  If \fIfirst\fR is greater
+than \fIlast\fR or the length of the initial string, or \fIlast\fR is
+less than 0, then the initial string is returned untouched.
+.TP
+\fBstring tolower \fIstring\fR ?\fIfirst\fR? ?\fIlast\fR?
+Returns a value equal to \fIstring\fR except that all upper (or title)
+case letters have been converted to lower case.  If \fIfirst\fR is
+specified, it refers to the first char index in the string to start
+modifying.  If \fIlast\fR is specified, it refers to the char index in
+the string to stop at (inclusive).  \fIfirst\fR and \fIlast\fR may be
+specified as for the \fBindex\fR method.
+.TP
+\fBstring totitle \fIstring\fR ?\fIfirst\fR? ?\fIlast\fR?
+Returns a value equal to \fIstring\fR except that the first character
+in \fIstring\fR is converted to its Unicode title case variant (or
+upper case if there is no title case variant) and the rest of the
+string is converted to lower case.  If \fIfirst\fR is specified, it
+refers to the first char index in the string to start modifying.  If
+\fIlast\fR is specified, it refers to the char index in the string to
+stop at (inclusive).  \fIfirst\fR and \fIlast\fR may be specified as
+for the \fBindex\fR method.
+.TP
+\fBstring toupper \fIstring\fR ?\fIfirst\fR? ?\fIlast\fR?
+Returns a value equal to \fIstring\fR except that all lower (or title)
+case letters have been converted to upper case.  If \fIfirst\fR is
+specified, it refers to the first char index in the string to start
+modifying.  If \fIlast\fR is specified, it refers to the char index in
+the string to stop at (inclusive).  \fIfirst\fR and \fIlast\fR may be
+specified as for the \fBindex\fR method.
+.TP
+\fBstring trim \fIstring\fR ?\fIchars\fR?
+Returns a value equal to \fIstring\fR except that any leading or
+trailing characters from the set given by \fIchars\fR are removed.  If
+\fIchars\fR is not specified then white space is removed (spaces,
+tabs, newlines, and carriage returns).
+.TP
+\fBstring trimleft \fIstring\fR ?\fIchars\fR?
+Returns a value equal to \fIstring\fR except that any leading
+characters from the set given by \fIchars\fR are removed.  If
+\fIchars\fR is not specified then white space is removed (spaces,
+tabs, newlines, and carriage returns).
+.TP
+\fBstring trimright \fIstring\fR ?\fIchars\fR?
+Returns a value equal to \fIstring\fR except that any trailing
+characters from the set given by \fIchars\fR are removed.  If
+\fIchars\fR is not specified then white space is removed (spaces,
+tabs, newlines, and carriage returns).
+.TP
+\fBstring wordend \fIstring charIndex\fR
+Returns the index of the character just after the last one in the word
+containing character \fIcharIndex\fR of \fIstring\fR.  \fIcharIndex\fR
+may be specified as for the \fBindex\fR method.  A word is
+considered to be any contiguous range of alphanumeric (Unicode letters
+or decimal digits) or underscore (Unicode connector punctuation)
+characters, or any single character other than these.
+.TP
+\fBstring wordstart \fIstring charIndex\fR
+Returns the index of the first character in the word containing
+character \fIcharIndex\fR of \fIstring\fR.  \fIcharIndex\fR may be
+specified as for the \fBindex\fR method.  A word is considered to be any
+contiguous range of alphanumeric (Unicode letters or decimal digits)
+or underscore (Unicode connector punctuation) characters, or any
+single character other than these.
+.SH EXAMPLE
+Test if the string in the variable \fIstring\fR is a proper non-empty
+prefix of the string \fBfoobar\fR.
+.CS
+set length [\fBstring length\fR $string]
+if {$length == 0} {
+   set isPrefix 0
+} else {
+   set isPrefix [\fBstring equal\fR -length $length $string "foobar"]
+}
+.CE
+
+.SH "SEE ALSO"
+expr(n), list(n)
+
+.SH KEYWORDS
+case conversion, compare, index, match, pattern, string, word, equal, ctype
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         '\"
+'\" Copyright (c) 1993-1994 The Regents of the University of California.
+'\" Copyright (c) 1994-1996 Sun Microsystems, Inc.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: break.n,v 1.3.18.1 2004/10/27 09:35:38 dkf Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH break n "" Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+break \- Abort looping command
+.SH SYNOPSIS
+\fBbreak\fR
+.BE
+
+.SH DESCRIPTION
+.PP
+This command is typically invoked inside the body of a looping command
+such as \fBfor\fR or \fBforeach\fR or \fBwhile\fR.
+It returns a \fBTCL_BREAK\fR code, which causes a break exception
+to occur.
+The exception causes the current script to be aborted
+out to the innermost containing loop command, which then
+aborts its execution and returns normally.
+Break exceptions are also handled in a few other situations, such
+as the \fBcatch\fR command, Tk event bindings, and the outermost
+scripts of procedure bodies.
+.SH EXAMPLE
+Print a line for each of the integers from 0 to 5:
+.CS
+for {set x 0} {$x<10} {incr x} {
+   if {$x > 5} {
+      \fBbreak\fR
+   }
+   puts "x is $x"
+}
+.CE
+
+.SH "SEE ALSO"
+catch(n), continue(n), for(n), foreach(n), return(n), while(n)
+
+.SH KEYWORDS
+abort, break, loop
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      '\"
+'\" Copyright (c) 1993 The Regents of the University of California.
+'\" Copyright (c) 1994-1997 Sun Microsystems, Inc.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: switch.n,v 1.5.18.1 2004/10/27 14:23:58 dkf Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH switch n 7.0 Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+switch \- Evaluate one of several scripts, depending on a given value
+.SH SYNOPSIS
+\fBswitch \fR?\fIoptions\fR?\fI string pattern body \fR?\fIpattern body \fR...?
+.sp
+\fBswitch \fR?\fIoptions\fR?\fI string \fR{\fIpattern body \fR?\fIpattern body \fR...?}
+.BE
+
+.SH DESCRIPTION
+.PP
+The \fBswitch\fR command matches its \fIstring\fR argument against each of
+the \fIpattern\fR arguments in order.
+As soon as it finds a \fIpattern\fR that matches \fIstring\fR it
+evaluates the following \fIbody\fR argument by passing it recursively
+to the Tcl interpreter and returns the result of that evaluation.
+If the last \fIpattern\fR argument is \fBdefault\fR then it matches
+anything.
+If no \fIpattern\fR argument
+matches \fIstring\fR and no default is given, then the \fBswitch\fR
+command returns an empty string.
+.PP
+If the initial arguments to \fBswitch\fR start with \fB\-\fR then
+they are treated as options.  The following options are
+currently supported:
+.TP 10
+\fB\-exact\fR
+Use exact matching when comparing \fIstring\fR to a pattern.  This
+is the default.
+.TP 10
+\fB\-glob\fR
+When matching \fIstring\fR to the patterns, use glob-style matching
+(i.e. the same as implemented by the \fBstring match\fR command).
+.TP 10
+\fB\-regexp\fR
+When matching \fIstring\fR to the patterns, use regular
+expression matching
+(as described in the \fBre_syntax\fR reference page).
+.TP 10
+\fB\-\|\-\fR
+Marks the end of options.  The argument following this one will
+be treated as \fIstring\fR even if it starts with a \fB\-\fR.
+.PP
+Two syntaxes are provided for the \fIpattern\fR and \fIbody\fR arguments.
+The first uses a separate argument for each of the patterns and commands;
+this form is convenient if substitutions are desired on some of the
+patterns or commands.
+The second form places all of the patterns and commands together into
+a single argument; the argument must have proper list structure, with
+the elements of the list being the patterns and commands.
+The second form makes it easy to construct multi-line switch commands,
+since the braces around the whole list make it unnecessary to include a
+backslash at the end of each line.
+Since the \fIpattern\fR arguments are in braces in the second form,
+no command or variable substitutions are performed on them;  this makes
+the behavior of the second form different than the first form in some
+cases.
+.PP
+If a \fIbody\fR is specified as ``\fB\-\fR'' it means that the \fIbody\fR
+for the next pattern should also be used as the body for this
+pattern (if the next pattern also has a body of ``\fB\-\fR''
+then the body after that is used, and so on).
+This feature makes it possible to share a single \fIbody\fR among
+several patterns.
+.PP
+Beware of how you place comments in \fBswitch\fR commands.  Comments
+should only be placed \fBinside\fR the execution body of one of the
+patterns, and not intermingled with the patterns.
+.SH "EXAMPLES"
+The \fBswitch\fR command can match against variables and not just
+literals, as shown here (the result is \fI2\fR):
+.CS
+set foo "abc"
+\fBswitch\fR abc a \- b {expr 1} $foo {expr 2} default {expr 3}
+.CE
+.PP
+Using glob matching and the fall-through body is an alternative to
+writing regular expressions with alternations, as can be seen here
+(this returns \fI1\fR):
+.CS
+\fBswitch\fR \-glob aaab {
+   a*b     \-
+   b       {expr 1}
+   a*      {expr 2}
+   default {expr 3}
+}
+.CE
+.PP
+Whenever nothing matches, the \fBdefault\fR clause (which must be
+last) is taken.  This example has a result of \fI3\fR:
+.CS
+\fBswitch\fR xyz {
+   a  \-
+   b {
+      # Correct Comment Placement
+      expr 1
+   }
+   c {
+      expr 2
+   }
+   default {
+      expr 3
+   }
+}
+.CE
+
+.SH "SEE ALSO"
+for(n), if(n), regexp(n)
+
+.SH KEYWORDS
+switch, match, regular expression
+                                                                                       '\"
+'\" Copyright (c) 1993 The Regents of the University of California.
+'\" Copyright (c) 1994-1996 Sun Microsystems, Inc.
+'\" Copyright (c) 1999 Scriptics Corporation
+'\" Copyright (c) 2001 Kevin B. Kenny.  All rights reserved.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: lsort.n,v 1.12.4.2 2004/10/27 12:52:40 dkf Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH lsort n 8.3 Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+lsort \- Sort the elements of a list
+.SH SYNOPSIS
+\fBlsort \fR?\fIoptions\fR? \fIlist\fR
+.BE
+
+.SH DESCRIPTION
+.PP
+This command sorts the elements of \fIlist\fR, returning a new
+list in sorted order.  The implementation of the \fBlsort\fR command
+uses the merge\-sort algorithm which is a stable sort that has O(n log
+n) performance characteristics.
+.PP
+By default ASCII sorting is used with the result returned in
+increasing order.  However, any of the following options may be
+specified before \fIlist\fR to control the sorting process (unique
+abbreviations are accepted):
+.TP 20
+\fB\-ascii\fR
+Use string comparison with Unicode code-point collation order (the
+name is for backward-compatibility reasons.)  This is the default.
+.TP 20
+\fB\-dictionary\fR
+Use dictionary-style comparison.  This is the same as \fB\-ascii\fR
+except (a) case is ignored except as a tie-breaker and (b) if two
+strings contain embedded numbers, the numbers compare as integers,
+not characters.  For example, in \fB\-dictionary\fR mode, \fBbigBoy\fR
+sorts between \fBbigbang\fR and \fBbigboy\fR, and \fBx10y\fR
+sorts between \fBx9y\fR and \fBx11y\fR.
+.TP 20
+\fB\-integer\fR
+Convert list elements to integers and use integer comparison.
+.TP 20
+\fB\-real\fR
+Convert list elements to floating-point values and use floating comparison.
+.TP 20
+\fB\-command\0\fIcommand\fR
+Use \fIcommand\fR as a comparison command.
+To compare two elements, evaluate a Tcl script consisting of
+\fIcommand\fR with the two elements appended as additional
+arguments.  The script should return an integer less than,
+equal to, or greater than zero if the first element is to
+be considered less than, equal to, or greater than the second,
+respectively.
+.TP 20
+\fB\-increasing\fR
+Sort the list in increasing order (``smallest'' items first).
+This is the default.
+.TP 20
+\fB\-decreasing\fR
+Sort the list in decreasing order (``largest'' items first).
+.TP 20
+\fB\-index\0\fIindex\fR
+If this option is specified, each of the elements of \fIlist\fR must
+itself be a proper Tcl sublist.  Instead of sorting based on whole
+sublists, \fBlsort\fR will extract the \fIindex\fR'th element from
+each sublist and sort based on the given element.  The keyword
+\fBend\fP is allowed for the \fIindex\fP to sort on the last sublist
+element,
+.VS 8.4
+and \fBend-\fIindex\fR sorts on a sublist element offset from
+the end.
+.VE
+For example,
+.RS
+.CS
+lsort -integer -index 1 {{First 24} {Second 18} {Third 30}}
+.CE
+returns \fB{Second 18} {First 24} {Third 30}\fR, and
+.VS 8.4
+'\"
+'\" This example is from the test suite!
+'\"
+.CS
+lsort -index end-1 {{a 1 e i} {b 2 3 f g} {c 4 5 6 d h}}
+.CE
+returns \fB{c 4 5 6 d h} {a 1 e i} {b 2 3 f g}\fR.
+.VE
+This option is much more efficient than using \fB\-command\fR
+to achieve the same effect.
+.RE
+.TP 20
+\fB\-unique\fR
+If this option is specified, then only the last set of duplicate
+elements found in the list will be retained.  Note that duplicates are
+determined relative to the comparison used in the sort.  Thus if 
+\fI-index 0\fR is used, \fB{1 a}\fR and \fB{1 b}\fR would be
+considered duplicates and only the second element, \fB{1 b}\fR, would
+be retained.
+.SH "NOTES"
+.PP
+The options to \fBlsort\fR only control what sort of comparison is
+used, and do not necessarily constrain what the values themselves
+actually are.  This distinction is only noticeable when the list to be
+sorted has fewer than two elements.
+.PP
+The \fBlsort\fR command is reentrant, meaning it is safe to use as
+part of the implementation of a command used in the \fB\-command\fR
+option.
+.SH "EXAMPLES"
+.PP
+Sorting a list using ASCII sorting:
+.CS
+% \fBlsort\fR {a10 B2 b1 a1 a2}
+B2 a1 a10 a2 b1
+.CE
+.PP
+Sorting a list using Dictionary sorting:
+.CS
+% \fBlsort\fR -dictionary {a10 B2 b1 a1 a2}
+a1 a2 a10 b1 B2
+.CE
+.PP
+Sorting lists of integers:
+.CS
+% \fBlsort\fR -integer {5 3 1 2 11 4}
+1 2 3 4 5 11
+% \fBlsort\fR -integer {1 2 0x5 7 0 4 -1}
+-1 0 1 2 4 0x5 7
+.CE
+.PP
+Sorting lists of floating-point numbers:
+.CS
+% \fBlsort\fR -real {5 3 1 2 11 4}
+1 2 3 4 5 11
+% \fBlsort\fR -real {.5 0.07e1 0.4 6e-1}
+0.4 .5 6e-1 0.07e1
+.CE
+.PP
+Sorting using indices:
+.CS
+% # Note the space character before the c
+% \fBlsort\fR {{a 5} { c 3} {b 4} {e 1} {d 2}}
+{ c 3} {a 5} {b 4} {d 2} {e 1}
+% \fBlsort\fR -index 0 {{a 5} { c 3} {b 4} {e 1} {d 2}}
+{a 5} {b 4} { c 3} {d 2} {e 1}
+% \fBlsort\fR -index 1 {{a 5} { c 3} {b 4} {e 1} {d 2}}
+{e 1} {d 2} { c 3} {b 4} {a 5}
+.CE
+.PP
+Stripping duplicate values using sorting:
+.CS
+% \fBlsort\fR -unique {a b c a b c a b c}
+a b c
+.CE
+.PP
+More complex sorting using a comparison function:
+.CS
+% proc compare {a b} {
+    set a0 [lindex $a 0]
+    set b0 [lindex $b 0]
+    if {$a0 < $b0} {
+        return -1
+    } elseif {$a0 > $b0} {
+        return 1
+    }
+    return [string compare [lindex $a 1] [lindex $b 1]]
+}
+% \fBlsort\fR -command compare \\
+        {{3 apple} {0x2 carrot} {1 dingo} {2 banana}}
+{1 dingo} {2 banana} {0x2 carrot} {3 apple}
+.CE
+
+.SH "SEE ALSO"
+.VS 8.4
+list(n), lappend(n), lindex(n), linsert(n), llength(n), lsearch(n), 
+lset(n), lrange(n), lreplace(n)
+.VE
+
+.SH KEYWORDS
+element, list, order, sort
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         '\"
+'\" Copyright (c) 1993 The Regents of the University of California.
+'\" Copyright (c) 1994-1996 Sun Microsystems, Inc.
+'\" Copyright (c) 2001 Kevin B. Kenny.  All rights reserved.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: lrange.n,v 1.6.4.1 2004/10/27 12:52:40 dkf Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH lrange n 7.4 Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+lrange \- Return one or more adjacent elements from a list
+.SH SYNOPSIS
+\fBlrange \fIlist first last\fR
+.BE
+
+.SH DESCRIPTION
+.PP
+\fIList\fR must be a valid Tcl list.  This command will
+return a new list consisting of elements
+\fIfirst\fR through \fIlast\fR, inclusive.
+\fIFirst\fR or \fIlast\fR
+may be \fBend\fR (or any abbreviation of it) to refer to the last
+element of the list.
+If \fIfirst\fR is less than zero, it is treated as if it were zero.
+If \fIlast\fR is greater than or equal to the number of elements
+in the list, then it is treated as if it were \fBend\fR.
+If \fIfirst\fR is greater than \fIlast\fR then an empty string
+is returned.
+Note: ``\fBlrange \fIlist first first\fR'' does not always produce the
+same result as ``\fBlindex \fIlist first\fR'' (although it often does
+for simple fields that aren't enclosed in braces); it does, however,
+produce exactly the same results as ``\fBlist [lindex \fIlist first\fB]\fR''
+.SH EXAMPLES
+Selecting the first two elements:
+.CS
+% \fBlrange\fR {a b c d e} 0 1
+a b
+.CE
+.PP
+Selecting the last three elements:
+.CS
+% \fBlrange\fR {a b c d e} end-2 end
+c d e
+.CE
+.PP
+Selecting everything except the first and last element:
+.CS
+% \fBlrange\fR {a b c d e} 1 end-1
+b c d
+.CE
+.PP
+Selecting a single element with \fBlrange\fR is not the same as doing
+so with \fBlindex\fR:
+.CS
+% set var {some {elements to} select}
+some {elements to} select
+% lindex $var 1
+elements to
+% \fBlrange\fR $var 1 1
+{elements to}
+.CE
+
+.SH "SEE ALSO"
+.VS 8.4
+list(n), lappend(n), lindex(n), linsert(n), llength(n), lsearch(n), 
+lset(n), lreplace(n), lsort(n)
+.VE
+
+.SH KEYWORDS
+element, list, range, sublist
+                                                                   '\"
+'\" Copyright (c) 1993 The Regents of the University of California.
+'\" Copyright (c) 1994-1996 Sun Microsystems, Inc.
+'\"
+'\" See the file "license.terms" for information on usage and redistribution
+'\" of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+'\" 
+'\" RCS: @(#) $Id: glob.n,v 1.12.2.1 2004/10/27 12:52:40 dkf Exp $
+'\" 
+'\" The definitions below are for supplemental macros used in Tcl/Tk
+'\" manual entries.
+'\"
+'\" .AP type name in/out ?indent?
+'\"	Start paragraph describing an argument to a library procedure.
+'\"	type is type of argument (int, etc.), in/out is either "in", "out",
+'\"	or "in/out" to describe whether procedure reads or modifies arg,
+'\"	and indent is equivalent to second arg of .IP (shouldn't ever be
+'\"	needed;  use .AS below instead)
+'\"
+'\" .AS ?type? ?name?
+'\"	Give maximum sizes of arguments for setting tab stops.  Type and
+'\"	name are examples of largest possible arguments that will be passed
+'\"	to .AP later.  If args are omitted, default tab stops are used.
+'\"
+'\" .BS
+'\"	Start box enclosure.  From here until next .BE, everything will be
+'\"	enclosed in one large box.
+'\"
+'\" .BE
+'\"	End of box enclosure.
+'\"
+'\" .CS
+'\"	Begin code excerpt.
+'\"
+'\" .CE
+'\"	End code excerpt.
+'\"
+'\" .VS ?version? ?br?
+'\"	Begin vertical sidebar, for use in marking newly-changed parts
+'\"	of man pages.  The first argument is ignored and used for recording
+'\"	the version when the .VS was added, so that the sidebars can be
+'\"	found and removed when they reach a certain age.  If another argument
+'\"	is present, then a line break is forced before starting the sidebar.
+'\"
+'\" .VE
+'\"	End of vertical sidebar.
+'\"
+'\" .DS
+'\"	Begin an indented unfilled display.
+'\"
+'\" .DE
+'\"	End of indented unfilled display.
+'\"
+'\" .SO
+'\"	Start of list of standard options for a Tk widget.  The
+'\"	options follow on successive lines, in four columns separated
+'\"	by tabs.
+'\"
+'\" .SE
+'\"	End of list of standard options for a Tk widget.
+'\"
+'\" .OP cmdName dbName dbClass
+'\"	Start of description of a specific option.  cmdName gives the
+'\"	option's name as specified in the class command, dbName gives
+'\"	the option's name in the option database, and dbClass gives
+'\"	the option's class in the option database.
+'\"
+'\" .UL arg1 arg2
+'\"	Print arg1 underlined, then print arg2 normally.
+'\"
+'\" RCS: @(#) $Id: man.macros,v 1.4 2000/08/25 06:18:32 ericm Exp $
+'\"
+'\"	# Set up traps and other miscellaneous stuff for Tcl/Tk man pages.
+.if t .wh -1.3i ^B
+.nr ^l \n(.l
+.ad b
+'\"	# Start an argument description
+.de AP
+.ie !"\\$4"" .TP \\$4
+.el \{\
+.   ie !"\\$2"" .TP \\n()Cu
+.   el          .TP 15
+.\}
+.ta \\n()Au \\n()Bu
+.ie !"\\$3"" \{\
+\&\\$1	\\fI\\$2\\fP	(\\$3)
+.\".b
+.\}
+.el \{\
+.br
+.ie !"\\$2"" \{\
+\&\\$1	\\fI\\$2\\fP
+.\}
+.el \{\
+\&\\fI\\$1\\fP
+.\}
+.\}
+..
+'\"	# define tabbing values for .AP
+.de AS
+.nr )A 10n
+.if !"\\$1"" .nr )A \\w'\\$1'u+3n
+.nr )B \\n()Au+15n
+.\"
+.if !"\\$2"" .nr )B \\w'\\$2'u+\\n()Au+3n
+.nr )C \\n()Bu+\\w'(in/out)'u+2n
+..
+.AS Tcl_Interp Tcl_CreateInterp in/out
+'\"	# BS - start boxed text
+'\"	# ^y = starting y location
+'\"	# ^b = 1
+.de BS
+.br
+.mk ^y
+.nr ^b 1u
+.if n .nf
+.if n .ti 0
+.if n \l'\\n(.lu\(ul'
+.if n .fi
+..
+'\"	# BE - end boxed text (draw box now)
+.de BE
+.nf
+.ti 0
+.mk ^t
+.ie n \l'\\n(^lu\(ul'
+.el \{\
+.\"	Draw four-sided box normally, but don't draw top of
+.\"	box if the box started on an earlier page.
+.ie !\\n(^b-1 \{\
+\h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.el \}\
+\h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\l'|0u-1.5n\(ul'
+.\}
+.\}
+.fi
+.br
+.nr ^b 0
+..
+'\"	# VS - start vertical sidebar
+'\"	# ^Y = starting y location
+'\"	# ^v = 1 (for troff;  for nroff this doesn't matter)
+.de VS
+.if !"\\$2"" .br
+.mk ^Y
+.ie n 'mc \s12\(br\s0
+.el .nr ^v 1u
+..
+'\"	# VE - end of vertical sidebar
+.de VE
+.ie n 'mc
+.el \{\
+.ev 2
+.nf
+.ti 0
+.mk ^t
+\h'|\\n(^lu+3n'\L'|\\n(^Yu-1v\(bv'\v'\\n(^tu+1v-\\n(^Yu'\h'-|\\n(^lu+3n'
+.sp -1
+.fi
+.ev
+.\}
+.nr ^v 0
+..
+'\"	# Special macro to handle page bottom:  finish off current
+'\"	# box/sidebar if in box/sidebar mode, then invoked standard
+'\"	# page bottom macro.
+.de ^B
+.ev 2
+'ti 0
+'nf
+.mk ^t
+.if \\n(^b \{\
+.\"	Draw three-sided box if this is the box's first page,
+.\"	draw two sides but no top otherwise.
+.ie !\\n(^b-1 \h'-1.5n'\L'|\\n(^yu-1v'\l'\\n(^lu+3n\(ul'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.el \h'-1.5n'\L'|\\n(^yu-1v'\h'\\n(^lu+3n'\L'\\n(^tu+1v-\\n(^yu'\h'|0u'\c
+.\}
+.if \\n(^v \{\
+.nr ^x \\n(^tu+1v-\\n(^Yu
+\kx\h'-\\nxu'\h'|\\n(^lu+3n'\ky\L'-\\n(^xu'\v'\\n(^xu'\h'|0u'\c
+.\}
+.bp
+'fi
+.ev
+.if \\n(^b \{\
+.mk ^y
+.nr ^b 2
+.\}
+.if \\n(^v \{\
+.mk ^Y
+.\}
+..
+'\"	# DS - begin display
+.de DS
+.RS
+.nf
+.sp
+..
+'\"	# DE - end display
+.de DE
+.fi
+.RE
+.sp
+..
+'\"	# SO - start of list of standard options
+.de SO
+.SH "STANDARD OPTIONS"
+.LP
+.nf
+.ta 5.5c 11c
+.ft B
+..
+'\"	# SE - end of list of standard options
+.de SE
+.fi
+.ft R
+.LP
+See the \\fBoptions\\fR manual entry for details on the standard options.
+..
+'\"	# OP - start of full description for a single option
+.de OP
+.LP
+.nf
+.ta 4c
+Command-Line Name:	\\fB\\$1\\fR
+Database Name:	\\fB\\$2\\fR
+Database Class:	\\fB\\$3\\fR
+.fi
+.IP
+..
+'\"	# CS - begin code excerpt
+.de CS
+.RS
+.nf
+.ta .25i .5i .75i 1i
+..
+'\"	# CE - end code excerpt
+.de CE
+.fi
+.RE
+..
+.de UL
+\\$1\l'|0\(ul'\\$2
+..
+.TH glob n 8.3 Tcl "Tcl Built-In Commands"
+.BS
+'\" Note:  do not modify the .SH NAME line immediately below!
+.SH NAME
+glob \- Return names of files that match patterns
+.SH SYNOPSIS
+\fBglob \fR?\fIswitches\fR? \fIpattern \fR?\fIpattern ...\fR?
+.BE
+
+.SH DESCRIPTION
+.PP
+This command performs file name ``globbing'' in a fashion similar to
+the csh shell.  It returns a list of the files whose names match any
+of the \fIpattern\fR arguments.
+.LP
+If the initial arguments to \fBglob\fR start with \fB\-\fR then
+they are treated as switches.  The following switches are
+currently supported:
+.VS 8.3
+.TP
+\fB\-directory\fR \fIdirectory\fR
+Search for files which match the given patterns starting in the given
+\fIdirectory\fR.  This allows searching of directories whose name
+contains glob-sensitive characters without the need to quote such
+characters explicitly.  This option may not be used in conjunction with
+\fB\-path\fR, which is used to allow searching for complete file paths
+whose names may contain glob-sensitive characters.
+.TP
+\fB\-join\fR
+The remaining pattern arguments are treated as a single pattern
+obtained by joining the arguments with directory separators.
+.VE 8.3
+.TP
+\fB\-nocomplain\fR
+Allows an empty list to be returned without error;  without this
+switch an error is returned if the result list would be empty.
+.VS 8.3
+.TP
+\fB\-path\fR \fIpathPrefix\fR
+Search for files with the given \fIpathPrefix\fR where the rest of the name
+matches the given patterns.  This allows searching for files with names
+similar to a given file (as opposed to a directory) even when the names 
+contain glob-sensitive 
+characters.  This option may not be used in conjunction with
+\fB\-directory\fR.  For example, to find all files with the same root name
+as $path, but differing extensions, you should use \fBglob 
+-path [file rootname $path] .*\fR which will work even if $path contains
+numerous glob-sensitive characters.
+.TP
+\fB\-tails\fR
+Only return the part of each file found which follows the last directory
+named in any \fB\-directory\fR or \fB\-path\fR path specification.  
+Thus \fBglob -tails -directory $dir *\fR is equivalent to 
+\fBset pwd [pwd] ; cd $dir ; glob *; cd $pwd\fR.  For 
+\fB\-path\fR specifications, the returned names will include the last
+path segment, so \fBglob -tails -path [file rootname ~/foo.tex] .*\fR 
+will return paths like \fBfoo.aux foo.bib foo.tex\fR etc.
+.TP
+\fB\-types\fR \fItypeList\fR
+Only list files or directories which match \fItypeList\fR, where the items
+in the list have two forms.  The first form is like the \-type option of
+the Unix find command:
+\fIb\fR (block special file),
+\fIc\fR (character special file),
+\fId\fR (directory),
+\fIf\fR (plain file),
+\fIl\fR (symbolic link),
+\fIp\fR (named pipe),
+or \fIs\fR (socket), where multiple types may be specified in the list.
+\fBGlob\fR will return all files which match at least one of the types given.
+Note that symbolic links will be returned both if \fB\-types l\fR is given, 
+or if the target of a link matches the requested type.  So, a link to
+a directory will be returned if \fB\-types d\fR was specified.
+.RS
+.PP
+The second form specifies types where all the types given must match.
+These are \fIr\fR, \fIw\fR, \fIx\fR as file permissions, and
+\fIreadonly\fR, \fIhidden\fR as special permission cases.  On the
+Macintosh, MacOS types and creators are also supported, where any item
+which is four characters long is assumed to be a MacOS type
+(e.g. \fBTEXT\fR).  Items which are of the form \fI{macintosh type XXXX}\fR
+or \fI{macintosh creator XXXX}\fR will match types or creators
+respectively.  Unrecognized types, or specifications of multiple MacOS
+types/creators will signal an error.
+.PP
+The two forms may be mixed, so \fB\-types {d f r w}\fR will find all
+regular files OR directories that have both read AND write permissions.
+The following are equivalent:
+.RS
+.CS
+\fBglob \-type d *\fR
+\fBglob */\fR
+.CE
+.RE
+except that the first case doesn't return the trailing ``/'' and
+is more platform independent.
+.RE
+.VE 8.3
+.TP
+\fB\-\|\-\fR
+Marks the end of switches.  The argument following this one will
+be treated as a \fIpattern\fR even if it starts with a \fB\-\fR.
+.PP
+The \fIpattern\fR arguments may contain any of the following
+special characters:
+.TP 10
+\fB?\fR
+Matches any single character.
+.TP 10
+\fB*\fR
+Matches any sequence of zero or more characters.
+.TP 10
+\fB[\fIchars\fB]\fR
+Matches any single character in \fIchars\fR.  If \fIchars\fR
+contains a sequence of the form \fIa\fB\-\fIb\fR then any
+character between \fIa\fR and \fIb\fR (inclusive) will match.
+.TP 10
+\fB\e\fIx\fR
+Matches the character \fIx\fR.
+.TP 10
+\fB{\fIa\fB,\fIb\fB,\fI...\fR}
+Matches any of the strings \fIa\fR, \fIb\fR, etc.
+.LP
+On Unix, as with csh, a ``.'' at the beginning of a file's name or just
+after a ``/'' must be matched explicitly or with a {} construct,
+unless the ``-types hidden'' flag is given (since ``.'' at the beginning 
+of a file's name indicates that it is hidden).  On other platforms,
+files beginning with a ``.'' are handled no differently to any others,
+except the special directories ``.'' and ``..'' which must be matched
+explicitly (this is to avoid a recursive pattern like ``glob -join * *
+* *'' from recursing up the directory hierarchy as well as down).
+In addition, all ``/'' characters must be matched explicitly.
+.LP
+If the first character in a \fIpattern\fR is ``~'' then it refers
+to the home directory for the user whose name follows the ``~''.
+If the ``~'' is followed immediately by ``/'' then the value of
+the HOME environment variable is used.
+.LP
+The \fBglob\fR command differs from csh globbing in two ways.
+First, it does not sort its result list (use the \fBlsort\fR
+command if you want the list sorted).
+Second, \fBglob\fR only returns the names of files that actually
+exist;  in csh no check for existence is made unless a pattern
+contains a ?, *, or [] construct.
+.LP
+When the \fBglob\fR command returns relative paths whose filenames
+start with a tilde ``~'' (for example through \fBglob *\fR or 
+\fBglob -tails\fR, the returned list will not quote the tilde with
+``./''.  This means care must be taken if those names are later to
+be used with \fBfile join\fR, to avoid them being interpreted as
+absolute paths pointing to a given user's home directory.
+.SH "PORTABILITY ISSUES"
+.PP
+Unlike other Tcl commands that will accept both network and native
+style names (see the \fBfilename\fR manual entry for details on how
+native and network names are specified), the \fBglob\fR command only
+accepts native names.  
+.TP
+\fBWindows\fR
+.
+For Windows UNC names, the servername and sharename components of the path
+may not contain ?, *, or [] constructs.  On Windows NT, if \fIpattern\fR is
+of the form ``\fB~\fIusername\fB@\fIdomain\fR'' it refers to the home
+directory of the user whose account information resides on the specified NT
+domain server.  Otherwise, user account information is obtained from
+the local computer.  On Windows 95 and 98, \fBglob\fR accepts

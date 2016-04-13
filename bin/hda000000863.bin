@@ -1,0 +1,1775 @@
+td_id)0x00080000)
+#define V4L2_STD_SECAM_K        ((v4l2_std_id)0x00100000)
+#define V4L2_STD_SECAM_K1       ((v4l2_std_id)0x00200000)
+#define V4L2_STD_SECAM_L        ((v4l2_std_id)0x00400000)
+#define V4L2_STD_SECAM_LC       ((v4l2_std_id)0x00800000)
+
+/* ATSC/HDTV */
+#define V4L2_STD_ATSC_8_VSB     ((v4l2_std_id)0x01000000)
+#define V4L2_STD_ATSC_16_VSB    ((v4l2_std_id)0x02000000)
+
+/* FIXME:
+   Although std_id is 64 bits, there is an issue on PPC32 architecture that
+   makes switch(__u64) to break. So, there's a hack on v4l2-common.c rounding
+   this value to 32 bits.
+   As, currently, the max value is for V4L2_STD_ATSC_16_VSB (30 bits wide),
+   it should work fine. However, if needed to add more than two standards,
+   v4l2-common.c should be fixed.
+ */
+
+/* some merged standards */
+#define V4L2_STD_MN	(V4L2_STD_PAL_M|V4L2_STD_PAL_N|V4L2_STD_PAL_Nc|V4L2_STD_NTSC)
+#define V4L2_STD_B	(V4L2_STD_PAL_B|V4L2_STD_PAL_B1|V4L2_STD_SECAM_B)
+#define V4L2_STD_GH	(V4L2_STD_PAL_G|V4L2_STD_PAL_H|V4L2_STD_SECAM_G|V4L2_STD_SECAM_H)
+#define V4L2_STD_DK	(V4L2_STD_PAL_DK|V4L2_STD_SECAM_DK)
+
+/* some common needed stuff */
+#define V4L2_STD_PAL_BG		(V4L2_STD_PAL_B		|\
+				 V4L2_STD_PAL_B1	|\
+				 V4L2_STD_PAL_G)
+#define V4L2_STD_PAL_DK		(V4L2_STD_PAL_D		|\
+				 V4L2_STD_PAL_D1	|\
+				 V4L2_STD_PAL_K)
+#define V4L2_STD_PAL		(V4L2_STD_PAL_BG	|\
+				 V4L2_STD_PAL_DK	|\
+				 V4L2_STD_PAL_H		|\
+				 V4L2_STD_PAL_I)
+#define V4L2_STD_NTSC           (V4L2_STD_NTSC_M	|\
+				 V4L2_STD_NTSC_M_JP     |\
+				 V4L2_STD_NTSC_M_KR)
+#define V4L2_STD_SECAM_DK      	(V4L2_STD_SECAM_D	|\
+				 V4L2_STD_SECAM_K	|\
+				 V4L2_STD_SECAM_K1)
+#define V4L2_STD_SECAM		(V4L2_STD_SECAM_B	|\
+				 V4L2_STD_SECAM_G	|\
+				 V4L2_STD_SECAM_H	|\
+				 V4L2_STD_SECAM_DK	|\
+				 V4L2_STD_SECAM_L       |\
+				 V4L2_STD_SECAM_LC)
+
+#define V4L2_STD_525_60		(V4L2_STD_PAL_M		|\
+				 V4L2_STD_PAL_60	|\
+				 V4L2_STD_NTSC		|\
+				 V4L2_STD_NTSC_443)
+#define V4L2_STD_625_50		(V4L2_STD_PAL		|\
+				 V4L2_STD_PAL_N		|\
+				 V4L2_STD_PAL_Nc	|\
+				 V4L2_STD_SECAM)
+#define V4L2_STD_ATSC           (V4L2_STD_ATSC_8_VSB    |\
+				 V4L2_STD_ATSC_16_VSB)
+
+#define V4L2_STD_UNKNOWN        0
+#define V4L2_STD_ALL            (V4L2_STD_525_60	|\
+				 V4L2_STD_625_50)
+
+struct v4l2_standard {
+	__u32		     index;
+	v4l2_std_id          id;
+	__u8		     name[24];
+	struct v4l2_fract    frameperiod; /* Frames, not fields */
+	__u32		     framelines;
+	__u32		     reserved[4];
+};
+
+/*
+ *	V I D E O	T I M I N G S	D V	P R E S E T
+ */
+struct v4l2_dv_preset {
+	__u32	preset;
+	__u32	reserved[4];
+};
+
+/*
+ *	D V	P R E S E T S	E N U M E R A T I O N
+ */
+struct v4l2_dv_enum_preset {
+	__u32	index;
+	__u32	preset;
+	__u8	name[32]; /* Name of the preset timing */
+	__u32	width;
+	__u32	height;
+	__u32	reserved[4];
+};
+
+/*
+ * 	D V	P R E S E T	V A L U E S
+ */
+#define		V4L2_DV_INVALID		0
+#define		V4L2_DV_480P59_94	1 /* BT.1362 */
+#define		V4L2_DV_576P50		2 /* BT.1362 */
+#define		V4L2_DV_720P24		3 /* SMPTE 296M */
+#define		V4L2_DV_720P25		4 /* SMPTE 296M */
+#define		V4L2_DV_720P30		5 /* SMPTE 296M */
+#define		V4L2_DV_720P50		6 /* SMPTE 296M */
+#define		V4L2_DV_720P59_94	7 /* SMPTE 274M */
+#define		V4L2_DV_720P60		8 /* SMPTE 274M/296M */
+#define		V4L2_DV_1080I29_97	9 /* BT.1120/ SMPTE 274M */
+#define		V4L2_DV_1080I30		10 /* BT.1120/ SMPTE 274M */
+#define		V4L2_DV_1080I25		11 /* BT.1120 */
+#define		V4L2_DV_1080I50		12 /* SMPTE 296M */
+#define		V4L2_DV_1080I60		13 /* SMPTE 296M */
+#define		V4L2_DV_1080P24		14 /* SMPTE 296M */
+#define		V4L2_DV_1080P25		15 /* SMPTE 296M */
+#define		V4L2_DV_1080P30		16 /* SMPTE 296M */
+#define		V4L2_DV_1080P50		17 /* BT.1120 */
+#define		V4L2_DV_1080P60		18 /* BT.1120 */
+
+/*
+ *	D V 	B T	T I M I N G S
+ */
+
+/* BT.656/BT.1120 timing data */
+struct v4l2_bt_timings {
+	__u32	width;		/* width in pixels */
+	__u32	height;		/* height in lines */
+	__u32	interlaced;	/* Interlaced or progressive */
+	__u32	polarities;	/* Positive or negative polarity */
+	__u64	pixelclock;	/* Pixel clock in HZ. Ex. 74.25MHz->74250000 */
+	__u32	hfrontporch;	/* Horizpontal front porch in pixels */
+	__u32	hsync;		/* Horizontal Sync length in pixels */
+	__u32	hbackporch;	/* Horizontal back porch in pixels */
+	__u32	vfrontporch;	/* Vertical front porch in pixels */
+	__u32	vsync;		/* Vertical Sync length in lines */
+	__u32	vbackporch;	/* Vertical back porch in lines */
+	__u32	il_vfrontporch;	/* Vertical front porch for bottom field of
+				 * interlaced field formats
+				 */
+	__u32	il_vsync;	/* Vertical sync length for bottom field of
+				 * interlaced field formats
+				 */
+	__u32	il_vbackporch;	/* Vertical back porch for bottom field of
+				 * interlaced field formats
+				 */
+	__u32	reserved[16];
+} __attribute__ ((packed));
+
+/* Interlaced or progressive format */
+#define	V4L2_DV_PROGRESSIVE	0
+#define	V4L2_DV_INTERLACED	1
+
+/* Polarities. If bit is not set, it is assumed to be negative polarity */
+#define V4L2_DV_VSYNC_POS_POL	0x00000001
+#define V4L2_DV_HSYNC_POS_POL	0x00000002
+
+
+/* DV timings */
+struct v4l2_dv_timings {
+	__u32 type;
+	union {
+		struct v4l2_bt_timings	bt;
+		__u32	reserved[32];
+	};
+} __attribute__ ((packed));
+
+/* Values for the type field */
+#define V4L2_DV_BT_656_1120	0	/* BT.656/1120 timing type */
+
+/*
+ *	V I D E O   I N P U T S
+ */
+struct v4l2_input {
+	__u32	     index;		/*  Which input */
+	__u8	     name[32];		/*  Label */
+	__u32	     type;		/*  Type of input */
+	__u32	     audioset;		/*  Associated audios (bitfield) */
+	__u32        tuner;             /*  Associated tuner */
+	v4l2_std_id  std;
+	__u32	     status;
+	__u32	     capabilities;
+	__u32	     reserved[3];
+};
+
+/*  Values for the 'type' field */
+#define V4L2_INPUT_TYPE_TUNER		1
+#define V4L2_INPUT_TYPE_CAMERA		2
+
+/* field 'status' - general */
+#define V4L2_IN_ST_NO_POWER    0x00000001  /* Attached device is off */
+#define V4L2_IN_ST_NO_SIGNAL   0x00000002
+#define V4L2_IN_ST_NO_COLOR    0x00000004
+
+/* field 'status' - sensor orientation */
+/* If sensor is mounted upside down set both bits */
+#define V4L2_IN_ST_HFLIP       0x00000010 /* Frames are flipped horizontally */
+#define V4L2_IN_ST_VFLIP       0x00000020 /* Frames are flipped vertically */
+
+/* field 'status' - analog */
+#define V4L2_IN_ST_NO_H_LOCK   0x00000100  /* No horizontal sync lock */
+#define V4L2_IN_ST_COLOR_KILL  0x00000200  /* Color killer is active */
+
+/* field 'status' - digital */
+#define V4L2_IN_ST_NO_SYNC     0x00010000  /* No synchronization lock */
+#define V4L2_IN_ST_NO_EQU      0x00020000  /* No equalizer lock */
+#define V4L2_IN_ST_NO_CARRIER  0x00040000  /* Carrier recovery failed */
+
+/* field 'status' - VCR and set-top box */
+#define V4L2_IN_ST_MACROVISION 0x01000000  /* Macrovision detected */
+#define V4L2_IN_ST_NO_ACCESS   0x02000000  /* Conditional access denied */
+#define V4L2_IN_ST_VTR         0x04000000  /* VTR time constant */
+
+/* capabilities flags */
+#define V4L2_IN_CAP_PRESETS		0x00000001 /* Supports S_DV_PRESET */
+#define V4L2_IN_CAP_CUSTOM_TIMINGS	0x00000002 /* Supports S_DV_TIMINGS */
+#define V4L2_IN_CAP_STD			0x00000004 /* Supports S_STD */
+
+/*
+ *	V I D E O   O U T P U T S
+ */
+struct v4l2_output {
+	__u32	     index;		/*  Which output */
+	__u8	     name[32];		/*  Label */
+	__u32	     type;		/*  Type of output */
+	__u32	     audioset;		/*  Associated audios (bitfield) */
+	__u32	     modulator;         /*  Associated modulator */
+	v4l2_std_id  std;
+	__u32	     capabilities;
+	__u32	     reserved[3];
+};
+/*  Values for the 'type' field */
+#define V4L2_OUTPUT_TYPE_MODULATOR		1
+#define V4L2_OUTPUT_TYPE_ANALOG			2
+#define V4L2_OUTPUT_TYPE_ANALOGVGAOVERLAY	3
+
+/* capabilities flags */
+#define V4L2_OUT_CAP_PRESETS		0x00000001 /* Supports S_DV_PRESET */
+#define V4L2_OUT_CAP_CUSTOM_TIMINGS	0x00000002 /* Supports S_DV_TIMINGS */
+#define V4L2_OUT_CAP_STD		0x00000004 /* Supports S_STD */
+
+/*
+ *	C O N T R O L S
+ */
+struct v4l2_control {
+	__u32		     id;
+	__s32		     value;
+};
+
+struct v4l2_ext_control {
+	__u32 id;
+	__u32 size;
+	__u32 reserved2[1];
+	union {
+		__s32 value;
+		__s64 value64;
+		char *string;
+	};
+} __attribute__ ((packed));
+
+struct v4l2_ext_controls {
+	__u32 ctrl_class;
+	__u32 count;
+	__u32 error_idx;
+	__u32 reserved[2];
+	struct v4l2_ext_control *controls;
+};
+
+/*  Values for ctrl_class field */
+#define V4L2_CTRL_CLASS_USER 0x00980000	/* Old-style 'user' controls */
+#define V4L2_CTRL_CLASS_MPEG 0x00990000	/* MPEG-compression controls */
+#define V4L2_CTRL_CLASS_CAMERA 0x009a0000	/* Camera class controls */
+#define V4L2_CTRL_CLASS_FM_TX 0x009b0000	/* FM Modulator control class */
+
+#define V4L2_CTRL_ID_MASK      	  (0x0fffffff)
+#define V4L2_CTRL_ID2CLASS(id)    ((id) & 0x0fff0000UL)
+#define V4L2_CTRL_DRIVER_PRIV(id) (((id) & 0xffff) >= 0x1000)
+
+enum v4l2_ctrl_type {
+	V4L2_CTRL_TYPE_INTEGER	     = 1,
+	V4L2_CTRL_TYPE_BOOLEAN	     = 2,
+	V4L2_CTRL_TYPE_MENU	     = 3,
+	V4L2_CTRL_TYPE_BUTTON	     = 4,
+	V4L2_CTRL_TYPE_INTEGER64     = 5,
+	V4L2_CTRL_TYPE_CTRL_CLASS    = 6,
+	V4L2_CTRL_TYPE_STRING        = 7,
+};
+
+/*  Used in the VIDIOC_QUERYCTRL ioctl for querying controls */
+struct v4l2_queryctrl {
+	__u32		     id;
+	enum v4l2_ctrl_type  type;
+	__u8		     name[32];	/* Whatever */
+	__s32		     minimum;	/* Note signedness */
+	__s32		     maximum;
+	__s32		     step;
+	__s32		     default_value;
+	__u32                flags;
+	__u32		     reserved[2];
+};
+
+/*  Used in the VIDIOC_QUERYMENU ioctl for querying menu items */
+struct v4l2_querymenu {
+	__u32		id;
+	__u32		index;
+	__u8		name[32];	/* Whatever */
+	__u32		reserved;
+};
+
+/*  Control flags  */
+#define V4L2_CTRL_FLAG_DISABLED		0x0001
+#define V4L2_CTRL_FLAG_GRABBED		0x0002
+#define V4L2_CTRL_FLAG_READ_ONLY 	0x0004
+#define V4L2_CTRL_FLAG_UPDATE 		0x0008
+#define V4L2_CTRL_FLAG_INACTIVE 	0x0010
+#define V4L2_CTRL_FLAG_SLIDER 		0x0020
+#define V4L2_CTRL_FLAG_WRITE_ONLY 	0x0040
+
+/*  Query flag, to be ORed with the control ID */
+#define V4L2_CTRL_FLAG_NEXT_CTRL	0x80000000
+
+/*  User-class control IDs defined by V4L2 */
+#define V4L2_CID_BASE			(V4L2_CTRL_CLASS_USER | 0x900)
+#define V4L2_CID_USER_BASE 		V4L2_CID_BASE
+/*  IDs reserved for driver specific controls */
+#define V4L2_CID_PRIVATE_BASE		0x08000000
+
+#define V4L2_CID_USER_CLASS 		(V4L2_CTRL_CLASS_USER | 1)
+#define V4L2_CID_BRIGHTNESS		(V4L2_CID_BASE+0)
+#define V4L2_CID_CONTRAST		(V4L2_CID_BASE+1)
+#define V4L2_CID_SATURATION		(V4L2_CID_BASE+2)
+#define V4L2_CID_HUE			(V4L2_CID_BASE+3)
+#define V4L2_CID_AUDIO_VOLUME		(V4L2_CID_BASE+5)
+#define V4L2_CID_AUDIO_BALANCE		(V4L2_CID_BASE+6)
+#define V4L2_CID_AUDIO_BASS		(V4L2_CID_BASE+7)
+#define V4L2_CID_AUDIO_TREBLE		(V4L2_CID_BASE+8)
+#define V4L2_CID_AUDIO_MUTE		(V4L2_CID_BASE+9)
+#define V4L2_CID_AUDIO_LOUDNESS		(V4L2_CID_BASE+10)
+#define V4L2_CID_BLACK_LEVEL		(V4L2_CID_BASE+11) /* Deprecated */
+#define V4L2_CID_AUTO_WHITE_BALANCE	(V4L2_CID_BASE+12)
+#define V4L2_CID_DO_WHITE_BALANCE	(V4L2_CID_BASE+13)
+#define V4L2_CID_RED_BALANCE		(V4L2_CID_BASE+14)
+#define V4L2_CID_BLUE_BALANCE		(V4L2_CID_BASE+15)
+#define V4L2_CID_GAMMA			(V4L2_CID_BASE+16)
+#define V4L2_CID_WHITENESS		(V4L2_CID_GAMMA) /* Deprecated */
+#define V4L2_CID_EXPOSURE		(V4L2_CID_BASE+17)
+#define V4L2_CID_AUTOGAIN		(V4L2_CID_BASE+18)
+#define V4L2_CID_GAIN			(V4L2_CID_BASE+19)
+#define V4L2_CID_HFLIP			(V4L2_CID_BASE+20)
+#define V4L2_CID_VFLIP			(V4L2_CID_BASE+21)
+
+/* Deprecated; use V4L2_CID_PAN_RESET and V4L2_CID_TILT_RESET */
+#define V4L2_CID_HCENTER		(V4L2_CID_BASE+22)
+#define V4L2_CID_VCENTER		(V4L2_CID_BASE+23)
+
+#define V4L2_CID_POWER_LINE_FREQUENCY	(V4L2_CID_BASE+24)
+enum v4l2_power_line_frequency {
+	V4L2_CID_POWER_LINE_FREQUENCY_DISABLED	= 0,
+	V4L2_CID_POWER_LINE_FREQUENCY_50HZ	= 1,
+	V4L2_CID_POWER_LINE_FREQUENCY_60HZ	= 2,
+};
+#define V4L2_CID_HUE_AUTO			(V4L2_CID_BASE+25)
+#define V4L2_CID_WHITE_BALANCE_TEMPERATURE	(V4L2_CID_BASE+26)
+#define V4L2_CID_SHARPNESS			(V4L2_CID_BASE+27)
+#define V4L2_CID_BACKLIGHT_COMPENSATION 	(V4L2_CID_BASE+28)
+#define V4L2_CID_CHROMA_AGC                     (V4L2_CID_BASE+29)
+#define V4L2_CID_COLOR_KILLER                   (V4L2_CID_BASE+30)
+#define V4L2_CID_COLORFX			(V4L2_CID_BASE+31)
+enum v4l2_colorfx {
+	V4L2_COLORFX_NONE	= 0,
+	V4L2_COLORFX_BW		= 1,
+	V4L2_COLORFX_SEPIA	= 2,
+	V4L2_COLORFX_NEGATIVE = 3,
+	V4L2_COLORFX_EMBOSS = 4,
+	V4L2_COLORFX_SKETCH = 5,
+	V4L2_COLORFX_SKY_BLUE = 6,
+	V4L2_COLORFX_GRASS_GREEN = 7,
+	V4L2_COLORFX_SKIN_WHITEN = 8,
+	V4L2_COLORFX_VIVID = 9,
+};
+#define V4L2_CID_AUTOBRIGHTNESS			(V4L2_CID_BASE+32)
+#define V4L2_CID_BAND_STOP_FILTER		(V4L2_CID_BASE+33)
+
+#define V4L2_CID_ROTATE				(V4L2_CID_BASE+34)
+#define V4L2_CID_BG_COLOR			(V4L2_CID_BASE+35)
+
+#define V4L2_CID_CHROMA_GAIN                    (V4L2_CID_BASE+36)
+
+#define V4L2_CID_ILLUMINATORS_1			(V4L2_CID_BASE+37)
+#define V4L2_CID_ILLUMINATORS_2			(V4L2_CID_BASE+38)
+
+/* last CID + 1 */
+#define V4L2_CID_LASTP1                         (V4L2_CID_BASE+39)
+
+/*  MPEG-class control IDs defined by V4L2 */
+#define V4L2_CID_MPEG_BASE 			(V4L2_CTRL_CLASS_MPEG | 0x900)
+#define V4L2_CID_MPEG_CLASS 			(V4L2_CTRL_CLASS_MPEG | 1)
+
+/*  MPEG streams */
+#define V4L2_CID_MPEG_STREAM_TYPE 		(V4L2_CID_MPEG_BASE+0)
+enum v4l2_mpeg_stream_type {
+	V4L2_MPEG_STREAM_TYPE_MPEG2_PS   = 0, /* MPEG-2 program stream */
+	V4L2_MPEG_STREAM_TYPE_MPEG2_TS   = 1, /* MPEG-2 transport stream */
+	V4L2_MPEG_STREAM_TYPE_MPEG1_SS   = 2, /* MPEG-1 system stream */
+	V4L2_MPEG_STREAM_TYPE_MPEG2_DVD  = 3, /* MPEG-2 DVD-compatible stream */
+	V4L2_MPEG_STREAM_TYPE_MPEG1_VCD  = 4, /* MPEG-1 VCD-compatible stream */
+	V4L2_MPEG_STREAM_TYPE_MPEG2_SVCD = 5, /* MPEG-2 SVCD-compatible stream */
+};
+#define V4L2_CID_MPEG_STREAM_PID_PMT 		(V4L2_CID_MPEG_BASE+1)
+#define V4L2_CID_MPEG_STREAM_PID_AUDIO 		(V4L2_CID_MPEG_BASE+2)
+#define V4L2_CID_MPEG_STREAM_PID_VIDEO 		(V4L2_CID_MPEG_BASE+3)
+#define V4L2_CID_MPEG_STREAM_PID_PCR 		(V4L2_CID_MPEG_BASE+4)
+#define V4L2_CID_MPEG_STREAM_PES_ID_AUDIO 	(V4L2_CID_MPEG_BASE+5)
+#define V4L2_CID_MPEG_STREAM_PES_ID_VIDEO 	(V4L2_CID_MPEG_BASE+6)
+#define V4L2_CID_MPEG_STREAM_VBI_FMT 		(V4L2_CID_MPEG_BASE+7)
+enum v4l2_mpeg_stream_vbi_fmt {
+	V4L2_MPEG_STREAM_VBI_FMT_NONE = 0,  /* No VBI in the MPEG stream */
+	V4L2_MPEG_STREAM_VBI_FMT_IVTV = 1,  /* VBI in private packets, IVTV format */
+};
+
+/*  MPEG audio */
+#define V4L2_CID_MPEG_AUDIO_SAMPLING_FREQ 	(V4L2_CID_MPEG_BASE+100)
+enum v4l2_mpeg_audio_sampling_freq {
+	V4L2_MPEG_AUDIO_SAMPLING_FREQ_44100 = 0,
+	V4L2_MPEG_AUDIO_SAMPLING_FREQ_48000 = 1,
+	V4L2_MPEG_AUDIO_SAMPLING_FREQ_32000 = 2,
+};
+#define V4L2_CID_MPEG_AUDIO_ENCODING 		(V4L2_CID_MPEG_BASE+101)
+enum v4l2_mpeg_audio_encoding {
+	V4L2_MPEG_AUDIO_ENCODING_LAYER_1 = 0,
+	V4L2_MPEG_AUDIO_ENCODING_LAYER_2 = 1,
+	V4L2_MPEG_AUDIO_ENCODING_LAYER_3 = 2,
+	V4L2_MPEG_AUDIO_ENCODING_AAC     = 3,
+	V4L2_MPEG_AUDIO_ENCODING_AC3     = 4,
+};
+#define V4L2_CID_MPEG_AUDIO_L1_BITRATE 		(V4L2_CID_MPEG_BASE+102)
+enum v4l2_mpeg_audio_l1_bitrate {
+	V4L2_MPEG_AUDIO_L1_BITRATE_32K  = 0,
+	V4L2_MPEG_AUDIO_L1_BITRATE_64K  = 1,
+	V4L2_MPEG_AUDIO_L1_BITRATE_96K  = 2,
+	V4L2_MPEG_AUDIO_L1_BITRATE_128K = 3,
+	V4L2_MPEG_AUDIO_L1_BITRATE_160K = 4,
+	V4L2_MPEG_AUDIO_L1_BITRATE_192K = 5,
+	V4L2_MPEG_AUDIO_L1_BITRATE_224K = 6,
+	V4L2_MPEG_AUDIO_L1_BITRATE_256K = 7,
+	V4L2_MPEG_AUDIO_L1_BITRATE_288K = 8,
+	V4L2_MPEG_AUDIO_L1_BITRATE_320K = 9,
+	V4L2_MPEG_AUDIO_L1_BITRATE_352K = 10,
+	V4L2_MPEG_AUDIO_L1_BITRATE_384K = 11,
+	V4L2_MPEG_AUDIO_L1_BITRATE_416K = 12,
+	V4L2_MPEG_AUDIO_L1_BITRATE_448K = 13,
+};
+#define V4L2_CID_MPEG_AUDIO_L2_BITRATE 		(V4L2_CID_MPEG_BASE+103)
+enum v4l2_mpeg_audio_l2_bitrate {
+	V4L2_MPEG_AUDIO_L2_BITRATE_32K  = 0,
+	V4L2_MPEG_AUDIO_L2_BITRATE_48K  = 1,
+	V4L2_MPEG_AUDIO_L2_BITRATE_56K  = 2,
+	V4L2_MPEG_AUDIO_L2_BITRATE_64K  = 3,
+	V4L2_MPEG_AUDIO_L2_BITRATE_80K  = 4,
+	V4L2_MPEG_AUDIO_L2_BITRATE_96K  = 5,
+	V4L2_MPEG_AUDIO_L2_BITRATE_112K = 6,
+	V4L2_MPEG_AUDIO_L2_BITRATE_128K = 7,
+	V4L2_MPEG_AUDIO_L2_BITRATE_160K = 8,
+	V4L2_MPEG_AUDIO_L2_BITRATE_192K = 9,
+	V4L2_MPEG_AUDIO_L2_BITRATE_224K = 10,
+	V4L2_MPEG_AUDIO_L2_BITRATE_256K = 11,
+	V4L2_MPEG_AUDIO_L2_BITRATE_320K = 12,
+	V4L2_MPEG_AUDIO_L2_BITRATE_384K = 13,
+};
+#define V4L2_CID_MPEG_AUDIO_L3_BITRATE 		(V4L2_CID_MPEG_BASE+104)
+enum v4l2_mpeg_audio_l3_bitrate {
+	V4L2_MPEG_AUDIO_L3_BITRATE_32K  = 0,
+	V4L2_MPEG_AUDIO_L3_BITRATE_40K  = 1,
+	V4L2_MPEG_AUDIO_L3_BITRATE_48K  = 2,
+	V4L2_MPEG_AUDIO_L3_BITRATE_56K  = 3,
+	V4L2_MPEG_AUDIO_L3_BITRATE_64K  = 4,
+	V4L2_MPEG_AUDIO_L3_BITRATE_80K  = 5,
+	V4L2_MPEG_AUDIO_L3_BITRATE_96K  = 6,
+	V4L2_MPEG_AUDIO_L3_BITRATE_112K = 7,
+	V4L2_MPEG_AUDIO_L3_BITRATE_128K = 8,
+	V4L2_MPEG_AUDIO_L3_BITRATE_160K = 9,
+	V4L2_MPEG_AUDIO_L3_BITRATE_192K = 10,
+	V4L2_MPEG_AUDIO_L3_BITRATE_224K = 11,
+	V4L2_MPEG_AUDIO_L3_BITRATE_256K = 12,
+	V4L2_MPEG_AUDIO_L3_BITRATE_320K = 13,
+};
+#define V4L2_CID_MPEG_AUDIO_MODE 		(V4L2_CID_MPEG_BASE+105)
+enum v4l2_mpeg_audio_mode {
+	V4L2_MPEG_AUDIO_MODE_STEREO       = 0,
+	V4L2_MPEG_AUDIO_MODE_JOINT_STEREO = 1,
+	V4L2_MPEG_AUDIO_MODE_DUAL         = 2,
+	V4L2_MPEG_AUDIO_MODE_MONO         = 3,
+};
+#define V4L2_CID_MPEG_AUDIO_MODE_EXTENSION 	(V4L2_CID_MPEG_BASE+106)
+enum v4l2_mpeg_audio_mode_extension {
+	V4L2_MPEG_AUDIO_MODE_EXTENSION_BOUND_4  = 0,
+	V4L2_MPEG_AUDIO_MODE_EXTENSION_BOUND_8  = 1,
+	V4L2_MPEG_AUDIO_MODE_EXTENSION_BOUND_12 = 2,
+	V4L2_MPEG_AUDIO_MODE_EXTENSION_BOUND_16 = 3,
+};
+#define V4L2_CID_MPEG_AUDIO_EMPHASIS 		(V4L2_CID_MPEG_BASE+107)
+enum v4l2_mpeg_audio_emphasis {
+	V4L2_MPEG_AUDIO_EMPHASIS_NONE         = 0,
+	V4L2_MPEG_AUDIO_EMPHASIS_50_DIV_15_uS = 1,
+	V4L2_MPEG_AUDIO_EMPHASIS_CCITT_J17    = 2,
+};
+#define V4L2_CID_MPEG_AUDIO_CRC 		(V4L2_CID_MPEG_BASE+108)
+enum v4l2_mpeg_audio_crc {
+	V4L2_MPEG_AUDIO_CRC_NONE  = 0,
+	V4L2_MPEG_AUDIO_CRC_CRC16 = 1,
+};
+#define V4L2_CID_MPEG_AUDIO_MUTE 		(V4L2_CID_MPEG_BASE+109)
+#define V4L2_CID_MPEG_AUDIO_AAC_BITRATE		(V4L2_CID_MPEG_BASE+110)
+#define V4L2_CID_MPEG_AUDIO_AC3_BITRATE		(V4L2_CID_MPEG_BASE+111)
+enum v4l2_mpeg_audio_ac3_bitrate {
+	V4L2_MPEG_AUDIO_AC3_BITRATE_32K  = 0,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_40K  = 1,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_48K  = 2,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_56K  = 3,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_64K  = 4,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_80K  = 5,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_96K  = 6,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_112K = 7,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_128K = 8,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_160K = 9,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_192K = 10,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_224K = 11,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_256K = 12,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_320K = 13,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_384K = 14,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_448K = 15,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_512K = 16,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_576K = 17,
+	V4L2_MPEG_AUDIO_AC3_BITRATE_640K = 18,
+};
+
+/*  MPEG video */
+#define V4L2_CID_MPEG_VIDEO_ENCODING 		(V4L2_CID_MPEG_BASE+200)
+enum v4l2_mpeg_video_encoding {
+	V4L2_MPEG_VIDEO_ENCODING_MPEG_1     = 0,
+	V4L2_MPEG_VIDEO_ENCODING_MPEG_2     = 1,
+	V4L2_MPEG_VIDEO_ENCODING_MPEG_4_AVC = 2,
+};
+#define V4L2_CID_MPEG_VIDEO_ASPECT 		(V4L2_CID_MPEG_BASE+201)
+enum v4l2_mpeg_video_aspect {
+	V4L2_MPEG_VIDEO_ASPECT_1x1     = 0,
+	V4L2_MPEG_VIDEO_ASPECT_4x3     = 1,
+	V4L2_MPEG_VIDEO_ASPECT_16x9    = 2,
+	V4L2_MPEG_VIDEO_ASPECT_221x100 = 3,
+};
+#define V4L2_CID_MPEG_VIDEO_B_FRAMES 		(V4L2_CID_MPEG_BASE+202)
+#define V4L2_CID_MPEG_VIDEO_GOP_SIZE 		(V4L2_CID_MPEG_BASE+203)
+#define V4L2_CID_MPEG_VIDEO_GOP_CLOSURE 	(V4L2_CID_MPEG_BASE+204)
+#define V4L2_CID_MPEG_VIDEO_PULLDOWN 		(V4L2_CID_MPEG_BASE+205)
+#define V4L2_CID_MPEG_VIDEO_BITRATE_MODE 	(V4L2_CID_MPEG_BASE+206)
+enum v4l2_mpeg_video_bitrate_mode {
+	V4L2_MPEG_VIDEO_BITRATE_MODE_VBR = 0,
+	V4L2_MPEG_VIDEO_BITRATE_MODE_CBR = 1,
+};
+#define V4L2_CID_MPEG_VIDEO_BITRATE 		(V4L2_CID_MPEG_BASE+207)
+#define V4L2_CID_MPEG_VIDEO_BITRATE_PEAK 	(V4L2_CID_MPEG_BASE+208)
+#define V4L2_CID_MPEG_VIDEO_TEMPORAL_DECIMATION (V4L2_CID_MPEG_BASE+209)
+#define V4L2_CID_MPEG_VIDEO_MUTE 		(V4L2_CID_MPEG_BASE+210)
+#define V4L2_CID_MPEG_VIDEO_MUTE_YUV 		(V4L2_CID_MPEG_BASE+211)
+
+/*  MPEG-class control IDs specific to the CX2341x driver as defined by V4L2 */
+#define V4L2_CID_MPEG_CX2341X_BASE 				(V4L2_CTRL_CLASS_MPEG | 0x1000)
+#define V4L2_CID_MPEG_CX2341X_VIDEO_SPATIAL_FILTER_MODE 	(V4L2_CID_MPEG_CX2341X_BASE+0)
+enum v4l2_mpeg_cx2341x_video_spatial_filter_mode {
+	V4L2_MPEG_CX2341X_VIDEO_SPATIAL_FILTER_MODE_MANUAL = 0,
+	V4L2_MPEG_CX2341X_VIDEO_SPATIAL_FILTER_MODE_AUTO   = 1,
+};
+#define V4L2_CID_MPEG_CX2341X_VIDEO_SPATIAL_FILTER 		(V4L2_CID_MPEG_CX2341X_BASE+1)
+#define V4L2_CID_MPEG_CX2341X_VIDEO_LUMA_SPATIAL_FILTER_TYPE 	(V4L2_CID_MPEG_CX2341X_BASE+2)
+enum v4l2_mpeg_cx2341x_video_luma_spatial_filter_type {
+	V4L2_MPEG_CX2341X_VIDEO_LUMA_SPATIAL_FILTER_TYPE_OFF                  = 0,
+	V4L2_MPEG_CX2341X_VIDEO_LUMA_SPATIAL_FILTER_TYPE_1D_HOR               = 1,
+	V4L2_MPEG_CX2341X_VIDEO_LUMA_SPATIAL_FILTER_TYPE_1D_VERT              = 2,
+	V4L2_MPEG_CX2341X_VIDEO_LUMA_SPATIAL_FILTER_TYPE_2D_HV_SEPARABLE      = 3,
+	V4L2_MPEG_CX2341X_VIDEO_LUMA_SPATIAL_FILTER_TYPE_2D_SYM_NON_SEPARABLE = 4,
+};
+#define V4L2_CID_MPEG_CX2341X_VIDEO_CHROMA_SPATIAL_FILTER_TYPE 	(V4L2_CID_MPEG_CX2341X_BASE+3)
+enum v4l2_mpeg_cx2341x_video_chroma_spatial_filter_type {
+	V4L2_MPEG_CX2341X_VIDEO_CHROMA_SPATIAL_FILTER_TYPE_OFF    = 0,
+	V4L2_MPEG_CX2341X_VIDEO_CHROMA_SPATIAL_FILTER_TYPE_1D_HOR = 1,
+};
+#define V4L2_CID_MPEG_CX2341X_VIDEO_TEMPORAL_FILTER_MODE 	(V4L2_CID_MPEG_CX2341X_BASE+4)
+enum v4l2_mpeg_cx2341x_video_temporal_filter_mode {
+	V4L2_MPEG_CX2341X_VIDEO_TEMPORAL_FILTER_MODE_MANUAL = 0,
+	V4L2_MPEG_CX2341X_VIDEO_TEMPORAL_FILTER_MODE_AUTO   = 1,
+};
+#define V4L2_CID_MPEG_CX2341X_VIDEO_TEMPORAL_FILTER 		(V4L2_CID_MPEG_CX2341X_BASE+5)
+#define V4L2_CID_MPEG_CX2341X_VIDEO_MEDIAN_FILTER_TYPE 		(V4L2_CID_MPEG_CX2341X_BASE+6)
+enum v4l2_mpeg_cx2341x_video_median_filter_type {
+	V4L2_MPEG_CX2341X_VIDEO_MEDIAN_FILTER_TYPE_OFF      = 0,
+	V4L2_MPEG_CX2341X_VIDEO_MEDIAN_FILTER_TYPE_HOR      = 1,
+	V4L2_MPEG_CX2341X_VIDEO_MEDIAN_FILTER_TYPE_VERT     = 2,
+	V4L2_MPEG_CX2341X_VIDEO_MEDIAN_FILTER_TYPE_HOR_VERT = 3,
+	V4L2_MPEG_CX2341X_VIDEO_MEDIAN_FILTER_TYPE_DIAG     = 4,
+};
+#define V4L2_CID_MPEG_CX2341X_VIDEO_LUMA_MEDIAN_FILTER_BOTTOM 	(V4L2_CID_MPEG_CX2341X_BASE+7)
+#define V4L2_CID_MPEG_CX2341X_VIDEO_LUMA_MEDIAN_FILTER_TOP 	(V4L2_CID_MPEG_CX2341X_BASE+8)
+#define V4L2_CID_MPEG_CX2341X_VIDEO_CHROMA_MEDIAN_FILTER_BOTTOM	(V4L2_CID_MPEG_CX2341X_BASE+9)
+#define V4L2_CID_MPEG_CX2341X_VIDEO_CHROMA_MEDIAN_FILTER_TOP 	(V4L2_CID_MPEG_CX2341X_BASE+10)
+#define V4L2_CID_MPEG_CX2341X_STREAM_INSERT_NAV_PACKETS 	(V4L2_CID_MPEG_CX2341X_BASE+11)
+
+/*  Camera class control IDs */
+#define V4L2_CID_CAMERA_CLASS_BASE 	(V4L2_CTRL_CLASS_CAMERA | 0x900)
+#define V4L2_CID_CAMERA_CLASS 		(V4L2_CTRL_CLASS_CAMERA | 1)
+
+#define V4L2_CID_EXPOSURE_AUTO			(V4L2_CID_CAMERA_CLASS_BASE+1)
+enum  v4l2_exposure_auto_type {
+	V4L2_EXPOSURE_AUTO = 0,
+	V4L2_EXPOSURE_MANUAL = 1,
+	V4L2_EXPOSURE_SHUTTER_PRIORITY = 2,
+	V4L2_EXPOSURE_APERTURE_PRIORITY = 3
+};
+#define V4L2_CID_EXPOSURE_ABSOLUTE		(V4L2_CID_CAMERA_CLASS_BASE+2)
+#define V4L2_CID_EXPOSURE_AUTO_PRIORITY		(V4L2_CID_CAMERA_CLASS_BASE+3)
+
+#define V4L2_CID_PAN_RELATIVE			(V4L2_CID_CAMERA_CLASS_BASE+4)
+#define V4L2_CID_TILT_RELATIVE			(V4L2_CID_CAMERA_CLASS_BASE+5)
+#define V4L2_CID_PAN_RESET			(V4L2_CID_CAMERA_CLASS_BASE+6)
+#define V4L2_CID_TILT_RESET			(V4L2_CID_CAMERA_CLASS_BASE+7)
+
+#define V4L2_CID_PAN_ABSOLUTE			(V4L2_CID_CAMERA_CLASS_BASE+8)
+#define V4L2_CID_TILT_ABSOLUTE			(V4L2_CID_CAMERA_CLASS_BASE+9)
+
+#define V4L2_CID_FOCUS_ABSOLUTE			(V4L2_CID_CAMERA_CLASS_BASE+10)
+#define V4L2_CID_FOCUS_RELATIVE			(V4L2_CID_CAMERA_CLASS_BASE+11)
+#define V4L2_CID_FOCUS_AUTO			(V4L2_CID_CAMERA_CLASS_BASE+12)
+
+#define V4L2_CID_ZOOM_ABSOLUTE			(V4L2_CID_CAMERA_CLASS_BASE+13)
+#define V4L2_CID_ZOOM_RELATIVE			(V4L2_CID_CAMERA_CLASS_BASE+14)
+#define V4L2_CID_ZOOM_CONTINUOUS		(V4L2_CID_CAMERA_CLASS_BASE+15)
+
+#define V4L2_CID_PRIVACY			(V4L2_CID_CAMERA_CLASS_BASE+16)
+
+#define V4L2_CID_IRIS_ABSOLUTE			(V4L2_CID_CAMERA_CLASS_BASE+17)
+#define V4L2_CID_IRIS_RELATIVE			(V4L2_CID_CAMERA_CLASS_BASE+18)
+
+/* FM Modulator class control IDs */
+#define V4L2_CID_FM_TX_CLASS_BASE		(V4L2_CTRL_CLASS_FM_TX | 0x900)
+#define V4L2_CID_FM_TX_CLASS			(V4L2_CTRL_CLASS_FM_TX | 1)
+
+#define V4L2_CID_RDS_TX_DEVIATION		(V4L2_CID_FM_TX_CLASS_BASE + 1)
+#define V4L2_CID_RDS_TX_PI			(V4L2_CID_FM_TX_CLASS_BASE + 2)
+#define V4L2_CID_RDS_TX_PTY			(V4L2_CID_FM_TX_CLASS_BASE + 3)
+#define V4L2_CID_RDS_TX_PS_NAME			(V4L2_CID_FM_TX_CLASS_BASE + 5)
+#define V4L2_CID_RDS_TX_RADIO_TEXT		(V4L2_CID_FM_TX_CLASS_BASE + 6)
+
+#define V4L2_CID_AUDIO_LIMITER_ENABLED		(V4L2_CID_FM_TX_CLASS_BASE + 64)
+#define V4L2_CID_AUDIO_LIMITER_RELEASE_TIME	(V4L2_CID_FM_TX_CLASS_BASE + 65)
+#define V4L2_CID_AUDIO_LIMITER_DEVIATION	(V4L2_CID_FM_TX_CLASS_BASE + 66)
+
+#define V4L2_CID_AUDIO_COMPRESSION_ENABLED	(V4L2_CID_FM_TX_CLASS_BASE + 80)
+#define V4L2_CID_AUDIO_COMPRESSION_GAIN		(V4L2_CID_FM_TX_CLASS_BASE + 81)
+#define V4L2_CID_AUDIO_COMPRESSION_THRESHOLD	(V4L2_CID_FM_TX_CLASS_BASE + 82)
+#define V4L2_CID_AUDIO_COMPRESSION_ATTACK_TIME	(V4L2_CID_FM_TX_CLASS_BASE + 83)
+#define V4L2_CID_AUDIO_COMPRESSION_RELEASE_TIME	(V4L2_CID_FM_TX_CLASS_BASE + 84)
+
+#define V4L2_CID_PILOT_TONE_ENABLED		(V4L2_CID_FM_TX_CLASS_BASE + 96)
+#define V4L2_CID_PILOT_TONE_DEVIATION		(V4L2_CID_FM_TX_CLASS_BASE + 97)
+#define V4L2_CID_PILOT_TONE_FREQUENCY		(V4L2_CID_FM_TX_CLASS_BASE + 98)
+
+#define V4L2_CID_TUNE_PREEMPHASIS		(V4L2_CID_FM_TX_CLASS_BASE + 112)
+enum v4l2_preemphasis {
+	V4L2_PREEMPHASIS_DISABLED	= 0,
+	V4L2_PREEMPHASIS_50_uS		= 1,
+	V4L2_PREEMPHASIS_75_uS		= 2,
+};
+#define V4L2_CID_TUNE_POWER_LEVEL		(V4L2_CID_FM_TX_CLASS_BASE + 113)
+#define V4L2_CID_TUNE_ANTENNA_CAPACITOR		(V4L2_CID_FM_TX_CLASS_BASE + 114)
+
+/*
+ *	T U N I N G
+ */
+struct v4l2_tuner {
+	__u32                   index;
+	__u8			name[32];
+	enum v4l2_tuner_type    type;
+	__u32			capability;
+	__u32			rangelow;
+	__u32			rangehigh;
+	__u32			rxsubchans;
+	__u32			audmode;
+	__s32			signal;
+	__s32			afc;
+	__u32			reserved[4];
+};
+
+struct v4l2_modulator {
+	__u32			index;
+	__u8			name[32];
+	__u32			capability;
+	__u32			rangelow;
+	__u32			rangehigh;
+	__u32			txsubchans;
+	__u32			reserved[4];
+};
+
+/*  Flags for the 'capability' field */
+#define V4L2_TUNER_CAP_LOW		0x0001
+#define V4L2_TUNER_CAP_NORM		0x0002
+#define V4L2_TUNER_CAP_STEREO		0x0010
+#define V4L2_TUNER_CAP_LANG2		0x0020
+#define V4L2_TUNER_CAP_SAP		0x0020
+#define V4L2_TUNER_CAP_LANG1		0x0040
+#define V4L2_TUNER_CAP_RDS		0x0080
+#define V4L2_TUNER_CAP_RDS_BLOCK_IO	0x0100
+#define V4L2_TUNER_CAP_RDS_CONTROLS	0x0200
+
+/*  Flags for the 'rxsubchans' field */
+#define V4L2_TUNER_SUB_MONO		0x0001
+#define V4L2_TUNER_SUB_STEREO		0x0002
+#define V4L2_TUNER_SUB_LANG2		0x0004
+#define V4L2_TUNER_SUB_SAP		0x0004
+#define V4L2_TUNER_SUB_LANG1		0x0008
+#define V4L2_TUNER_SUB_RDS		0x0010
+
+/*  Values for the 'audmode' field */
+#define V4L2_TUNER_MODE_MONO		0x0000
+#define V4L2_TUNER_MODE_STEREO		0x0001
+#define V4L2_TUNER_MODE_LANG2		0x0002
+#define V4L2_TUNER_MODE_SAP		0x0002
+#define V4L2_TUNER_MODE_LANG1		0x0003
+#define V4L2_TUNER_MODE_LANG1_LANG2	0x0004
+
+struct v4l2_frequency {
+	__u32		      tuner;
+	enum v4l2_tuner_type  type;
+	__u32		      frequency;
+	__u32		      reserved[8];
+};
+
+struct v4l2_hw_freq_seek {
+	__u32		      tuner;
+	enum v4l2_tuner_type  type;
+	__u32		      seek_upward;
+	__u32		      wrap_around;
+	__u32		      spacing;
+	__u32		      reserved[7];
+};
+
+/*
+ *	R D S
+ */
+
+struct v4l2_rds_data {
+	__u8 	lsb;
+	__u8 	msb;
+	__u8 	block;
+} __attribute__ ((packed));
+
+#define V4L2_RDS_BLOCK_MSK 	 0x7
+#define V4L2_RDS_BLOCK_A 	 0
+#define V4L2_RDS_BLOCK_B 	 1
+#define V4L2_RDS_BLOCK_C 	 2
+#define V4L2_RDS_BLOCK_D 	 3
+#define V4L2_RDS_BLOCK_C_ALT 	 4
+#define V4L2_RDS_BLOCK_INVALID 	 7
+
+#define V4L2_RDS_BLOCK_CORRECTED 0x40
+#define V4L2_RDS_BLOCK_ERROR 	 0x80
+
+/*
+ *	A U D I O
+ */
+struct v4l2_audio {
+	__u32	index;
+	__u8	name[32];
+	__u32	capability;
+	__u32	mode;
+	__u32	reserved[2];
+};
+
+/*  Flags for the 'capability' field */
+#define V4L2_AUDCAP_STEREO		0x00001
+#define V4L2_AUDCAP_AVL			0x00002
+
+/*  Flags for the 'mode' field */
+#define V4L2_AUDMODE_AVL		0x00001
+
+struct v4l2_audioout {
+	__u32	index;
+	__u8	name[32];
+	__u32	capability;
+	__u32	mode;
+	__u32	reserved[2];
+};
+
+/*
+ *	M P E G   S E R V I C E S
+ *
+ *	NOTE: EXPERIMENTAL API
+ */
+#if 1
+#define V4L2_ENC_IDX_FRAME_I    (0)
+#define V4L2_ENC_IDX_FRAME_P    (1)
+#define V4L2_ENC_IDX_FRAME_B    (2)
+#define V4L2_ENC_IDX_FRAME_MASK (0xf)
+
+struct v4l2_enc_idx_entry {
+	__u64 offset;
+	__u64 pts;
+	__u32 length;
+	__u32 flags;
+	__u32 reserved[2];
+};
+
+#define V4L2_ENC_IDX_ENTRIES (64)
+struct v4l2_enc_idx {
+	__u32 entries;
+	__u32 entries_cap;
+	__u32 reserved[4];
+	struct v4l2_enc_idx_entry entry[V4L2_ENC_IDX_ENTRIES];
+};
+
+
+#define V4L2_ENC_CMD_START      (0)
+#define V4L2_ENC_CMD_STOP       (1)
+#define V4L2_ENC_CMD_PAUSE      (2)
+#define V4L2_ENC_CMD_RESUME     (3)
+
+/* Flags for V4L2_ENC_CMD_STOP */
+#define V4L2_ENC_CMD_STOP_AT_GOP_END    (1 << 0)
+
+struct v4l2_encoder_cmd {
+	__u32 cmd;
+	__u32 flags;
+	union {
+		struct {
+			__u32 data[8];
+		} raw;
+	};
+};
+
+#endif
+
+
+/*
+ *	D A T A   S E R V I C E S   ( V B I )
+ *
+ *	Data services API by Michael Schimek
+ */
+
+/* Raw VBI */
+struct v4l2_vbi_format {
+	__u32	sampling_rate;		/* in 1 Hz */
+	__u32	offset;
+	__u32	samples_per_line;
+	__u32	sample_format;		/* V4L2_PIX_FMT_* */
+	__s32	start[2];
+	__u32	count[2];
+	__u32	flags;			/* V4L2_VBI_* */
+	__u32	reserved[2];		/* must be zero */
+};
+
+/*  VBI flags  */
+#define V4L2_VBI_UNSYNC		(1 << 0)
+#define V4L2_VBI_INTERLACED	(1 << 1)
+
+/* Sliced VBI
+ *
+ *    This implements is a proposal V4L2 API to allow SLICED VBI
+ * required for some hardware encoders. It should change without
+ * notice in the definitive implementation.
+ */
+
+struct v4l2_sliced_vbi_format {
+	__u16   service_set;
+	/* service_lines[0][...] specifies lines 0-23 (1-23 used) of the first field
+	   service_lines[1][...] specifies lines 0-23 (1-23 used) of the second field
+				 (equals frame lines 313-336 for 625 line video
+				  standards, 263-286 for 525 line standards) */
+	__u16   service_lines[2][24];
+	__u32   io_size;
+	__u32   reserved[2];            /* must be zero */
+};
+
+/* Teletext World System Teletext
+   (WST), defined on ITU-R BT.653-2 */
+#define V4L2_SLICED_TELETEXT_B          (0x0001)
+/* Video Program System, defined on ETS 300 231*/
+#define V4L2_SLICED_VPS                 (0x0400)
+/* Closed Caption, defined on EIA-608 */
+#define V4L2_SLICED_CAPTION_525         (0x1000)
+/* Wide Screen System, defined on ITU-R BT1119.1 */
+#define V4L2_SLICED_WSS_625             (0x4000)
+
+#define V4L2_SLICED_VBI_525             (V4L2_SLICED_CAPTION_525)
+#define V4L2_SLICED_VBI_625             (V4L2_SLICED_TELETEXT_B | V4L2_SLICED_VPS | V4L2_SLICED_WSS_625)
+
+struct v4l2_sliced_vbi_cap {
+	__u16   service_set;
+	/* service_lines[0][...] specifies lines 0-23 (1-23 used) of the first field
+	   service_lines[1][...] specifies lines 0-23 (1-23 used) of the second field
+				 (equals frame lines 313-336 for 625 line video
+				  standards, 263-286 for 525 line standards) */
+	__u16   service_lines[2][24];
+	enum v4l2_buf_type type;
+	__u32   reserved[3];    /* must be 0 */
+};
+
+struct v4l2_sliced_vbi_data {
+	__u32   id;
+	__u32   field;          /* 0: first field, 1: second field */
+	__u32   line;           /* 1-23 */
+	__u32   reserved;       /* must be 0 */
+	__u8    data[48];
+};
+
+/*
+ * Sliced VBI data inserted into MPEG Streams
+ */
+
+/*
+ * V4L2_MPEG_STREAM_VBI_FMT_IVTV:
+ *
+ * Structure of payload contained in an MPEG 2 Private Stream 1 PES Packet in an
+ * MPEG-2 Program Pack that contains V4L2_MPEG_STREAM_VBI_FMT_IVTV Sliced VBI
+ * data
+ *
+ * Note, the MPEG-2 Program Pack and Private Stream 1 PES packet header
+ * definitions are not included here.  See the MPEG-2 specifications for details
+ * on these headers.
+ */
+
+/* Line type IDs */
+#define V4L2_MPEG_VBI_IVTV_TELETEXT_B     (1)
+#define V4L2_MPEG_VBI_IVTV_CAPTION_525    (4)
+#define V4L2_MPEG_VBI_IVTV_WSS_625        (5)
+#define V4L2_MPEG_VBI_IVTV_VPS            (7)
+
+struct v4l2_mpeg_vbi_itv0_line {
+	__u8 id;	/* One of V4L2_MPEG_VBI_IVTV_* above */
+	__u8 data[42];	/* Sliced VBI data for the line */
+} __attribute__ ((packed));
+
+struct v4l2_mpeg_vbi_itv0 {
+	__le32 linemask[2]; /* Bitmasks of VBI service lines present */
+	struct v4l2_mpeg_vbi_itv0_line line[35];
+} __attribute__ ((packed));
+
+struct v4l2_mpeg_vbi_ITV0 {
+	struct v4l2_mpeg_vbi_itv0_line line[36];
+} __attribute__ ((packed));
+
+#define V4L2_MPEG_VBI_IVTV_MAGIC0	"itv0"
+#define V4L2_MPEG_VBI_IVTV_MAGIC1	"ITV0"
+
+struct v4l2_mpeg_vbi_fmt_ivtv {
+	__u8 magic[4];
+	union {
+		struct v4l2_mpeg_vbi_itv0 itv0;
+		struct v4l2_mpeg_vbi_ITV0 ITV0;
+	};
+} __attribute__ ((packed));
+
+/*
+ *	A G G R E G A T E   S T R U C T U R E S
+ */
+
+/*	Stream data format
+ */
+struct v4l2_format {
+	enum v4l2_buf_type type;
+	union {
+		struct v4l2_pix_format		pix;     /* V4L2_BUF_TYPE_VIDEO_CAPTURE */
+		struct v4l2_window		win;     /* V4L2_BUF_TYPE_VIDEO_OVERLAY */
+		struct v4l2_vbi_format		vbi;     /* V4L2_BUF_TYPE_VBI_CAPTURE */
+		struct v4l2_sliced_vbi_format	sliced;  /* V4L2_BUF_TYPE_SLICED_VBI_CAPTURE */
+		__u8	raw_data[200];                   /* user-defined */
+	} fmt;
+};
+
+
+/*	Stream type-dependent parameters
+ */
+struct v4l2_streamparm {
+	enum v4l2_buf_type type;
+	union {
+		struct v4l2_captureparm	capture;
+		struct v4l2_outputparm	output;
+		__u8	raw_data[200];  /* user-defined */
+	} parm;
+};
+
+/*
+ *	E V E N T S
+ */
+
+#define V4L2_EVENT_ALL				0
+#define V4L2_EVENT_VSYNC			1
+#define V4L2_EVENT_EOS				2
+#define V4L2_EVENT_PRIVATE_START		0x08000000
+
+/* Payload for V4L2_EVENT_VSYNC */
+struct v4l2_event_vsync {
+	/* Can be V4L2_FIELD_ANY, _NONE, _TOP or _BOTTOM */
+	__u8 field;
+} __attribute__ ((packed));
+
+struct v4l2_event {
+	__u32				type;
+	union {
+		struct v4l2_event_vsync vsync;
+		__u8			data[64];
+	} u;
+	__u32				pending;
+	__u32				sequence;
+	struct timespec			timestamp;
+	__u32				reserved[9];
+};
+
+struct v4l2_event_subscription {
+	__u32				type;
+	__u32				reserved[7];
+};
+
+/*
+ *	A D V A N C E D   D E B U G G I N G
+ *
+ *	NOTE: EXPERIMENTAL API, NEVER RELY ON THIS IN APPLICATIONS!
+ *	FOR DEBUGGING, TESTING AND INTERNAL USE ONLY!
+ */
+
+/* VIDIOC_DBG_G_REGISTER and VIDIOC_DBG_S_REGISTER */
+
+#define V4L2_CHIP_MATCH_HOST       0  /* Match against chip ID on host (0 for the host) */
+#define V4L2_CHIP_MATCH_I2C_DRIVER 1  /* Match against I2C driver name */
+#define V4L2_CHIP_MATCH_I2C_ADDR   2  /* Match against I2C 7-bit address */
+#define V4L2_CHIP_MATCH_AC97       3  /* Match against anciliary AC97 chip */
+
+struct v4l2_dbg_match {
+	__u32 type; /* Match type */
+	union {     /* Match this chip, meaning determined by type */
+		__u32 addr;
+		char name[32];
+	};
+} __attribute__ ((packed));
+
+struct v4l2_dbg_register {
+	struct v4l2_dbg_match match;
+	__u32 size;	/* register size in bytes */
+	__u64 reg;
+	__u64 val;
+} __attribute__ ((packed));
+
+/* VIDIOC_DBG_G_CHIP_IDENT */
+struct v4l2_dbg_chip_ident {
+	struct v4l2_dbg_match match;
+	__u32 ident;       /* chip identifier as specified in <media/v4l2-chip-ident.h> */
+	__u32 revision;    /* chip revision, chip specific */
+} __attribute__ ((packed));
+
+/*
+ *	I O C T L   C O D E S   F O R   V I D E O   D E V I C E S
+ *
+ */
+#define VIDIOC_QUERYCAP		 _IOR('V',  0, struct v4l2_capability)
+#define VIDIOC_RESERVED		  _IO('V',  1)
+#define VIDIOC_ENUM_FMT         _IOWR('V',  2, struct v4l2_fmtdesc)
+#define VIDIOC_G_FMT		_IOWR('V',  4, struct v4l2_format)
+#define VIDIOC_S_FMT		_IOWR('V',  5, struct v4l2_format)
+#define VIDIOC_REQBUFS		_IOWR('V',  8, struct v4l2_requestbuffers)
+#define VIDIOC_QUERYBUF		_IOWR('V',  9, struct v4l2_buffer)
+#define VIDIOC_G_FBUF		 _IOR('V', 10, struct v4l2_framebuffer)
+#define VIDIOC_S_FBUF		 _IOW('V', 11, struct v4l2_framebuffer)
+#define VIDIOC_OVERLAY		 _IOW('V', 14, int)
+#define VIDIOC_QBUF		_IOWR('V', 15, struct v4l2_buffer)
+#define VIDIOC_DQBUF		_IOWR('V', 17, struct v4l2_buffer)
+#define VIDIOC_STREAMON		 _IOW('V', 18, int)
+#define VIDIOC_STREAMOFF	 _IOW('V', 19, int)
+#define VIDIOC_G_PARM		_IOWR('V', 21, struct v4l2_streamparm)
+#define VIDIOC_S_PARM		_IOWR('V', 22, struct v4l2_streamparm)
+#define VIDIOC_G_STD		 _IOR('V', 23, v4l2_std_id)
+#define VIDIOC_S_STD		 _IOW('V', 24, v4l2_std_id)
+#define VIDIOC_ENUMSTD		_IOWR('V', 25, struct v4l2_standard)
+#define VIDIOC_ENUMINPUT	_IOWR('V', 26, struct v4l2_input)
+#define VIDIOC_G_CTRL		_IOWR('V', 27, struct v4l2_control)
+#define VIDIOC_S_CTRL		_IOWR('V', 28, struct v4l2_control)
+#define VIDIOC_G_TUNER		_IOWR('V', 29, struct v4l2_tuner)
+#define VIDIOC_S_TUNER		 _IOW('V', 30, struct v4l2_tuner)
+#define VIDIOC_G_AUDIO		 _IOR('V', 33, struct v4l2_audio)
+#define VIDIOC_S_AUDIO		 _IOW('V', 34, struct v4l2_audio)
+#define VIDIOC_QUERYCTRL	_IOWR('V', 36, struct v4l2_queryctrl)
+#define VIDIOC_QUERYMENU	_IOWR('V', 37, struct v4l2_querymenu)
+#define VIDIOC_G_INPUT		 _IOR('V', 38, int)
+#define VIDIOC_S_INPUT		_IOWR('V', 39, int)
+#define VIDIOC_G_OUTPUT		 _IOR('V', 46, int)
+#define VIDIOC_S_OUTPUT		_IOWR('V', 47, int)
+#define VIDIOC_ENUMOUTPUT	_IOWR('V', 48, struct v4l2_output)
+#define VIDIOC_G_AUDOUT		 _IOR('V', 49, struct v4l2_audioout)
+#define VIDIOC_S_AUDOUT		 _IOW('V', 50, struct v4l2_audioout)
+#define VIDIOC_G_MODULATOR	_IOWR('V', 54, struct v4l2_modulator)
+#define VIDIOC_S_MODULATOR	 _IOW('V', 55, struct v4l2_modulator)
+#define VIDIOC_G_FREQUENCY	_IOWR('V', 56, struct v4l2_frequency)
+#define VIDIOC_S_FREQUENCY	 _IOW('V', 57, struct v4l2_frequency)
+#define VIDIOC_CROPCAP		_IOWR('V', 58, struct v4l2_cropcap)
+#define VIDIOC_G_CROP		_IOWR('V', 59, struct v4l2_crop)
+#define VIDIOC_S_CROP		 _IOW('V', 60, struct v4l2_crop)
+#define VIDIOC_G_JPEGCOMP	 _IOR('V', 61, struct v4l2_jpegcompression)
+#define VIDIOC_S_JPEGCOMP	 _IOW('V', 62, struct v4l2_jpegcompression)
+#define VIDIOC_QUERYSTD      	 _IOR('V', 63, v4l2_std_id)
+#define VIDIOC_TRY_FMT      	_IOWR('V', 64, struct v4l2_format)
+#define VIDIOC_ENUMAUDIO	_IOWR('V', 65, struct v4l2_audio)
+#define VIDIOC_ENUMAUDOUT	_IOWR('V', 66, struct v4l2_audioout)
+#define VIDIOC_G_PRIORITY        _IOR('V', 67, enum v4l2_priority)
+#define VIDIOC_S_PRIORITY        _IOW('V', 68, enum v4l2_priority)
+#define VIDIOC_G_SLICED_VBI_CAP _IOWR('V', 69, struct v4l2_sliced_vbi_cap)
+#define VIDIOC_LOG_STATUS         _IO('V', 70)
+#define VIDIOC_G_EXT_CTRLS	_IOWR('V', 71, struct v4l2_ext_controls)
+#define VIDIOC_S_EXT_CTRLS	_IOWR('V', 72, struct v4l2_ext_controls)
+#define VIDIOC_TRY_EXT_CTRLS	_IOWR('V', 73, struct v4l2_ext_controls)
+#if 1
+#define VIDIOC_ENUM_FRAMESIZES	_IOWR('V', 74, struct v4l2_frmsizeenum)
+#define VIDIOC_ENUM_FRAMEINTERVALS _IOWR('V', 75, struct v4l2_frmivalenum)
+#define VIDIOC_G_ENC_INDEX       _IOR('V', 76, struct v4l2_enc_idx)
+#define VIDIOC_ENCODER_CMD      _IOWR('V', 77, struct v4l2_encoder_cmd)
+#define VIDIOC_TRY_ENCODER_CMD  _IOWR('V', 78, struct v4l2_encoder_cmd)
+#endif
+
+#if 1
+/* Experimental, meant for debugging, testing and internal use.
+   Only implemented if CONFIG_VIDEO_ADV_DEBUG is defined.
+   You must be root to use these ioctls. Never use these in applications! */
+#define	VIDIOC_DBG_S_REGISTER 	 _IOW('V', 79, struct v4l2_dbg_register)
+#define	VIDIOC_DBG_G_REGISTER 	_IOWR('V', 80, struct v4l2_dbg_register)
+
+/* Experimental, meant for debugging, testing and internal use.
+   Never use this ioctl in applications! */
+#define VIDIOC_DBG_G_CHIP_IDENT _IOWR('V', 81, struct v4l2_dbg_chip_ident)
+#endif
+
+#define VIDIOC_S_HW_FREQ_SEEK	 _IOW('V', 82, struct v4l2_hw_freq_seek)
+#define	VIDIOC_ENUM_DV_PRESETS	_IOWR('V', 83, struct v4l2_dv_enum_preset)
+#define	VIDIOC_S_DV_PRESET	_IOWR('V', 84, struct v4l2_dv_preset)
+#define	VIDIOC_G_DV_PRESET	_IOWR('V', 85, struct v4l2_dv_preset)
+#define	VIDIOC_QUERY_DV_PRESET	_IOR('V',  86, struct v4l2_dv_preset)
+#define	VIDIOC_S_DV_TIMINGS	_IOWR('V', 87, struct v4l2_dv_timings)
+#define	VIDIOC_G_DV_TIMINGS	_IOWR('V', 88, struct v4l2_dv_timings)
+#define	VIDIOC_DQEVENT		 _IOR('V', 89, struct v4l2_event)
+#define	VIDIOC_SUBSCRIBE_EVENT	 _IOW('V', 90, struct v4l2_event_subscription)
+#define	VIDIOC_UNSUBSCRIBE_EVENT _IOW('V', 91, struct v4l2_event_subscription)
+
+/* Reminder: when adding new ioctls please add support for them to
+   drivers/media/video/v4l2-compat-ioctl32.c as well! */
+
+#ifdef __OLD_VIDIOC_
+/* for compatibility, will go away some day */
+#define VIDIOC_OVERLAY_OLD     	_IOWR('V', 14, int)
+#define VIDIOC_S_PARM_OLD      	 _IOW('V', 22, struct v4l2_streamparm)
+#define VIDIOC_S_CTRL_OLD      	 _IOW('V', 28, struct v4l2_control)
+#define VIDIOC_G_AUDIO_OLD     	_IOWR('V', 33, struct v4l2_audio)
+#define VIDIOC_G_AUDOUT_OLD    	_IOWR('V', 49, struct v4l2_audioout)
+#define VIDIOC_CROPCAP_OLD     	 _IOR('V', 58, struct v4l2_cropcap)
+#endif
+
+#define BASE_VIDIOC_PRIVATE	192		/* 192-255 are private */
+
+#endif /* __LINUX_VIDEODEV2_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            #ifndef _LINUX_SECUREBITS_H
+#define _LINUX_SECUREBITS_H 1
+
+/* Each securesetting is implemented using two bits. One bit specifies
+   whether the setting is on or off. The other bit specify whether the
+   setting is locked or not. A setting which is locked cannot be
+   changed from user-level. */
+#define issecure_mask(X)	(1 << (X))
+
+#define SECUREBITS_DEFAULT 0x00000000
+
+/* When set UID 0 has no special privileges. When unset, we support
+   inheritance of root-permissions and suid-root executable under
+   compatibility mode. We raise the effective and inheritable bitmasks
+   *of the executable file* if the effective uid of the new process is
+   0. If the real uid is 0, we raise the effective (legacy) bit of the
+   executable file. */
+#define SECURE_NOROOT			0
+#define SECURE_NOROOT_LOCKED		1  /* make bit-0 immutable */
+
+#define SECBIT_NOROOT		(issecure_mask(SECURE_NOROOT))
+#define SECBIT_NOROOT_LOCKED	(issecure_mask(SECURE_NOROOT_LOCKED))
+
+/* When set, setuid to/from uid 0 does not trigger capability-"fixup".
+   When unset, to provide compatiblility with old programs relying on
+   set*uid to gain/lose privilege, transitions to/from uid 0 cause
+   capabilities to be gained/lost. */
+#define SECURE_NO_SETUID_FIXUP		2
+#define SECURE_NO_SETUID_FIXUP_LOCKED	3  /* make bit-2 immutable */
+
+#define SECBIT_NO_SETUID_FIXUP	(issecure_mask(SECURE_NO_SETUID_FIXUP))
+#define SECBIT_NO_SETUID_FIXUP_LOCKED \
+			(issecure_mask(SECURE_NO_SETUID_FIXUP_LOCKED))
+
+/* When set, a process can retain its capabilities even after
+   transitioning to a non-root user (the set-uid fixup suppressed by
+   bit 2). Bit-4 is cleared when a process calls exec(); setting both
+   bit 4 and 5 will create a barrier through exec that no exec()'d
+   child can use this feature again. */
+#define SECURE_KEEP_CAPS		4
+#define SECURE_KEEP_CAPS_LOCKED		5  /* make bit-4 immutable */
+
+#define SECBIT_KEEP_CAPS	(issecure_mask(SECURE_KEEP_CAPS))
+#define SECBIT_KEEP_CAPS_LOCKED (issecure_mask(SECURE_KEEP_CAPS_LOCKED))
+
+#define SECURE_ALL_BITS		(issecure_mask(SECURE_NOROOT) | \
+				 issecure_mask(SECURE_NO_SETUID_FIXUP) | \
+				 issecure_mask(SECURE_KEEP_CAPS))
+#define SECURE_ALL_LOCKS	(SECURE_ALL_BITS << 1)
+
+#endif /* !_LINUX_SECUREBITS_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 #ifndef _LINUX_UN_H
+#define _LINUX_UN_H
+
+#define UNIX_PATH_MAX	108
+
+struct sockaddr_un {
+	sa_family_t sun_family;	/* AF_UNIX */
+	char sun_path[UNIX_PATH_MAX];	/* pathname */
+};
+
+#endif /* _LINUX_UN_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     /* $Id: b1lli.h,v 1.8.8.3 2001/09/23 22:25:05 kai Exp $
+ *
+ * ISDN lowlevel-module for AVM B1-card.
+ *
+ * Copyright 1996 by Carsten Paeth (calle@calle.in-berlin.de)
+ *
+ * This software may be used and distributed according to the terms
+ * of the GNU General Public License, incorporated herein by reference.
+ *
+ */
+
+#ifndef _B1LLI_H_
+#define _B1LLI_H_
+/*
+ * struct for loading t4 file 
+ */
+typedef struct avmb1_t4file {
+	int len;
+	unsigned char *data;
+} avmb1_t4file;
+
+typedef struct avmb1_loaddef {
+	int contr;
+	avmb1_t4file t4file;
+} avmb1_loaddef;
+
+typedef struct avmb1_loadandconfigdef {
+	int contr;
+	avmb1_t4file t4file;
+        avmb1_t4file t4config; 
+} avmb1_loadandconfigdef;
+
+typedef struct avmb1_resetdef {
+	int contr;
+} avmb1_resetdef;
+
+typedef struct avmb1_getdef {
+	int contr;
+	int cardtype;
+	int cardstate;
+} avmb1_getdef;
+
+/*
+ * struct for adding new cards 
+ */
+typedef struct avmb1_carddef {
+	int port;
+	int irq;
+} avmb1_carddef;
+
+#define AVM_CARDTYPE_B1		0
+#define AVM_CARDTYPE_T1		1
+#define AVM_CARDTYPE_M1		2
+#define AVM_CARDTYPE_M2		3
+
+typedef struct avmb1_extcarddef {
+	int port;
+	int irq;
+        int cardtype;
+        int cardnr;  /* for HEMA/T1 */
+} avmb1_extcarddef;
+
+#define	AVMB1_LOAD		0	/* load image to card */
+#define AVMB1_ADDCARD		1	/* add a new card - OBSOLETE */
+#define AVMB1_RESETCARD		2	/* reset a card */
+#define	AVMB1_LOAD_AND_CONFIG	3	/* load image and config to card */
+#define	AVMB1_ADDCARD_WITH_TYPE	4	/* add a new card, with cardtype */
+#define AVMB1_GET_CARDINFO	5	/* get cardtype */
+#define AVMB1_REMOVECARD	6	/* remove a card - OBSOLETE */
+
+#define	AVMB1_REGISTERCARD_IS_OBSOLETE
+
+#endif				/* _B1LLI_H_ */
+                                                                                                                                                                                                                                                                                                                                                                                                          /*
+ * Userspace API for hardware time stamping of network packets
+ *
+ * Copyright (C) 2008,2009 Intel Corporation
+ * Author: Patrick Ohly <patrick.ohly@intel.com>
+ *
+ */
+
+#ifndef _NET_TIMESTAMPING_H
+#define _NET_TIMESTAMPING_H
+
+#include <linux/socket.h>   /* for SO_TIMESTAMPING */
+
+/* SO_TIMESTAMPING gets an integer bit field comprised of these values */
+enum {
+	SOF_TIMESTAMPING_TX_HARDWARE = (1<<0),
+	SOF_TIMESTAMPING_TX_SOFTWARE = (1<<1),
+	SOF_TIMESTAMPING_RX_HARDWARE = (1<<2),
+	SOF_TIMESTAMPING_RX_SOFTWARE = (1<<3),
+	SOF_TIMESTAMPING_SOFTWARE = (1<<4),
+	SOF_TIMESTAMPING_SYS_HARDWARE = (1<<5),
+	SOF_TIMESTAMPING_RAW_HARDWARE = (1<<6),
+	SOF_TIMESTAMPING_MASK =
+	(SOF_TIMESTAMPING_RAW_HARDWARE - 1) |
+	SOF_TIMESTAMPING_RAW_HARDWARE
+};
+
+/**
+ * struct hwtstamp_config - %SIOCSHWTSTAMP parameter
+ *
+ * @flags:	no flags defined right now, must be zero
+ * @tx_type:	one of HWTSTAMP_TX_*
+ * @rx_type:	one of one of HWTSTAMP_FILTER_*
+ *
+ * %SIOCSHWTSTAMP expects a &struct ifreq with a ifr_data pointer to
+ * this structure. dev_ifsioc() in the kernel takes care of the
+ * translation between 32 bit userspace and 64 bit kernel. The
+ * structure is intentionally chosen so that it has the same layout on
+ * 32 and 64 bit systems, don't break this!
+ */
+struct hwtstamp_config {
+	int flags;
+	int tx_type;
+	int rx_filter;
+};
+
+/* possible values for hwtstamp_config->tx_type */
+enum {
+	/*
+	 * No outgoing packet will need hardware time stamping;
+	 * should a packet arrive which asks for it, no hardware
+	 * time stamping will be done.
+	 */
+	HWTSTAMP_TX_OFF,
+
+	/*
+	 * Enables hardware time stamping for outgoing packets;
+	 * the sender of the packet decides which are to be
+	 * time stamped by setting %SOF_TIMESTAMPING_TX_SOFTWARE
+	 * before sending the packet.
+	 */
+	HWTSTAMP_TX_ON,
+};
+
+/* possible values for hwtstamp_config->rx_filter */
+enum {
+	/* time stamp no incoming packet at all */
+	HWTSTAMP_FILTER_NONE,
+
+	/* time stamp any incoming packet */
+	HWTSTAMP_FILTER_ALL,
+
+	/* return value: time stamp all packets requested plus some others */
+	HWTSTAMP_FILTER_SOME,
+
+	/* PTP v1, UDP, any kind of event packet */
+	HWTSTAMP_FILTER_PTP_V1_L4_EVENT,
+	/* PTP v1, UDP, Sync packet */
+	HWTSTAMP_FILTER_PTP_V1_L4_SYNC,
+	/* PTP v1, UDP, Delay_req packet */
+	HWTSTAMP_FILTER_PTP_V1_L4_DELAY_REQ,
+	/* PTP v2, UDP, any kind of event packet */
+	HWTSTAMP_FILTER_PTP_V2_L4_EVENT,
+	/* PTP v2, UDP, Sync packet */
+	HWTSTAMP_FILTER_PTP_V2_L4_SYNC,
+	/* PTP v2, UDP, Delay_req packet */
+	HWTSTAMP_FILTER_PTP_V2_L4_DELAY_REQ,
+
+	/* 802.AS1, Ethernet, any kind of event packet */
+	HWTSTAMP_FILTER_PTP_V2_L2_EVENT,
+	/* 802.AS1, Ethernet, Sync packet */
+	HWTSTAMP_FILTER_PTP_V2_L2_SYNC,
+	/* 802.AS1, Ethernet, Delay_req packet */
+	HWTSTAMP_FILTER_PTP_V2_L2_DELAY_REQ,
+
+	/* PTP v2/802.AS1, any layer, any kind of event packet */
+	HWTSTAMP_FILTER_PTP_V2_EVENT,
+	/* PTP v2/802.AS1, any layer, Sync packet */
+	HWTSTAMP_FILTER_PTP_V2_SYNC,
+	/* PTP v2/802.AS1, any layer, Delay_req packet */
+	HWTSTAMP_FILTER_PTP_V2_DELAY_REQ,
+};
+
+#endif /* _NET_TIMESTAMPING_H */
+                                      /* 
+ * linux/mtio.h header file for Linux. Written by H. Bergman
+ *
+ * Modified for special ioctls provided by zftape in September 1997
+ * by C.-J. Heine.
+ */
+
+#ifndef _LINUX_MTIO_H
+#define _LINUX_MTIO_H
+
+#include <linux/types.h>
+#include <linux/ioctl.h>
+
+/*
+ * Structures and definitions for mag tape io control commands
+ */
+
+/* structure for MTIOCTOP - mag tape op command */
+struct	mtop {
+	short	mt_op;		/* operations defined below */
+	int	mt_count;	/* how many of them */
+};
+
+/* Magnetic Tape operations [Not all operations supported by all drivers]: */
+#define MTRESET 0	/* +reset drive in case of problems */
+#define MTFSF	1	/* forward space over FileMark,
+			 * position at first record of next file 
+			 */
+#define MTBSF	2	/* backward space FileMark (position before FM) */
+#define MTFSR	3	/* forward space record */
+#define MTBSR	4	/* backward space record */
+#define MTWEOF	5	/* write an end-of-file record (mark) */
+#define MTREW	6	/* rewind */
+#define MTOFFL	7	/* rewind and put the drive offline (eject?) */
+#define MTNOP	8	/* no op, set status only (read with MTIOCGET) */
+#define MTRETEN 9	/* retension tape */
+#define MTBSFM	10	/* +backward space FileMark, position at FM */
+#define MTFSFM  11	/* +forward space FileMark, position at FM */
+#define MTEOM	12	/* goto end of recorded media (for appending files).
+			 * MTEOM positions after the last FM, ready for
+			 * appending another file.
+			 */
+#define MTERASE 13	/* erase tape -- be careful! */
+
+#define MTRAS1  14	/* run self test 1 (nondestructive) */
+#define MTRAS2	15	/* run self test 2 (destructive) */
+#define MTRAS3  16	/* reserved for self test 3 */
+
+#define MTSETBLK 20	/* set block length (SCSI) */
+#define MTSETDENSITY 21	/* set tape density (SCSI) */
+#define MTSEEK	22	/* seek to block (Tandberg, etc.) */
+#define MTTELL	23	/* tell block (Tandberg, etc.) */
+#define MTSETDRVBUFFER 24 /* set the drive buffering according to SCSI-2 */
+			/* ordinary buffered operation with code 1 */
+#define MTFSS	25	/* space forward over setmarks */
+#define MTBSS	26	/* space backward over setmarks */
+#define MTWSM	27	/* write setmarks */
+
+#define MTLOCK  28	/* lock the drive door */
+#define MTUNLOCK 29	/* unlock the drive door */
+#define MTLOAD  30	/* execute the SCSI load command */
+#define MTUNLOAD 31	/* execute the SCSI unload command */
+#define MTCOMPRESSION 32/* control compression with SCSI mode page 15 */
+#define MTSETPART 33	/* Change the active tape partition */
+#define MTMKPART  34	/* Format the tape with one or two partitions */
+#define MTWEOFI	35	/* write an end-of-file record (mark) in immediate mode */
+
+/* structure for MTIOCGET - mag tape get status command */
+
+struct	mtget {
+	long	mt_type;	/* type of magtape device */
+	long	mt_resid;	/* residual count: (not sure)
+				 *	number of bytes ignored, or
+				 *	number of files not skipped, or
+				 *	number of records not skipped.
+				 */
+	/* the following registers are device dependent */
+	long	mt_dsreg;	/* status register */
+	long	mt_gstat;	/* generic (device independent) status */
+	long	mt_erreg;	/* error register */
+	/* The next two fields are not always used */
+	__kernel_daddr_t mt_fileno;	/* number of current file on tape */
+	__kernel_daddr_t mt_blkno;	/* current block number */
+};
+
+
+
+/*
+ * Constants for mt_type. Not all of these are supported,
+ * and these are not all of the ones that are supported.
+ */
+#define MT_ISUNKNOWN		0x01
+#define MT_ISQIC02		0x02	/* Generic QIC-02 tape streamer */
+#define MT_ISWT5150		0x03	/* Wangtek 5150EQ, QIC-150, QIC-02 */
+#define MT_ISARCHIVE_5945L2	0x04	/* Archive 5945L-2, QIC-24, QIC-02? */
+#define MT_ISCMSJ500		0x05	/* CMS Jumbo 500 (QIC-02?) */
+#define MT_ISTDC3610		0x06	/* Tandberg 6310, QIC-24 */
+#define MT_ISARCHIVE_VP60I	0x07	/* Archive VP60i, QIC-02 */
+#define MT_ISARCHIVE_2150L	0x08	/* Archive Viper 2150L */
+#define MT_ISARCHIVE_2060L	0x09	/* Archive Viper 2060L */
+#define MT_ISARCHIVESC499	0x0A	/* Archive SC-499 QIC-36 controller */
+#define MT_ISQIC02_ALL_FEATURES	0x0F	/* Generic QIC-02 with all features */
+#define MT_ISWT5099EEN24	0x11	/* Wangtek 5099-een24, 60MB, QIC-24 */
+#define MT_ISTEAC_MT2ST		0x12	/* Teac MT-2ST 155mb drive, Teac DC-1 card (Wangtek type) */
+#define MT_ISEVEREX_FT40A	0x32	/* Everex FT40A (QIC-40) */
+#define MT_ISDDS1		0x51	/* DDS device without partitions */
+#define MT_ISDDS2		0x52	/* DDS device with partitions */
+#define MT_ISONSTREAM_SC        0x61   /* OnStream SCSI tape drives (SC-x0)
+					  and SCSI emulated (DI, DP, USB) */
+#define MT_ISSCSI1		0x71	/* Generic ANSI SCSI-1 tape unit */
+#define MT_ISSCSI2		0x72	/* Generic ANSI SCSI-2 tape unit */
+
+/* QIC-40/80/3010/3020 ftape supported drives.
+ * 20bit vendor ID + 0x800000 (see ftape-vendors.h)
+ */
+#define MT_ISFTAPE_UNKNOWN	0x800000 /* obsolete */
+#define MT_ISFTAPE_FLAG	0x800000
+
+
+/* structure for MTIOCPOS - mag tape get position command */
+
+struct	mtpos {
+	long 	mt_blkno;	/* current block number */
+};
+
+
+/* mag tape io control commands */
+#define	MTIOCTOP	_IOW('m', 1, struct mtop)	/* do a mag tape op */
+#define	MTIOCGET	_IOR('m', 2, struct mtget)	/* get tape status */
+#define	MTIOCPOS	_IOR('m', 3, struct mtpos)	/* get tape position */
+
+
+/* Generic Mag Tape (device independent) status macros for examining
+ * mt_gstat -- HP-UX compatible.
+ * There is room for more generic status bits here, but I don't
+ * know which of them are reserved. At least three or so should
+ * be added to make this really useful.
+ */
+#define GMT_EOF(x)              ((x) & 0x80000000)
+#define GMT_BOT(x)              ((x) & 0x40000000)
+#define GMT_EOT(x)              ((x) & 0x20000000)
+#define GMT_SM(x)               ((x) & 0x10000000)  /* DDS setmark */
+#define GMT_EOD(x)              ((x) & 0x08000000)  /* DDS EOD */
+#define GMT_WR_PROT(x)          ((x) & 0x04000000)
+/* #define GMT_ ? 		((x) & 0x02000000) */
+#define GMT_ONLINE(x)           ((x) & 0x01000000)
+#define GMT_D_6250(x)           ((x) & 0x00800000)
+#define GMT_D_1600(x)           ((x) & 0x00400000)
+#define GMT_D_800(x)            ((x) & 0x00200000)
+/* #define GMT_ ? 		((x) & 0x00100000) */
+/* #define GMT_ ? 		((x) & 0x00080000) */
+#define GMT_DR_OPEN(x)          ((x) & 0x00040000)  /* door open (no tape) */
+/* #define GMT_ ? 		((x) & 0x00020000) */
+#define GMT_IM_REP_EN(x)        ((x) & 0x00010000)  /* immediate report mode */
+#define GMT_CLN(x)              ((x) & 0x00008000)  /* cleaning requested */
+/* 15 generic status bits unused */
+
+
+/* SCSI-tape specific definitions */
+/* Bitfield shifts in the status  */
+#define MT_ST_BLKSIZE_SHIFT	0
+#define MT_ST_BLKSIZE_MASK	0xffffff
+#define MT_ST_DENSITY_SHIFT	24
+#define MT_ST_DENSITY_MASK	0xff000000
+
+#define MT_ST_SOFTERR_SHIFT	0
+#define MT_ST_SOFTERR_MASK	0xffff
+
+/* Bitfields for the MTSETDRVBUFFER ioctl */
+#define MT_ST_OPTIONS		0xf0000000
+#define MT_ST_BOOLEANS		0x10000000
+#define MT_ST_SETBOOLEANS	0x30000000
+#define MT_ST_CLEARBOOLEANS	0x40000000
+#define MT_ST_WRITE_THRESHOLD	0x20000000
+#define MT_ST_DEF_BLKSIZE	0x50000000
+#define MT_ST_DEF_OPTIONS	0x60000000
+#define MT_ST_TIMEOUTS		0x70000000
+#define MT_ST_SET_TIMEOUT	(MT_ST_TIMEOUTS | 0x000000)
+#define MT_ST_SET_LONG_TIMEOUT	(MT_ST_TIMEOUTS | 0x100000)
+#define MT_ST_SET_CLN		0x80000000
+
+#define MT_ST_BUFFER_WRITES	0x1
+#define MT_ST_ASYNC_WRITES	0x2
+#define MT_ST_READ_AHEAD	0x4
+#define MT_ST_DEBUGGING		0x8
+#define MT_ST_TWO_FM		0x10
+#define MT_ST_FAST_MTEOM	0x20
+#define MT_ST_AUTO_LOCK		0x40
+#define MT_ST_DEF_WRITES	0x80
+#define MT_ST_CAN_BSR		0x100
+#define MT_ST_NO_BLKLIMS	0x200
+#define MT_ST_CAN_PARTITIONS    0x400
+#define MT_ST_SCSI2LOGICAL      0x800
+#define MT_ST_SYSV              0x1000
+#define MT_ST_NOWAIT            0x2000
+#define MT_ST_SILI		0x4000
+
+/* The mode parameters to be controlled. Parameter chosen with bits 20-28 */
+#define MT_ST_CLEAR_DEFAULT	0xfffff
+#define MT_ST_DEF_DENSITY	(MT_ST_DEF_OPTIONS | 0x100000)
+#define MT_ST_DEF_COMPRESSION	(MT_ST_DEF_OPTIONS | 0x200000)
+#define MT_ST_DEF_DRVBUFFER	(MT_ST_DEF_OPTIONS | 0x300000)
+
+/* The offset for the arguments for the special HP changer load command. */
+#define MT_ST_HPLOADER_OFFSET 10000
+
+#endif /* _LINUX_MTIO_H */
+                                                                                                                7+   nfs4.h  8+   hiddev.h9+   	netfilter   |+   serial_core.h   }+   gen_stats.h ~+   unistd.h+   if_phonet.h Ä+   const.h Å+   fdreg.h Ç+   blk_types.h É+   icmp.h  Ñ+   
+keyboard.h  Ö+   
+isdn_ppp.h  Ü+   pci.h   á+   tcp.h   à+   virtio_ring.h   â+   cramfs_fs.h ä+   rtnetlink.h ã+   omapfb.hå+   ncp_mount.h ç+   	tc_ematch   î+   gigaset_dev.h   ï+   rfkill.hñ+   sysctl.hó+   	i2o-dev.h   ò+   	termios.h   ô+   shm.h   ö+   futex.h õ+   atmsvc.hú+   	if_frad.h   ù+   
+if_strip.h  û+   meye.h  ü+   	version.h   †+   rtc.h   °+   netdevice.h ¢+   atm_nicstar.h   £+   isdnß+   	if_slip.h   ®+   dccp.h  ©+   
+resource.h  ™+   
+if_hippi.h  ´+   ipv6_route.h¨+   socket.h≠+   dlm_netlink.h   Æ+   ultrasound.hØ+   swab.h  ∞+   if_pppol2tp.h   ±+   
+msdos_fs.h  ≤+   atmlec.h≥+   tty.h   ¥+   if_addrlabel.h  µ+   errno.h ∂+   utime.h ∑+   	toshiba.h   ø+   if_tun.h/*
+ *  include/linux/nfs4.h
+ *
+ *  NFSv4 protocol definitions.
+ *
+ *  Copyright (c) 2002 The Regents of the University of Michigan.
+ *  All rights reserved.
+ *
+ *  Kendrick Smith <kmsmith@umich.edu>
+ *  Andy Adamson   <andros@umich.edu>
+ */
+
+#ifndef _LINUX_NFS4_H
+#define _LINUX_NFS4_H
+
+#include <linux/types.h>
+
+#define NFS4_BITMAP_SIZE	2
+#define NFS4_VERIFIER_SIZE	8
+#define NFS4_STATEID_SEQID_SIZE 4
+#define NFS4_STATEID_OTHER_SIZE 12
+#define NFS4_STATEID_SIZE	(NFS4_STATEID_SEQID_SIZE + NFS4_STATEID_OTHER_SIZE)
+#define NFS4_FHSIZE		128
+#define NFS4_MAXPATHLEN		PATH_MAX
+#define NFS4_MAXNAMLEN		NAME_MAX
+#define NFS4_OPAQUE_LIMIT	1024
+#define NFS4_MAX_SESSIONID_LEN	16
+
+#define NFS4_ACCESS_READ        0x0001
+#define NFS4_ACCESS_LOOKUP      0x0002
+#define NFS4_ACCESS_MODIFY      0x0004
+#define NFS4_ACCESS_EXTEND      0x0008
+#define NFS4_ACCESS_DELETE      0x0010
+#define NFS4_ACCESS_EXECUTE     0x0020
+
+#define NFS4_FH_PERSISTENT		0x0000
+#define NFS4_FH_NOEXPIRE_WITH_OPEN	0x0001
+#define NFS4_FH_VOLATILE_ANY		0x0002
+#define NFS4_FH_VOL_MIGRATION		0x0004
+#define NFS4_FH_VOL_RENAME		0x0008
+
+#define NFS4_OPEN_RESULT_CONFIRM 0x0002
+#define NFS4_OPEN_RESULT_LOCKTYPE_POSIX 0x0004
+
+#define NFS4_SHARE_ACCESS_MASK	0x000F
+#define NFS4_SHARE_ACCESS_READ	0x0001
+#define NFS4_SHARE_ACCESS_WRITE	0x0002
+#define NFS4_SHARE_ACCESS_BOTH	0x0003
+#define NFS4_SHARE_DENY_READ	0x0001
+#define NFS4_SHARE_DENY_WRITE	0x0002
+#define NFS4_SHARE_DENY_BOTH	0x0003
+
+/* nfs41 */
+#define NFS4_SHARE_WANT_MASK		0xFF00
+#define NFS4_SHARE_WANT_NO_PREFERENCE	0x0000
+#define NFS4_SHARE_WANT_READ_DELEG	0x0100
+#define NFS4_SHARE_WANT_WRITE_DELEG	0x0200
+#define NFS4_SHARE_WANT_ANY_DELEG	0x0300
+#define NFS4_SHARE_WANT_NO_DELEG	0x0400
+#define NFS4_SHARE_WANT_CANCEL		0x0500
+
+#define NFS4_SHARE_WHEN_MASK		0xF0000
+#define NFS4_SHARE_SIGNAL_DELEG_WHEN_RESRC_AVAIL	0x10000
+#define NFS4_SHARE_PUSH_DELEG_WHEN_UNCONTENDED		0x20000
+
+#define NFS4_CDFC4_FORE	0x1
+#define NFS4_CDFC4_BACK 0x2
+
+#define NFS4_SET_TO_SERVER_TIME	0
+#define NFS4_SET_TO_CLIENT_TIME	1
+
+#define NFS4_ACE_ACCESS_ALLOWED_ACE_TYPE 0
+#define NFS4_ACE_ACCESS_DENIED_ACE_TYPE  1
+#define NFS4_ACE_SYSTEM_AUDIT_ACE_TYPE   2
+#define NFS4_ACE_SYSTEM_ALARM_ACE_TYPE   3
+
+#define ACL4_SUPPORT_ALLOW_ACL 0x01
+#define ACL4_SUPPORT_DENY_ACL  0x02
+#define ACL4_SUPPORT_AUDIT_ACL 0x04
+#define ACL4_SUPPORT_ALARM_ACL 0x08
+
+#define NFS4_ACE_FILE_INHERIT_ACE             0x00000001
+#define NFS4_ACE_DIRECTORY_INHERIT_ACE        0x00000002
+#define NFS4_ACE_NO_PROPAGATE_INHERIT_ACE     0x00000004
+#define NFS4_ACE_INHERIT_ONLY_ACE             0x00000008
+#define NFS4_ACE_SUCCESSFUL_ACCESS_ACE_FLAG   0x00000010
+#define NFS4_ACE_FAILED_ACCESS_ACE_FLAG       0x00000020
+#define NFS4_ACE_IDENTIFIER_GROUP             0x00000040
+
+#define NFS4_ACE_READ_DATA                    0x00000001
+#define NFS4_ACE_LIST_DIRECTORY               0x00000001
+#define NFS4_ACE_WRITE_DATA                   0x00000002
+#define NFS4_ACE_ADD_FILE                     0x00000002
+#define NFS4_ACE_APPEND_DATA                  0x00000004
+#define NFS4_ACE_ADD_SUBDIRECTORY             0x00000004
+#define NFS4_ACE_READ_NAMED_ATTRS             0x00000008
+#define NFS4_ACE_WRITE_NAMED_ATTRS            0x00000010
+#define NFS4_ACE_EXECUTE                      0x00000020
+#define NFS4_ACE_DELETE_CHILD                 0x00000040
+#define NFS4_ACE_READ_ATTRIBUTES              0x00000080
+#define NFS4_ACE_WRITE_ATTRIBUTES             0x00000100
+#define NFS4_ACE_DELETE                       0x00010000
+#define NFS4_ACE_READ_ACL                     0x00020000
+#define NFS4_ACE_WRITE_ACL                    0x00040000
+#define NFS4_ACE_WRITE_OWNER                  0x00080000
+#define NFS4_ACE_SYNCHRONIZE                  0x00100000
+#define NFS4_ACE_GENERIC_READ                 0x00120081
+#define NFS4_ACE_GENERIC_WRITE                0x00160106
+#define NFS4_ACE_GENERIC_EXECUTE              0x001200A0
+#define NFS4_ACE_MASK_ALL                     0x001F01FF
+
+#define EXCHGID4_FLAG_SUPP_MOVED_REFER		0x00000001
+#define EXCHGID4_FLAG_SUPP_MOVED_MIGR		0x00000002
+#define EXCHGID4_FLAG_USE_NON_PNFS		0x00010000
+#define EXCHGID4_FLAG_USE_PNFS_MDS		0x00020000
+#define EXCHGID4_FLAG_USE_PNFS_DS		0x00040000
+#define EXCHGID4_FLAG_UPD_CONFIRMED_REC_A	0x40000000
+#define EXCHGID4_FLAG_CONFIRMED_R		0x80000000
+/*
+ * Since the validity of these bits depends on whether
+ * they're set in the argument or response, have separate
+ * invalid flag masks for arg (_A) and resp (_R).
+ */
+#define EXCHGID4_FLAG_MASK_A			0x40070003
+#define EXCHGID4_FLAG_MASK_R			0x80070003
+
+#define SEQ4_STATUS_CB_PATH_DOWN		0x00000001
+#define SEQ4_STATUS_CB_GSS_CONTEXTS_EXPIRING	0x00000002
+#define SEQ4_STATUS_CB_GSS_CONTEXTS_EXPIRED	0x00000004
+#define SEQ4_STATUS_EXPIRED_ALL_STATE_REVOKED	0x00000008
+#define SEQ4_STATUS_EXPIRED_SOME_STATE_REVOKED	0x00000010
+#define SEQ4_STATUS_ADMIN_STATE_REVOKED		0x00000020
+#define SEQ4_STATUS_RECALLABLE_STATE_REVOKED	0x00000040
+#define SEQ4_STATUS_LEASE_MOVED			0x00000080
+#define SEQ4_STATUS_RESTART_RECLAIM_NEEDED	0x00000100
+#define SEQ4_STATUS_CB_PATH_DOWN_SESSION	0x00000200
+#define SEQ4_STATUS_BACKCHANNEL_FAULT		0x00000400
+
+#define NFS4_MAX_UINT64	(~(u64)0)
+
+/* An NFS4 sessions server must support at least NFS4_MAX_OPS operations.
+ * If a compound requires more operations, adjust NFS4_MAX_OPS accordingly.
+ */
+#define NFS4_MAX_OPS   8
+
+/* Our NFS4 client back channel server only wants the cb_sequene and the
+ * actual operation per compound
+ */
+#define NFS4_MAX_BACK_CHANNEL_OPS 2
+
+enum nfs4_acl_whotype {
+	NFS4_ACL_WHO_NAMED = 0,
+	NFS4_ACL_WHO_OWNER,
+	NFS4_ACL_WHO_GROUP,
+	NFS4_ACL_WHO_EVERYONE,
+};
+
+#endif
+
+/*
+ * Local variables:
+ *  c-basic-offset: 8
+ * End:
+ */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

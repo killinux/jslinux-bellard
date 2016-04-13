@@ -1,0 +1,1661 @@
+t also affects the operational
+     behavior of the C library.  Thus, _extreme_ care is needed in
+     using this option.
+
+     Library code that is intended to operate with more than one UNIX
+     standard must test, set and restore the variable
+     __XPG4_EXTENDED_MASK as appropriate.  Most GNU software doesn't
+     provide this capability.
+
+`-nolibdld'
+     Suppress the generation of link options to search libdld.sl when
+     the `-static' option is specified on HP-UX 10 and later.
+
+`-static'
+     The HP-UX implementation of setlocale in libc has a dependency on
+     libdld.sl.  There isn't an archive version of libdld.sl.  Thus,
+     when the `-static' option is specified, special link options are
+     needed to resolve this dependency.
+
+     On HP-UX 10 and later, the GCC driver adds the necessary options to
+     link with libdld.sl when the `-static' option is specified.  This
+     causes the resulting binary to be dynamic.  On the 64-bit port,
+     the linkers generate dynamic binaries by default in any case.  The
+     `-nolibdld' option can be used to prevent the GCC driver from
+     adding these link options.
+
+`-threads'
+     Add support for multithreading with the "dce thread" library under
+     HP-UX.  This option sets flags for both the preprocessor and
+     linker.
+
+
+File: gcc.info,  Node: i386 and x86-64 Options,  Next: IA-64 Options,  Prev: HPPA Options,  Up: Submodel Options
+
+3.17.14 Intel 386 and AMD x86-64 Options
+----------------------------------------
+
+These `-m' options are defined for the i386 and x86-64 family of
+computers:
+
+`-mtune=CPU-TYPE'
+     Tune to CPU-TYPE everything applicable about the generated code,
+     except for the ABI and the set of available instructions.  The
+     choices for CPU-TYPE are:
+    _generic_
+          Produce code optimized for the most common IA32/AMD64/EM64T
+          processors.  If you know the CPU on which your code will run,
+          then you should use the corresponding `-mtune' option instead
+          of `-mtune=generic'.  But, if you do not know exactly what
+          CPU users of your application will have, then you should use
+          this option.
+
+          As new processors are deployed in the marketplace, the
+          behavior of this option will change.  Therefore, if you
+          upgrade to a newer version of GCC, the code generated option
+          will change to reflect the processors that were most common
+          when that version of GCC was released.
+
+          There is no `-march=generic' option because `-march'
+          indicates the instruction set the compiler can use, and there
+          is no generic instruction set applicable to all processors.
+          In contrast, `-mtune' indicates the processor (or, in this
+          case, collection of processors) for which the code is
+          optimized.
+
+    _native_
+          This selects the CPU to tune for at compilation time by
+          determining the processor type of the compiling machine.
+          Using `-mtune=native' will produce code optimized for the
+          local machine under the constraints of the selected
+          instruction set.  Using `-march=native' will enable all
+          instruction subsets supported by the local machine (hence the
+          result might not run on different machines).
+
+    _i386_
+          Original Intel's i386 CPU.
+
+    _i486_
+          Intel's i486 CPU.  (No scheduling is implemented for this
+          chip.)
+
+    _i586, pentium_
+          Intel Pentium CPU with no MMX support.
+
+    _pentium-mmx_
+          Intel PentiumMMX CPU based on Pentium core with MMX
+          instruction set support.
+
+    _pentiumpro_
+          Intel PentiumPro CPU.
+
+    _i686_
+          Same as `generic', but when used as `march' option, PentiumPro
+          instruction set will be used, so the code will run on all
+          i686 family chips.
+
+    _pentium2_
+          Intel Pentium2 CPU based on PentiumPro core with MMX
+          instruction set support.
+
+    _pentium3, pentium3m_
+          Intel Pentium3 CPU based on PentiumPro core with MMX and SSE
+          instruction set support.
+
+    _pentium-m_
+          Low power version of Intel Pentium3 CPU with MMX, SSE and
+          SSE2 instruction set support.  Used by Centrino notebooks.
+
+    _pentium4, pentium4m_
+          Intel Pentium4 CPU with MMX, SSE and SSE2 instruction set
+          support.
+
+    _prescott_
+          Improved version of Intel Pentium4 CPU with MMX, SSE, SSE2
+          and SSE3 instruction set support.
+
+    _nocona_
+          Improved version of Intel Pentium4 CPU with 64-bit
+          extensions, MMX, SSE, SSE2 and SSE3 instruction set support.
+
+    _core2_
+          Intel Core2 CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3
+          and SSSE3 instruction set support.
+
+    _k6_
+          AMD K6 CPU with MMX instruction set support.
+
+    _k6-2, k6-3_
+          Improved versions of AMD K6 CPU with MMX and 3dNOW!
+          instruction set support.
+
+    _athlon, athlon-tbird_
+          AMD Athlon CPU with MMX, 3dNOW!, enhanced 3dNOW! and SSE
+          prefetch instructions support.
+
+    _athlon-4, athlon-xp, athlon-mp_
+          Improved AMD Athlon CPU with MMX, 3dNOW!, enhanced 3dNOW! and
+          full SSE instruction set support.
+
+    _k8, opteron, athlon64, athlon-fx_
+          AMD K8 core based CPUs with x86-64 instruction set support.
+          (This supersets MMX, SSE, SSE2, 3dNOW!, enhanced 3dNOW! and
+          64-bit instruction set extensions.)
+
+    _k8-sse3, opteron-sse3, athlon64-sse3_
+          Improved versions of k8, opteron and athlon64 with SSE3
+          instruction set support.
+
+    _amdfam10, barcelona_
+          AMD Family 10h core based CPUs with x86-64 instruction set
+          support.  (This supersets MMX, SSE, SSE2, SSE3, SSE4A,
+          3dNOW!, enhanced 3dNOW!, ABM and 64-bit instruction set
+          extensions.)
+
+    _winchip-c6_
+          IDT Winchip C6 CPU, dealt in same way as i486 with additional
+          MMX instruction set support.
+
+    _winchip2_
+          IDT Winchip2 CPU, dealt in same way as i486 with additional
+          MMX and 3dNOW!  instruction set support.
+
+    _c3_
+          Via C3 CPU with MMX and 3dNOW! instruction set support.  (No
+          scheduling is implemented for this chip.)
+
+    _c3-2_
+          Via C3-2 CPU with MMX and SSE instruction set support.  (No
+          scheduling is implemented for this chip.)
+
+    _geode_
+          Embedded AMD CPU with MMX and 3dNOW! instruction set support.
+
+     While picking a specific CPU-TYPE will schedule things
+     appropriately for that particular chip, the compiler will not
+     generate any code that does not run on the i386 without the
+     `-march=CPU-TYPE' option being used.
+
+`-march=CPU-TYPE'
+     Generate instructions for the machine type CPU-TYPE.  The choices
+     for CPU-TYPE are the same as for `-mtune'.  Moreover, specifying
+     `-march=CPU-TYPE' implies `-mtune=CPU-TYPE'.
+
+`-mcpu=CPU-TYPE'
+     A deprecated synonym for `-mtune'.
+
+`-mfpmath=UNIT'
+     Generate floating point arithmetics for selected unit UNIT.  The
+     choices for UNIT are:
+
+    `387'
+          Use the standard 387 floating point coprocessor present
+          majority of chips and emulated otherwise.  Code compiled with
+          this option will run almost everywhere.  The temporary
+          results are computed in 80bit precision instead of precision
+          specified by the type resulting in slightly different results
+          compared to most of other chips.  See `-ffloat-store' for
+          more detailed description.
+
+          This is the default choice for i386 compiler.
+
+    `sse'
+          Use scalar floating point instructions present in the SSE
+          instruction set.  This instruction set is supported by
+          Pentium3 and newer chips, in the AMD line by Athlon-4,
+          Athlon-xp and Athlon-mp chips.  The earlier version of SSE
+          instruction set supports only single precision arithmetics,
+          thus the double and extended precision arithmetics is still
+          done using 387.  Later version, present only in Pentium4 and
+          the future AMD x86-64 chips supports double precision
+          arithmetics too.
+
+          For the i386 compiler, you need to use `-march=CPU-TYPE',
+          `-msse' or `-msse2' switches to enable SSE extensions and
+          make this option effective.  For the x86-64 compiler, these
+          extensions are enabled by default.
+
+          The resulting code should be considerably faster in the
+          majority of cases and avoid the numerical instability
+          problems of 387 code, but may break some existing code that
+          expects temporaries to be 80bit.
+
+          This is the default choice for the x86-64 compiler.
+
+    `sse,387'
+          Attempt to utilize both instruction sets at once.  This
+          effectively double the amount of available registers and on
+          chips with separate execution units for 387 and SSE the
+          execution resources too.  Use this option with care, as it is
+          still experimental, because the GCC register allocator does
+          not model separate functional units well resulting in
+          instable performance.
+
+`-masm=DIALECT'
+     Output asm instructions using selected DIALECT.  Supported choices
+     are `intel' or `att' (the default one).  Darwin does not support
+     `intel'.
+
+`-mieee-fp'
+`-mno-ieee-fp'
+     Control whether or not the compiler uses IEEE floating point
+     comparisons.  These handle correctly the case where the result of a
+     comparison is unordered.
+
+`-msoft-float'
+     Generate output containing library calls for floating point.
+     *Warning:* the requisite libraries are not part of GCC.  Normally
+     the facilities of the machine's usual C compiler are used, but
+     this can't be done directly in cross-compilation.  You must make
+     your own arrangements to provide suitable library functions for
+     cross-compilation.
+
+     On machines where a function returns floating point results in the
+     80387 register stack, some floating point opcodes may be emitted
+     even if `-msoft-float' is used.
+
+`-mno-fp-ret-in-387'
+     Do not use the FPU registers for return values of functions.
+
+     The usual calling convention has functions return values of types
+     `float' and `double' in an FPU register, even if there is no FPU.
+     The idea is that the operating system should emulate an FPU.
+
+     The option `-mno-fp-ret-in-387' causes such values to be returned
+     in ordinary CPU registers instead.
+
+`-mno-fancy-math-387'
+     Some 387 emulators do not support the `sin', `cos' and `sqrt'
+     instructions for the 387.  Specify this option to avoid generating
+     those instructions.  This option is the default on FreeBSD,
+     OpenBSD and NetBSD.  This option is overridden when `-march'
+     indicates that the target cpu will always have an FPU and so the
+     instruction will not need emulation.  As of revision 2.6.1, these
+     instructions are not generated unless you also use the
+     `-funsafe-math-optimizations' switch.
+
+`-malign-double'
+`-mno-align-double'
+     Control whether GCC aligns `double', `long double', and `long
+     long' variables on a two word boundary or a one word boundary.
+     Aligning `double' variables on a two word boundary will produce
+     code that runs somewhat faster on a `Pentium' at the expense of
+     more memory.
+
+     On x86-64, `-malign-double' is enabled by default.
+
+     *Warning:* if you use the `-malign-double' switch, structures
+     containing the above types will be aligned differently than the
+     published application binary interface specifications for the 386
+     and will not be binary compatible with structures in code compiled
+     without that switch.
+
+`-m96bit-long-double'
+`-m128bit-long-double'
+     These switches control the size of `long double' type.  The i386
+     application binary interface specifies the size to be 96 bits, so
+     `-m96bit-long-double' is the default in 32 bit mode.
+
+     Modern architectures (Pentium and newer) would prefer `long double'
+     to be aligned to an 8 or 16 byte boundary.  In arrays or structures
+     conforming to the ABI, this would not be possible.  So specifying a
+     `-m128bit-long-double' will align `long double' to a 16 byte
+     boundary by padding the `long double' with an additional 32 bit
+     zero.
+
+     In the x86-64 compiler, `-m128bit-long-double' is the default
+     choice as its ABI specifies that `long double' is to be aligned on
+     16 byte boundary.
+
+     Notice that neither of these options enable any extra precision
+     over the x87 standard of 80 bits for a `long double'.
+
+     *Warning:* if you override the default value for your target ABI,
+     the structures and arrays containing `long double' variables will
+     change their size as well as function calling convention for
+     function taking `long double' will be modified.  Hence they will
+     not be binary compatible with arrays or structures in code
+     compiled without that switch.
+
+`-mmlarge-data-threshold=NUMBER'
+     When `-mcmodel=medium' is specified, the data greater than
+     THRESHOLD are placed in large data section.  This value must be the
+     same across all object linked into the binary and defaults to
+     65535.
+
+`-mrtd'
+     Use a different function-calling convention, in which functions
+     that take a fixed number of arguments return with the `ret' NUM
+     instruction, which pops their arguments while returning.  This
+     saves one instruction in the caller since there is no need to pop
+     the arguments there.
+
+     You can specify that an individual function is called with this
+     calling sequence with the function attribute `stdcall'.  You can
+     also override the `-mrtd' option by using the function attribute
+     `cdecl'.  *Note Function Attributes::.
+
+     *Warning:* this calling convention is incompatible with the one
+     normally used on Unix, so you cannot use it if you need to call
+     libraries compiled with the Unix compiler.
+
+     Also, you must provide function prototypes for all functions that
+     take variable numbers of arguments (including `printf'); otherwise
+     incorrect code will be generated for calls to those functions.
+
+     In addition, seriously incorrect code will result if you call a
+     function with too many arguments.  (Normally, extra arguments are
+     harmlessly ignored.)
+
+`-mregparm=NUM'
+     Control how many registers are used to pass integer arguments.  By
+     default, no registers are used to pass arguments, and at most 3
+     registers can be used.  You can control this behavior for a
+     specific function by using the function attribute `regparm'.
+     *Note Function Attributes::.
+
+     *Warning:* if you use this switch, and NUM is nonzero, then you
+     must build all modules with the same value, including any
+     libraries.  This includes the system libraries and startup modules.
+
+`-msseregparm'
+     Use SSE register passing conventions for float and double arguments
+     and return values.  You can control this behavior for a specific
+     function by using the function attribute `sseregparm'.  *Note
+     Function Attributes::.
+
+     *Warning:* if you use this switch then you must build all modules
+     with the same value, including any libraries.  This includes the
+     system libraries and startup modules.
+
+`-mpc32'
+`-mpc64'
+`-mpc80'
+     Set 80387 floating-point precision to 32, 64 or 80 bits.  When
+     `-mpc32' is specified, the significands of results of
+     floating-point operations are rounded to 24 bits (single
+     precision); `-mpc64' rounds the the significands of results of
+     floating-point operations to 53 bits (double precision) and
+     `-mpc80' rounds the significands of results of floating-point
+     operations to 64 bits (extended double precision), which is the
+     default.  When this option is used, floating-point operations in
+     higher precisions are not available to the programmer without
+     setting the FPU control word explicitly.
+
+     Setting the rounding of floating-point operations to less than the
+     default 80 bits can speed some programs by 2% or more.  Note that
+     some mathematical libraries assume that extended precision (80
+     bit) floating-point operations are enabled by default; routines in
+     such libraries could suffer significant loss of accuracy,
+     typically through so-called "catastrophic cancellation", when this
+     option is used to set the precision to less than extended
+     precision.
+
+`-mstackrealign'
+     Realign the stack at entry.  On the Intel x86, the
+     `-mstackrealign' option will generate an alternate prologue and
+     epilogue that realigns the runtime stack.  This supports mixing
+     legacy codes that keep a 4-byte aligned stack with modern codes
+     that keep a 16-byte stack for SSE compatibility.  The alternate
+     prologue and epilogue are slower and bigger than the regular ones,
+     and the alternate prologue requires an extra scratch register;
+     this lowers the number of registers available if used in
+     conjunction with the `regparm' attribute.  The `-mstackrealign'
+     option is incompatible with the nested function prologue; this is
+     considered a hard error.  See also the attribute
+     `force_align_arg_pointer', applicable to individual functions.
+
+`-mpreferred-stack-boundary=NUM'
+     Attempt to keep the stack boundary aligned to a 2 raised to NUM
+     byte boundary.  If `-mpreferred-stack-boundary' is not specified,
+     the default is 4 (16 bytes or 128 bits).
+
+     On Pentium and PentiumPro, `double' and `long double' values
+     should be aligned to an 8 byte boundary (see `-malign-double') or
+     suffer significant run time performance penalties.  On Pentium
+     III, the Streaming SIMD Extension (SSE) data type `__m128' may not
+     work properly if it is not 16 byte aligned.
+
+     To ensure proper alignment of this values on the stack, the stack
+     boundary must be as aligned as that required by any value stored
+     on the stack.  Further, every function must be generated such that
+     it keeps the stack aligned.  Thus calling a function compiled with
+     a higher preferred stack boundary from a function compiled with a
+     lower preferred stack boundary will most likely misalign the
+     stack.  It is recommended that libraries that use callbacks always
+     use the default setting.
+
+     This extra alignment does consume extra stack space, and generally
+     increases code size.  Code that is sensitive to stack space usage,
+     such as embedded systems and operating system kernels, may want to
+     reduce the preferred alignment to `-mpreferred-stack-boundary=2'.
+
+`-mmmx'
+`-mno-mmx'
+
+`-msse'
+`-mno-sse'
+
+`-msse2'
+`-mno-sse2'
+
+`-msse3'
+`-mno-sse3'
+
+`-mssse3'
+`-mno-ssse3'
+
+`-msse4.1'
+`-mno-sse4.1'
+
+`-msse4.2'
+`-mno-sse4.2'
+
+`-msse4'
+`-mno-sse4'
+
+`-msse4a'
+
+`-mno-sse4a'
+
+`-msse5'
+`-mno-sse5'
+
+`-m3dnow'
+`-mno-3dnow'
+
+`-mpopcnt'
+`-mno-popcnt'
+
+`-mabm'
+`-mno-abm'
+     These switches enable or disable the use of instructions in the
+     MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4A, SSE5, ABM or 3DNow!
+     extended instruction sets.  These extensions are also available as
+     built-in functions: see *note X86 Built-in Functions::, for
+     details of the functions enabled and disabled by these switches.
+
+     To have SSE/SSE2 instructions generated automatically from
+     floating-point code (as opposed to 387 instructions), see
+     `-mfpmath=sse'.
+
+     These options will enable GCC to use these extended instructions in
+     generated code, even without `-mfpmath=sse'.  Applications which
+     perform runtime CPU detection must compile separate files for each
+     supported architecture, using the appropriate flags.  In
+     particular, the file containing the CPU detection code should be
+     compiled without these options.
+
+`-mcld'
+     This option instructs GCC to emit a `cld' instruction in the
+     prologue of functions that use string instructions.  String
+     instructions depend on the DF flag to select between autoincrement
+     or autodecrement mode.  While the ABI specifies the DF flag to be
+     cleared on function entry, some operating systems violate this
+     specification by not clearing the DF flag in their exception
+     dispatchers.  The exception handler can be invoked with the DF flag
+     set which leads to wrong direction mode, when string instructions
+     are used.  This option can be enabled by default on 32-bit x86
+     targets by configuring GCC with the `--enable-cld' configure
+     option.  Generation of `cld' instructions can be suppressed with
+     the `-mno-cld' compiler option in this case.
+
+`-mcx16'
+     This option will enable GCC to use CMPXCHG16B instruction in
+     generated code.  CMPXCHG16B allows for atomic operations on
+     128-bit double quadword (or oword) data types.  This is useful for
+     high resolution counters that could be updated by multiple
+     processors (or cores).  This instruction is generated as part of
+     atomic built-in functions: see *note Atomic Builtins:: for details.
+
+`-msahf'
+     This option will enable GCC to use SAHF instruction in generated
+     64-bit code.  Early Intel CPUs with Intel 64 lacked LAHF and SAHF
+     instructions supported by AMD64 until introduction of Pentium 4 G1
+     step in December 2005.  LAHF and SAHF are load and store
+     instructions, respectively, for certain status flags.  In 64-bit
+     mode, SAHF instruction is used to optimize `fmod', `drem' or
+     `remainder' built-in functions: see *note Other Builtins:: for
+     details.
+
+`-mrecip'
+     This option will enable GCC to use RCPSS and RSQRTSS instructions
+     (and their vectorized variants RCPPS and RSQRTPS) with an
+     additional Newton-Rhapson step to increase precision instead of
+     DIVSS and SQRTSS (and their vectorized variants) for single
+     precision floating point arguments.  These instructions are
+     generated only when `-funsafe-math-optimizations' is enabled
+     together with `-finite-math-only' and `-fno-trapping-math'.  Note
+     that while the throughput of the sequence is higher than the
+     throughput of the non-reciprocal instruction, the precision of the
+     sequence can be decreased by up to 2 ulp (i.e. the inverse of 1.0
+     equals 0.99999994).
+
+`-mveclibabi=TYPE'
+     Specifies the ABI type to use for vectorizing intrinsics using an
+     external library.  Supported types are `acml' for the AMD math
+     core library style of interfacing.  GCC will currently emit calls
+     to `__vrd2_sin', `__vrd2_cos', `__vrd2_exp', `__vrd2_log',
+     `__vrd2_log2', `__vrd2_log10', `__vrs4_sinf', `__vrs4_cosf',
+     `__vrs4_expf', `__vrs4_logf', `__vrs4_log2f', `__vrs4_log10f' and
+     `__vrs4_powf' when using this type and `-ftree-vectorize' is
+     enabled.  A ACML ABI compatible library will have to be specified
+     at link time.
+
+`-mpush-args'
+`-mno-push-args'
+     Use PUSH operations to store outgoing parameters.  This method is
+     shorter and usually equally fast as method using SUB/MOV
+     operations and is enabled by default.  In some cases disabling it
+     may improve performance because of improved scheduling and reduced
+     dependencies.
+
+`-maccumulate-outgoing-args'
+     If enabled, the maximum amount of space required for outgoing
+     arguments will be computed in the function prologue.  This is
+     faster on most modern CPUs because of reduced dependencies,
+     improved scheduling and reduced stack usage when preferred stack
+     boundary is not equal to 2.  The drawback is a notable increase in
+     code size.  This switch implies `-mno-push-args'.
+
+`-mthreads'
+     Support thread-safe exception handling on `Mingw32'.  Code that
+     relies on thread-safe exception handling must compile and link all
+     code with the `-mthreads' option.  When compiling, `-mthreads'
+     defines `-D_MT'; when linking, it links in a special thread helper
+     library `-lmingwthrd' which cleans up per thread exception
+     handling data.
+
+`-mno-align-stringops'
+     Do not align destination of inlined string operations.  This
+     switch reduces code size and improves performance in case the
+     destination is already aligned, but GCC doesn't know about it.
+
+`-minline-all-stringops'
+     By default GCC inlines string operations only when destination is
+     known to be aligned at least to 4 byte boundary.  This enables
+     more inlining, increase code size, but may improve performance of
+     code that depends on fast memcpy, strlen and memset for short
+     lengths.
+
+`-minline-stringops-dynamically'
+     For string operation of unknown size, inline runtime checks so for
+     small blocks inline code is used, while for large blocks library
+     call is used.
+
+`-mstringop-strategy=ALG'
+     Overwrite internal decision heuristic about particular algorithm
+     to inline string operation with.  The allowed values are
+     `rep_byte', `rep_4byte', `rep_8byte' for expanding using i386
+     `rep' prefix of specified size, `byte_loop', `loop',
+     `unrolled_loop' for expanding inline loop, `libcall' for always
+     expanding library call.
+
+`-momit-leaf-frame-pointer'
+     Don't keep the frame pointer in a register for leaf functions.
+     This avoids the instructions to save, set up and restore frame
+     pointers and makes an extra register available in leaf functions.
+     The option `-fomit-frame-pointer' removes the frame pointer for
+     all functions which might make debugging harder.
+
+`-mtls-direct-seg-refs'
+`-mno-tls-direct-seg-refs'
+     Controls whether TLS variables may be accessed with offsets from
+     the TLS segment register (`%gs' for 32-bit, `%fs' for 64-bit), or
+     whether the thread base pointer must be added.  Whether or not this
+     is legal depends on the operating system, and whether it maps the
+     segment to cover the entire TLS area.
+
+     For systems that use GNU libc, the default is on.
+
+`-mfused-madd'
+`-mno-fused-madd'
+     Enable automatic generation of fused floating point multiply-add
+     instructions if the ISA supports such instructions.  The
+     -mfused-madd option is on by default.  The fused multiply-add
+     instructions have a different rounding behavior compared to
+     executing a multiply followed by an add.
+
+ These `-m' switches are supported in addition to the above on AMD
+x86-64 processors in 64-bit environments.
+
+`-m32'
+`-m64'
+     Generate code for a 32-bit or 64-bit environment.  The 32-bit
+     environment sets int, long and pointer to 32 bits and generates
+     code that runs on any i386 system.  The 64-bit environment sets
+     int to 32 bits and long and pointer to 64 bits and generates code
+     for AMD's x86-64 architecture. For darwin only the -m64 option
+     turns off the `-fno-pic' and `-mdynamic-no-pic' options.
+
+`-mno-red-zone'
+     Do not use a so called red zone for x86-64 code.  The red zone is
+     mandated by the x86-64 ABI, it is a 128-byte area beyond the
+     location of the stack pointer that will not be modified by signal
+     or interrupt handlers and therefore can be used for temporary data
+     without adjusting the stack pointer.  The flag `-mno-red-zone'
+     disables this red zone.
+
+`-mcmodel=small'
+     Generate code for the small code model: the program and its
+     symbols must be linked in the lower 2 GB of the address space.
+     Pointers are 64 bits.  Programs can be statically or dynamically
+     linked.  This is the default code model.
+
+`-mcmodel=kernel'
+     Generate code for the kernel code model.  The kernel runs in the
+     negative 2 GB of the address space.  This model has to be used for
+     Linux kernel code.
+
+`-mcmodel=medium'
+     Generate code for the medium model: The program is linked in the
+     lower 2 GB of the address space but symbols can be located
+     anywhere in the address space.  Programs can be statically or
+     dynamically linked, but building of shared libraries are not
+     supported with the medium model.
+
+`-mcmodel=large'
+     Generate code for the large model: This model makes no assumptions
+     about addresses and sizes of sections.
+
+
+File: gcc.info,  Node: IA-64 Options,  Next: M32C Options,  Prev: i386 and x86-64 Options,  Up: Submodel Options
+
+3.17.15 IA-64 Options
+---------------------
+
+These are the `-m' options defined for the Intel IA-64 architecture.
+
+`-mbig-endian'
+     Generate code for a big endian target.  This is the default for
+     HP-UX.
+
+`-mlittle-endian'
+     Generate code for a little endian target.  This is the default for
+     AIX5 and GNU/Linux.
+
+`-mgnu-as'
+`-mno-gnu-as'
+     Generate (or don't) code for the GNU assembler.  This is the
+     default.
+
+`-mgnu-ld'
+`-mno-gnu-ld'
+     Generate (or don't) code for the GNU linker.  This is the default.
+
+`-mno-pic'
+     Generate code that does not use a global pointer register.  The
+     result is not position independent code, and violates the IA-64
+     ABI.
+
+`-mvolatile-asm-stop'
+`-mno-volatile-asm-stop'
+     Generate (or don't) a stop bit immediately before and after
+     volatile asm statements.
+
+`-mregister-names'
+`-mno-register-names'
+     Generate (or don't) `in', `loc', and `out' register names for the
+     stacked registers.  This may make assembler output more readable.
+
+`-mno-sdata'
+`-msdata'
+     Disable (or enable) optimizations that use the small data section.
+     This may be useful for working around optimizer bugs.
+
+`-mconstant-gp'
+     Generate code that uses a single constant global pointer value.
+     This is useful when compiling kernel code.
+
+`-mauto-pic'
+     Generate code that is self-relocatable.  This implies
+     `-mconstant-gp'.  This is useful when compiling firmware code.
+
+`-minline-float-divide-min-latency'
+     Generate code for inline divides of floating point values using
+     the minimum latency algorithm.
+
+`-minline-float-divide-max-throughput'
+     Generate code for inline divides of floating point values using
+     the maximum throughput algorithm.
+
+`-minline-int-divide-min-latency'
+     Generate code for inline divides of integer values using the
+     minimum latency algorithm.
+
+`-minline-int-divide-max-throughput'
+     Generate code for inline divides of integer values using the
+     maximum throughput algorithm.
+
+`-minline-sqrt-min-latency'
+     Generate code for inline square roots using the minimum latency
+     algorithm.
+
+`-minline-sqrt-max-throughput'
+     Generate code for inline square roots using the maximum throughput
+     algorithm.
+
+`-mno-dwarf2-asm'
+`-mdwarf2-asm'
+     Don't (or do) generate assembler code for the DWARF2 line number
+     debugging info.  This may be useful when not using the GNU
+     assembler.
+
+`-mearly-stop-bits'
+`-mno-early-stop-bits'
+     Allow stop bits to be placed earlier than immediately preceding the
+     instruction that triggered the stop bit.  This can improve
+     instruction scheduling, but does not always do so.
+
+`-mfixed-range=REGISTER-RANGE'
+     Generate code treating the given register range as fixed registers.
+     A fixed register is one that the register allocator can not use.
+     This is useful when compiling kernel code.  A register range is
+     specified as two registers separated by a dash.  Multiple register
+     ranges can be specified separated by a comma.
+
+`-mtls-size=TLS-SIZE'
+     Specify bit size of immediate TLS offsets.  Valid values are 14,
+     22, and 64.
+
+`-mtune=CPU-TYPE'
+     Tune the instruction scheduling for a particular CPU, Valid values
+     are itanium, itanium1, merced, itanium2, and mckinley.
+
+`-mt'
+`-pthread'
+     Add support for multithreading using the POSIX threads library.
+     This option sets flags for both the preprocessor and linker.  It
+     does not affect the thread safety of object code produced by the
+     compiler or that of libraries supplied with it.  These are HP-UX
+     specific flags.
+
+`-milp32'
+`-mlp64'
+     Generate code for a 32-bit or 64-bit environment.  The 32-bit
+     environment sets int, long and pointer to 32 bits.  The 64-bit
+     environment sets int to 32 bits and long and pointer to 64 bits.
+     These are HP-UX specific flags.
+
+`-mno-sched-br-data-spec'
+`-msched-br-data-spec'
+     (Dis/En)able data speculative scheduling before reload.  This will
+     result in generation of the ld.a instructions and the
+     corresponding check instructions (ld.c / chk.a).  The default is
+     'disable'.
+
+`-msched-ar-data-spec'
+`-mno-sched-ar-data-spec'
+     (En/Dis)able data speculative scheduling after reload.  This will
+     result in generation of the ld.a instructions and the
+     corresponding check instructions (ld.c / chk.a).  The default is
+     'enable'.
+
+`-mno-sched-control-spec'
+`-msched-control-spec'
+     (Dis/En)able control speculative scheduling.  This feature is
+     available only during region scheduling (i.e. before reload).
+     This will result in generation of the ld.s instructions and the
+     corresponding check instructions chk.s .  The default is 'disable'.
+
+`-msched-br-in-data-spec'
+`-mno-sched-br-in-data-spec'
+     (En/Dis)able speculative scheduling of the instructions that are
+     dependent on the data speculative loads before reload.  This is
+     effective only with `-msched-br-data-spec' enabled.  The default
+     is 'enable'.
+
+`-msched-ar-in-data-spec'
+`-mno-sched-ar-in-data-spec'
+     (En/Dis)able speculative scheduling of the instructions that are
+     dependent on the data speculative loads after reload.  This is
+     effective only with `-msched-ar-data-spec' enabled.  The default
+     is 'enable'.
+
+`-msched-in-control-spec'
+`-mno-sched-in-control-spec'
+     (En/Dis)able speculative scheduling of the instructions that are
+     dependent on the control speculative loads.  This is effective
+     only with `-msched-control-spec' enabled.  The default is 'enable'.
+
+`-msched-ldc'
+`-mno-sched-ldc'
+     (En/Dis)able use of simple data speculation checks ld.c .  If
+     disabled, only chk.a instructions will be emitted to check data
+     speculative loads.  The default is 'enable'.
+
+`-mno-sched-control-ldc'
+`-msched-control-ldc'
+     (Dis/En)able use of ld.c instructions to check control speculative
+     loads.  If enabled, in case of control speculative load with no
+     speculatively scheduled dependent instructions this load will be
+     emitted as ld.sa and ld.c will be used to check it.  The default
+     is 'disable'.
+
+`-mno-sched-spec-verbose'
+`-msched-spec-verbose'
+     (Dis/En)able printing of the information about speculative motions.
+
+`-mno-sched-prefer-non-data-spec-insns'
+`-msched-prefer-non-data-spec-insns'
+     If enabled, data speculative instructions will be chosen for
+     schedule only if there are no other choices at the moment.  This
+     will make the use of the data speculation much more conservative.
+     The default is 'disable'.
+
+`-mno-sched-prefer-non-control-spec-insns'
+`-msched-prefer-non-control-spec-insns'
+     If enabled, control speculative instructions will be chosen for
+     schedule only if there are no other choices at the moment.  This
+     will make the use of the control speculation much more
+     conservative.  The default is 'disable'.
+
+`-mno-sched-count-spec-in-critical-path'
+`-msched-count-spec-in-critical-path'
+     If enabled, speculative dependencies will be considered during
+     computation of the instructions priorities.  This will make the
+     use of the speculation a bit more conservative.  The default is
+     'disable'.
+
+
+
+File: gcc.info,  Node: M32C Options,  Next: M32R/D Options,  Prev: IA-64 Options,  Up: Submodel Options
+
+3.17.16 M32C Options
+--------------------
+
+`-mcpu=NAME'
+     Select the CPU for which code is generated.  NAME may be one of
+     `r8c' for the R8C/Tiny series, `m16c' for the M16C (up to /60)
+     series, `m32cm' for the M16C/80 series, or `m32c' for the M32C/80
+     series.
+
+`-msim'
+     Specifies that the program will be run on the simulator.  This
+     causes an alternate runtime library to be linked in which
+     supports, for example, file I/O.  You must not use this option
+     when generating programs that will run on real hardware; you must
+     provide your own runtime library for whatever I/O functions are
+     needed.
+
+`-memregs=NUMBER'
+     Specifies the number of memory-based pseudo-registers GCC will use
+     during code generation.  These pseudo-registers will be used like
+     real registers, so there is a tradeoff between GCC's ability to
+     fit the code into available registers, and the performance penalty
+     of using memory instead of registers.  Note that all modules in a
+     program must be compiled with the same value for this option.
+     Because of that, you must not use this option with the default
+     runtime libraries gcc builds.
+
+
+
+File: gcc.info,  Node: M32R/D Options,  Next: M680x0 Options,  Prev: M32C Options,  Up: Submodel Options
+
+3.17.17 M32R/D Options
+----------------------
+
+These `-m' options are defined for Renesas M32R/D architectures:
+
+`-m32r2'
+     Generate code for the M32R/2.
+
+`-m32rx'
+     Generate code for the M32R/X.
+
+`-m32r'
+     Generate code for the M32R.  This is the default.
+
+`-mmodel=small'
+     Assume all objects live in the lower 16MB of memory (so that their
+     addresses can be loaded with the `ld24' instruction), and assume
+     all subroutines are reachable with the `bl' instruction.  This is
+     the default.
+
+     The addressability of a particular object can be set with the
+     `model' attribute.
+
+`-mmodel=medium'
+     Assume objects may be anywhere in the 32-bit address space (the
+     compiler will generate `seth/add3' instructions to load their
+     addresses), and assume all subroutines are reachable with the `bl'
+     instruction.
+
+`-mmodel=large'
+     Assume objects may be anywhere in the 32-bit address space (the
+     compiler will generate `seth/add3' instructions to load their
+     addresses), and assume subroutines may not be reachable with the
+     `bl' instruction (the compiler will generate the much slower
+     `seth/add3/jl' instruction sequence).
+
+`-msdata=none'
+     Disable use of the small data area.  Variables will be put into
+     one of `.data', `bss', or `.rodata' (unless the `section'
+     attribute has been specified).  This is the default.
+
+     The small data area consists of sections `.sdata' and `.sbss'.
+     Objects may be explicitly put in the small data area with the
+     `section' attribute using one of these sections.
+
+`-msdata=sdata'
+     Put small global and static data in the small data area, but do not
+     generate special code to reference them.
+
+`-msdata=use'
+     Put small global and static data in the small data area, and
+     generate special instructions to reference them.
+
+`-G NUM'
+     Put global and static objects less than or equal to NUM bytes into
+     the small data or bss sections instead of the normal data or bss
+     sections.  The default value of NUM is 8.  The `-msdata' option
+     must be set to one of `sdata' or `use' for this option to have any
+     effect.
+
+     All modules should be compiled with the same `-G NUM' value.
+     Compiling with different values of NUM may or may not work; if it
+     doesn't the linker will give an error message--incorrect code will
+     not be generated.
+
+`-mdebug'
+     Makes the M32R specific code in the compiler display some
+     statistics that might help in debugging programs.
+
+`-malign-loops'
+     Align all loops to a 32-byte boundary.
+
+`-mno-align-loops'
+     Do not enforce a 32-byte alignment for loops.  This is the default.
+
+`-missue-rate=NUMBER'
+     Issue NUMBER instructions per cycle.  NUMBER can only be 1 or 2.
+
+`-mbranch-cost=NUMBER'
+     NUMBER can only be 1 or 2.  If it is 1 then branches will be
+     preferred over conditional code, if it is 2, then the opposite will
+     apply.
+
+`-mflush-trap=NUMBER'
+     Specifies the trap number to use to flush the cache.  The default
+     is 12.  Valid numbers are between 0 and 15 inclusive.
+
+`-mno-flush-trap'
+     Specifies that the cache cannot be flushed by using a trap.
+
+`-mflush-func=NAME'
+     Specifies the name of the operating system function to call to
+     flush the cache.  The default is __flush_cache_, but a function
+     call will only be used if a trap is not available.
+
+`-mno-flush-func'
+     Indicates that there is no OS function for flushing the cache.
+
+
+
+File: gcc.info,  Node: M680x0 Options,  Next: M68hc1x Options,  Prev: M32R/D Options,  Up: Submodel Options
+
+3.17.18 M680x0 Options
+----------------------
+
+These are the `-m' options defined for M680x0 and ColdFire processors.
+The default settings depend on which architecture was selected when the
+compiler was configured; the defaults for the most common choices are
+given below.
+
+`-march=ARCH'
+     Generate code for a specific M680x0 or ColdFire instruction set
+     architecture.  Permissible values of ARCH for M680x0 architectures
+     are: `68000', `68010', `68020', `68030', `68040', `68060' and
+     `cpu32'.  ColdFire architectures are selected according to
+     Freescale's ISA classification and the permissible values are:
+     `isaa', `isaaplus', `isab' and `isac'.
+
+     gcc defines a macro `__mcfARCH__' whenever it is generating code
+     for a ColdFire target.  The ARCH in this macro is one of the
+     `-march' arguments given above.
+
+     When used together, `-march' and `-mtune' select code that runs on
+     a family of similar processors but that is optimized for a
+     particular microarchitecture.
+
+`-mcpu=CPU'
+     Generate code for a specific M680x0 or ColdFire processor.  The
+     M680x0 CPUs are: `68000', `68010', `68020', `68030', `68040',
+     `68060', `68302', `68332' and `cpu32'.  The ColdFire CPUs are
+     given by the table below, which also classifies the CPUs into
+     families:
+
+     *Family*      *`-mcpu' arguments*
+     `51qe'        `51qe'
+     `5206'        `5202' `5204' `5206'
+     `5206e'       `5206e'
+     `5208'        `5207' `5208'
+     `5211a'       `5210a' `5211a'
+     `5213'        `5211' `5212' `5213'
+     `5216'        `5214' `5216'
+     `52235'       `52230' `52231' `52232' `52233' `52234' `52235'
+     `5225'        `5224' `5225'
+     `5235'        `5232' `5233' `5234' `5235' `523x'
+     `5249'        `5249'
+     `5250'        `5250'
+     `5271'        `5270' `5271'
+     `5272'        `5272'
+     `5275'        `5274' `5275'
+     `5282'        `5280' `5281' `5282' `528x'
+     `5307'        `5307'
+     `5329'        `5327' `5328' `5329' `532x'
+     `5373'        `5372' `5373' `537x'
+     `5407'        `5407'
+     `5475'        `5470' `5471' `5472' `5473' `5474' `5475' `547x'
+                   `5480' `5481' `5482' `5483' `5484' `5485'
+
+     `-mcpu=CPU' overrides `-march=ARCH' if ARCH is compatible with
+     CPU.  Other combinations of `-mcpu' and `-march' are rejected.
+
+     gcc defines the macro `__mcf_cpu_CPU' when ColdFire target CPU is
+     selected.  It also defines `__mcf_family_FAMILY', where the value
+     of FAMILY is given by the table above.
+
+`-mtune=TUNE'
+     Tune the code for a particular microarchitecture, within the
+     constraints set by `-march' and `-mcpu'.  The M680x0
+     microarchitectures are: `68000', `68010', `68020', `68030',
+     `68040', `68060' and `cpu32'.  The ColdFire microarchitectures
+     are: `cfv1', `cfv2', `cfv3', `cfv4' and `cfv4e'.
+
+     You can also use `-mtune=68020-40' for code that needs to run
+     relatively well on 68020, 68030 and 68040 targets.
+     `-mtune=68020-60' is similar but includes 68060 targets as well.
+     These two options select the same tuning decisions as `-m68020-40'
+     and `-m68020-60' respectively.
+
+     gcc defines the macros `__mcARCH' and `__mcARCH__' when tuning for
+     680x0 architecture ARCH.  It also defines `mcARCH' unless either
+     `-ansi' or a non-GNU `-std' option is used.  If gcc is tuning for
+     a range of architectures, as selected by `-mtune=68020-40' or
+     `-mtune=68020-60', it defines the macros for every architecture in
+     the range.
+
+     gcc also defines the macro `__mUARCH__' when tuning for ColdFire
+     microarchitecture UARCH, where UARCH is one of the arguments given
+     above.
+
+`-m68000'
+`-mc68000'
+     Generate output for a 68000.  This is the default when the
+     compiler is configured for 68000-based systems.  It is equivalent
+     to `-march=68000'.
+
+     Use this option for microcontrollers with a 68000 or EC000 core,
+     including the 68008, 68302, 68306, 68307, 68322, 68328 and 68356.
+
+`-m68010'
+     Generate output for a 68010.  This is the default when the
+     compiler is configured for 68010-based systems.  It is equivalent
+     to `-march=68010'.
+
+`-m68020'
+`-mc68020'
+     Generate output for a 68020.  This is the default when the
+     compiler is configured for 68020-based systems.  It is equivalent
+     to `-march=68020'.
+
+`-m68030'
+     Generate output for a 68030.  This is the default when the
+     compiler is configured for 68030-based systems.  It is equivalent
+     to `-march=68030'.
+
+`-m68040'
+     Generate output for a 68040.  This is the default when the
+     compiler is configured for 68040-based systems.  It is equivalent
+     to `-march=68040'.
+
+     This option inhibits the use of 68881/68882 instructions that have
+     to be emulated by software on the 68040.  Use this option if your
+     68040 does not have code to emulate those instructions.
+
+`-m68060'
+     Generate output for a 68060.  This is the default when the
+     compiler is configured for 68060-based systems.  It is equivalent
+     to `-march=68060'.
+
+     This option inhibits the use of 68020 and 68881/68882 instructions
+     that have to be emulated by software on the 68060.  Use this
+     option if your 68060 does not have code to emulate those
+     instructions.
+
+`-mcpu32'
+     Generate output for a CPU32.  This is the default when the
+     compiler is configured for CPU32-based systems.  It is equivalent
+     to `-march=cpu32'.
+
+     Use this option for microcontrollers with a CPU32 or CPU32+ core,
+     including the 68330, 68331, 68332, 68333, 68334, 68336, 68340,
+     68341, 68349 and 68360.
+
+`-m5200'
+     Generate output for a 520X ColdFire CPU.  This is the default when
+     the compiler is configured for 520X-based systems.  It is
+     equivalent to `-mcpu=5206', and is now deprecated in favor of that
+     option.
+
+     Use this option for microcontroller with a 5200 core, including
+     the MCF5202, MCF5203, MCF5204 and MCF5206.
+
+`-m5206e'
+     Generate output for a 5206e ColdFire CPU.  The option is now
+     deprecated in favor of the equivalent `-mcpu=5206e'.
+
+`-m528x'
+     Generate output for a member of the ColdFire 528X family.  The
+     option is now deprecated in favor of the equivalent `-mcpu=528x'.
+
+`-m5307'
+     Generate output for a ColdFire 5307 CPU.  The option is now
+     deprecated in favor of the equivalent `-mcpu=5307'.
+
+`-m5407'
+     Generate output for a ColdFire 5407 CPU.  The option is now
+     deprecated in favor of the equivalent `-mcpu=5407'.
+
+`-mcfv4e'
+     Generate output for a ColdFire V4e family CPU (e.g. 547x/548x).
+     This includes use of hardware floating point instructions.  The
+     option is equivalent to `-mcpu=547x', and is now deprecated in
+     favor of that option.
+
+`-m68020-40'
+     Generate output for a 68040, without using any of the new
+     instructions.  This results in code which can run relatively
+     efficiently on either a 68020/68881 or a 68030 or a 68040.  The
+     generated code does use the 68881 instructions that are emulated
+     on the 68040.
+
+     The option is equivalent to `-march=68020' `-mtune=68020-40'.
+
+`-m68020-60'
+     Generate output for a 68060, without using any of the new
+     instructions.  This results in code which can run relatively
+     efficiently on either a 68020/68881 or a 68030 or a 68040.  The
+     generated code does use the 68881 instructions that are emulated
+     on the 68060.
+
+     The option is equivalent to `-march=68020' `-mtune=68020-60'.
+
+`-mhard-float'
+`-m68881'
+     Generate floating-point instructions.  This is the default for
+     68020 and above, and for ColdFire devices that have an FPU.  It
+     defines the macro `__HAVE_68881__' on M680x0 targets and
+     `__mcffpu__' on ColdFire targets.
+
+`-msoft-float'
+     Do not generate floating-point instructions; use library calls
+     instead.  This is the default for 68000, 68010, and 68832 targets.
+     It is also the default for ColdFire devices that have no FPU.
+
+`-mdiv'
+`-mno-div'
+     Generate (do not generate) ColdFire hardware divide and remainder
+     instructions.  If `-march' is used without `-mcpu', the default is
+     "on" for ColdFire architectures and "off" for M680x0
+     architectures.  Otherwise, the default is taken from the target CPU
+     (either the default CPU, or the one specified by `-mcpu').  For
+     example, the default is "off" for `-mcpu=5206' and "on" for
+     `-mcpu=5206e'.
+
+     gcc defines the macro `__mcfhwdiv__' when this option is enabled.
+
+`-mshort'
+     Consider type `int' to be 16 bits wide, like `short int'.
+     Additionally, parameters passed on the stack are also aligned to a
+     16-bit boundary even on targets whose API mandates promotion to
+     32-bit.
+
+`-mno-short'
+     Do not consider type `int' to be 16 bits wide.  This is the
+     default.
+
+`-mnobitfield'
+`-mno-bitfield'
+     Do not use the bit-field instructions.  The `-m68000', `-mcpu32'
+     and `-m5200' options imply `-mnobitfield'.
+
+`-mbitfield'
+     Do use the bit-field instructions.  The `-m68020' option implies
+     `-mbitfield'.  This is the default if you use a configuration
+     designed for a 68020.
+
+`-mrtd'
+     Use a different function-calling convention, in which functions
+     that take a fixed number of arguments return with the `rtd'
+     instruction, which pops their arguments while returning.  This
+     saves one instruction in the caller since there is no need to pop
+     the arguments there.
+
+     This calling convention is incompatible with the one normally used
+     on Unix, so you cannot use it if you need to call libraries
+     compiled with the Unix compiler.
+
+     Also, you must provide function prototypes for all functions that
+     take variable numbers of arguments (including `printf'); otherwise
+     incorrect code will be generated for calls to those functions.
+
+     In addition, seriously incorrect code will result if you call a
+     function with too many arguments.  (Normally, extra arguments are
+     harmlessly ignored.)
+
+     The `rtd' instruction is supported by the 68010, 68020, 68030,
+     68040, 68060 and CPU32 processors, but not by the 68000 or 5200.
+
+`-mno-rtd'
+     Do not use the calling conventions selected by `-mrtd'.  This is
+     the default.
+
+`-malign-int'
+`-mno-align-int'
+     Control whether GCC aligns `int', `long', `long long', `float',
+     `double', and `long double' variables on a 32-bit boundary
+     (`-malign-int') or a 16-bit boundary (`-mno-align-int').  Aligning
+     variables on 32-bit boundaries produces code that runs somewhat
+     faster on processors with 32-bit busses at the expense of more
+     memory.
+
+     *Warning:* if you use the `-malign-int' switch, GCC will align
+     structures containing the above types  differently than most
+     published application binary interface specifications for the m68k.
+
+`-mpcrel'
+     Use the pc-relative addressing mode of the 68000 directly, instead
+     of using a global offset table.  At present, this option implies
+     `-fpic', allowing at most a 16-bit offset for pc-relative
+     addressing.  `-fPIC' is not presently supported with `-mpcrel',
+     though this could be supported for 68020 and higher processors.
+
+`-mno-strict-align'
+`-mstrict-align'
+     Do not (do) assume that unaligned memory references will be
+     handled by the system.
+
+`-msep-data'
+     Generate code that allows the data segment to be located in a
+     different area of memory from the text segment.  This allows for
+     execute in place in an environment without virtual memory
+     management.  This option implies `-fPIC'.
+
+`-mno-sep-data'
+     Generate code that assumes that the data segment follows the text
+     segment.  This is the default.
+
+`-mid-shared-library'
+     Generate code that supports shared libraries via the library ID
+     method.  This allows for execute in place and shared libraries in
+     an environment without virtual memory management.  This option
+     implies `-fPIC'.
+
+`-mno-id-shared-library'
+     Generate code that doesn't assume ID based shared libraries are
+     being used.  This is the default.
+
+`-mshared-library-id=n'
+     Specified the identification number of the ID based shared library
+     being compiled.  Specifying a value of 0 will generate more
+     compact code, specifying other values will force the allocation of
+     that number to the current library but is no more space or time
+     efficient than omitting this option.
+
+
+
+File: gcc.info,  Node: M68hc1x Options,  Next: MCore Options,  Prev: M680x0 Options,  Up: Submodel Options
+
+3.17.19 M68hc1x Options
+-----------------------
+
+These are the `-m' options defined for the 68hc11 and 68hc12
+microcontrollers.  The default values for these options depends on
+which style of microcontroller was selected when the compiler was
+configured; the defaults for the most common choices are given below.
+
+`-m6811'
+`-m68hc11'
+     Generate output for a 68HC11.  This is the default when the
+     compiler is configured for 68HC11-based systems.
+
+`-m6812'
+`-m68hc12'
+     Generate output for a 68HC12.  This is the default when the
+     compiler is configured for 68HC12-based systems.
+
+`-m68S12'
+`-m68hcs12'
+     Generate output for a 68HCS12.
+
+`-mauto-incdec'
+     Enable the use of 68HC12 pre and post auto-increment and
+     auto-decrement addressing modes.
+
+`-minmax'
+`-nominmax'
+     Enable the use of 68HC12 min and max instructions.
+
+`-mlong-calls'
+`-mno-long-calls'
+     Treat all calls as being far away (near).  If calls are assumed to
+     be far away, the compiler will use the `call' instruction to call
+     a function and the `rtc' instruction for returning.
+
+`-mshort'
+     Consider type `int' to be 16 bits wide, like `short int'.
+
+`-msoft-reg-count=COUNT'
+     Specify the number of pseudo-soft registers which are used for the
+     code generation.  The maximum number is 32.  Using more pseudo-soft
+     register may or may not result in better code depending on the
+     program.  The default is 4 for 68HC11 and 2 for 68HC12.
+
+
+
+File: gcc.info,  Node: MCore Options,  Next: MIPS Options,  Prev: M68hc1x Options,  Up: Submodel Options
+
+3.17.20 MCore Options
+---------------------
+
+These are the `-m' options defined for the Motorola M*Core processors.
+
+`-mhardlit'
+`-mno-hardlit'
+     Inline constants into the code stream if it can be done in two
+     instructions or less.
+
+`-mdiv'
+`-mno-div'
+     Use the divide instruction.  (Enabled by default).
+
+`-mrelax-immediate'
+`-mno-relax-immediate'
+     Allow arbitrary sized immediates in bit operations.
+
+`-mwide-bitfields'
+`-mno-wide-bitfields'
+     Always treat bit-fields as int-sized.
+
+`-m4byte-functions'
+`-mno-4byte-functions'
+     Force all functions to be aligned to a four byte boundary.
+
+`-mcallgraph-data'
+`-mno-callgraph-data'
+     Emit callgraph information.
+
+`-mslow-bytes'
+`-mno-slow-bytes'
+     Prefer word access when reading byte quantities.
+
+`-mlittle-endian'
+`-mbig-endian'
+     Generate code for a little endian target.
+
+`-m210'
+`-m340'
+     Generate code for the 210 processor.
+
+
+File: gcc.info,  Node: MIPS Options,  Next: MMIX Options,  Prev: MCore Options,  Up: Submodel Options
+
+3.17.21 MIPS Options
+--------------------
+
+`-EB'
+     Generate big-endian code.
+
+`-EL'
+     Generate little-endian code.  This is the default for `mips*el-*-*'
+     configurations.
+
+`-march=ARCH'
+     Generate code that will run on ARCH, which can be the name of a
+     generic MIPS ISA, or the name of a particular processor.  The ISA
+     names are: `mips1', `mips2', `mips3', `mips4', `mips32',
+     `mips32r2', and `mips64'.  The processor names are: `4kc', `4km',
+     `4kp', `4ksc', `4kec', `4kem', `4kep', `4ksd', `5kc', `5kf',
+     `20kc', `24kc', `24kf2_1', `24kf1_1', `24kec', `24kef2_1',
+     `24kef1_1', `34kc', `34kf2_1', `34kf1_1', `74kc', `74kf2_1',
+     `74kf1_1', `74kf3_2', `m4k', `orion', `r2000', `r3000', `r3900',
+     `r4000', `r4400', `r4600', `r4650', `r6000', `r8000', `rm7000',
+     `rm9000', `sb1', `sr71000', `vr4100', `vr4111', `vr4120',
+     `vr4130', `vr4300', `vr5000', `vr5400' and `vr5500'.  The special
+     value `from-abi' selects the most compatible architecture for the
+     selected ABI (that is, `mips1' for 32-bit ABIs and `mips3' for
+     64-bit ABIs).
+
+     In processor names, a final `000' can be abbreviated as `k' (for
+     example, `-march=r2k').  Prefixes are optional, and `vr' may be
+     written `r'.
+
+     Names of the form `Nf2_1' refer to processors with FPUs clocked at
+     half the rate of the core, names of the form `Nf1_1' refer to
+     processors with FPUs clocked at the same rate as the core, and
+     names of the form `Nf3_2' refer to processors with FPUs clocked a
+     ratio of 3:2 with respect to the core.  For compatibility reasons,
+     `Nf' is accepted as a synonym for `Nf2_1' while `Nx' and `Bfx' are
+     accepted as synonyms for `Nf1_1'.
+
+     GCC defines two macros based on the value of this option.  The
+     first is `_MIPS_ARCH', which gives the name of target
+     architecture, as a string.  The second has the form
+     `_MIPS_ARCH_FOO', where FOO is the capitalized value of
+     `_MIPS_ARCH'.  For example, `-march=r2000' will set `_MIPS_ARCH'
+     to `"r2000"' and define the macro `_MIPS_ARCH_R2000'.
+
+     Note that the `_MIPS_ARCH' macro uses the processor names given
+     above.  In other words, it will have the full prefix and will not
+     abbreviate `000' as `k'.  In the case of `from-abi', the macro
+     names the resolved architecture (either `"mips1"' or `"mips3"').
+     It names the default architecture when no `-march' option is given.
+
+`-mtune=ARCH'
+     Optimize for ARCH.  Among other things, this option controls the
+     way instructions are scheduled, and the perceived cost of
+     arithmetic operations.  The list of ARCH values is the same as for
+     `-march'.
+
+     When this option is not used, GCC will optimize for the processor
+     specified by `-march'.  By using `-march' and `-mtune' together,
+     it is possible to generate code that will run on a family of
+     processors, but optimize the code for one particular member of
+     that family.
+
+     `-mtune' defines the macros `_MIPS_TUNE' and `_MIPS_TUNE_FOO',
+     which work in the same way as the `-march' ones described above.
+
+`-mips1'
+     Equivalent to `-march=mips1'.
+
+`-mips2'
+     Equivalent to `-march=mips2'.
+
+`-mips3'
+     Equivalent to `-march=mips3'.
+
+`-mips4'
+     Equivalent to `-march=mips4'.
+
+`-mips32'
+     Equivalent to `-march=mips32'.
+
+`-mips32r2'
+     Equivalent to `-march=mips32r2'.
+
+`-mips64'
+     Equivalent to `-march=mips64'.
+
+`-mips16'
+`-mno-mips16'
+     Generate (do not generate) MIPS16 code.  If GCC is targetting a
+     MIPS32 or MIPS64 architecture, it will make use of the MIPS16e ASE.
+
+     MIPS16 code generation can also be controlled on a per-function
+     basis by means of `mips16' and `nomips16' attributes.  *Note
+     Function Attributes::, for more information.
+
+`-mflip-mips16'
+     Generate MIPS16 code on alternating functions.  This option is
+     provided for regression testing of mixed MIPS16/non-MIPS16 code
+     generation, and is not intended for ordinary use in compiling user
+     code.
+
+`-minterlink-mips16'
+`-mno-interlink-mips16'
+     Require (do not require) that non-MIPS16 code be link-compatible
+     with MIPS16 code.
+
+     For example, non-MIPS16 code cannot jump directly to MIPS16 code;
+     it must either use a call or an indirect jump.
+     `-minterlink-mips16' therefore disables direct jumps unless GCC
+     knows that the target of the jump is not MIPS16.
+
+`-mabi=32'
+`-mabi=o64'
+`-mabi=n32'
+`-mabi=64'
+`-mabi=eabi'
+     Generate code for the given ABI.
+
+     Note that the EABI has a 32-bit and a 64-bit variant.  GCC normally
+     generates 64-bit code when you select a 64-bit architecture, but
+     you can use `-mgp32' to get 32-bit code instead.
+
+     For information about the O64 ABI, see
+     `http://gcc.gnu.org/projects/mipso64-abi.html'.
+
+     GCC supports a variant of the o32 ABI in which floating-point
+     registers are 64 rather than 32 bits wide.  You can select this
+     combination with `-mabi=32' `-mfp64'.  This ABI relies on the
+     `mthc1' and `mfhc1' instructions and is therefore only supported
+     for MIPS32R2 processors.
+
+     The register assignments for arguments and return values remain the
+     same, but each scalar value is passed in a single 64-bit register
+     rather than a pair of 32-bit registers.  For example, scalar
+     floating-point values are returned in `$f0' only, not a
+     `$f0'/`$f1' pair.  The set of call-saved registers also remains
+     the same, but all 64 bits are saved.
+
+`-mabicalls'
+`-mno-abicalls'
+     Generate (do not generate) code that is suitable for SVR4-style
+     dynamic objects.  `-mabicalls' is the default for SVR4-based
+     systems.
+
+`-mshared'
+`-mno-shared'
+     Generate (do not generate) code that is fully position-independent,
+     and that can therefore be linked into shared libraries.  This
+     option only affects `-mabicalls'.
+
+     All `-mabicalls' code has traditionally been position-independent,
+     regardless of options like `-fPIC' and `-fpic'.  However, as an
+     extension, the GNU toolchain allows executables to use absolute
+     accesses for locally-binding symbols.  It can also use shorter GP
+     initialization sequences and generate direct calls to
+     locally-defined functions.  This mode is selected by `-mno-shared'.
+
+     `-mno-shared' depends on binutils 2.16 or higher and generates
+     objects that can only be linked by the GNU linker.  However, the
+     option does not affect the ABI of the final executable; it only
+     affects the ABI of relocatable objects.  Using `-mno-shared' will
+     generally make executables both smaller and quicker.
+
+     `-mshared' is the default.
+
+`-mxgot'
+`-mno-xgot'
+     Lift (do not lift) the usual restrictions on the size of the global
+     offset table.
+
+     GCC normally uses a single instruction to load values from the GOT.
+     While this is relatively efficient, it will only work if the GOT
+     is smaller than about 64k.  Anything larger will cause the linker
+     to report an error such as:
+
+          relocation truncated to fit: R_MIPS_GOT16 foobar
+
+     If this happens, you should recompile your code with `-mxgot'.  It
+     should then work with very large GOTs, although it will also be
+     less efficient, since it will take three instructions to fetch the
+     value of a global symbol.
+
+     Note that some linkers can create multiple GOTs.  If you have such
+     a linker, you should only need to use `-mxgot' when a single object
+     file accesses more than 64k's worth of GOT entries.  Very few do.
+
+     These options have no effect unless GCC is generating position
+     independent code.
+
+`-mgp32'
+     Assume that general-purpose registers are 32 bits wide.
+
+`-mgp64'
+     Assume that general-purpose registers are 64 bits wide.
+
+`-mfp32'
+     Assume that floating-point registers are 32 bits wide.
+
+`-mfp64'
+     Assume that floating-point registers are 64 bits wide.
+
+`-mhard-float'
+     Use floating-point coprocessor instructions.
+
+`-msoft-float'
+     Do not use floating-point coprocessor instructions.  Implement
+     floating-point calculations using library calls instead.
+
+`-msingle-float'
+     Assume that the floating-point coprocessor only supports
+     single-precision operations.
+
+`-mdouble-float'
+     Assume that the floating-point coprocessor supports
+     double-precision operations.  This is the default.
+
+`-mllsc'
+`-mno-llsc'
+     Use (do not use) `ll', `sc', and `sync' instructions to implement
+     atomic memory built-in functions.  When neither option is
+     specified, GCC will use the instructions if the target architecture
+     supports them.
+
+     `-mllsc' is useful if the runtime environment can emulate the
+     instructions and `-mno-llsc' can be useful when compiling for
+     nonstandard ISAs.  You can make either option the default by
+     configuring GCC with `--with-llsc' and `--without-llsc'
+     respectively.  `--with-llsc' is the default for some
+     configurations; see the installation documentation for details.
+
+`-mdsp'
+`-mno-dsp'
+     Use (do not use) revision 1 of the MIPS DSP ASE.  *Note MIPS DSP
+     Built-in Functions::.  This option defines the preprocessor macro
+     `__mips_dsp'.  It also defines `__mips_dsp_rev' to 1.
+
+`-mdspr2'
+`-mno-dspr2'
+     Use (do not use) revision 2 of the MIPS DSP ASE.  *Note MIPS DSP
+     Built-in Functions::.  This option defines the preprocessor macros
+     `__mips_dsp' and `__mips_dspr2'.  It also defines `__mips_dsp_rev'
+     to 2.
+
+`-msmartmips'
+`-mno-smartmips'
+     Use (do not use) the MIPS SmartMIPS ASE.
+
+`-mpaired-single'
+`-mno-paired-single'
+     Use (do not use) paired-single floating-point instructions.  *Note
+     MIPS Paired-Single Support::.  This option requires hardware
+     floating-point support to be enabled.
+
+`-mdmx'
+`-mno-mdmx'
+     Use (do not use) MIPS Digital Media Extension inst

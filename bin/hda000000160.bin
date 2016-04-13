@@ -1,0 +1,1979 @@
+herefore we resort to template
+  // template to "flatten" loosened return value types.
+  // At some point we use partial specialization to remove one level
+  // template nesting due to _Expr<>
+  //
+
+  // This class is NOT defined. It doesn't need to.
+  template<typename _Tp1, typename _Tp2> class _Constant;
+
+  // Implementations of unary functions applied to valarray<>s.
+  // I use hard-coded object functions here instead of a generic
+  // approach like pointers to function:
+  //    1) correctness: some functions take references, others values.
+  //       we can't deduce the correct type afterwards.
+  //    2) efficiency -- object functions can be easily inlined
+  //    3) be Koenig-lookup-friendly
+
+  struct __abs
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return abs(__t); }
+  };
+
+  struct __cos
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return cos(__t); }
+  };
+
+  struct __acos
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return acos(__t); }
+  };
+
+  struct __cosh
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return cosh(__t); }
+  };
+
+  struct __sin
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return sin(__t); }
+  };
+
+  struct __asin
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return asin(__t); }
+  };
+
+  struct __sinh
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return sinh(__t); }
+  };
+
+  struct __tan
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return tan(__t); }
+  };
+
+  struct __atan
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return atan(__t); }
+  };
+
+  struct __tanh
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return tanh(__t); }
+  };
+
+  struct __exp
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return exp(__t); }
+  };
+
+  struct __log
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return log(__t); }
+  };
+
+  struct __log10
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return log10(__t); }
+  };
+
+  struct __sqrt
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return sqrt(__t); }
+  };
+
+  // In the past, we used to tailor operator applications semantics
+  // to the specialization of standard function objects (i.e. plus<>, etc.)
+  // That is incorrect.  Therefore we provide our own surrogates.
+
+  struct __unary_plus
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return +__t; }
+  };
+
+  struct __negate
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return -__t; }
+  };
+
+  struct __bitwise_not
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __t) const
+      { return ~__t; }
+  };
+
+  struct __plus
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x + __y; }
+  };
+
+  struct __minus
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x - __y; }
+  };
+
+  struct __multiplies
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x * __y; }
+  };
+
+  struct __divides
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x / __y; }
+  };
+
+  struct __modulus
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x % __y; }
+  };
+
+  struct __bitwise_xor
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x ^ __y; }
+  };
+
+  struct __bitwise_and
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x & __y; }
+  };
+
+  struct __bitwise_or
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x | __y; }
+  };
+
+  struct __shift_left
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x << __y; }
+  };
+
+  struct __shift_right
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x >> __y; }
+  };
+
+  struct __logical_and
+  {
+    template<typename _Tp>
+      bool operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x && __y; }
+  };
+
+  struct __logical_or
+  {
+    template<typename _Tp>
+      bool operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x || __y; }
+  };
+
+  struct __logical_not
+  {
+    template<typename _Tp>
+      bool operator()(const _Tp& __x) const { return !__x; }
+  };
+
+  struct __equal_to
+  {
+    template<typename _Tp>
+      bool operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x == __y; }
+  };
+
+  struct __not_equal_to
+  {
+    template<typename _Tp>
+      bool operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x != __y; }
+  };
+
+  struct __less
+  {
+    template<typename _Tp>
+      bool operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x < __y; }
+  };
+
+  struct __greater
+  {
+    template<typename _Tp>
+      bool operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x > __y; }
+  };
+
+  struct __less_equal
+  {
+    template<typename _Tp>
+      bool operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x <= __y; }
+  };
+
+  struct __greater_equal
+  {
+    template<typename _Tp>
+      bool operator()(const _Tp& __x, const _Tp& __y) const
+      { return __x >= __y; }
+  };
+
+  // The few binary functions we miss.
+  struct __atan2
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __x, const _Tp& __y) const
+      { return atan2(__x, __y); }
+  };
+
+  struct __pow
+  {
+    template<typename _Tp>
+      _Tp operator()(const _Tp& __x, const _Tp& __y) const
+      { return pow(__x, __y); }
+  };
+
+
+  // We need these bits in order to recover the return type of
+  // some functions/operators now that we're no longer using
+  // function templates.
+  template<typename, typename _Tp>
+    struct __fun
+    {
+      typedef _Tp result_type;
+    };
+
+  // several specializations for relational operators.
+  template<typename _Tp>
+    struct __fun<__logical_not, _Tp>
+    {
+      typedef bool result_type;
+    };
+
+  template<typename _Tp>
+    struct __fun<__logical_and, _Tp>
+    {
+      typedef bool result_type;
+    };
+
+  template<typename _Tp>
+    struct __fun<__logical_or, _Tp>
+    {
+      typedef bool result_type;
+    };
+
+  template<typename _Tp>
+    struct __fun<__less, _Tp>
+    {
+      typedef bool result_type;
+    };
+
+  template<typename _Tp>
+    struct __fun<__greater, _Tp>
+    {
+      typedef bool result_type;
+    };
+
+  template<typename _Tp>
+    struct __fun<__less_equal, _Tp>
+    {
+      typedef bool result_type;
+    };
+
+  template<typename _Tp>
+    struct __fun<__greater_equal, _Tp>
+    {
+      typedef bool result_type;
+    };
+
+  template<typename _Tp>
+    struct __fun<__equal_to, _Tp>
+    {
+      typedef bool result_type;
+    };
+
+  template<typename _Tp>
+    struct __fun<__not_equal_to, _Tp>
+    {
+      typedef bool result_type;
+    };
+
+  //
+  // Apply function taking a value/const reference closure
+  //
+
+  template<typename _Dom, typename _Arg>
+    class _FunBase
+    {
+    public:
+      typedef typename _Dom::value_type value_type;
+
+      _FunBase(const _Dom& __e, value_type __f(_Arg))
+      : _M_expr(__e), _M_func(__f) {}
+
+      value_type operator[](size_t __i) const
+      { return _M_func (_M_expr[__i]); }
+
+      size_t size() const { return _M_expr.size ();}
+
+    private:
+      const _Dom& _M_expr;
+      value_type (*_M_func)(_Arg);
+    };
+
+  template<class _Dom>
+    struct _ValFunClos<_Expr,_Dom> : _FunBase<_Dom, typename _Dom::value_type>
+    {
+      typedef _FunBase<_Dom, typename _Dom::value_type> _Base;
+      typedef typename _Base::value_type value_type;
+      typedef value_type _Tp;
+
+      _ValFunClos(const _Dom& __e, _Tp __f(_Tp)) : _Base(__e, __f) {}
+    };
+
+  template<typename _Tp>
+    struct _ValFunClos<_ValArray,_Tp> : _FunBase<valarray<_Tp>, _Tp>
+    {
+      typedef _FunBase<valarray<_Tp>, _Tp> _Base;
+      typedef _Tp value_type;
+
+      _ValFunClos(const valarray<_Tp>& __v, _Tp __f(_Tp)) : _Base(__v, __f) {}
+    };
+
+  template<class _Dom>
+    struct _RefFunClos<_Expr, _Dom>
+    : _FunBase<_Dom, const typename _Dom::value_type&>
+    {
+      typedef _FunBase<_Dom, const typename _Dom::value_type&> _Base;
+      typedef typename _Base::value_type value_type;
+      typedef value_type _Tp;
+
+      _RefFunClos(const _Dom& __e, _Tp __f(const _Tp&))
+      : _Base(__e, __f) {}
+    };
+
+  template<typename _Tp>
+    struct _RefFunClos<_ValArray, _Tp>
+    : _FunBase<valarray<_Tp>, const _Tp&>
+    {
+      typedef _FunBase<valarray<_Tp>, const _Tp&> _Base;
+      typedef _Tp value_type;
+
+      _RefFunClos(const valarray<_Tp>& __v, _Tp __f(const _Tp&))
+      : _Base(__v, __f) {}
+    };
+
+  //
+  // Unary expression closure.
+  //
+
+  template<class _Oper, class _Arg>
+    class _UnBase
+    {
+    public:
+      typedef typename _Arg::value_type _Vt;
+      typedef typename __fun<_Oper, _Vt>::result_type value_type;
+
+      _UnBase(const _Arg& __e) : _M_expr(__e) {}
+
+      value_type operator[](size_t __i) const
+      { return _Oper()(_M_expr[__i]); }
+
+      size_t size() const { return _M_expr.size(); }
+      
+    private:
+      const _Arg& _M_expr;
+    };
+
+  template<class _Oper, class _Dom>
+    struct _UnClos<_Oper, _Expr, _Dom>
+    : _UnBase<_Oper, _Dom>
+    {
+      typedef _Dom _Arg;
+      typedef _UnBase<_Oper, _Dom> _Base;
+      typedef typename _Base::value_type value_type;
+
+      _UnClos(const _Arg& __e) : _Base(__e) {}
+    };
+
+  template<class _Oper, typename _Tp>
+    struct _UnClos<_Oper, _ValArray, _Tp>
+    : _UnBase<_Oper, valarray<_Tp> >
+    {
+      typedef valarray<_Tp> _Arg;
+      typedef _UnBase<_Oper, valarray<_Tp> > _Base;
+      typedef typename _Base::value_type value_type;
+
+      _UnClos(const _Arg& __e) : _Base(__e) {}
+    };
+
+
+  //
+  // Binary expression(  (  (  (  (  (  (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       closure.
+  //
+
+  template<class _Oper, class _FirstArg, class _SecondArg>
+    class _BinBase
+    {
+    public:
+      typedef typename _FirstArg::value_type _Vt;
+      typedef typename __fun<_Oper, _Vt>::result_type value_type;
+
+      _BinBase(const _FirstArg& __e1, const _SecondArg& __e2)
+      : _M_expr1(__e1), _M_expr2(__e2) {}
+
+      value_type operator[](size_t __i) const
+      { return _Oper()(_M_expr1[__i], _M_expr2[__i]); }
+
+      size_t size() const { return _M_expr1.size(); }
+
+    private:
+      const _FirstArg& _M_expr1;
+      const _SecondArg& _M_expr2;
+    };
+
+
+  template<class _Oper, class _Clos>
+    class _BinBase2
+    {
+    public:
+      typedef typename _Clos::value_type _Vt;
+      typedef typename __fun<_Oper, _Vt>::result_type value_type;
+
+      _BinBase2(const _Clos& __e, const _Vt& __t)
+      : _M_expr1(__e), _M_expr2(__t) {}
+
+      value_type operator[](size_t __i) const
+      { return _Oper()(_M_expr1[__i], _M_expr2); }
+
+      size_t size() const { return _M_expr1.size(); }
+
+    private:
+      const _Clos& _M_expr1;
+      const _Vt& _M_expr2;
+    };
+
+  template<class _Oper, class _Clos>
+    class _BinBase1
+    {
+    public:
+      typedef typename _Clos::value_type _Vt;
+      typedef typename __fun<_Oper, _Vt>::result_type value_type;
+
+      _BinBase1(const _Vt& __t, const _Clos& __e)
+      : _M_expr1(__t), _M_expr2(__e) {}
+
+      value_type operator[](size_t __i) const
+      { return _Oper()(_M_expr1, _M_expr2[__i]); }
+
+      size_t size() const { return _M_expr2.size(); }
+
+    private:
+      const _Vt& _M_expr1;
+      const _Clos& _M_expr2;
+    };
+
+  template<class _Oper, class _Dom1, class _Dom2>
+    struct _BinClos<_Oper, _Expr, _Expr, _Dom1, _Dom2>
+    : _BinBase<_Oper, _Dom1, _Dom2>
+    {
+      typedef _BinBase<_Oper, _Dom1, _Dom2> _Base;
+      typedef typename _Base::value_type value_type;
+
+      _BinClos(const _Dom1& __e1, const _Dom2& __e2) : _Base(__e1, __e2) {}
+    };
+
+  template<class _Oper, typename _Tp>
+    struct _BinClos<_Oper,_ValArray, _ValArray, _Tp, _Tp>
+    : _BinBase<_Oper, valarray<_Tp>, valarray<_Tp> >
+    {
+      typedef _BinBase<_Oper, valarray<_Tp>, valarray<_Tp> > _Base;
+      typedef typename _Base::value_type value_type;
+
+      _BinClos(const valarray<_Tp>& __v, const valarray<_Tp>& __w)
+      : _Base(__v, __w) {}
+    };
+
+  template<class _Oper, class _Dom>
+    struct _BinClos<_Oper, _Expr, _ValArray, _Dom, typename _Dom::value_type>
+    : _BinBase<_Oper, _Dom, valarray<typename _Dom::value_type> >
+    {
+      typedef typename _Dom::value_type _Tp;
+      typedef _BinBase<_Oper,_Dom,valarray<_Tp> > _Base;
+      typedef typename _Base::value_type value_type;
+
+      _BinClos(const _Dom& __e1, const valarray<_Tp>& __e2)
+      : _Base(__e1, __e2) {}
+    };
+
+  template<class _Oper, class _Dom>
+    struct _BinClos<_Oper, _ValArray, _Expr, typename _Dom::value_type, _Dom>
+    : _BinBase<_Oper, valarray<typename _Dom::value_type>,_Dom>
+    {
+      typedef typename _Dom::value_type _Tp;
+      typedef _BinBase<_Oper, valarray<_Tp>, _Dom> _Base;
+      typedef typename _Base::value_type value_type;
+
+      _BinClos(const valarray<_Tp>& __e1, const _Dom& __e2)
+      : _Base(__e1, __e2) {}
+    };
+
+  template<class _Oper, class _Dom>
+    struct _BinClos<_Oper, _Expr, _Constant, _Dom, typename _Dom::value_type>
+    : _BinBase2<_Oper, _Dom>
+    {
+      typedef typename _Dom::value_type _Tp;
+      typedef _BinBase2<_Oper,_Dom> _Base;
+      typedef typename _Base::value_type value_type;
+
+      _BinClos(const _Dom& __e1, const _Tp& __e2) : _Base(__e1, __e2) {}
+    };
+
+  template<class _Oper, class _Dom>
+    struct _BinClos<_Oper, _Constant, _Expr, typename _Dom::value_type, _Dom>
+    : _BinBase1<_Oper, _Dom>
+    {
+      typedef typename _Dom::value_type _Tp;
+      typedef _BinBase1<_Oper, _Dom> _Base;
+      typedef typename _Base::value_type value_type;
+
+      _BinClos(const _Tp& __e1, const _Dom& __e2) : _Base(__e1, __e2) {}
+    };
+
+  template<class _Oper, typename _Tp>
+    struct _BinClos<_Oper, _ValArray, _Constant, _Tp, _Tp>
+    : _BinBase2<_Oper, valarray<_Tp> >
+    {
+      typedef _BinBase2<_Oper,valarray<_Tp> > _Base;
+      typedef typename _Base::value_type value_type;
+
+      _BinClos(const valarray<_Tp>& __v, const _Tp& __t) : _Base(__v, __t) {}
+    };
+
+  template<class _Oper, typename _Tp>
+    struct _BinClos<_Oper, _Constant, _ValArray, _Tp, _Tp>
+    : _BinBase1<_Oper, valarray<_Tp> >
+    {
+      typedef _BinBase1<_Oper, valarray<_Tp> > _Base;
+      typedef typename _Base::value_type value_type;
+
+      _BinClos(const _Tp& __t, const valarray<_Tp>& __v) : _Base(__t, __v) {}
+    };
+
+    //
+    // slice_array closure.
+    //
+  template<typename _Dom> 
+    class _SBase
+    {
+    public:
+      typedef typename _Dom::value_type value_type;
+      
+      _SBase (const _Dom& __e, const slice& __s)
+      : _M_expr (__e), _M_slice (__s) {}
+        
+      value_type
+      operator[] (size_t __i) const
+      { return _M_expr[_M_slice.start () + __i * _M_slice.stride ()]; }
+        
+      size_t
+      size() const
+      { return _M_slice.size (); }
+
+    private:
+      const _Dom& _M_expr;
+      const slice& _M_slice;
+    };
+
+  template<typename _Tp>
+    class _SBase<_Array<_Tp> >
+    {
+    public:
+      typedef _Tp value_type;
+      
+      _SBase (_Array<_Tp> __a, const slice& __s)
+      : _M_array (__a._M_data+__s.start()), _M_size (__s.size()),
+	_M_stride (__s.stride()) {}
+        
+      value_type
+      operator[] (size_t __i) const
+      { return _M_array._M_data[__i * _M_stride]; }
+      
+      size_t
+      size() const
+      { return _M_size; }
+
+    private:
+      const _Array<_Tp> _M_array;
+      const size_t _M_size;
+      const size_t _M_stride;
+    };
+
+  template<class _Dom>
+    struct _SClos<_Expr, _Dom>
+    : _SBase<_Dom>
+    {
+      typedef _SBase<_Dom> _Base;
+      typedef typename _Base::value_type value_type;
+      
+      _SClos (const _Dom& __e, const slice& __s) : _Base (__e, __s) {}
+    };
+
+  template<typename _Tp>
+    struct _SClos<_ValArray, _Tp>
+    : _SBase<_Array<_Tp> >
+    {
+      typedef  _SBase<_Array<_Tp> > _Base;
+      typedef _Tp value_type;
+      
+      _SClos (_Array<_Tp> __a, const slice& __s) : _Base (__a, __s) {}
+    };
+
+_GLIBCXX_END_NAMESPACE
+
+#endif /* _CPP_VALARRAY_BEFORE_H */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             // Locale support (codecvt) -*- C++ -*-
+
+// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+//  Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file bits/codecvt.h
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+//
+// ISO C++ 14882: 22.2.1.5 Template class codecvt
+//
+
+// Written by Benjamin Kosnik <bkoz@redhat.com>
+
+#ifndef _CODECVT_H
+#define _CODECVT_H 1
+
+#pragma GCC system_header
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  /// Empty base class for codecvt facet [22.2.1.5].
+  class codecvt_base
+  {
+  public:
+    enum result
+    {
+      ok,
+      partial,
+      error,
+      noconv
+    };
+  };
+
+  /**
+   *  @brief  Common base for codecvt functions.
+   *
+   *  This template class provides implementations of the public functions
+   *  that forward to the protected virtual functions.
+   *
+   *  This template also provides abstract stubs for the protected virtual
+   *  functions.
+  */
+  template<typename _InternT, typename _ExternT, typename _StateT>
+    class __codecvt_abstract_base
+    : public locale::facet, public codecvt_base
+    {
+    public:
+      // Types:
+      typedef codecvt_base::result	result;
+      typedef _InternT			intern_type;
+      typedef _ExternT			extern_type;
+      typedef _StateT			state_type;
+
+      // 22.2.1.5.1 codecvt members
+      /**
+       *  @brief  Convert from internal to external character set.
+       *
+       *  Converts input string of intern_type to output string of
+       *  extern_type.  This is analogous to wcsrtombs.  It does this by
+       *  calling codecvt::do_out.
+       *
+       *  The source and destination character sets are determined by the
+       *  facet's locale, internal and external types.
+       *
+       *  The characters in [from,from_end) are converted and written to
+       *  [to,to_end).  from_next and to_next are set to point to the
+       *  character following the last successfully converted character,
+       *  respectively.  If the result needed no conversion, from_next and
+       *  to_next are not affected.
+       *
+       *  The @a state argument should be initialized if the input is at the
+       *  beginning and carried from a previous call if continuing
+       *  conversion.  There are no guarantees about how @a state is used.
+       *
+       *  The result returned is a member of codecvt_base::result.  If
+       *  all the input is converted, returns codecvt_base::ok.  If no
+       *  conversion is necessary, returns codecvt_base::noconv.  If
+       *  the input ends early or there is insufficient space in the
+       *  output, returns codecvt_base::partial.  Otherwise the
+       *  conversion failed and codecvt_base::error is returned.
+       *
+       *  @param  state  Persistent conversion state data.
+       *  @param  from  Start of input.
+       *  @param  from_end  End of input.
+       *  @param  from_next  Returns start of unconverted data.
+       *  @param  to  Start of output buffer.
+       *  @param  to_end  End of output buffer.
+       *  @param  to_next  Returns start of unused output area.
+       *  @return  codecvt_base::result.
+      */
+      result
+      out(state_type& __state, const intern_type* __from,
+	  const intern_type* __from_end, const intern_type*& __from_next,
+	  extern_type* __to, extern_type* __to_end,
+	  extern_type*& __to_next) const
+      {
+	return this->do_out(__state, __from, __from_end, __from_next,
+			    __to, __to_end, __to_next);
+      }
+
+      /**
+       *  @brief  Reset conversion state.
+       *
+       *  Writes characters to output that would restore @a state to initial
+       *  conditions.  The idea is that if a partial conversion occurs, then
+       *  the converting the characters written by this function would leave
+       *  the state in initial conditions, rather than partial conversion
+       *  state.  It does this by calling codecvt::do_unshift().
+       *
+       *  For example, if 4 external characters always converted to 1 internal
+       *  character, and input to in() had 6 external characters with state
+       *  saved, this function would write two characters to the output and
+       *  set the state to initialized conditions.
+       *
+       *  The source and destination character sets are determined by the
+       *  facet's locale, internal and external types.
+       *
+       *  The result returned is a member of codecvt_base::result.  If the
+       *  state could be reset and data written, returns codecvt_base::ok.  If
+       *  no conversion is necessary, returns codecvt_base::noconv.  If the
+       *  output has insufficient space, returns codecvt_base::partial.
+       *  Otherwise the reset failed and codecvt_base::error is returned.
+       *
+       *  @param  state  Persistent conversion state data.
+       *  @param  to  Start of output buffer.
+       *  @param  to_end  End of output buffer.
+       *  @param  to_next  Returns start of unused output area.
+       *  @return  codecvt_base::result.
+      */
+      result
+      unshift(state_type& __state, extern_type* __to, extern_type* __to_end,
+	      extern_type*& __to_next) const
+      { return this->do_unshift(__state, __to,__to_end,__to_next); }
+
+      /**
+       *  @brief  Convert from external to internal character set.
+       *
+       *  Converts input string of extern_type to output string of
+       *  intern_type.  This is analogous to mbsrtowcs.  It does this by
+       *  calling codecvt::do_in.
+       *
+       *  The source and destination character sets are determined by the
+       *  facet's locale, internal and external types.
+       *
+       *  The characters in [from,from_end) are converted and written to
+       *  [to,to_end).  from_next and to_next are set to point to the
+       *  character following the last successfully converted character,
+       *  respectively.  If the result needed no conversion, from_next and
+       *  to_next are not affected.
+       *
+       *  The @a state argument should be initialized if the input is at the
+       *  beginning and carried from a previous call if continuing
+       *  conversion.  There are no guarantees about how @a state is used.
+       *
+       *  The result returned is a member of codecvt_base::result.  If
+       *  all the input is converted, returns codecvt_base::ok.  If no
+       *  conversion is necessary, returns codecvt_base::noconv.  If
+       *  the input ends early or there is insufficient space in the
+       *  output, returns codecvt_base::partial.  Otherwise the
+       *  conversion failed and codecvt_base::error is returned.
+       *
+       *  @param  state  Persistent conversion state data.
+       *  @param  from  Start of input.
+       *  @param  from_end  End of input.
+       *  @param  from_next  Returns start of unconverted data.
+       *  @param  to  Start of output buffer.
+       *  @param  to_end  End of output buffer.
+       *  @param  to_next  Returns start of unused output area.
+       *  @return  codecvt_base::result.
+      */
+      result
+      in(state_type& __state, const extern_type* __from,
+	 const extern_type* __from_end, const extern_type*& __from_next,
+	 intern_type* __to, intern_type* __to_end,
+	 intern_type*& __to_next) const
+      {
+	return this->do_in(__state, __from, __from_end, __from_next,
+			   __to, __to_end, __to_next);
+      }
+
+      int
+      encoding() const throw()
+      { return this->do_encoding(); }
+
+      bool
+      always_noconv() const throw()
+      { return this->do_always_noconv(); }
+
+      int
+      length(state_type& __state, const extern_type* __from,
+	     const extern_type* __end, size_t __max) const
+      { return this->do_length(__state, __from, __end, __max); }
+
+      int
+      max_length() const throw()
+      { return this->do_max_length(); }
+
+    protected:
+      explicit
+      __codecvt_abstract_base(size_t __refs = 0) : locale::facet(__refs) { }
+
+      virtual
+      ~__codecvt_abstract_base() { }
+
+      /**
+       *  @brief  Convert from internal to external character set.
+       *
+       *  Converts input string of intern_type to output string of
+       *  extern_type.  This function is a hook for derived classes to change
+       *  the value returned.  @see out for more information.
+      */
+      virtual result
+      do_out(state_type& __state, const intern_type* __from,
+	     const intern_type* __from_end, const intern_type*& __from_next,
+	     extern_type* __to, extern_type* __to_end,
+	     extern_type*& __to_next) const = 0;
+
+      virtual result
+      do_unshift(state_type& __state, extern_type* __to,
+		 extern_type* __to_end, extern_type*& __to_next) const = 0;
+
+      virtual result
+      do_in(state_type& __state, const extern_type* __from,
+	    const extern_type* __from_end, const extern_type*& __from_next,
+	    intern_type* __to, intern_type* __to_end,
+	    intern_type*& __to_next) const = 0;
+
+      virtual int
+      do_encoding() const throw() = 0;
+
+      virtual bool
+      do_always_noconv() const throw() = 0;
+
+      virtual int
+      do_length(state_type&, const extern_type* __from,
+		const extern_type* __end, size_t __max) const = 0;
+
+      virtual int
+      do_max_length() const throw() = 0;
+    };
+
+  /// @brief class codecvt [22.2.1.5].
+  /// NB: Generic, mostly useless implementation.
+  template<typename _InternT, typename _ExternT, typename _StateT>
+    class codecvt
+    : public __codecvt_abstract_base<_InternT, _ExternT, _StateT>
+    {
+    public:
+      // Types:
+      typedef codecvt_base::result	result;
+      typedef _InternT			intern_type;
+      typedef _ExternT			extern_type;
+      typedef _StateT			state_type;
+
+    protected:
+      __c_locale			_M_c_locale_codecvt;
+
+    public:
+      static locale::id			id;
+
+      explicit
+      codecvt(size_t __refs = 0)
+      : __codecvt_abstract_base<_InternT, _ExternT, _StateT> (__refs) { }
+
+      explicit
+      codecvt(__c_locale __cloc, size_t __refs = 0);
+
+    protected:
+      virtual
+      ~codecvt() { }
+
+      virtual result
+      do_out(state_type& __state, const intern_type* __from,
+	     const intern_type* __from_end, const intern_type*& __from_next,
+	     extern_type* __to, extern_type* __to_end,
+	     extern_type*& __to_next) const;
+
+      virtual result
+      do_unshift(state_type& __state, extern_type* __to,
+		 extern_type* __to_end, extern_type*& __to_next) const;
+
+      virtual result
+      do_in(state_type& __state, const extern_type* __from,
+	    const extern_type* __from_end, const extern_type*& __from_next,
+	    intern_type* __to, intern_type* __to_end,
+	    intern_type*& __to_next) const;
+
+      virtual int
+      do_encoding() const throw();
+
+      virtual bool
+      do_always_noconv() const throw();
+
+      virtual int
+      do_length(state_type&, const extern_type* __from,
+		const extern_type* __end, size_t __max) const;
+
+      virtual int
+      do_max_length() const throw();
+    };
+
+  template<typename _InternT, typename _ExternT, typename _StateT>
+    locale::id codecvt<_InternT, _Exter(   (  !(  "(  #(                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              nT, _StateT>::id;
+
+  /// class codecvt<char, char, mbstate_t> specialization.
+  template<>
+    class codecvt<char, char, mbstate_t>
+    : public __codecvt_abstract_base<char, char, mbstate_t>
+    {
+    public:
+      // Types:
+      typedef char			intern_type;
+      typedef char			extern_type;
+      typedef mbstate_t			state_type;
+
+    protected:
+      __c_locale			_M_c_locale_codecvt;
+
+    public:
+      static locale::id id;
+
+      explicit
+      codecvt(size_t __refs = 0);
+
+      explicit
+      codecvt(__c_locale __cloc, size_t __refs = 0);
+
+    protected:
+      virtual
+      ~codecvt();
+
+      virtual result
+      do_out(state_type& __state, const intern_type* __from,
+	     const intern_type* __from_end, const intern_type*& __from_next,
+	     extern_type* __to, extern_type* __to_end,
+	     extern_type*& __to_next) const;
+
+      virtual result
+      do_unshift(state_type& __state, extern_type* __to,
+		 extern_type* __to_end, extern_type*& __to_next) const;
+
+      virtual result
+      do_in(state_type& __state, const extern_type* __from,
+	    const extern_type* __from_end, const extern_type*& __from_next,
+	    intern_type* __to, intern_type* __to_end,
+	    intern_type*& __to_next) const;
+
+      virtual int
+      do_encoding() const throw();
+
+      virtual bool
+      do_always_noconv() const throw();
+
+      virtual int
+      do_length(state_type&, const extern_type* __from,
+		const extern_type* __end, size_t __max) const;
+
+      virtual int
+      do_max_length() const throw();
+  };
+
+#ifdef _GLIBCXX_USE_WCHAR_T
+  /// class codecvt<wchar_t, char, mbstate_t> specialization.
+  template<>
+    class codecvt<wchar_t, char, mbstate_t>
+    : public __codecvt_abstract_base<wchar_t, char, mbstate_t>
+    {
+    public:
+      // Types:
+      typedef wchar_t			intern_type;
+      typedef char			extern_type;
+      typedef mbstate_t			state_type;
+
+    protected:
+      __c_locale			_M_c_locale_codecvt;
+
+    public:
+      static locale::id			id;
+
+      explicit
+      codecvt(size_t __refs = 0);
+
+      explicit
+      codecvt(__c_locale __cloc, size_t __refs = 0);
+
+    protected:
+      virtual
+      ~codecvt();
+
+      virtual result
+      do_out(state_type& __state, const intern_type* __from,
+	     const intern_type* __from_end, const intern_type*& __from_next,
+	     extern_type* __to, extern_type* __to_end,
+	     extern_type*& __to_next) const;
+
+      virtual result
+      do_unshift(state_type& __state,
+		 extern_type* __to, extern_type* __to_end,
+		 extern_type*& __to_next) const;
+
+      virtual result
+      do_in(state_type& __state,
+	     const extern_type* __from, const extern_type* __from_end,
+	     const extern_type*& __from_next,
+	     intern_type* __to, intern_type* __to_end,
+	     intern_type*& __to_next) const;
+
+      virtual
+      int do_encoding() const throw();
+
+      virtual
+      bool do_always_noconv() const throw();
+
+      virtual
+      int do_length(state_type&, const extern_type* __from,
+		    const extern_type* __end, size_t __max) const;
+
+      virtual int
+      do_max_length() const throw();
+    };
+#endif //_GLIBCXX_USE_WCHAR_T
+
+  /// class codecvt_byname [22.2.1.6].
+  template<typename _InternT, typename _ExternT, typename _StateT>
+    class codecvt_byname : public codecvt<_InternT, _ExternT, _StateT>
+    {
+    public:
+      explicit
+      codecvt_byname(const char* __s, size_t __refs = 0)
+      : codecvt<_InternT, _ExternT, _StateT>(__refs)
+      {
+	if (__builtin_strcmp(__s, "C") != 0
+	    && __builtin_strcmp(__s, "POSIX") != 0)
+	  {
+	    this->_S_destroy_c_locale(this->_M_c_locale_codecvt);
+	    this->_S_create_c_locale(this->_M_c_locale_codecvt, __s);
+	  }
+      }
+
+    protected:
+      virtual
+      ~codecvt_byname() { }
+    };
+
+  // Inhibit implicit instantiations for required instantiations,
+  // which are defined via explicit instantiations elsewhere.
+  // NB: This syntax is a GNU extension.
+#if _GLIBCXX_EXTERN_TEMPLATE
+  extern template class codecvt_byname<char, char, mbstate_t>;
+
+  extern template
+    const codecvt<char, char, mbstate_t>&
+    use_facet<codecvt<char, char, mbstate_t> >(const locale&);
+
+  extern template
+    bool
+    has_facet<codecvt<char, char, mbstate_t> >(const locale&);
+
+#ifdef _GLIBCXX_USE_WCHAR_T
+  extern template class codecvt_byname<wchar_t, char, mbstate_t>;
+
+  extern template
+    const codecvt<wchar_t, char, mbstate_t>&
+    use_facet<codecvt<wchar_t, char, mbstate_t> >(const locale&);
+
+  extern template
+    bool
+    has_facet<codecvt<wchar_t, char, mbstate_t> >(const locale&);
+#endif
+#endif
+
+_GLIBCXX_END_NAMESPACE
+
+#endif // _CODECVT_H
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    // Components for manipulating sequences of characters -*- C++ -*-
+
+// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+// 2006, 2007
+// Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING.  If not, write to the Free
+// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+// USA.
+
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+/** @file basic_string.tcc
+ *  This is an internal header file, included by other library headers.
+ *  You should not attempt to use it directly.
+ */
+
+//
+// ISO C++ 14882: 21  Strings library
+//
+
+// Written by Jason Merrill based upon the specification by Takanori Adachi
+// in ANSI X3J16/94-0013R2.  Rewritten by Nathan Myers to ISO-14882.
+
+#ifndef _BASIC_STRING_TCC
+#define _BASIC_STRING_TCC 1
+
+#pragma GCC system_header
+
+#include <cxxabi-forced.h>
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    const typename basic_string<_CharT, _Traits, _Alloc>::size_type
+    basic_string<_CharT, _Traits, _Alloc>::
+    _Rep::_S_max_size = (((npos - sizeof(_Rep_base))/sizeof(_CharT)) - 1) / 4;
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    const _CharT
+    basic_string<_CharT, _Traits, _Alloc>::
+    _Rep::_S_terminal = _CharT();
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    const typename basic_string<_CharT, _Traits, _Alloc>::size_type
+    basic_string<_CharT, _Traits, _Alloc>::npos;
+
+  // Linker sets _S_empty_rep_storage to all 0s (one reference, empty string)
+  // at static init time (before static ctors are run).
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    typename basic_string<_CharT, _Traits, _Alloc>::size_type
+    basic_string<_CharT, _Traits, _Alloc>::_Rep::_S_empty_rep_storage[
+    (sizeof(_Rep_base) + sizeof(_CharT) + sizeof(size_type) - 1) /
+      sizeof(size_type)];
+
+  // NB: This is the special case for Input Iterators, used in
+  // istreambuf_iterators, etc.
+  // Input Iterators have a cost structure very different from
+  // pointers, calling for a different coding style.
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    template<typename _InIterator>
+      _CharT*
+      basic_string<_CharT, _Traits, _Alloc>::
+      _S_construct(_InIterator __beg, _InIterator __end, const _Alloc& __a,
+		   input_iterator_tag)
+      {
+#ifndef _GLIBCXX_FULLY_DYNAMIC_STRING
+	if (__beg == __end && __a == _Alloc())
+	  return _S_empty_rep()._M_refdata();
+#endif
+	// Avoid reallocation for common case.
+	_CharT __buf[128];
+	size_type __len = 0;
+	while (__beg != __end && __len < sizeof(__buf) / sizeof(_CharT))
+	  {
+	    __buf[__len++] = *__beg;
+	    ++__beg;
+	  }
+	_Rep* __r = _Rep::_S_create(__len, size_type(0), __a);
+	_M_copy(__r->_M_refdata(), __buf, __len);
+	try
+	  {
+	    while (__beg != __end)
+	      {
+		if (__len == __r->_M_capacity)
+		  {
+		    // Allocate more space.
+		    _Rep* __another = _Rep::_S_create(__len + 1, __len, __a);
+		    _M_copy(__another->_M_refdata(), __r->_M_refdata(), __len);
+		    __r->_M_destroy(__a);
+		    __r = __another;
+		  }
+		__r->_M_refdata()[__len++] = *__beg;
+		++__beg;
+	      }
+	  }
+	catch(...)
+	  {
+	    __r->_M_destroy(__a);
+	    __throw_exception_again;
+	  }
+	__r->_M_set_length_and_sharable(__len);
+	return __r->_M_refdata();
+      }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    template <typename _InIterator>
+      _CharT*
+      basic_string<_CharT, _Traits, _Alloc>::
+      _S_construct(_InIterator __beg, _InIterator __end, const _Alloc& __a,
+		   forward_iterator_tag)
+      {
+#ifndef _GLIBCXX_FULLY_DYNAMIC_STRING
+	if (__beg == __end && __a == _Alloc())
+	  return _S_empty_rep()._M_refdata();
+#endif
+	// NB: Not required, but considered best practice.
+	if (__builtin_expect(__gnu_cxx::__is_null_pointer(__beg)
+			     && __beg != __end, 0))
+	  __throw_logic_error(__N("basic_string::_S_construct NULL not valid"));
+
+	const size_type __dnew = static_cast<size_type>(std::distance(__beg,
+								      __end));
+	// Check for out_of_range and length_error exceptions.
+	_Rep* __r = _Rep::_S_create(__dnew, size_type(0), __a);
+	try
+	  { _S_copy_chars(__r->_M_refdata(), __beg, __end); }
+	catch(...)
+	  {
+	    __r->_M_destroy(__a);
+	    __throw_exception_again;
+	  }
+	__r->_M_set_length_and_sharable(__dnew);
+	return __r->_M_refdata();
+      }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    _CharT*
+    basic_string<_CharT, _Traits, _Alloc>::
+    _S_construct(size_type __n, _CharT __c, const _Alloc& __a)
+    {
+#ifndef _GLIBCXX_FULLY_DYNAMIC_STRING
+      if (__n == 0 && __a == _Alloc())
+	return _S_empty_rep()._M_refdata();
+#endif
+      // Check for out_of_range and length_error exceptions.
+      _Rep* __r = _Rep::_S_create(__n, size_type(0), __a);
+      if (__n)
+	_M_assign(__r->_M_refdata(), __n, __c);
+
+      __r->_M_set_length_and_sharable(__n);
+      return __r->_M_refdata();
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>::
+    basic_string(const basic_string& __str)
+    : _M_dataplus(__str._M_rep()->_M_grab(_Alloc(__str.get_allocator()),
+					  __str.get_allocator()),
+		  __str.get_allocator())
+    { }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>::
+    basic_string(const _Alloc& __a)
+    : _M_dataplus(_S_construct(size_type(), _CharT(), __a), __a)
+    { }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>::
+    basic_string(const basic_string& __str, size_type __pos, size_type __n)
+    : _M_dataplus(_S_construct(__str._M_data()
+			       + __str._M_check(__pos,
+						"basic_string::basic_string"),
+			       __str._M_data() + __str._M_limit(__pos, __n)
+			       + __pos, _Alloc()), _Alloc())
+    { }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>::
+    basic_string(const basic_string& __str, size_type __pos,
+		 size_type __n, const _Alloc& __a)
+    : _M_dataplus(_S_construct(__str._M_data()
+			       + __str._M_check(__pos,
+						"basic_string::basic_string"),
+			       __str._M_data() + __str._M_limit(__pos, __n)
+			       + __pos, __a), __a)
+    { }
+
+  // TBD: DPG annotate
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>::
+    basic_string(const _CharT* __s, size_type __n, const _Alloc& __a)
+    : _M_dataplus(_S_construct(__s, __s + __n, __a), __a)
+    { }
+
+  // TBD: DPG annotate
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>::
+    basic_string(const _CharT* __s, const _Alloc& __a)
+    : _M_dataplus(_S_construct(__s, __s ? __s + traits_type::length(__s) :
+			       __s + npos, __a), __a)
+    { }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>::
+    basic_string(size_type __n, _CharT __c, const _Alloc& __a)
+    : _M_dataplus(_S_construct(__n, __c, __a), __a)
+    { }
+
+  // TBD: DPG annotate
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    template<typename _InputIterator>
+    basic_string<_CharT, _Traits, _Alloc>::
+    basic_string(_InputIterator __beg, _InputIterator __end, const _Alloc& __a)
+    : _M_dataplus(_S_construct(__beg, __end, __a), __a)
+    { }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>&
+    basic_string<_CharT, _Traits, _Alloc>::
+    assign(const basic_string& __str)
+    {
+      if (_M_rep() != __str._M_rep())
+	{
+	  // XXX MT
+	  const allocator_type __a = this->get_allocator();
+	  _CharT* __tmp = __str._M_rep()->_M_grab(__a, __str.get_allocator());
+	  _M_rep()->_M_dispose(__a);
+	  _M_data(__tmp);
+	}
+      return *this;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>&
+    basic_string<_CharT, _Traits, _Alloc>::
+    assign(const _CharT* __s, size_type __n)
+    {
+      __glibcxx_requires_string_len(__s, __n);
+      _M_check_length(this->size(), __n, "basic_string::assign");
+      if (_M_disjunct(__s) || _M_rep()->_M_is_shared())
+	return _M_replace_safe(size_type(0), this->size(), __s, __n);
+      else
+	{
+	  // Work in-place.
+	  const size_type __pos = __s - _M_data();
+	  if (__pos >= __n)
+	    _M_copy(_M_data(), __s, __n);
+	  else if (__pos)
+	    _M_move(_M_data(), __s, __n);
+	  _M_rep()->_M_set_length_and_sharable(__n);
+	  return *this;
+	}
+     }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>&
+    basic_string<_CharT, _Traits, _Alloc>::
+    append(size_type __n, _CharT __c)
+    {
+      if (__n)
+	{
+	  _M_check_length(size_type(0), __n, "basic_string::append");	  
+	  const size_type __len = __n + this->size();
+	  if (__len > this->capacity() || _M_rep()->_M_is_shared())
+	    this->reserve(__len);
+	  _M_assign(_M_data() + this->size(), __n, __c);
+	  _M_rep()->_M_set_length_and_sharable(__len);
+	}
+      return *this;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>&
+    basic_string<_CharT, _Traits, _Alloc>::
+    append(const _CharT* __s, size_type __n)
+    {
+      __glibcxx_requires_string_len(__s, __n);
+      if (__n)
+	{
+	  _M_check_length(size_type(0), __n, "basic_string::append");
+	  const size_type __len = __n + this->size();
+	  if (__len > this->capacity() || _M_rep()->_M_is_shared())
+	    {
+	      if (_M_disjunct(__s))
+		this->reserve(__len);
+	      else
+		{
+		  const size_type __off = __s - _M_data();
+		  this->reserve(__len);
+		  __s = _M_data() + __off;
+		}
+	    }
+	  _M_copy(_M_data() + this->size(), __s, __n);
+	  _M_rep()->_M_set_length_and_sharable(__len);
+	}
+      return *this;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>&
+    basic_string<_CharT, _Traits, _Alloc>::
+    append(const basic_string& __str)
+    {
+      const size_type __size = __str.size();
+      if (__size)
+	{
+	  const size_type __len = __size + this->size();
+	  if (__len > this->capacity() || _M_rep()->_M_is_shared())
+	    this->reserve(__len);
+	  _M_copy(_M_data() + this->size(), __str._M_data(), __size);
+	  _M_rep()->_M_set_length_and_sharable(__len);
+	}
+      return *this;
+    }    
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>&
+    basic_string<_CharT, _Traits, _Alloc>::
+    append(const basic_string& __str, size_type __pos, size_type __n)
+    {
+      __str._M_check(__pos, "basic_string::append");
+      __n = __str._M_limit(__pos, __n);
+      if (__n)
+	{
+	  const size_type __len = __n + this->size();
+	  if (__len > this->capacity() || _M_rep()->_M_is_shared())
+	    this->reserve(__len);
+	  _M_copy(_M_data() + this->size(), __str._M_data() + __pos, __n);
+	  _M_rep()->_M_set_length_and_sharable(__len);	  
+	}
+      return *this;
+    }
+
+   template<typename _CharT, typename _Traits, typename _Alloc>
+     basic_string<_CharT, _Traits, _Alloc>&
+     basic_string<_CharT, _Traits, _Alloc>::
+     insert(size_type __pos, const _CharT* 1(  2(  3(  4(  5(  6(  7(  8(  9(  :(  ;(  <(  =(  >(  ?(  @(  A(  B(  C(  D(  E(  F(  G(  H(  I(  J(                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          __s, size_type __n)
+     {
+       __glibcxx_requires_string_len(__s, __n);
+       _M_check(__pos, "basic_string::insert");
+       _M_check_length(size_type(0), __n, "basic_string::insert");
+       if (_M_disjunct(__s) || _M_rep()->_M_is_shared())
+         return _M_replace_safe(__pos, size_type(0), __s, __n);
+       else
+         {
+           // Work in-place.
+           const size_type __off = __s - _M_data();
+           _M_mutate(__pos, 0, __n);
+           __s = _M_data() + __off;
+           _CharT* __p = _M_data() + __pos;
+           if (__s  + __n <= __p)
+             _M_copy(__p, __s, __n);
+           else if (__s >= __p)
+             _M_copy(__p, __s + __n, __n);
+           else
+             {
+	       const size_type __nleft = __p - __s;
+               _M_copy(__p, __s, __nleft);
+               _M_copy(__p + __nleft, __p + __n, __n - __nleft);
+             }
+           return *this;
+         }
+     }
+
+   template<typename _CharT, typename _Traits, typename _Alloc>
+     basic_string<_CharT, _Traits, _Alloc>&
+     basic_string<_CharT, _Traits, _Alloc>::
+     replace(size_type __pos, size_type __n1, const _CharT* __s,
+	     size_type __n2)
+     {
+       __glibcxx_requires_string_len(__s, __n2);
+       _M_check(__pos, "basic_string::replace");
+       __n1 = _M_limit(__pos, __n1);
+       _M_check_length(__n1, __n2, "basic_string::replace");
+       bool __left;
+       if (_M_disjunct(__s) || _M_rep()->_M_is_shared())
+         return _M_replace_safe(__pos, __n1, __s, __n2);
+       else if ((__left = __s + __n2 <= _M_data() + __pos)
+		|| _M_data() + __pos + __n1 <= __s)
+	 {
+	   // Work in-place: non-overlapping case.
+	   size_type __off = __s - _M_data();
+	   __left ? __off : (__off += __n2 - __n1);
+	   _M_mutate(__pos, __n1, __n2);
+	   _M_copy(_M_data() + __pos, _M_data() + __off, __n2);
+	   return *this;
+	 }
+       else
+	 {
+	   // Todo: overlapping case.
+	   const basic_string __tmp(__s, __n2);
+	   return _M_replace_safe(__pos, __n1, __tmp._M_data(), __n2);
+	 }
+     }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    void
+    basic_string<_CharT, _Traits, _Alloc>::_Rep::
+    _M_destroy(const _Alloc& __a) throw ()
+    {
+      const size_type __size = sizeof(_Rep_base) +
+	                       (this->_M_capacity + 1) * sizeof(_CharT);
+      _Raw_bytes_alloc(__a).deallocate(reinterpret_cast<char*>(this), __size);
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    void
+    basic_string<_CharT, _Traits, _Alloc>::
+    _M_leak_hard()
+    {
+#ifndef _GLIBCXX_FULLY_DYNAMIC_STRING
+      if (_M_rep() == &_S_empty_rep())
+	return;
+#endif
+      if (_M_rep()->_M_is_shared())
+	_M_mutate(0, 0, 0);
+      _M_rep()->_M_set_leaked();
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    void
+    basic_string<_CharT, _Traits, _Alloc>::
+    _M_mutate(size_type __pos, size_type __len1, size_type __len2)
+    {
+      const size_type __old_size = this->size();
+      const size_type __new_size = __old_size + __len2 - __len1;
+      const size_type __how_much = __old_size - __pos - __len1;
+
+      if (__new_size > this->capacity() || _M_rep()->_M_is_shared())
+	{
+	  // Must reallocate.
+	  const allocator_type __a = get_allocator();
+	  _Rep* __r = _Rep::_S_create(__new_size, this->capacity(), __a);
+
+	  if (__pos)
+	    _M_copy(__r->_M_refdata(), _M_data(), __pos);
+	  if (__how_much)
+	    _M_copy(__r->_M_refdata() + __pos + __len2,
+		    _M_data() + __pos + __len1, __how_much);
+
+	  _M_rep()->_M_dispose(__a);
+	  _M_data(__r->_M_refdata());
+	}
+      else if (__how_much && __len1 != __len2)
+	{
+	  // Work in-place.
+	  _M_move(_M_data() + __pos + __len2,
+		  _M_data() + __pos + __len1, __how_much);
+	}
+      _M_rep()->_M_set_length_and_sharable(__new_size);
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    void
+    basic_string<_CharT, _Traits, _Alloc>::
+    reserve(size_type __res)
+    {
+      if (__res != this->capacity() || _M_rep()->_M_is_shared())
+        {
+	  // Make sure we don't shrink below the current size
+	  if (__res < this->size())
+	    __res = this->size();
+	  const allocator_type __a = get_allocator();
+	  _CharT* __tmp = _M_rep()->_M_clone(__a, __res - this->size());
+	  _M_rep()->_M_dispose(__a);
+	  _M_data(__tmp);
+        }
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    void
+    basic_string<_CharT, _Traits, _Alloc>::
+    swap(basic_string& __s)
+    {
+      if (_M_rep()->_M_is_leaked())
+	_M_rep()->_M_set_sharable();
+      if (__s._M_rep()->_M_is_leaked())
+	__s._M_rep()->_M_set_sharable();
+      if (this->get_allocator() == __s.get_allocator())
+	{
+	  _CharT* __tmp = _M_data();
+	  _M_data(__s._M_data());
+	  __s._M_data(__tmp);
+	}
+      // The code below can usually be optimized away.
+      else
+	{
+	  const basic_string __tmp1(_M_ibegin(), _M_iend(),
+				    __s.get_allocator());
+	  const basic_string __tmp2(__s._M_ibegin(), __s._M_iend(),
+				    this->get_allocator());
+	  *this = __tmp2;
+	  __s = __tmp1;
+	}
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    typename basic_string<_CharT, _Traits, _Alloc>::_Rep*
+    basic_string<_CharT, _Traits, _Alloc>::_Rep::
+    _S_create(size_type __capacity, size_type __old_capacity,
+	      const _Alloc& __alloc)
+    {
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 83.  String::npos vs. string::max_size()
+      if (__capacity > _S_max_size)
+	__throw_length_error(__N("basic_string::_S_create"));
+
+      // The standard places no restriction on allocating more memory
+      // than is strictly needed within this layer at the moment or as
+      // requested by an explicit application call to reserve().
+
+      // Many malloc implementations perform quite poorly when an
+      // application attempts to allocate memory in a stepwise fashion
+      // growing each allocation size by only 1 char.  Additionally,
+      // it makes little sense to allocate less linear memory than the
+      // natural blocking size of the malloc implementation.
+      // Unfortunately, we would need a somewhat low-level calculation
+      // with tuned parameters to get this perfect for any particular
+      // malloc implementation.  Fortunately, generalizations about
+      // common features seen among implementations seems to suffice.
+
+      // __pagesize need not match the actual VM page size for good
+      // results in practice, thus we pick a common value on the low
+      // side.  __malloc_header_size is an estimate of the amount of
+      // overhead per memory allocation (in practice seen N * sizeof
+      // (void*) where N is 0, 2 or 4).  According to folklore,
+      // picking this value on the high side is better than
+      // low-balling it (especially when this algorithm is used with
+      // malloc implementations that allocate memory blocks rounded up
+      // to a size which is a power of 2).
+      const size_type __pagesize = 4096;
+      const size_type __malloc_header_size = 4 * sizeof(void*);
+
+      // The below implements an exponential growth policy, necessary to
+      // meet amortized linear time requirements of the library: see
+      // http://gcc.gnu.org/ml/libstdc++/2001-07/msg00085.html.
+      // It's active for allocations requiring an amount of memory above
+      // system pagesize. This is consistent with the requirements of the
+      // standard: http://gcc.gnu.org/ml/libstdc++/2001-07/msg00130.html
+      if (__capacity > __old_capacity && __capacity < 2 * __old_capacity)
+	__capacity = 2 * __old_capacity;
+
+      // NB: Need an array of char_type[__capacity], plus a terminating
+      // null char_type() element, plus enough for the _Rep data structure.
+      // Whew. Seemingly so needy, yet so elemental.
+      size_type __size = (__capacity + 1) * sizeof(_CharT) + sizeof(_Rep);
+
+      const size_type __adj_size = __size + __malloc_header_size;
+      if (__adj_size > __pagesize && __capacity > __old_capacity)
+	{
+	  const size_type __extra = __pagesize - __adj_size % __pagesize;
+	  __capacity += __extra / sizeof(_CharT);
+	  // Never allocate a string bigger than _S_max_size.
+	  if (__capacity > _S_max_size)
+	    __capacity = _S_max_size;
+	  __size = (__capacity + 1) * sizeof(_CharT) + sizeof(_Rep);
+	}
+
+      // NB: Might throw, but no worries about a leak, mate: _Rep()
+      // does not throw.
+      void* __place = _Raw_bytes_alloc(__alloc).allocate(__size);
+      _Rep *__p = new (__place) _Rep;
+      __p->_M_capacity = __capacity;
+      // ABI compatibility - 3.4.x set in _S_create both
+      // _M_refcount and _M_length.  All callers of _S_create
+      // in basic_string.tcc then set just _M_length.
+      // In 4.0.x and later both _M_refcount and _M_length
+      // are initialized in the callers, unfortunately we can
+      // have 3.4.x compiled code with _S_create callers inlined
+      // calling 4.0.x+ _S_create.
+      __p->_M_set_sharable();
+      return __p;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    _CharT*
+    basic_string<_CharT, _Traits, _Alloc>::_Rep::
+    _M_clone(const _Alloc& __alloc, size_type __res)
+    {
+      // Requested capacity of the clone.
+      const size_type __requested_cap = this->_M_length + __res;
+      _Rep* __r = _Rep::_S_create(__requested_cap, this->_M_capacity,
+				  __alloc);
+      if (this->_M_length)
+	_M_copy(__r->_M_refdata(), _M_refdata(), this->_M_length);
+
+      __r->_M_set_length_and_sharable(this->_M_length);
+      return __r->_M_refdata();
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    void
+    basic_string<_CharT, _Traits, _Alloc>::
+    resize(size_type __n, _CharT __c)
+    {
+      const size_type __size = this->size();
+      _M_check_length(__size, __n, "basic_string::resize");
+      if (__size < __n)
+	this->append(__n - __size, __c);
+      else if (__n < __size)
+	this->erase(__n);
+      // else nothing (in particular, avoid calling _M_mutate() unnecessarily.)
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    template<typename _InputIterator>
+      basic_string<_CharT, _Traits, _Alloc>&
+      basic_string<_CharT, _Traits, _Alloc>::
+      _M_replace_dispatch(iterator __i1, iterator __i2, _InputIterator __k1,
+			  _InputIterator __k2, __false_type)
+      {
+	const basic_string __s(__k1, __k2);
+	const size_type __n1 = __i2 - __i1;
+	_M_check_length(__n1, __s.size(), "basic_string::_M_replace_dispatch");
+	return _M_replace_safe(__i1 - _M_ibegin(), __n1, __s._M_data(),
+			       __s.size());
+      }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>&
+    basic_string<_CharT, _Traits, _Alloc>::
+    _M_replace_aux(size_type __pos1, size_type __n1, size_type __n2,
+		   _CharT __c)
+    {
+      _M_check_length(__n1, __n2, "basic_string::_M_replace_aux");
+      _M_mutate(__pos1, __n1, __n2);
+      if (__n2)
+	_M_assign(_M_data() + __pos1, __n2, __c);
+      return *this;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>&
+    basic_string<_CharT, _Traits, _Alloc>::
+    _M_replace_safe(size_type __pos1, size_type __n1, const _CharT* __s,
+		    size_type __n2)
+    {
+      _M_mutate(__pos1, __n1, __n2);
+      if (__n2)
+	_M_copy(_M_data() + __pos1, __s, __n2);
+      return *this;
+    }
+   
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>
+    operator+(const _CharT* __lhs,
+	      const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    {
+      __glibcxx_requires_string(__lhs);
+      typedef basic_string<_CharT, _Traits, _Alloc> __string_type;
+      typedef typename __string_type::size_type	  __size_type;
+      const __size_type __len = _Traits::length(__lhs);
+      __string_type __str;
+      __str.reserve(__len + __rhs.size());
+      __str.append(__lhs, __len);
+      __str.append(__rhs);
+      return __str;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    basic_string<_CharT, _Traits, _Alloc>
+    operator+(_CharT __lhs, const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    {
+      typedef basic_string<_CharT, _Traits, _Alloc> __string_type;
+      typedef typename __string_type::size_type	  __size_type;
+      __string_type __str;
+      const __size_type __len = __rhs.size();
+      __str.reserve(__len + 1);
+      __str.append(__size_type(1), __lhs);
+      __str.append(__rhs);
+      return __str;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    typename basic_string<_CharT, _Traits, _Alloc>::size_type
+    basic_string<_CharT, _Traits, _Alloc>::
+    copy(_CharT* __s, size_type __n, size_type __pos) const
+    {
+      _M_check(__pos, "basic_string::copy");
+      __n = _M_limit(__pos, __n);
+      __glibcxx_requires_string_len(__s, __n);
+      if (__n)
+	_M_copy(__s, _M_data() + __pos, __n);
+      // 21.3.5.7 par 3: do not append null.  (good.)
+      return __n;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    typename basic_string<_CharT, _Traits, _Alloc>::size_type
+    basic_string<_CharT, _Traits, _Alloc>::
+    find(const _CharT* __s, size_type __pos, size_type __n) const
+    {
+      __glibcxx_requires_string_len(__s, __n);
+      const size_type __size = this->size();
+      const _CharT* __data = _M_data();
+
+      if (__n == 0)
+	return __pos <= __size ? __pos : npos;
+
+      if (__n <= __size)
+	{
+	  for (; __pos <= __size - __n; ++__pos)
+	    if (traits_type::eq(__data[__pos], __s[0])
+		&& traits_type::compare(__data + __pos + 1,
+					__s + 1, __n - 1) == 0)
+	      return __pos;
+	}
+      return npos;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    typename basic_string<_CharT, _Traits, _Alloc>::size_type
+    basic_string<_CharT, _Traits, _Alloc>::
+    find(_CharT __c, size_type __pos) const
+    {
+      size_type __ret = npos;
+      const size_type __size = this->size();
+      if (__pos < __size)
+	{
+	  const _CharT* __data = _M_data();
+	  const size_type __n = __size - __pos;
+	  const _CharT* __p = traits_type::find(__data + __pos, __n, __c);
+	  if (__p)
+	    __ret = __p - __data;
+	}
+      return __ret;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    typename basic_string<_CharT, _Traits, _Alloc>::size_type
+    basic_string<_CharT, _Traits, _Alloc>::
+    rfind(const _CharT* __s, size_type __pos, size_type __n) const
+    {
+      __glibcxx_requires_string_len(__s, __n);
+      const size_type __size = this->size();
+      if (__n <= __size)
+	{
+	  __pos = std::min(size_type(__size - __n), __pos);
+	  const _CharT* __data = _M_data();
+	  do
+	    {
+	      if (traits_type::compare(__data + __pos, __s, __n) == 0)
+		return __pos;
+	    }
+	  while (__pos-- > 0);
+	}
+      return npos;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    typename basic_string<_CharT, _Traits, _Alloc>::size_type
+    basic_string<_CharT, _Traits, _Alloc>::
+    rfind(_CharT __c, size_type __pos) const
+    {
+      size_type __size = this->size();
+      if (__size)
+	{
+	  if (--__size > __pos)
+	    __size = __pos;
+	  for (++__size; __size-- > 0; )
+	    if (traits_type::eq(_M_data()[__size], __c))
+	      return __size;
+	}
+      return npos;
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    typename basic_string<_CharT, _Traits, _Alloc>::size_type
+    basic_string<_CharT, _Traits, _Alloc>::
+    find_first_of(const _CharT* __s, s

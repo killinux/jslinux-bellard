@@ -1,0 +1,1331 @@
+i.e., as an
+     `address_operand'.
+
+
+ -- Macro: REGNO_MODE_OK_FOR_REG_BASE_P (NUM, MODE)
+     A C expression which is nonzero if register number NUM is suitable
+     for use as a base register in base plus index operand addresses,
+     accessing memory in mode MODE.  It may be either a suitable hard
+     register or a pseudo register that has been allocated such a hard
+     register.  You should define this macro if base plus index
+     addresses have different requirements than other base register
+     uses.
+
+     Use of this macro is deprecated; please use the more general
+     `REGNO_MODE_CODE_OK_FOR_BASE_P'.
+
+ -- Macro: REGNO_MODE_CODE_OK_FOR_BASE_P (NUM, MODE, OUTER_CODE,
+          INDEX_CODE)
+     A C expression that is just like `REGNO_MODE_OK_FOR_BASE_P', except
+     that that expression may examine the context in which the register
+     appears in the memory reference.  OUTER_CODE is the code of the
+     immediately enclosing expression (`MEM' if at the top level of the
+     address, `ADDRESS' for something that occurs in an
+     `address_operand').  INDEX_CODE is the code of the corresponding
+     index expression if OUTER_CODE is `PLUS'; `SCRATCH' otherwise.
+     The mode may be `VOIDmode' for addresses that appear outside a
+     `MEM', i.e., as an `address_operand'.
+
+ -- Macro: REGNO_OK_FOR_INDEX_P (NUM)
+     A C expression which is nonzero if register number NUM is suitable
+     for use as an index register in operand addresses.  It may be
+     either a suitable hard register or a pseudo register that has been
+     allocated such a hard register.
+
+     The difference between an index register and a base register is
+     that the index register may be scaled.  If an address involves the
+     sum of two registers, neither one of them scaled, then either one
+     may be labeled the "base" and the other the "index"; but whichever
+     labeling is used must fit the machine's constraints of which
+     registers may serve in each capacity.  The compiler will try both
+     labelings, looking for one that is valid, and will reload one or
+     both registers only if neither labeling works.
+
+ -- Macro: PREFERRED_RELOAD_CLASS (X, CLASS)
+     A C expression that places additional restrictions on the register
+     class to use when it is necessary to copy value X into a register
+     in class CLASS.  The value is a register class; perhaps CLASS, or
+     perhaps another, smaller class.  On many machines, the following
+     definition is safe:
+
+          #define PREFERRED_RELOAD_CLASS(X,CLASS) CLASS
+
+     Sometimes returning a more restrictive class makes better code.
+     For example, on the 68000, when X is an integer constant that is
+     in range for a `moveq' instruction, the value of this macro is
+     always `DATA_REGS' as long as CLASS includes the data registers.
+     Requiring a data register guarantees that a `moveq' will be used.
+
+     One case where `PREFERRED_RELOAD_CLASS' must not return CLASS is
+     if X is a legitimate constant which cannot be loaded into some
+     register class.  By returning `NO_REGS' you can force X into a
+     memory location.  For example, rs6000 can load immediate values
+     into general-purpose registers, but does not have an instruction
+     for loading an immediate value into a floating-point register, so
+     `PREFERRED_RELOAD_CLASS' returns `NO_REGS' when X is a
+     floating-point constant.  If the constant can't be loaded into any
+     kind of register, code generation will be better if
+     `LEGITIMATE_CONSTANT_P' makes the constant illegitimate instead of
+     using `PREFERRED_RELOAD_CLASS'.
+
+     If an insn has pseudos in it after register allocation, reload
+     will go through the alternatives and call repeatedly
+     `PREFERRED_RELOAD_CLASS' to find the best one.  Returning
+     `NO_REGS', in this case, makes reload add a `!' in front of the
+     constraint: the x86 back-end uses this feature to discourage usage
+     of 387 registers when math is done in the SSE registers (and vice
+     versa).
+
+ -- Macro: PREFERRED_OUTPUT_RELOAD_CLASS (X, CLASS)
+     Like `PREFERRED_RELOAD_CLASS', but for output reloads instead of
+     input reloads.  If you don't define this macro, the default is to
+     use CLASS, unchanged.
+
+     You can also use `PREFERRED_OUTPUT_RELOAD_CLASS' to discourage
+     reload from using some alternatives, like `PREFERRED_RELOAD_CLASS'.
+
+ -- Macro: LIMIT_RELOAD_CLASS (MODE, CLASS)
+     A C expression that places additional restrictions on the register
+     class to use when it is necessary to be able to hold a value of
+     mode MODE in a reload register for which class CLASS would
+     ordinarily be used.
+
+     Unlike `PREFERRED_RELOAD_CLASS', this macro should be used when
+     there are certain modes that simply can't go in certain reload
+     classes.
+
+     The value is a register class; perhaps CLASS, or perhaps another,
+     smaller class.
+
+     Don't define this macro unless the target machine has limitations
+     which require the macro to do something nontrivial.
+
+ -- Target Hook: enum reg_class TARGET_SECONDARY_RELOAD (bool IN_P, rtx
+          X, enum reg_class RELOAD_CLASS, enum machine_mode
+          RELOAD_MODE, secondary_reload_info *SRI)
+     Many machines have some registers that cannot be copied directly
+     to or from memory or even from other types of registers.  An
+     example is the `MQ' register, which on most machines, can only be
+     copied to or from general registers, but not memory.  Below, we
+     shall be using the term 'intermediate register' when a move
+     operation cannot be performed directly, but has to be done by
+     copying the source into the intermediate register first, and then
+     copying the intermediate register to the destination.  An
+     intermediate register always has the same mode as source and
+     destination.  Since it holds the actual value being copied, reload
+     might apply optimizations to re-use an intermediate register and
+     eliding the copy from the source when it can determine that the
+     intermediate register still holds the required value.
+
+     Another kind of secondary reload is required on some machines which
+     allow copying all registers to and from memory, but require a
+     scratch register for stores to some memory locations (e.g., those
+     with symbolic address on the RT, and those with certain symbolic
+     address on the SPARC when compiling PIC).  Scratch registers need
+     not have the same mode as the value being copied, and usually hold
+     a different value that that being copied.  Special patterns in the
+     md file are needed to describe how the copy is performed with the
+     help of the scratch register; these patterns also describe the
+     number, register class(es) and mode(s) of the scratch register(s).
+
+     In some cases, both an intermediate and a scratch register are
+     required.
+
+     For input reloads, this target hook is called with nonzero IN_P,
+     and X is an rtx that needs to be copied to a register of class
+     RELOAD_CLASS in RELOAD_MODE.  For output reloads, this target hook
+     is called with zero IN_P, and a register of class RELOAD_CLASS
+     needs to be copied to rtx X in RELOAD_MODE.
+
+     If copying a register of RELOAD_CLASS from/to X requires an
+     intermediate register, the hook `secondary_reload' should return
+     the register class required for this intermediate register.  If no
+     intermediate register is required, it should return NO_REGS.  If
+     more than one intermediate register is required, describe the one
+     that is closest in the copy chain to the reload register.
+
+     If scratch registers are needed, you also have to describe how to
+     perform the copy from/to the reload register to/from this closest
+     intermediate register.  Or if no intermediate register is
+     required, but still a scratch register is needed, describe the
+     copy  from/to the reload register to/from the reload operand X.
+
+     You do this by setting `sri->icode' to the instruction code of a
+     pattern in the md file which performs the move.  Operands 0 and 1
+     are the output and input of this copy, respectively.  Operands
+     from operand 2 onward are for scratch operands.  These scratch
+     operands must have a mode, and a single-register-class output
+     constraint.
+
+     When an intermediate register is used, the `secondary_reload' hook
+     will be called again to determine how to copy the intermediate
+     register to/from the reload operand X, so your hook must also have
+     code to handle the register class of the intermediate operand.
+
+     X might be a pseudo-register or a `subreg' of a pseudo-register,
+     which could either be in a hard register or in memory.  Use
+     `true_regnum' to find out; it will return -1 if the pseudo is in
+     memory and the hard register number if it is in a register.
+
+     Scratch operands in memory (constraint `"=m"' / `"=&m"') are
+     currently not supported.  For the time being, you will have to
+     continue to use `SECONDARY_MEMORY_NEEDED' for that purpose.
+
+     `copy_cost' also uses this target hook to find out how values are
+     copied.  If you want it to include some extra cost for the need to
+     allocate (a) scratch register(s), set `sri->extra_cost' to the
+     additional cost.  Or if two dependent moves are supposed to have a
+     lower cost than the sum of the individual moves due to expected
+     fortuitous scheduling and/or special forwarding logic, you can set
+     `sri->extra_cost' to a negative amount.
+
+ -- Macro: SECONDARY_RELOAD_CLASS (CLASS, MODE, X)
+ -- Macro: SECONDARY_INPUT_RELOAD_CLASS (CLASS, MODE, X)
+ -- Macro: SECONDARY_OUTPUT_RELOAD_CLASS (CLASS, MODE, X)
+     These macros are obsolete, new ports should use the target hook
+     `TARGET_SECONDARY_RELOAD' instead.
+
+     These are obsolete macros, replaced by the
+     `TARGET_SECONDARY_RELOAD' target hook.  Older ports still define
+     these macros to indicate to the reload phase that it may need to
+     allocate at least one register for a reload in addition to the
+     register to contain the data.  Specifically, if copying X to a
+     register CLASS in MODE requires an intermediate register, you were
+     supposed to define `SECONDARY_INPUT_RELOAD_CLASS' to return the
+     largest register class all of whose registers can be used as
+     intermediate registers or scratch registers.
+
+     If copying a register CLASS in MODE to X requires an intermediate
+     or scratch register, `SECONDARY_OUTPUT_RELOAD_CLASS' was supposed
+     to be defined be defined to return the largest register class
+     required.  If the requirements for input and output reloads were
+     the same, the macro `SECONDARY_RELOAD_CLASS' should have been used
+     instead of defining both macros identically.
+
+     The values returned by these macros are often `GENERAL_REGS'.
+     Return `NO_REGS' if no spare register is needed; i.e., if X can be
+     directly copied to or from a register of CLASS in MODE without
+     requiring a scratch register.  Do not define this macro if it
+     would always return `NO_REGS'.
+
+     If a scratch register is required (either with or without an
+     intermediate register), you were supposed to define patterns for
+     `reload_inM' or `reload_outM', as required (*note Standard
+     Names::.  These patterns, which were normally implemented with a
+     `define_expand', should be similar to the `movM' patterns, except
+     that operand 2 is the scratch register.
+
+     These patterns need constraints for the reload register and scratch
+     register that contain a single register class.  If the original
+     reload register (whose class is CLASS) can meet the constraint
+     given in the pattern, the value returned by these macros is used
+     for the class of the scratch register.  Otherwise, two additional
+     reload registers are required.  Their classes are obtained from
+     the constraints in the insn pattern.
+
+     X might be a pseudo-register or a `subreg' of a pseudo-register,
+     which could either be in a hard register or in memory.  Use
+     `true_regnum' to find out; it will return -1 if the pseudo is in
+     memory and the hard register number if it is in a register.
+
+     These macros should not be used in the case where a particular
+     class of registers can only be copied to memory and not to another
+     class of registers.  In that case, secondary reload registers are
+     not needed and would not be helpful.  Instead, a stack location
+     must be used to perform the copy and the `movM' pattern should use
+     memory as an intermediate storage.  This case often occurs between
+     floating-point and general registers.
+
+ -- Macro: SECONDARY_MEMORY_NEEDED (CLASS1, CLASS2, M)
+     Certain machines have the property that some registers cannot be
+     copied to some other registers without using memory.  Define this
+     macro on those machines to be a C expression that is nonzero if
+     objects of mode M in registers of CLASS1 can only be copied to
+     registers of class CLASS2 by storing a register of CLASS1 into
+     memory and loading that memory location into a register of CLASS2.
+
+     Do not define this macro if its value would always be zero.
+
+ -- Macro: SECONDARY_MEMORY_NEEDED_RTX (MODE)
+     Normally when `SECONDARY_MEMORY_NEEDED' is defined, the compiler
+     allocates a stack slot for a memory location needed for register
+     copies.  If this macro is defined, the compiler instead uses the
+     memory location defined by this macro.
+
+     Do not define this macro if you do not define
+     `SECONDARY_MEMORY_NEEDED'.
+
+ -- Macro: SECONDARY_MEMORY_NEEDED_MODE (MODE)
+     When the compiler needs a secondary memory location to copy
+     between two registers of mode MODE, it normally allocates
+     sufficient memory to hold a quantity of `BITS_PER_WORD' bits and
+     performs the store and load operations in a mode that many bits
+     wide and whose class is the same as that of MODE.
+
+     This is right thing to do on most machines because it ensures that
+     all bits of the register are copied and prevents accesses to the
+     registers in a narrower mode, which some machines prohibit for
+     floating-point registers.
+
+     However, this default behavior is not correct on some machines,
+     such as the DEC Alpha, that store short integers in floating-point
+     registers differently than in integer registers.  On those
+     machines, the default widening will not work correctly and you
+     must define this macro to suppress that widening in some cases.
+     See the file `alpha.h' for details.
+
+     Do not define this macro if you do not define
+     `SECONDARY_MEMORY_NEEDED' or if widening MODE to a mode that is
+     `BITS_PER_WORD' bits wide is correct for your machine.
+
+ -- Macro: SMALL_REGISTER_CLASSES
+     On some machines, it is risky to let hard registers live across
+     arbitrary insns.  Typically, these machines have instructions that
+     require values to be in specific registers (like an accumulator),
+     and reload will fail if the required hard register is used for
+     another purpose across such an insn.
+
+     Define `SMALL_REGISTER_CLASSES' to be an expression with a nonzero
+     value on these machines.  When this macro has a nonzero value, the
+     compiler will try to minimize the lifetime of hard registers.
+
+     It is always safe to define this macro with a nonzero value, but
+     if you unnecessarily define it, you will reduce the amount of
+     optimizations that can be performed in some cases.  If you do not
+     define this macro with a nonzero value when it is required, the
+     compiler will run out of spill registers and print a fatal error
+     message.  For most machines, you should not define this macro at
+     all.
+
+ -- Macro: CLASS_LIKELY_SPILLED_P (CLASS)
+     A C expression whose value is nonzero if pseudos that have been
+     assigned to registers of class CLASS would likely be spilled
+     because registers of CLASS are needed for spill registers.
+
+     The default value of this macro returns 1 if CLASS has exactly one
+     register and zero otherwise.  On most machines, this default
+     should be used.  Only define this macro to some other expression
+     if pseudos allocated by `local-alloc.c' end up in memory because
+     their hard registers were needed for spill registers.  If this
+     macro returns nonzero for those classes, those pseudos will only
+     be allocated by `global.c', which knows how to reallocate the
+     pseudo to another register.  If there would not be another
+     register available for reallocation, you should not change the
+     definition of this macro since the only effect of such a
+     definition would be to slow down register allocation.
+
+ -- Macro: CLASS_MAX_NREGS (CLASS, MODE)
+     A C expression for the maximum number of consecutive registers of
+     class CLASS needed to hold a value of mode MODE.
+
+     This is closely related to the macro `HARD_REGNO_NREGS'.  In fact,
+     the value of the macro `CLASS_MAX_NREGS (CLASS, MODE)' should be
+     the maximum value of `HARD_REGNO_NREGS (REGNO, MODE)' for all
+     REGNO values in the class CLASS.
+
+     This macro helps control the handling of multiple-word values in
+     the reload pass.
+
+ -- Macro: CANNOT_CHANGE_MODE_CLASS (FROM, TO, CLASS)
+     If defined, a C expression that returns nonzero for a CLASS for
+     which a change from mode FROM to mode TO is invalid.
+
+     For the example, loading 32-bit integer or floating-point objects
+     into floating-point registers on the Alpha extends them to 64 bits.
+     Therefore loading a 64-bit object and then storing it as a 32-bit
+     object does not store the low-order 32 bits, as would be the case
+     for a normal register.  Therefore, `alpha.h' defines
+     `CANNOT_CHANGE_MODE_CLASS' as below:
+
+          #define CANNOT_CHANGE_MODE_CLASS(FROM, TO, CLASS) \
+            (GET_MODE_SIZE (FROM) != GET_MODE_SIZE (TO) \
+             ? reg_classes_intersect_p (FLOAT_REGS, (CLASS)) : 0)
+
+
+File: gccint.info,  Node: Old Constraints,  Next: Stack and Calling,  Prev: Register Classes,  Up: Target Macros
+
+15.9 Obsolete Macros for Defining Constraints
+=============================================
+
+Machine-specific constraints can be defined with these macros instead
+of the machine description constructs described in *note Define
+Constraints::.  This mechanism is obsolete.  New ports should not use
+it; old ports should convert to the new mechanism.
+
+ -- Macro: CONSTRAINT_LEN (CHAR, STR)
+     For the constraint at the start of STR, which starts with the
+     letter C, return the length.  This allows you to have register
+     class / constant / extra constraints that are longer than a single
+     letter; you don't need to define this macro if you can do with
+     single-letter constraints only.  The definition of this macro
+     should use DEFAULT_CONSTRAINT_LEN for all the characters that you
+     don't want to handle specially.  There are some sanity checks in
+     genoutput.c that check the constraint lengths for the md file, so
+     you can also use this macro to help you while you are
+     transitioning from a byzantine single-letter-constraint scheme:
+     when you return a negative length for a constraint you want to
+     re-use, genoutput will complain about every instance where it is
+     used in the md file.
+
+ -- Macro: REG_CLASS_FROM_LETTER (CHAR)
+     A C expression which defines the machine-dependent operand
+     constraint letters for register classes.  If CHAR is such a
+     letter, the value should be the register class corresponding to
+     it.  Otherwise, the value should be `NO_REGS'.  The register
+     letter `r', corresponding to class `GENERAL_REGS', will not be
+     passed to this macro; you do not need to handle it.
+
+ -- Macro: REG_CLASS_FROM_CONSTRAINT (CHAR, STR)
+     Like `REG_CLASS_FROM_LETTER', but you also get the constraint
+     string passed in STR, so that you can use suffixes to distinguish
+     between different variants.
+
+ -- Macro: CONST_OK_FOR_LETTER_P (VALUE, C)
+     A C expression that defines the machine-dependent operand
+     constraint letters (`I', `J', `K', ... `P') that specify
+     particular ranges of integer values.  If C is one of those
+     letters, the expression should check that VALUE, an integer, is in
+     the appropriate range and return 1 if so, 0 otherwise.  If C is
+     not one of those letters, the value should be 0 regardless of
+     VALUE.
+
+ -- Macro: CONST_OK_FOR_CONSTRAINT_P (VALUE, C, STR)
+     Like `CONST_OK_FOR_LETTER_P', but you also get the constraint
+     string passed in STR, so that you can use suffixes to distinguish
+     between different variants.
+
+ -- Macro: CONST_DOUBLE_OK_FOR_LETTER_P (VALUE, C)
+     A C expression that defines the machine-dependent operand
+     constraint letters that specify particular ranges of
+     `const_double' values (`G' or `H').
+
+     If C is one of those letters, the expression should check that
+     VALUE, an RTX of code `const_double', is in the appropriate range
+     and return 1 if so, 0 otherwise.  If C is not one of those
+     letters, the value should be 0 regardless of VALUE.
+
+     `const_double' is used for all floating-point constants and for
+     `DImode' fixed-point constants.  A given letter can accept either
+     or both kinds of values.  It can use `GET_MODE' to distinguish
+     between these kinds.
+
+ -- Macro: CONST_DOUBLE_OK_FOR_CONSTRAINT_P (VALUE, C, STR)
+     Like `CONST_DOUBLE_OK_FOR_LETTER_P', but you also get the
+     constraint string passed in STR, so that you can use suffixes to
+     distinguish between different variants.
+
+ -- Macro: EXTRA_CONSTRAINT (VALUE, C)
+     A C expression that defines the optional machine-dependent
+     constraint letters that can be used to segregate specific types of
+     operands, usually memory references, for the target machine.  Any
+     letter that is not elsewhere defined and not matched by
+     `REG_CLASS_FROM_LETTER' / `REG_CLASS_FROM_CONSTRAINT' may be used.
+     Normally this macro will not be defined.
+
+     If it is required for a particular target machine, it should
+     return 1 if VALUE corresponds to the operand type represented by
+     the constraint letter C.  If C is not defined as an extra
+     constraint, the value returned should be 0 regardless of VALUE.
+
+     For example, on the ROMP, load instructions cannot have their
+     output in r0 if the memory reference contains a symbolic address.
+     Cons§  §  §  §  §  §  §  §  §   §  !§  "§  #§  $§  %§  &§  '§  (§  )§  *§  +§  ,§  -§  .§  /§  0§  1§  2§  3§  4§  5§  6§  7§  8§  9§  :§  ;§  <§  =§  >§  ?§  @§  A§  B§  C§  D§  E§  F§  G§  H§  I§  J§  K§  L§  M§  N§  O§  P§  Q§  R§  S§  T§  U§  V§  W§  X§  Y§  Z§  [§  \§  ]§  ^§  _§  `§  a§  b§  c§  d§  e§  f§  g§  h§  i§  j§  k§  l§  m§  n§  o§  p§  q§  r§  s§  t§  u§  v§  w§  x§  y§  z§  {§  |§  }§  ~§  §  €§  §  ‚§  ƒ§  „§  …§  †§  ‡§  ˆ§  ‰§  Š§  ‹§  Œ§  §  Ž§  §  §  ‘§  ’§  “§  ”§  •§  –§  —§  ˜§  ™§  š§  ›§  œ§  §  ž§  Ÿ§   §  ¡§  ¢§  £§  ¤§  ¥§  ¦§  §§  ¨§  ©§  ª§  «§  ¬§  ­§  ®§  ¯§  °§  ±§  ²§  ³§  ´§  µ§  ¶§  ·§  ¸§  ¹§  º§  »§  ¼§  ½§  ¾§  ¿§  À§  Á§  Â§  Ã§  Ä§  Å§  Æ§  Ç§  È§  É§  Ê§  Ë§  Ì§  Í§  Î§  Ï§  Ð§  Ñ§  Ò§  Ó§  Ô§  Õ§  Ö§  ×§  Ø§  Ù§  Ú§  Û§  Ü§  Ý§  Þ§  ß§  à§  á§  â§  ã§  ä§  å§  æ§  ç§  è§  é§  ê§  ë§  ì§  í§  î§  ï§  ð§  ñ§  ò§  ó§  ô§  õ§  ö§  ÷§  ø§  ù§  ú§  û§  ü§  ý§  þ§  ÿ§   ¨  ¨  ¨  ¨  ¨  ¨  ¨  ¨  ¨  	¨  
+¨  ¨  ¨  ¨  ¨  ¨  ¨  ¨  ¨  ¨  ¨  ¨  ¨  traint letter `Q' is defined as representing a memory address
+     that does _not_ contain a symbolic address.  An alternative is
+     specified with a `Q' constraint on the input and `r' on the
+     output.  The next alternative specifies `m' on the input and a
+     register class that does not include r0 on the output.
+
+ -- Macro: EXTRA_CONSTRAINT_STR (VALUE, C, STR)
+     Like `EXTRA_CONSTRAINT', but you also get the constraint string
+     passed in STR, so that you can use suffixes to distinguish between
+     different variants.
+
+ -- Macro: EXTRA_MEMORY_CONSTRAINT (C, STR)
+     A C expression that defines the optional machine-dependent
+     constraint letters, amongst those accepted by `EXTRA_CONSTRAINT',
+     that should be treated like memory constraints by the reload pass.
+
+     It should return 1 if the operand type represented by the
+     constraint at the start of STR, the first letter of which is the
+     letter C,  comprises a subset of all memory references including
+     all those whose address is simply a base register.  This allows
+     the reload pass to reload an operand, if it does not directly
+     correspond to the operand type of C, by copying its address into a
+     base register.
+
+     For example, on the S/390, some instructions do not accept
+     arbitrary memory references, but only those that do not make use
+     of an index register.  The constraint letter `Q' is defined via
+     `EXTRA_CONSTRAINT' as representing a memory address of this type.
+     If the letter `Q' is marked as `EXTRA_MEMORY_CONSTRAINT', a `Q'
+     constraint can handle any memory operand, because the reload pass
+     knows it can be reloaded by copying the memory address into a base
+     register if required.  This is analogous to the way a `o'
+     constraint can handle any memory operand.
+
+ -- Macro: EXTRA_ADDRESS_CONSTRAINT (C, STR)
+     A C expression that defines the optional machine-dependent
+     constraint letters, amongst those accepted by `EXTRA_CONSTRAINT' /
+     `EXTRA_CONSTRAINT_STR', that should be treated like address
+     constraints by the reload pass.
+
+     It should return 1 if the operand type represented by the
+     constraint at the start of STR, which starts with the letter C,
+     comprises a subset of all memory addresses including all those
+     that consist of just a base register.  This allows the reload pass
+     to reload an operand, if it does not directly correspond to the
+     operand type of STR, by copying it into a base register.
+
+     Any constraint marked as `EXTRA_ADDRESS_CONSTRAINT' can only be
+     used with the `address_operand' predicate.  It is treated
+     analogously to the `p' constraint.
+
+
+File: gccint.info,  Node: Stack and Calling,  Next: Varargs,  Prev: Old Constraints,  Up: Target Macros
+
+15.10 Stack Layout and Calling Conventions
+==========================================
+
+This describes the stack layout and calling conventions.
+
+* Menu:
+
+* Frame Layout::
+* Exception Handling::
+* Stack Checking::
+* Frame Registers::
+* Elimination::
+* Stack Arguments::
+* Register Arguments::
+* Scalar Return::
+* Aggregate Return::
+* Caller Saves::
+* Function Entry::
+* Profiling::
+* Tail Calls::
+* Stack Smashing Protection::
+
+
+File: gccint.info,  Node: Frame Layout,  Next: Exception Handling,  Up: Stack and Calling
+
+15.10.1 Basic Stack Layout
+--------------------------
+
+Here is the basic stack layout.
+
+ -- Macro: STACK_GROWS_DOWNWARD
+     Define this macro if pushing a word onto the stack moves the stack
+     pointer to a smaller address.
+
+     When we say, "define this macro if ...", it means that the
+     compiler checks this macro only with `#ifdef' so the precise
+     definition used does not matter.
+
+ -- Macro: STACK_PUSH_CODE
+     This macro defines the operation used when something is pushed on
+     the stack.  In RTL, a push operation will be `(set (mem
+     (STACK_PUSH_CODE (reg sp))) ...)'
+
+     The choices are `PRE_DEC', `POST_DEC', `PRE_INC', and `POST_INC'.
+     Which of these is correct depends on the stack direction and on
+     whether the stack pointer points to the last item on the stack or
+     whether it points to the space for the next item on the stack.
+
+     The default is `PRE_DEC' when `STACK_GROWS_DOWNWARD' is defined,
+     which is almost always right, and `PRE_INC' otherwise, which is
+     often wrong.
+
+ -- Macro: FRAME_GROWS_DOWNWARD
+     Define this macro to nonzero value if the addresses of local
+     variable slots are at negative offsets from the frame pointer.
+
+ -- Macro: ARGS_GROW_DOWNWARD
+     Define this macro if successive arguments to a function occupy
+     decreasing addresses on the stack.
+
+ -- Macro: STARTING_FRAME_OFFSET
+     Offset from the frame pointer to the first local variable slot to
+     be allocated.
+
+     If `FRAME_GROWS_DOWNWARD', find the next slot's offset by
+     subtracting the first slot's length from `STARTING_FRAME_OFFSET'.
+     Otherwise, it is found by adding the length of the first slot to
+     the value `STARTING_FRAME_OFFSET'.
+
+ -- Macro: STACK_ALIGNMENT_NEEDED
+     Define to zero to disable final alignment of the stack during
+     reload.  The nonzero default for this macro is suitable for most
+     ports.
+
+     On ports where `STARTING_FRAME_OFFSET' is nonzero or where there
+     is a register save block following the local block that doesn't
+     require alignment to `STACK_BOUNDARY', it may be beneficial to
+     disable stack alignment and do it in the backend.
+
+ -- Macro: STACK_POINTER_OFFSET
+     Offset from the stack pointer register to the first location at
+     which outgoing arguments are placed.  If not specified, the
+     default value of zero is used.  This is the proper value for most
+     machines.
+
+     If `ARGS_GROW_DOWNWARD', this is the offset to the location above
+     the first location at which outgoing arguments are placed.
+
+ -- Macro: FIRST_PARM_OFFSET (FUNDECL)
+     Offset from the argument pointer register to the first argument's
+     address.  On some machines it may depend on the data type of the
+     function.
+
+     If `ARGS_GROW_DOWNWARD', this is the offset to the location above
+     the first argument's address.
+
+ -- Macro: STACK_DYNAMIC_OFFSET (FUNDECL)
+     Offset from the stack pointer register to an item dynamically
+     allocated on the stack, e.g., by `alloca'.
+
+     The default value for this macro is `STACK_POINTER_OFFSET' plus the
+     length of the outgoing arguments.  The default is correct for most
+     machines.  See `function.c' for details.
+
+ -- Macro: INITIAL_FRAME_ADDRESS_RTX
+     A C expression whose value is RTL representing the address of the
+     initial stack frame. This address is passed to `RETURN_ADDR_RTX'
+     and `DYNAMIC_CHAIN_ADDRESS'.  If you don't define this macro, a
+     reasonable default value will be used.  Define this macro in order
+     to make frame pointer elimination work in the presence of
+     `__builtin_frame_address (count)' and `__builtin_return_address
+     (count)' for `count' not equal to zero.
+
+ -- Macro: DYNAMIC_CHAIN_ADDRESS (FRAMEADDR)
+     A C expression whose value is RTL representing the address in a
+     stack frame where the pointer to the caller's frame is stored.
+     Assume that FRAMEADDR is an RTL expression for the address of the
+     stack frame itself.
+
+     If you don't define this macro, the default is to return the value
+     of FRAMEADDR--that is, the stack frame address is also the address
+     of the stack word that points to the previous frame.
+
+ -- Macro: SETUP_FRAME_ADDRESSES
+     If defined, a C expression that produces the machine-specific code
+     to setup the stack so that arbitrary frames can be accessed.  For
+     example, on the SPARC, we must flush all of the register windows
+     to the stack before we can access arbitrary stack frames.  You
+     will seldom need to define this macro.
+
+ -- Target Hook: bool TARGET_BUILTIN_SETJMP_FRAME_VALUE ()
+     This target hook should return an rtx that is used to store the
+     address of the current frame into the built in `setjmp' buffer.
+     The default value, `virtual_stack_vars_rtx', is correct for most
+     machines.  One reason you may need to define this target hook is if
+     `hard_frame_pointer_rtx' is the appropriate value on your machine.
+
+ -- Macro: FRAME_ADDR_RTX (FRAMEADDR)
+     A C expression whose value is RTL representing the value of the
+     frame address for the current frame.  FRAMEADDR is the frame
+     pointer of the current frame.  This is used for
+     __builtin_frame_address.  You need only define this macro if the
+     frame address is not the same as the frame pointer.  Most machines
+     do not need to define it.
+
+ -- Macro: RETURN_ADDR_RTX (COUNT, FRAMEADDR)
+     A C expression whose value is RTL representing the value of the
+     return address for the frame COUNT steps up from the current
+     frame, after the prologue.  FRAMEADDR is the frame pointer of the
+     COUNT frame, or the frame pointer of the COUNT - 1 frame if
+     `RETURN_ADDR_IN_PREVIOUS_FRAME' is defined.
+
+     The value of the expression must always be the correct address when
+     COUNT is zero, but may be `NULL_RTX' if there is not way to
+     determine the return address of other frames.
+
+ -- Macro: RETURN_ADDR_IN_PREVIOUS_FRAME
+     Define this if the return address of a particular stack frame is
+     accessed from the frame pointer of the previous stack frame.
+
+ -- Macro: INCOMING_RETURN_ADDR_RTX
+     A C expression whose value is RTL representing the location of the
+     incoming return address at the beginning of any function, before
+     the prologue.  This RTL is either a `REG', indicating that the
+     return value is saved in `REG', or a `MEM' representing a location
+     in the stack.
+
+     You only need to define this macro if you want to support call
+     frame debugging information like that provided by DWARF 2.
+
+     If this RTL is a `REG', you should also define
+     `DWARF_FRAME_RETURN_COLUMN' to `DWARF_FRAME_REGNUM (REGNO)'.
+
+ -- Macro: DWARF_ALT_FRAME_RETURN_COLUMN
+     A C expression whose value is an integer giving a DWARF 2 column
+     number that may be used as an alternative return column.  The
+     column must not correspond to any gcc hard register (that is, it
+     must not be in the range of `DWARF_FRAME_REGNUM').
+
+     This macro can be useful if `DWARF_FRAME_RETURN_COLUMN' is set to a
+     general register, but an alternative column needs to be used for
+     signal frames.  Some targets have also used different frame return
+     columns over time.
+
+ -- Macro: DWARF_ZERO_REG
+     A C expression whose value is an integer giving a DWARF 2 register
+     number that is considered to always have the value zero.  This
+     should only be defined if the target has an architected zero
+     register, and someone decided it was a good idea to use that
+     register number to terminate the stack backtrace.  New ports
+     should avoid this.
+
+ -- Target Hook: void TARGET_DWARF_HANDLE_FRAME_UNSPEC (const char
+          *LABEL, rtx PATTERN, int INDEX)
+     This target hook allows the backend to emit frame-related insns
+     that contain UNSPECs or UNSPEC_VOLATILEs.  The DWARF 2 call frame
+     debugging info engine will invoke it on insns of the form
+          (set (reg) (unspec [...] UNSPEC_INDEX))
+     and
+          (set (reg) (unspec_volatile [...] UNSPECV_INDEX)).
+     to let the backend emit the call frame instructions.  LABEL is the
+     CFI label attached to the insn, PATTERN is the pattern of the insn
+     and INDEX is `UNSPEC_INDEX' or `UNSPECV_INDEX'.
+
+ -- Macro: INCOMING_FRAME_SP_OFFSET
+     A C expression whose value is an integer giving the offset, in
+     bytes, from the value of the stack pointer register to the top of
+     the stack frame at the beginning of any function, before the
+     prologue.  The top of the frame is defined to be the value of the
+     stack pointer in the previous frame, just before the call
+     instruction.
+
+     You only need to define this macro if you want to support call
+     frame debugging information like that provided by DWARF 2.
+
+ -- Macro: ARG_POINTER_CFA_OFFSET (FUNDECL)
+     A C expression whose value is an integer giving the offset, in
+     bytes, from the argument pointer to the canonical frame address
+     (cfa).  The final value should coincide with that calculated by
+     `INCOMING_FRAME_SP_OFFSET'.  Which is unfortunately not usable
+     during virtual register instantiation.
+
+     The default value for this macro is `FIRST_PARM_OFFSET (fundecl)',
+     which is correct for most machines; in general, the arguments are
+     found immediately before the stack frame.  Note that this is not
+     the case on some targets that save registers into the caller's
+     frame, such as SPARC and rs6000, and so such targets need to
+     define this macro.
+
+     You only need to define this macro if the default is incorrect,
+     and you want to support call frame debugging information like that
+     provided by DWARF 2.
+
+ -- Macro: FRAME_POINTER_CFA_OFFSET (FUNDECL)
+     If defined, a C expression whose value is an integer giving the
+     offset in bytes from the frame pointer to the canonical frame
+     address (cfa).  The final value should coincide with that
+     calculated by `INCOMING_FRAME_SP_OFFSET'.
+
+     Normally the CFA is calculated as an offset from the argument
+     pointer, via `ARG_POINTER_CFA_OFFSET', but if the argument pointer
+     is variable due to the ABI, this may not be possible.  If this
+     macro is defined, it implies that the virtual register
+     instantiation should be based on the frame pointer instead of the
+     argument pointer.  Only one of `FRAME_POINTER_CFA_OFFSET' and
+     `ARG_POINTER_CFA_OFFSET' should be defined.
+
+ -- Macro: CFA_FRAME_BASE_OFFSET (FUNDECL)
+     If defined, a C expression whose value is an integer giving the
+     offset in bytes from the canonical frame address (cfa) to the
+     frame base used in DWARF 2 debug information.  The default is
+     zero.  A different value may reduce the size of debug information
+     on some ports.
+
+
+File: gccint.info,  Node: Exception Handling,  Next: Stack Checking,  Prev: Frame Layout,  Up: Stack and Calling
+
+15.10.2 Exception Handling Support
+----------------------------------
+
+ -- Macro: EH_RETURN_DATA_REGNO (N)
+     A C expression whose value is the Nth register number used for
+     data by exception handlers, or `INVALID_REGNUM' if fewer than N
+     registers are usable.
+
+     The exception handling library routines communicate with the
+     exception handlers via a set of agreed upon registers.  Ideally
+     these registers should be call-clobbered; it is possible to use
+     call-saved registers, but may negatively impact code size.  The
+     target must support at least 2 data registers, but should define 4
+     if there are enough free registers.
+
+     You must define this macro if you want to support call frame
+     exception handling like that provided by DWARF 2.
+
+ -- Macro: EH_RETURN_STACKADJ_RTX
+     A C expression whose value is RTL representing a location in which
+     to store a stack adjustment to be applied before function return.
+     This is used to unwind the stack to an exception handler's call
+     frame.  It will be assigned zero on code paths that return
+     normally.
+
+     Typically this is a call-clobbered hard register that is otherwise
+     untouched by the epilogue, but could also be a stack slot.
+
+     Do not define this macro if the stack pointer is saved and restored
+     by the regular prolog and epilog code in the call frame itself; in
+     this case, the exception handling library routines will update the
+     stack location to be restored in place.  Otherwise, you must define
+     this macro if you want to support call frame exception handling
+     like that provided by DWARF 2.
+
+ -- Macro: EH_RETURN_HANDLER_RTX
+     A C expression whose value is RTL representing a location in which
+     to store the address of an exception handler to which we should
+     return.  It will not be assigned on code paths that return
+     normally.
+
+     Typically this is the location in the call frame at which the
+     normal return address is stored.  For targets that return by
+     popping an address off the stack, this might be a memory address
+     just below the _target_ call frame rather than inside the current
+     call frame.  If defined, `EH_RETURN_STACKADJ_RTX' will have already
+     been assigned, so it may be used to calculate the location of the
+     target call frame.
+
+     Some targets have more complex requirements than storing to an
+     address calculable during initial code generation.  In that case
+     the `eh_return' instruction pattern should be used instead.
+
+     If you want to support call frame exception handling, you must
+     define either this macro or the `eh_return' instruction pattern.
+
+ -- Macro: RETURN_ADDR_OFFSET
+     If defined, an integer-valued C expression for which rtl will be
+     generated to add it to the exception handler address before it is
+     searched in the exception handling tables, and to subtract it
+     again from the address before using it to return to the exception
+     handler.
+
+ -- Macro: ASM_PREFERRED_EH_DATA_FORMAT (CODE, GLOBAL)
+     This macro chooses the encoding of pointers embedded in the
+     exception handling sections.  If at all possible, this should be
+     defined such that the exception handling section will not require
+     dynamic relocations, and so may be read-only.
+
+     CODE is 0 for data, 1 for code labels, 2 for function pointers.
+     GLOBAL is true if the symbol may be affected by dynamic
+     relocations.  The macro should return a combination of the
+     `DW_EH_PE_*' defines as found in `dwarf2.h'.
+
+     If this macro is not defined, pointers will not be encoded but
+     represented directly.
+
+ -- Macro: ASM_MAYBE_OUTPUT_ENCODED_ADDR_RTX (FILE, ENCODING, SIZE,
+          ADDR, DONE)
+     This macro allows the target to emit whatever special magic is
+     required to represent the encoding chosen by
+     `ASM_PREFERRED_EH_DATA_FORMAT'.  Generic code takes care of
+     pc-relative and indirect encodings; this must be defined if the
+     target uses text-relative or data-relative encodings.
+
+     This is a C statement that branches to DONE if the format was
+     handled.  ENCODING is the format chosen, SIZE is the number of
+     bytes that the format occupies, ADDR is the `SYMBOL_REF' to be
+     emitted.
+
+ -- Macro: MD_UNWIND_SUPPORT
+     A string specifying a file to be #include'd in unwind-dw2.c.  The
+     file so included typically defines `MD_FALLBACK_FRAME_STATE_FOR'.
+
+ -- Macro: MD_FALLBACK_FRAME_STATE_FOR (CONTEXT, FS)
+     This macro allows the target to add CPU and operating system
+     specific code to the call-frame unwinder for use when there is no
+     unwind data available.  The most common reason to implement this
+     macro is to unwind through signal frames.
+
+     This macro is called from `uw_frame_state_for' in `unwind-dw2.c',
+     `unwind-dw2-xtensa.c' and `unwind-ia64.c'.  CONTEXT is an
+     `_Unwind_Context'; FS is an `_Unwind_FrameState'.  Examine
+     `context->ra' for the address of the code being executed and
+     `context->cfa' for the stack pointer value.  If the frame can be
+     decoded, the register save addresses should be updated in FS and
+     the macro should evaluate to `_URC_NO_REASON'.  If the frame
+     cannot be decoded, the macro should evaluate to
+     `_URC_END_OF_STACK'.
+
+     For proper signal handling in Java this macro is accompanied by
+     `MAKE_THROW_FRAME', defined in `libjava/include/*-signal.h'
+     headers.
+
+ -- Macro: MD_HANDLE_UNWABI (CONTEXT, FS)
+     This macro allows the target to add operating system specific code
+     to the call-frame unwinder to handle the IA-64 `.unwabi' unwinding
+     directive, usually used for signal or interrupt frames.
+
+     This macro is called from `uw_update_context' in `unwind-ia64.c'.
+     CONTEXT is an `_Unwind_Context'; FS is an `_Unwind_FrameState'.
+     Examine `fs->unwabi' for the abi and context in the `.unwabi'
+     directive.  If the `.unwabi' directive can be handled, the
+     register save addresses should be updated in FS.
+
+ -- Macro: TARGET_USES_WEAK_UNWIND_INFO
+     A C expression that evaluates to true if the target requires unwind
+     info to be given comdat linkage.  Define it to be `1' if comdat
+     linkage is necessary.  The default is `0'.
+
+
+File: gccint.info,  Node: Stack Checking,  Next: Frame Registers,  Prev: Exception Handling,  Up: Stack and Calling
+
+15.10.3 Specifying How Stack Checking is Done
+---------------------------------------------
+
+GCC will check that stack references are within the boundaries of the
+stack, if the `-fstack-check' is specified, in one of three ways:
+
+  1. If the value of the `STACK_CHECK_BUILTIN' macro is nonzero, GCC
+     will assume that you have arranged for stack checking to be done at
+     appropriate places in the configuration files, e.g., in
+     `TARGET_ASM_FUNCTION_PROLOGUE'.  GCC will do not other special
+     processing.
+
+  2. If `STACK_CHECK_BUILTIN' is zero and you defined a named pattern
+     called `check_stack' in your `md' file, GCC will call that pattern
+     with one argument which is the address to compare the stack value
+     against.  You must arrange for this pattern to report an error if
+     the stack pointer is out of range.
+
+  3. If neither of the above are true, GCC will generate code to
+     periodically "probe" the stack pointer using the values of the
+     macros defined below.
+
+ Normally, you will use the default values of these macros, so GCC will
+use the third approach.
+
+ -- Macro: STACK_CHECK_BUILTIN
+     A nonzero value if stack checking is done by the configuration
+     files in a machine-dependent manner.  You should define this macro
+     if stack checking is require by the ABI of your machine or if you
+     would like to have to stack checking in some more efficient way
+     than GCC's portable approach.  The default value of this macro is
+     zero.
+
+ -- Macro: STACK_CHECK_PROBE_INTERVAL
+     An integer representing the interval at which GCC must generate
+     stack probe instructions.  You will normally define this macro to
+     be no larger than the size of the "guard pages" at the end of a
+     stack area.  The default value of 4096 is suitable for most
+     systems.
+
+ -- Macro: STACK_CHECK_PROBE_LOAD
+     A integer which is nonzero if GCC should perform the stack probe
+     as a load instruction and zero if GCC should use a store
+     instruction.  The default is zero, which is the most efficient
+     choice on most systems.
+
+ -- Macro: STACK_CHECK_PROTECT
+     The number of bytes of stack needed to recover from a stack
+     overflow, for languages where such a recovery is supported.  The
+     default value of 75 words should be adequate for most machines.
+
+ -- Macro: STACK_CHECK_MAX_FRAME_SIZE
+     The maximum size of a stack frame, in bytes.  GCC will generate
+     probe instructions in non-leaf functions to ensure at least this
+     many bytes of stack are available.  If a stack frame is larger
+     than this size, stack checking will not be reliable and GCC will
+     issue a warning.  The default is chosen so that GCC only generates
+     one instruction on most systems.  You should normally not change
+     the default value of this macro.
+
+ -- Macro: STACK_CHECK_FIXED_FRAME_SIZE
+     GCC uses this value to generate the above warning message.  It
+     represents the amount of fixed frame used by a function, not
+     including space for any callee-saved registers, temporaries and
+     user variables.  You need only specify an upper bound for this
+     amount and will normally use the default of four words.
+
+ -- Macro: STACK_CHECK_MAX_VAR_SIZE
+     The maximum size, in bytes, of an object that GCC will place in the
+     fixed area of the stack frame when the user specifies
+     `-fstack-check'.  GCC computed the default from the values of the
+     above macros and you will normally not need to override that
+     default.
+
+
+File: gccint.info,  Node: Frame Registers,  Next: Elimination,  Prev: Stack Checking,  Up: Stack and Calling
+
+15.10.4 Registers That Address the Stack Frame
+----------------------------------------------
+
+This discusses registers that address the stack frame.
+
+ -- Macro: STACK_POINTER_REGNUM
+     The register number of the stack pointer register, which must also
+     be a fixed register according to `FIXED_REGISTERS'.  On most
+     machines, the hardware determines which register this is.
+
+ -- Macro: FRAME_POINTER_REGNUM
+     The register number of the frame pointer register, which is used to
+     access automatic variables in the stack frame.  On some machines,
+     the hardware determines which register this is.  On other
+     machines, you can choose any register you wish for this purpose.
+
+ -- Macro: HARD_FRAME_POINTER_REGNUM
+     On some machines the offset between the frame pointer and starting
+     offset of the automatic variables is not known until after register
+     allocation has been done (for example, because the saved registers
+     are between these two locations).  On those machines, define
+     `FRAME_POINTER_REGNUM' the number of a special, fixed register to
+     be used internally until the offset is known, and define
+     `HARD_FRAME_POINTER_REGNUM' to be the actual hard register number
+     used for the frame pointer.
+
+     You should define this macro only in the very rare circumstances
+     when it is not possible to calculate the offset between the frame
+     pointer and the automatic variables until after register
+     allocation has been completed.  When this macro is defined, you
+     must also indicate in your definition of `ELIMINABLE_REGS' how to
+     eliminate `FRAME_POINTER_REGNUM' into either
+     `HARD_FRAME_POINTER_REGNUM' or `STACK_POINTER_REGNUM'.
+
+     Do not define this macro if it would be the same as
+     `FRAME_POINTER_REGNUM'.
+
+ -- Macro: ARG_POINTER_REGNUM
+     The register number of the arg pointer register, which is used to
+     access the function's argument list.  On some machines, this is
+     the same as the frame pointer register.  On some machines, the
+     hardware determines which register this is.  On other machines,
+     you can choose any register you wish for this purpose.  If this is
+     not the same register as the frame pointer register, then you must
+     mark it as a fixed register according to `FIXED_REGISTERS', or
+     arrange to be able to eliminate it (*note Elimination::).
+
+ -- Macro: RETURN_ADDRESS_POINTER_REGNUM
+     The register number of the return address pointer register, which
+     is used to access the current function's return address from the
+     stack.  On some machines, the return address is not at a fixed
+     offset from the frame pointer or stack pointer or argument
+     pointer.  This register can be defined to point to the return
+     address on the stack, and then be converted by `ELIMINABLE_REGS'
+     into either the frame pointer or stack pointer.
+
+     Do not define this macro unless there is no other way to get the
+     return address from the stack.
+
+ -- Macro: STATIC_CHAIN_REGNUM
+ -- Macro: STATIC_CHAIN_INCOMING_REGNUM
+     Register numbers used for passing a function's static chain
+     pointer.  If register windows are used, the register number as
+     seen by the called function is `STATIC_CHAIN_INCOMING_REGNUM',
+     while the register number as seen by the calling function is
+     `STATIC_CHAIN_REGNUM'.  If these registers are the same,
+     `STATIC_CHAIN_INCOMING_REGNUM' need not be defined.
+
+     The static chain register need not be a fixed register.
+
+     If the static chain is passed in memory, these macros should not be
+     defined; instead, the next two macros should be defined.
+
+ -- Macro: STATIC_CHAIN
+ -- Macro: STATIC_CHAIN_INCOMING
+     If the static chain is passed in memory, these macros provide rtx
+     giving `mem' expressions that denote where they are stored.
+     `STATIC_CHAIN' and `STATIC_CHAIN_INCOMING' give the locations as
+     seen by the calling and called functions, respectively.  Often the
+     former will be at an offset from the stack pointer and the latter
+     at an offset from the frame pointer.
+
+     The variables `stack_pointer_rtx', `frame_pointer_rtx', and
+     `arg_pointer_rtx' will have been initialized prior to the use of
+     these macros and should be used to refer to those items.
+
+     If the static chain is passed in a register, the two previous
+     macros should be defined instead.
+
+ -- Macro: DWARF_FRAME_REGISTERS
+     This macro specifies the maximum number of hard registers that can
+     be saved in a call frame.  This is used to size data structures
+     used in DWARF2 exception handling.
+
+     Prior to GCC 3.0, this macro was needed in order to establish a
+     stable exception handling ABI in the face of adding new hard
+     registers for ISA extensions.  In GCC 3.0 and later, the EH ABI is
+     insulated from changes in the number of hard registers.
+     Nevertheless, this macro can still be used to reduce the runtime
+     memory requirements of the exception handling routines, which can
+     be substantial if the ISA contains a lot of registers that are not
+     call-saved.
+
+     If this macro is not defined, it defaults to
+     `FIRST_PSEUDO_REGISTER'.
+
+ -- Macro: PRE_GCC3_DWARF_FRAME_REGISTERS
+     This macro is similar to `DWARF_FRAME_REGISTERS', but is provided
+     for backward compatibility in pre GCC 3.0 compiled code.
+
+     If this macro is not defined, it defaults to
+     `DWARF_FRAME_REGISTERS'.
+
+ -- Macro: DWARF_REG_TO_UNWIND_COLUMN (REGNO)
+     Define this macro if the target's representation for dwarf
+     registers is different than the internal representation for unwind
+     column.  Given a dwarf register, this macro should return the
+     internal unwind column number to use instead.
+
+     See the PowerPC's SPE target for an example.
+
+ -- Macro: DWARF_FRAME_REGNUM (REGNO)
+     Define this macro if the target's representation for dwarf
+     registers used in .eh_frame or .debug_frame is different from that
+     used in other debug info sections.  Given a GCC hard register
+     number, this macro should return the .eh_frame register number.
+     The default is `DBX_REGISTER_NUMBER (REGNO)'.
+
+
+ -- Macro: DWARF2_FRAME_REG_OUT (REGNO, FOR_EH)
+     Define this macro to map register numbers held in the call frame
+     info that GCC has collected using `DWARF_FRAME_REGNUM' to those
+     that should be output in .debug_frame (`FOR_EH' is zero) and
+     .eh_frame (`FOR_EH' is nonzero).  The default is to return `REGNO'.
+
+
+
+File: gccint.info,  Node: Elimination,  Next: Stack Arguments,  Prev: Frame Registers,  Up: Stack and Calling
+
+15.10.5 Eliminating Frame Pointer and Arg Pointer
+-------------------------------------------------
+
+This is about eliminating the frame pointer and arg pointer.
+
+ -- Macro: FRAME_POINTER_REQUIRED
+     A C expression which is nonzero if a function must have and use a
+     frame pointer.  This expression is evaluated  in the reload pass.
+     If its value is nonzero the function will have a frame pointer.
+
+     The expression can in principle examine the current function and
+     decide according to the facts, but on most machines the constant 0
+     or the constant 1 suffices.  Use 0 when the machine allows code to
+     be generated with no frame pointer, and doing so saves some time
+     or space.  Use 1 when there is no possible advantage to avoiding a
+     frame pointer.
+
+     In certain cases, the compiler does not know how to produce valid
+     code without a frame pointer.  The compiler recognizes those cases
+     and automatically gives the function a frame pointer regardless of
+     what `FRAME_POINTER_REQUIRED' says.  You don't need to worry about
+     them.
+
+     In a function that does not require a frame pointer, the frame
+     pointer register can be allocated for ordinary usage, unless you
+     mark it as a fixed register.  See `FIXED_REGISTERS' for more
+     information.
+
+ -- Macro: INITIAL_FRAME_POINTER_OFFSET (DEPTH-VAR)
+     A C statement to store in the variable DEPTH-VAR the difference
+     between the frame pointer and the stack pointer values immediately
+     after the function prologue.  The value would be computed from
+     information such as the result of `get_frame_size ()' and the
+     tables of registers `regs_ever_live' and `call_used_regs'.
+
+     If `ELIMINABLE_REGS' is defined, this macro will be not be used and
+     need not be defined.  Otherwise, it must be defined even if
+     `FRAME_POINTER_REQUIRED' is defined to always be true; in that
+     case, you may set DEPTH-VAR to anything.
+
+ -- Macro: ELIMINABLE_REGS
+     If defined, this macro specifies a table of register pairs used to
+     eliminate unneeded registers that point into the stack frame.  If
+     it is not defined, the only elimination attempted by the compiler
+     is to replace references to the frame pointer with references to
+     the stack pointer.
+
+     The definition of this macro is a list of structure
+     initializations, each of which specifies an original and
+     replacement register.
+
+     On some machines, the position of the argument pointer is not
+     known until the compilation is completed.  In such a case, a
+     separate hard register must be used for the argument pointer.
+     This register can be eliminated by replacing it with either the
+     frame pointer or the argument pointer, depending on whether or not
+     the frame pointer has been eliminated.
+
+     In this case, you might specify:
+          #define ELIMINABLE_REGS  \
+          {{ARG_POINTER_REGNUM, STACK_POINTER_REGNUM}, \
+           {ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM}, \
+           {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}}
+
+     Note that the elimination of the argument pointer with the stack
+     pointer is specified first since that is the preferred elimination.
+
+ -- Macro: CAN_ELIMINATE (FROM-REG, TO-REG)
+     A C expression that returns nonzero if the compiler is allowed to
+     try to replace register number FROM-REG with register number
+     TO-REG.  This macro need only be defined if `ELIMINABLE_REGS' is
+     defined, and will usually be the constant 1, since most of the
+     cases preventing register elimination are things that the compiler
+     already knows about.
+
+ -- Macro: INITIAL_ELIMINATION_OFFSET (FROM-REG, TO-REG, OFFSET-VAR)
+     This macro is similar to `INITIAL_FRAME_POINTER_OFFSET'.  It
+     specifies the initial difference between the specified pair of
+     registers.  This macro must be defined if `ELIMINABLE_REGS' is
+     defined.
+
+
+File: gccint.info,  Node: Stack Arguments,  Next: Register Arguments,  Prev: Elimination,  Up: Stack and Calling
+
+15.10.6 Passing Function Arguments on the Stack
+-----------------------------------------------
+
+The macros in this section control how arguments are passed on the
+stack.  See the following section for other macros that control passing
+certain arguments in registers.
+
+ -- Target Hook: bool TARGET_PROMOTE_PROTOTYPES (tree FNTYPE)
+     This target hook returns `true' if an argument declared in a
+     prototype as an integral type smaller than `int' should actually be
+     passed as an `int'.  In addition to avoiding errors in certain
+     cases of mismatch, it also makes for better code on certain
+     machines.  The default is to not promote prototypes.
+
+ -- Macro: PUSH_ARGS
+     A C expression.  If nonzero, push insns will be used to pass
+     outgoing arguments.  If the target machine does not have a push
+     instruction, set it to zero.  That directs GCC to use an alternate
+     strategy: to allocate the entire argument block and then store the
+     arguments into it.  When `PUSH_ARGS' is nonzero, `PUSH_ROUNDING'
+     must be defined too.
+
+ -- Macro: PUSH_ARGS_REVERSED
+     A C expression.  If nonzero, function arguments will be evaluated
+     from last to first, rather than from first to last.  If this macro
+     is not defined, it defaults to `PUSH_ARGS' on targets where the
+     stack and args grow in opposite directions, and 0 otherwise.
+
+ -- Macro: PUSH_ROUNDING (NPUSHED)
+     A C expression that is the number of bytes actually pushed onto the
+     stack when an instruction attempts to push NPUSHED bytes.
+
+     On some machines, the definition
+
+          #define PUSH_ROUNDING(BYTES) (BYTES)
+
+     will suffice.  But on other machines, instructions that appear to
+     push one byte actually push two bytes in an attempt to maintain
+     alignment.  Then the definition should be
+
+          #define PUSH_ROUNDING(BYTES) (((BYTES) + 1) & ~1)
+
+ -- Macro: ACCUMULATE_OUTGOING_ARGS
+     A C expression.  If nonzero, the maximum amount of space required
+     for outgoing arguments will be computed and placed into the
+     variable `current_function_outgoing_args_size'.  No space will be
+     pushed onto the stack for each call; instead, the function
+     prologue should increase the stack frame size by this amount.
+
+     Setting both `PUSH_ARGS' and `ACCUMULATE_OUTGOING_ARGS' is not
+     proper.
+
+ -- Macro: REG_PARM_STACK_SPACE (FNDECL)
+     Define this macro if functions should assume that stack space has
+     been allocated for arguments even when their values are passed in
+     registers.
+
+     The value of this macro is the size, in bytes, of the area
+     reserved for arguments passed in registers for the function
+     represented by FNDECL, which can be zero if GCC is calling a
+     library function.
+
+     This space can be allocated by the caller, or be a part of the
+     machine-dependent stack frame: `OUTGOING_REG_PARM_STACK_SPACE' says
+     which.
+
+ -- Macro: OUTGOING_REG_PARM_STACK_SPACE
+     Define this to a nonzero value if it is the responsibility of the
+     caller to allocate the area reserved for arguments passed in
+     registers.
+
+     If `ACCUMULATE_OUTGOING_ARGS' is defined, this macro controls
+     whether the space for these arguments counts in the value of
+     `current_function_outgoing_args_size'.
+
+ -- Macro: STACK_PARMS_IN_REG_PARM_AREA
+     Define this macro if `REG_PARM_STACK_SPACE' is defined, but the
+     stack parameters don't skip the area specified by it.
+
+     Normally, when a parameter is not passed in registers, it is
+     placed on the stack beyond the `REG_PARM_STACK_SPACE' area.
+     Defining this macro suppresses this behavior and causes the
+     parameter to be passed on the stack in its natural location.
+
+ -- Macro: RETURN_POPS_ARGS (FUNDECL, FUNTYPE, STACK-SIZE)
+     A C expression that should indicate the number of bytes of its own
+     arguments that a function pops on returning, or 0 if the function
+     pops no arguments and the caller must therefore pop them all after
+     the function returns.
+
+     FUNDECL is a C variable whose value is a tree node that describes
+     the function in question.  Normally it is a node of type
+     `FUNCTION_DECL' that describes the declaration of the function.
+     From this you can obtain the `DECL_ATTRIBUTES' of the function.
+
+     FUNTYPE is a C variable whose value is a tree node that describes
+     the function in question.  Normally it is a node of type
+     `FUNCTION_TYPE' that describes the data type of the function.
+     From this it is possible to obtain the data types of the value and
+     arguments (if known).
+
+     When a call to a library function is being considered, FUNDECL
+     will contain an identifier node for the library function.  Thus, if
+     you need to distinguish among various library functions, you can
+     do so by their names.  Note that "library function" in this
+     context means a function used to perform arithmetic, whose name is
+     known specially in the compiler and was not mentioned in the C
+     code being compiled.
+
+     STACK-SIZE is the number of bytes of arguments passed on the
+     stack.  If a variable number of bytes is passed, it is zero, and
+     argument popping will always be the responsibility of the calling
+     function.
+
+     On the VAX, all functions always pop their arguments, so the
+     definition of this macro is STACK-SIZE.  On the 68000, using the
+     standard calling convention, no functions pop their arguments, so
+     the value of the macro is always 0 in this case.  But an
+     alternative calling convention is available in which functions
+     that take a fixed number of arguments pop them but other functions
+     (such as `printf') pop nothing (the caller pops all).  When this
+     convention is in use, FUNTYPE is examined to determine whether a
+     function takes a fixed number of arguments.
+
+ -- Macro: CALL_POPS_ARGS (CUM)
+     A C expression that should indicate the number of bytes a call
+     sequence pops off the stack.  It is added to the value of
+     `RETURN_POPS_ARGS' when compiling a function call.
+
+     CUM is the variable in which all arguments to the called function
+     have been accumulated.
+
+     On certain architectures, such as the SH5, a call trampoline is
+     used that pops certain registers off the stack, depending on the
+     arguments that have been passed to the function.  Since this is a
+     property of the call site, not of the called function,
+     `RETURN_POPS_ARGS' is not appropriate.
+
+
+File: gccint.info,  Node: Register Arguments,  Next: Scalar Return,  Prev: Stack Arguments,  Up: Stack and Calling
+
+15.10.7 Passing Arguments in Registers
+--------------------------------------
+
+This section describes the macros which let you control how various
+types of arguments are passed in registers or how they are arranged in
+the stack.
+
+ -- Macro: FUNCTION_ARG (CUM, MODE, TYPE, NAMED)
+     A C expression that controls whether a function argument is passed
+     in a register, and which register.
+
+     The arguments are CUM, which summarizes all the previous
+     arguments; MODE, the machine mode of the argument; TYPE, the data
+     type of the argument as a t
